@@ -1,0 +1,14 @@
+{
+  "name": "venture-coop-game",
+  "version": "1.0.0",
+  "description": "A co-op card-based RPG.",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}
