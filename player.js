@@ -422,6 +422,19 @@ export function resetToHomeState() {
     gameState.turnState.isPlayerTurn = true;
     gameState.inDuel = false;
     gameState.duelState = null;
+
+    // --- THIS IS THE FIX ---
+    // A regular party persists after an adventure, but a temporary solo party does not.
+    // The server handles cleaning up the solo party object and sends a partyUpdate(null)
+    // message. However, to prevent client-side issues from network lag, we also
+    // explicitly clear the temporary party ID here.
+    if (gameState.partyId && gameState.partyId.startsWith('SOLO-')) {
+        gameState.partyId = null;
+        gameState.isPartyLeader = false;
+        gameState.partyMembers = [];
+    }
+    // ----------------------
+    
     Interactions.clearSelection();
     document.getElementById('end-turn-btn').disabled = false;
     UI.hideModal();
