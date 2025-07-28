@@ -35,7 +35,7 @@ function initGame() {
     });
     UI.showCharacterSelectScreen();
 
-	 setInterval(() => Network.autoSave(gameState), 30000);
+    // The old auto-save setInterval is now removed.
 }
 
 // --- NETWORK HANDLERS ---
@@ -51,7 +51,6 @@ function handleCharacterUpdate(serverState) {
     console.log('Received character update from server.');
     const wasInParty = gameState.partyId;
 
-    // Preserve critical session state that might not be included in a partial character update from the server.
     const preservedSession = {
         currentZone: gameState.currentZone,
         inDuel: gameState.inDuel,
@@ -60,11 +59,8 @@ function handleCharacterUpdate(serverState) {
         partyMemberStates: gameState.partyMemberStates
     };
 
-    // Apply the new base character state from the server. This updates things like inventory, gold, quests etc.
     Object.assign(gameState, serverState);
 
-    // If the client was in a session before the update, restore the session state.
-    // This prevents a partial update (like getting loot) from ending the adventure.
     if (preservedSession.currentZone || preservedSession.inDuel) {
         gameState.currentZone = preservedSession.currentZone;
         gameState.inDuel = preservedSession.inDuel;
@@ -72,7 +68,6 @@ function handleCharacterUpdate(serverState) {
         gameState.zoneCards = preservedSession.zoneCards;
         gameState.partyMemberStates = preservedSession.partyMemberStates;
     } else {
-        // If not in a session, ensure state is clean, as this is a full load.
         gameState.inDuel = false;
         gameState.duelState = null;
         gameState.currentZone = null;
@@ -170,8 +165,6 @@ function handleDuelStart(duelState) {
     gameState.inDuel = true;
     gameState.duelState = duelState;
     
-    // FIX: A duel is a special activity that takes place outside of any PvE zone.
-    // Setting currentZone to null ensures the "Return Home" logic will work correctly after the duel.
     gameState.currentZone = null;
 
     Player.resetPlayerCombatState();
@@ -289,18 +282,6 @@ function finalizeCharacterCreation(slotIndex) {
     Network.emitRegisterPlayer(gameState);
     UI.showModal('<h2>Creating character...</h2>');
 }
-function saveGame() {
-    if (!gameState || !gameState.characterName) {
-        UI.showInfoModal("No character loaded to save.");
-        return;
-    }
-    if (activeSlotIndex === null) {
-        UI.showInfoModal("Error: No active character slot. Cannot save.");
-        return;
-    }
-    Network.emitUpdateCharacter(gameState);
-    UI.showInfoModal("Game Saved!");
-}
 
 // --- EVENT LISTENERS ---
 function addEventListeners() {
@@ -345,7 +326,6 @@ function addEventListeners() {
             target.closest('.icon-option').classList.add('selected');
             return;
         }
-        if (target.closest('#save-game-btn')) return saveGame();
 
         // Adventure Controls
         if (target.closest('#backpack-btn')) return UI.showBackpack();
@@ -365,10 +345,7 @@ function addEventListeners() {
                     UI.showInfoModal("Only the party leader can start an adventure.");
                     return;
                 }
-                // --- THIS IS THE FIX ---
-                // Send the current game state to the server when entering a zone to ensure it's saved.
                 Network.emitPartyEnterZone(zoneName, gameState);
-                // ----------------------
             };
 
             if (zoneName === 'arena') {
@@ -440,8 +417,7 @@ function addEventListeners() {
 
             if (button.dataset.inventoryAction) {
                 const index = parseInt(button.dataset.index, 10);
-                if (button.dataset.inventoryAction === 'use') Player.useItemFromInventory(index);
-                else if (button.dataset.inventoryAction === 'drop') Player.dropItem(index);
+                Player.handleItemAction(button.dataset.inventoryAction, index);
                 return;
             }
             if (button.dataset.spellAction) {
@@ -480,10 +456,7 @@ function addEventListeners() {
     });
 
     document.body.addEventListener('enter-zone', (e) => {
-        // --- THIS IS THE FIX ---
-        // Also pass the gameState here for consistency.
         Network.emitPartyEnterZone(e.detail.zoneName, gameState);
-        // ----------------------
     });
 
     document.addEventListener('mousemove', (e) => {

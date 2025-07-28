@@ -209,6 +209,47 @@ function addItemToInventoryServer(character, itemData, quantity = 1) {
     return true;
 }
 
+function playerHasMaterials(character, materials) {
+    for (const material in materials) {
+        const requiredCount = materials[material];
+        let currentCount = 0;
+        character.inventory.forEach(item => {
+            if (item && item.name === material) currentCount += (item.quantity || 1);
+        });
+        character.bank.forEach(item => {
+            if (item && item.name === material) currentCount += (item.quantity || 1);
+        });
+        if (currentCount < requiredCount) return false;
+    }
+    return true;
+}
+
+function consumeMaterials(character, materials) {
+    for (const material in materials) {
+        let requiredCount = materials[material];
+        for (let i = 0; i < character.inventory.length && requiredCount > 0; i++) {
+            const item = character.inventory[i];
+            if (item && item.name === material) {
+                const toConsume = Math.min(requiredCount, item.quantity || 1);
+                item.quantity -= toConsume;
+                requiredCount -= toConsume;
+                if (item.quantity <= 0) character.inventory[i] = null;
+            }
+        }
+        if (requiredCount > 0) {
+             for (let i = character.bank.length - 1; i >= 0 && requiredCount > 0; i--) {
+                const item = character.bank[i];
+                if (item && item.name === material) {
+                    const toConsume = Math.min(requiredCount, item.quantity || 1);
+                    item.quantity -= toConsume;
+                    requiredCount -= toConsume;
+                    if (item.quantity <= 0) character.bank.splice(i, 1);
+                }
+            }
+        }
+    }
+}
+
 function defeatEnemyInParty(party, enemy, enemyIndex) {
     const { sharedState } = party;
     sharedState.log.push({ message: `${enemy.name} has been defeated!`, type: 'success' });
@@ -677,7 +718,6 @@ function processInteractWithCard(player, party, payload) {
             sharedState.log.push({ message: `${card.name} has been depleted.`, type: 'info' });
             sharedState.zoneCards[cardIndex] = null;
         }
-        // No return statement here, so the adventure update will be broadcast
     }
     
     else if (card.type === 'enemy') {
@@ -1106,9 +1146,7 @@ io.on('connection', (socket) => {
         const name = socket.characterName;
         if (name && players[name]) {
             players[name].character = characterData;
-            if (players[name].id) {
-                 socket.emit('characterUpdate', players[name].character);
-            }
+            // No need to emit back, this is the new save mechanism
         }
     });
 
@@ -1119,7 +1157,8 @@ io.on('connection', (socket) => {
         const partyId = `PARTY-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
         parties[partyId] = { id: partyId, leaderId: name, members: [name], sharedState: null, isSoloParty: false };
         players[name].character.partyId = partyId;
-
+        
+        socket.emit('characterUpdate', players[name].character);
         console.log(`Player ${name} created party ${partyId}`);
         broadcastPartyUpdate(partyId);
         broadcastOnlinePlayers();
@@ -1148,6 +1187,8 @@ io.on('connection', (socket) => {
         if (party.members.length >= 3) return socket.emit('partyError', 'Party is full.');
         party.members.push(name);
         player.character.partyId = partyId;
+
+        socket.emit('characterUpdate', player.character);
         console.log(`Player ${name} joined party ${partyId}`);
         broadcastPartyUpdate(partyId);
         broadcastOnlinePlayers();
@@ -1158,12 +1199,9 @@ io.on('connection', (socket) => {
         const player = players[name];
         if (!player) return;
         
-        // --- THIS IS THE FIX for saving ---
-        // Update the server's version of the character with the latest from the client.
         if (characterData) {
             players[name].character = characterData;
         }
-        // ----------------------------------
         
         if (player.character.duelId && duels[player.character.duelId]) {
             return; 
@@ -1276,7 +1314,7 @@ io.on('connection', (socket) => {
                 break;
             case 'dialogueChoice':
                 processDialogueChoice(player, party, action.payload);
-                break;
+                break; 
             case 'lootPlayer':
                 processLootPlayer(player, party, action.payload);
                 break;
@@ -1307,6 +1345,8 @@ io.on('connection', (socket) => {
         const party = parties[partyId];
         party.members = party.members.filter(memberName => memberName !== name);
         players[name].character.partyId = null;
+        
+        socket.emit('characterUpdate', players[name].character);
         console.log(`Player ${name} left party ${partyId}`);
 
         if (party.members.length === 0) {
@@ -1319,8 +1359,73 @@ io.on('connection', (socket) => {
             }
             broadcastPartyUpdate(partyId);
         }
-        socket.emit('partyUpdate', null);
+        
         broadcastOnlinePlayers();
+    });
+
+    // --- NEW: Master handler for all non-adventure player actions ---
+    socket.on('playerAction', (action) => {
+        const name = socket.characterName;
+        const player = players[name];
+        if (!player || player.character.currentZone || player.character.inDuel) return;
+        const character = player.character;
+        const { type, payload } = action;
+
+        let success = false; // Flag to check if an action successfully changed the state
+
+        switch(type) {
+            case 'buyItem':
+                {
+                    const { identifier, isPermanent } = payload;
+                    const stockItem = isPermanent ? null : character.merchantStock[identifier];
+                    const itemData = isPermanent ? gameData.allItems.find(i => i.name === identifier) : stockItem;
+                    if (itemData && character.gold >= itemData.price) {
+                        if(addItemToInventoryServer(character, { ...itemData })) {
+                            character.gold -= itemData.price;
+                            if (!isPermanent && stockItem) stockItem.quantity--;
+                            success = true;
+                        }
+                    }
+                }
+                break;
+            case 'sellItem':
+                {
+                    const item = character.inventory[payload.itemIndex];
+                    if(item) {
+                        const sellPrice = Math.floor(item.price / 2) || 1;
+                        character.gold += sellPrice;
+                        item.quantity = (item.quantity || 1) - 1;
+                        if (item.quantity <= 0) character.inventory[payload.itemIndex] = null;
+                        success = true;
+                    }
+                }
+                break;
+            case 'craftItem':
+                {
+                    const recipe = gameData.craftingRecipes[payload.recipeIndex];
+                    if (recipe && playerHasMaterials(character, recipe.materials)) {
+                        consumeMaterials(character, recipe.materials);
+                        const baseItem = gameData.allItems.find(i => i.name === recipe.result.name);
+                        addItemToInventoryServer(character, baseItem, recipe.result.quantity || 1);
+                        success = true;
+                    }
+                }
+                break;
+            case 'buySpell':
+                {
+                    const spell = gameData.allSpells.find(s => s.name === payload.spellName && s.price > 0);
+                    if (spell && character.gold >= spell.price) {
+                        character.gold -= spell.price;
+                        character.spellbook.push({...spell});
+                        success = true;
+                    }
+                }
+                break;
+        }
+
+        if (success) {
+            socket.emit('characterUpdate', character);
+        }
     });
     
     // --- DUEL HANDLERS ---
@@ -1397,7 +1502,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('duel:playerAction', (action) => {
-        try { // FIX: Wrap the entire handler in a try...catch to prevent server crashes.
+        try {
             const playerName = socket.characterName;
             const player = players[playerName];
             if (!player || !player.character.duelId) return;
@@ -1475,7 +1580,6 @@ io.on('connection', (socket) => {
                 }
             }
 
-            // FIX: Implement missing item and ability usage in duels.
             if (action.type === 'useItemAbility') {
                 const item = actingCharacter.equipment[action.payload.slot];
                 const ability = item?.activatedAbility;

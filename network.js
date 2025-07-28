@@ -40,8 +40,10 @@ export function initSocketListeners(handlers) {
 }
 
 // --- EMITTER FUNCTIONS ---
-// These functions wrap socket.emit calls to provide a clean API
-// for other modules to interact with the server.
+
+export function emitPlayerAction(type, payload) {
+    socket.emit('playerAction', { type, payload });
+}
 
 export function emitRegisterPlayer(characterData) {
     socket.emit('registerPlayer', characterData);
@@ -89,35 +91,4 @@ export function emitDuelAccept(challengerId) {
 
 export function emitDuelAction(action) {
     socket.emit('duel:playerAction', action);
-}
-
-
-export function autoSave(gameState) {
-    if (!socket.connected || !gameState || !gameState.characterName) {
-        console.log("Auto-save prevented: No character loaded or not connected.");
-        return;
-    }
-
-    // FIX: Do not auto-save while the player is in a server-managed state.
-    // This prevents the client's state from overwriting critical server data
-    // like a `duelId` or `partyId` during an active session.
-    if (gameState.inDuel || gameState.currentZone) {
-        console.log("Auto-save deferred: Player is in an active duel or adventure.");
-        return;
-    }
-    
-    // Create a copy of the state to avoid modifying the original object
-    const stateToSave = { ...gameState };
-
-    // Delete temporary, session-specific properties that should not be saved
-    delete stateToSave.currentZone;
-    delete stateToSave.zoneCards;
-    delete stateToSave.zoneDeck;
-    delete stateToSave.partyMemberStates; 
-    delete stateToSave.turnState;
-    delete stateToSave.inDuel;
-    delete stateToSave.duelState;
-    
-    socket.emit('updateCharacter', stateToSave);
-    console.log("Game auto-saved.");
 }
