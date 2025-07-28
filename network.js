@@ -7,13 +7,7 @@
  * and provides methods for sending data to the server.
  */
 
-export const socket = io({
-    reconnection: true,
-    reconnectionAttempts: Infinity,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    randomizationFactor: 0.5
-});
+export const socket = io('https://venturecrpg.onrender.com');
 
 /**
  * Initializes all the listeners for events coming from the server.
