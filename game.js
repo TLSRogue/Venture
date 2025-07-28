@@ -88,9 +88,10 @@ function handleCharacterUpdate(serverState) {
         UI.renderPartyManagement(null);
     }
 
-    if (!gameState.currentZone && !gameState.inDuel) {
-        UI.showTab('home');
-    }
+    // This block was removed as it was causing the bug.
+    // if (!gameState.currentZone && !gameState.inDuel) {
+    //     UI.showTab('home');
+    // }
 }
 
 

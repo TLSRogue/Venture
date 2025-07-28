@@ -1367,7 +1367,7 @@ io.on('connection', (socket) => {
     socket.on('playerAction', (action) => {
         const name = socket.characterName;
         const player = players[name];
-        if (!player || player.character.currentZone || player.character.inDuel) return;
+        if (!player || (player.character.partyId && parties[player.character.partyId]?.sharedState) || player.character.inDuel) return;
         const character = player.character;
         const { type, payload } = action;
 
@@ -1419,6 +1419,86 @@ io.on('connection', (socket) => {
                         character.spellbook.push({...spell});
                         success = true;
                     }
+                }
+                break;
+            case 'equipItem':
+                {
+                    const { itemIndex, chosenSlot } = payload;
+                    const itemToEquip = character.inventory[itemIndex];
+                    if (!itemToEquip || !itemToEquip.slot) break;
+            
+                    const canEquipInSlot = Array.isArray(itemToEquip.slot) ? itemToEquip.slot.includes(chosenSlot) : itemToEquip.slot === chosenSlot;
+                    if (!canEquipInSlot) break;
+            
+                    const currentlyEquipped = character.equipment[chosenSlot];
+            
+                    if (itemToEquip.hands === 2) {
+                        const mainHandItem = character.equipment.mainHand;
+                        const offHandItem = character.equipment.offHand;
+                        const freeSlots = character.inventory.filter(i => !i).length;
+                        const slotsToFree = (mainHandItem ? 1 : 0) + (offHandItem && offHandItem !== mainHandItem ? 1 : 0);
+                        
+                        if (slotsToFree > freeSlots + 1) break; // Not enough space
+            
+                        character.inventory[itemIndex] = null;
+                        if (mainHandItem) addItemToInventoryServer(character, mainHandItem);
+                        if (offHandItem && offHandItem !== mainHandItem) addItemToInventoryServer(character, offHandItem);
+                        
+                        character.equipment.mainHand = itemToEquip;
+                        character.equipment.offHand = itemToEquip;
+            
+                    } else {
+                        character.equipment[chosenSlot] = itemToEquip;
+                        character.inventory[itemIndex] = currentlyEquipped; // Swap
+                        
+                        if (character.equipment.mainHand && character.equipment.mainHand.hands === 2 && chosenSlot !== 'mainHand') {
+                             character.equipment.mainHand = null;
+                             character.equipment.offHand = null;
+                             addItemToInventoryServer(character, character.equipment.mainHand);
+                             character.equipment.mainHand = itemToEquip;
+                        } else if (character.equipment.mainHand && character.equipment.mainHand.hands === 2 && chosenSlot === 'mainHand') {
+                            character.equipment.offHand = null;
+                        }
+                    }
+                    success = true;
+                }
+                break;
+            case 'unequipItem':
+                {
+                    const { slot } = payload;
+                    const itemToUnequip = character.equipment[slot];
+                    if (!itemToUnequip) break;
+                    
+                    if (addItemToInventoryServer(character, itemToUnequip)) {
+                        character.equipment[slot] = null;
+                        if (itemToUnequip.hands === 2) {
+                            character.equipment.offHand = null;
+                        }
+                        success = true;
+                    }
+                }
+                break;
+            case 'equipSpell':
+                {
+                    const { index } = payload;
+                    if (character.equippedSpells.length >= 5) break;
+                    const spellToEquip = character.spellbook[index];
+                    if (!spellToEquip) break;
+            
+                    character.equippedSpells.push(spellToEquip);
+                    character.spellbook.splice(index, 1);
+                    success = true;
+                }
+                break;
+            case 'unequipSpell':
+                {
+                    const { index } = payload;
+                    const spellToUnequip = character.equippedSpells[index];
+                    if (!spellToUnequip) break;
+            
+                    character.spellbook.push(spellToUnequip);
+                    character.equippedSpells.splice(index, 1);
+                    success = true;
                 }
                 break;
         }

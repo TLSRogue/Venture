@@ -176,6 +176,7 @@ export function resetToHomeState() {
     gameState.duelState = null;
 
     if (gameState.partyId && gameState.partyId.startsWith('SOLO-')) {
+        Network.emitLeaveParty();
         gameState.partyId = null;
         gameState.isPartyLeader = false;
         gameState.partyMembers = [];
