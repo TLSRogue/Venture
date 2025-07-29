@@ -177,6 +177,7 @@ function getBonusStatsForPlayer(character, playerState) {
 }
 
 function addItemToInventoryServer(character, itemData, quantity = 1) {
+    if (!itemData) return false; // Prevent crash if null item is passed
     const baseItem = gameData.allItems.find(i => i.name === itemData.name);
     if (!baseItem) return false;
 
@@ -1435,7 +1436,7 @@ io.on('connection', (socket) => {
                         const freeSlots = character.inventory.filter(i => !i).length;
                         const slotsToFree = (mainHandItem ? 1 : 0) + (offHandItem && offHandItem !== mainHandItem ? 1 : 0);
                         
-                        if (slotsToFree > freeSlots + 1) break; // Not enough space
+                        if (slotsToFree > freeSlots + 1) break;
             
                         character.inventory[itemIndex] = null;
                         if (mainHandItem) addItemToInventoryServer(character, mainHandItem);
@@ -1445,17 +1446,15 @@ io.on('connection', (socket) => {
                         character.equipment.offHand = itemToEquip;
             
                     } else {
-                        character.equipment[chosenSlot] = itemToEquip;
-                        character.inventory[itemIndex] = currentlyEquipped; // Swap
-                        
-                        if (character.equipment.mainHand && character.equipment.mainHand.hands === 2 && chosenSlot !== 'mainHand') {
-                             character.equipment.mainHand = null;
-                             character.equipment.offHand = null;
-                             addItemToInventoryServer(character, character.equipment.mainHand);
-                             character.equipment.mainHand = itemToEquip;
-                        } else if (character.equipment.mainHand && character.equipment.mainHand.hands === 2 && chosenSlot === 'mainHand') {
+                        if (character.equipment.mainHand && character.equipment.mainHand.hands === 2) {
+                            const twoHandedWeapon = character.equipment.mainHand;
+                            character.equipment.mainHand = null;
                             character.equipment.offHand = null;
+                            addItemToInventoryServer(character, twoHandedWeapon);
                         }
+                        
+                        character.equipment[chosenSlot] = itemToEquip;
+                        character.inventory[itemIndex] = currentlyEquipped;
                     }
                     success = true;
                 }
