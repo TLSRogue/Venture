@@ -42,12 +42,13 @@ function broadcastOnlinePlayers() {
     io.emit('onlinePlayersUpdate', onlinePlayers);
 }
 
+// --- MODIFIED SECTION ---
 function broadcastPartyUpdate(partyId) {
     if (parties[partyId]) {
         const party = parties[partyId];
-        if (party.isSoloParty) return;
 
-        const partyMembers = party.members.map(name => {
+        // This list is generated once and sent to everyone in the party.
+        const partyMembersForPayload = party.members.map(name => {
             const player = players[name];
             const isLeader = name === party.leaderId;
             const duelId = player?.character?.duelId;
@@ -60,18 +61,25 @@ function broadcastPartyUpdate(partyId) {
             };
         });
 
+        // We loop through each member to send them a customized payload.
         party.members.forEach(memberName => {
             const player = players[memberName];
             if (player && player.id && io.sockets.sockets.get(player.id)) {
+                // Determine if this specific member is the leader.
+                const isThisMemberLeader = party.leaderId === memberName;
+
+                // Send the update, now with the authoritative `isPartyLeader` flag.
                 io.to(player.id).emit('partyUpdate', {
                     partyId: partyId,
                     leaderId: party.leaderId,
-                    members: partyMembers
+                    members: partyMembersForPayload,
+                    isPartyLeader: isThisMemberLeader // Explicitly tell the client its status
                 });
             }
         });
     }
 }
+// --- END MODIFIED SECTION ---
 
 function broadcastAdventureUpdate(partyId) {
     const party = parties[partyId];
@@ -1218,7 +1226,7 @@ io.on('connection', (socket) => {
             party = { id: partyId, leaderId: name, members: [name], sharedState: null, isSoloParty: true };
             parties[partyId] = party;
             player.character.partyId = partyId;
-            socket.emit('partyUpdate', { partyId: partyId, leaderId: name, members: [{ name: name, id: socket.id, isLeader: true }] });
+            socket.emit('partyUpdate', { partyId: partyId, leaderId: name, members: [{ name: name, id: socket.id, isLeader: true }], isPartyLeader: true });
             console.log(`Player ${name} created temporary solo party ${partyId}`);
         }
         

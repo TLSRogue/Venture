@@ -34,8 +34,6 @@ function initGame() {
         onDuelEnd: handleDuelEnd,
     });
     UI.showCharacterSelectScreen();
-
-    // The old auto-save setInterval is now removed.
 }
 
 // --- NETWORK HANDLERS ---
@@ -47,6 +45,7 @@ function handleConnect(socketId) {
     }
 }
 
+// --- MODIFIED SECTION 1 of 2 ---
 function handleCharacterUpdate(serverState) {
     console.log('Received character update from server.');
     const wasInParty = gameState.partyId;
@@ -76,7 +75,16 @@ function handleCharacterUpdate(serverState) {
 
     if (activeSlotIndex !== null) {
         const characterSlots = JSON.parse(localStorage.getItem('ventureCharacterSlots') || '[null, null, null]');
-        characterSlots[activeSlotIndex] = gameState;
+        
+        // Create a clean copy of the state for saving, excluding client-side derived properties
+        // and transient adventure state to prevent state pollution on the next load.
+        const stateToSave = { ...gameState };
+        delete stateToSave.isPartyLeader;
+        delete stateToSave.turnState;
+        delete stateToSave.partyMemberStates;
+        delete stateToSave.zoneCards;
+        
+        characterSlots[activeSlotIndex] = stateToSave;
         localStorage.setItem('ventureCharacterSlots', JSON.stringify(characterSlots));
     }
 
@@ -87,22 +95,26 @@ function handleCharacterUpdate(serverState) {
     if (wasInParty && !gameState.partyId) {
         UI.renderPartyManagement(null);
     }
-
 }
+// --- END MODIFIED SECTION 1 of 2 ---
 
 
 function handleLoadError(message) {
     UI.showInfoModal(message);
     setTimeout(UI.showCharacterSelectScreen, 1000);
 }
+
+// --- MODIFIED SECTION 2 of 2 ---
 function handlePartyUpdate(party) {
     if (gameState && gameState.characterName) {
        gameState.partyId = party ? party.partyId : null;
        gameState.partyMembers = party ? party.members : [];
-       gameState.isPartyLeader = party ? party.leaderId === gameState.characterName : false;
+       // Accept the authoritative value from the server instead of calculating it.
+       gameState.isPartyLeader = party ? party.isPartyLeader : false;
     }
     UI.renderPartyManagement(party);
 }
+// --- END MODIFIED SECTION 2 of 2 ---
 
 function handlePartyError(message) {
     UI.showInfoModal(message);
