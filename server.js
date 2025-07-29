@@ -1501,6 +1501,40 @@ io.on('connection', (socket) => {
                     success = true;
                 }
                 break;
+            case 'useConsumable':
+                {
+                    const { index } = payload;
+                    const item = character.inventory[index];
+                    if (!item || item.type !== 'consumable') break;
+
+                    if (item.heal) {
+                        const bonuses = getBonusStatsForPlayer(character, null);
+                        const maxHealth = 10 + bonuses.maxHealth;
+                        character.health = Math.min(maxHealth, character.health + item.heal);
+                    }
+                    if (item.buff) {
+                        character.buffs.push({ ...item.buff });
+                    }
+    
+                    if (item.charges) {
+                        item.charges--;
+                        if (item.charges <= 0) character.inventory[index] = null;
+                    } else {
+                        item.quantity = (item.quantity || 1) - 1;
+                        if (item.quantity <= 0) character.inventory[index] = null;
+                    }
+                    success = true;
+                }
+                break;
+            case 'drop':
+                {
+                    const { index } = payload;
+                    if (character.inventory[index]) {
+                        character.inventory[index] = null;
+                        success = true;
+                    }
+                }
+                break;
         }
 
         if (success) {

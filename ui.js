@@ -172,7 +172,7 @@ export function renderInventory() {
             }
             slot.innerHTML = `
                 ${itemText}
-                <button class="btn btn-primary btn-sm" data-inventory-action="use" data-index="${i}">Use/Equip</button>
+                <button class="btn btn-primary btn-sm item-action-btn" data-index="${i}">Actions</button>
             `;
         } else {
             slot.innerHTML = 'Empty';
@@ -181,6 +181,33 @@ export function renderInventory() {
         
         container.appendChild(slot);
     }
+}
+
+export function showItemActions(itemIndex) {
+    const item = gameState.inventory[itemIndex];
+    if (!item) return;
+
+    let buttonsHTML = '';
+
+    if (item.type === 'consumable') {
+        buttonsHTML += `<button class="btn btn-success" data-inventory-action="useConsumable" data-index="${itemIndex}">Use</button>`;
+    }
+
+    if (item.slot) {
+        const slots = Array.isArray(item.slot) ? item.slot : [item.slot];
+        slots.forEach(slot => {
+            buttonsHTML += `<button class="btn btn-primary" data-equip-slot="${slot}" data-item-index="${itemIndex}">Equip to ${slot}</button>`;
+        });
+    }
+
+    buttonsHTML += `<button class="btn btn-danger" data-inventory-action="drop" data-index="${itemIndex}">Drop</button>`;
+    
+    const modalContent = `
+        <h2>${item.name}</h2>
+        <p>${item.description}</p>
+        <div class="action-buttons">${buttonsHTML}</div>
+    `;
+    showModal(modalContent);
 }
 
 export function renderSpells() {

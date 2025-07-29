@@ -88,10 +88,6 @@ function handleCharacterUpdate(serverState) {
         UI.renderPartyManagement(null);
     }
 
-    // This block was removed as it was causing the bug.
-    // if (!gameState.currentZone && !gameState.inDuel) {
-    //     UI.showTab('home');
-    // }
 }
 
 
@@ -290,6 +286,12 @@ function addEventListeners() {
         const target = e.target;
         const button = target.closest('button');
 
+        if (target.closest('.item-action-btn')) {
+            const index = parseInt(target.closest('.item-action-btn').dataset.index, 10);
+            UI.showItemActions(index);
+            return;
+        }
+
         const npcOptionButton = target.closest('#npc-dialogue-options button');
         if (npcOptionButton) {
             const { action, payload } = npcOptionButton.dataset;
@@ -419,6 +421,7 @@ function addEventListeners() {
             if (button.dataset.inventoryAction) {
                 const index = parseInt(button.dataset.index, 10);
                 Player.handleItemAction(button.dataset.inventoryAction, index);
+                UI.hideModal();
                 return;
             }
             if (button.dataset.spellAction) {
@@ -434,7 +437,11 @@ function addEventListeners() {
                 else if (button.dataset.bankAction === 'withdraw') Player.withdrawItem(index);
                 return;
             }
-            if (button.dataset.equipSlot) return Player.equipItem(parseInt(button.dataset.itemIndex), button.dataset.equipSlot);
+            if (button.dataset.equipSlot) {
+                Player.equipItem(parseInt(button.dataset.itemIndex), button.dataset.equipSlot);
+                UI.hideModal();
+                return;
+            }
 
             if (button.dataset.craftIndex) return Merchant.craftItem(parseInt(button.dataset.craftIndex, 10));
             if (button.dataset.spellName) return Merchant.buySpell(button.dataset.spellName);
