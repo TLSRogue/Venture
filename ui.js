@@ -31,6 +31,7 @@ export function renderAll() {
     renderSpells();
     renderEquipment();
     renderMerchant();
+    renderSellableInventory();
     renderBankInterface();
     renderCrafting();
     renderTrainer();
