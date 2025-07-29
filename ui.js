@@ -201,6 +201,7 @@ export function showItemActions(itemIndex) {
     }
 
     buttonsHTML += `<button class="btn btn-danger" data-inventory-action="drop" data-index="${itemIndex}">Drop</button>`;
+    buttonsHTML += `<button class="btn" onclick="this.closest('.modal-overlay').classList.add('hidden')">Cancel</button>`;
     
     const modalContent = `
         <h2>${item.name}</h2>
@@ -756,9 +757,7 @@ export function showNPCDialogueFromServer({ npcName, node, cardIndex }) {
         buttons += `<button class="btn btn-primary" ${action} ${!isPartyLeader ? 'disabled' : ''}>${option.text}</button>`;
     });
 
-    if (node.options.length === 0) {
-        buttons += `<button class="btn" data-action="hide">Leave</button>`;
-    }
+    buttons += `<button class="btn" data-action="hide">Leave Conversation</button>`;
 
     if (!isPartyLeader) {
         buttons += `<p style="margin-top: 15px; font-style: italic; opacity: 0.7;">Only the party leader can make dialogue choices.</p>`;

@@ -259,9 +259,7 @@ export function talkToNPC(cardIndex, dialogueNodeKey = 'start') {
         buttons += `<button class="btn btn-primary" ${action}>${option.text}</button>`;
     });
 
-    if (currentNode.options.length === 0) {
-        buttons += `<button class="btn" data-action="hide">Leave</button>`;
-    }
+    buttons += `<button class="btn" data-action="hide">Leave</button>`;
 
     buttons += '</div>';
     modalContent += buttons;
