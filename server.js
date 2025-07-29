@@ -1120,14 +1120,11 @@ io.on('connection', (socket) => {
             }
             
             const partyId = players[name].character.partyId;
-            if (partyId && parties[partyId] && !parties[partyId].isSoloParty) {
+            if (partyId && parties[partyId]) {
                 broadcastPartyUpdate(partyId);
                 if (parties[partyId].sharedState) {
                     socket.emit('party:adventureStarted', parties[partyId].sharedState);
                 }
-            } else if (partyId && parties[partyId] && parties[partyId].isSoloParty) {
-                delete parties[partyId];
-                players[name].character.partyId = null;
             }
         } else {
             console.log(`Character ${name} is connecting for the first time.`);
