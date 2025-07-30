@@ -5,7 +5,7 @@
  * It imports the server state to get the necessary data for sending updates.
  */
 
-import { players, parties, duels } from '../serverState.js';
+import { players, parties, duels } from './serverState.js';
 
 export function broadcastOnlinePlayers(io) {
     const onlinePlayers = Object.values(players)
