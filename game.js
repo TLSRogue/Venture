@@ -45,7 +45,6 @@ function handleConnect(socketId) {
     }
 }
 
-// --- MODIFIED SECTION 1 of 2 ---
 function handleCharacterUpdate(serverState) {
     console.log('Received character update from server.');
     const wasInParty = gameState.partyId;
@@ -59,6 +58,16 @@ function handleCharacterUpdate(serverState) {
     };
 
     Object.assign(gameState, serverState);
+
+    // After loading state from the server, re-initialize the transient turnState object if it doesn't exist.
+    if (!gameState.turnState) {
+        gameState.turnState = {
+            isPlayerTurn: true,
+            pendingReaction: null,
+            selectedAction: null,
+            isProcessing: false,
+        };
+    }
 
     if (preservedSession.currentZone || preservedSession.inDuel) {
         gameState.currentZone = preservedSession.currentZone;
@@ -96,7 +105,6 @@ function handleCharacterUpdate(serverState) {
         UI.renderPartyManagement(null);
     }
 }
-// --- END MODIFIED SECTION 1 of 2 ---
 
 
 function handleLoadError(message) {
@@ -104,7 +112,6 @@ function handleLoadError(message) {
     setTimeout(UI.showCharacterSelectScreen, 1000);
 }
 
-// --- MODIFIED SECTION 2 of 2 ---
 function handlePartyUpdate(party) {
     if (gameState && gameState.characterName) {
        gameState.partyId = party ? party.partyId : null;
@@ -114,7 +121,6 @@ function handlePartyUpdate(party) {
     }
     UI.renderPartyManagement(party);
 }
-// --- END MODIFIED SECTION 2 of 2 ---
 
 function handlePartyError(message) {
     UI.showInfoModal(message);
