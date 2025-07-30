@@ -2,7 +2,8 @@
 
 import { gameData } from './game-data.js';
 import { gameState } from './state.js';
-import { getBonusStats, hasMaterials as playerHasMaterials } from './player.js';
+// REFACTORED: Removed 'hasMaterials' from this import, as it no longer exists in player.js
+import { getBonusStats } from './player.js';
 import { checkAndRotateMerchantStock } from './merchant.js';
 import { socket } from './network.js';
 
@@ -10,6 +11,28 @@ import { socket } from './network.js';
  * @file ui.js
  * This module handles all DOM manipulation and rendering for the game.
  */
+
+// --- LOCAL HELPER FUNCTION ---
+// This function is a copy of the one we removed from player.js. It's needed here
+// for the cosmetic purpose of disabling the craft button if the player lacks materials.
+// The server will still perform the authoritative check.
+function hasMaterials(materials, checkBank = true) {
+    for (const material in materials) {
+        const requiredCount = materials[material];
+        let currentCount = 0;
+        gameState.inventory.forEach(item => {
+            if (item && item.name === material) currentCount += (item.quantity || 1);
+        });
+        if (checkBank) {
+            gameState.bank.forEach(item => {
+                if (item && item.name === material) currentCount += (item.quantity || 1);
+            });
+        }
+        if (currentCount < requiredCount) return false;
+    }
+    return true;
+}
+
 
 // --- STATE VARIABLES (for UI) ---
 let activeCraftingCategory = 'Blacksmithing';
@@ -340,7 +363,8 @@ export function renderCrafting() {
         }
         materialsList += '</ul>';
 
-        const canCraft = playerHasMaterials(recipe.materials);
+        // REFACTORED: Use the new local hasMaterials function
+        const canCraft = hasMaterials(recipe.materials);
 
         recipeEl.innerHTML = `
             <h4>${recipe.result.quantity || 1}x ${recipe.result.name}</h4>
