@@ -7,6 +7,48 @@
 
 import { gameData } from './game-data.js';
 
+// --- NEW MERCHANT LOGIC (MOVED FROM CLIENT'S merchant.js) ---
+
+/**
+ * Generates a new set of rotating wares for a character.
+ * @param {object} character - The character object to generate stock for.
+ */
+function generateMerchantStock(character) {
+    const uniqueItemNames = ["Rat Tail Cloak", "Mugger's Knife", "Bull Horn", "Magna Clavis"];
+    const stockPool = gameData.allItems.filter(item => 
+        item.price > 0 && 
+        item.type !== 'tool' && 
+        item.name !== 'Spices' &&
+        !uniqueItemNames.includes(item.name)
+    );
+    
+    for (let i = stockPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [stockPool[i], stockPool[j]] = [stockPool[j], stockPool[i]];
+    }
+
+    character.merchantStock = stockPool.slice(0, 5).map(item => ({
+        ...item,
+        quantity: Math.floor(Math.random() * 10) + 1
+    }));
+    character.merchantLastStocked = Date.now();
+}
+
+/**
+ * Checks if a character's merchant stock needs to be rotated and does so if needed.
+ * @param {object} character - The character object to check.
+ */
+export function checkAndRotateMerchantStock(character) {
+    const TEN_MINUTES = 10 * 60 * 1000;
+    if (!character.merchantLastStocked || (Date.now() - character.merchantLastStocked > TEN_MINUTES)) {
+        console.log(`Rotating merchant stock for ${character.characterName}`);
+        generateMerchantStock(character);
+    }
+}
+
+
+// --- EXISTING HELPER FUNCTIONS ---
+
 export function buildZoneDeckForServer(zoneName) {
     let npcs = [];
     let otherCards = [];

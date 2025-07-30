@@ -2,9 +2,9 @@
 
 import { gameData } from './game-data.js';
 import { gameState } from './state.js';
-// REFACTORED: Removed 'hasMaterials' from this import, as it no longer exists in player.js
 import { getBonusStats } from './player.js';
-import { checkAndRotateMerchantStock } from './merchant.js';
+// REFACTORED: Removed checkAndRotateMerchantStock as it's now a server-side responsibility.
+import {} from './merchant.js';
 import { socket } from './network.js';
 
 /**
@@ -13,9 +13,6 @@ import { socket } from './network.js';
  */
 
 // --- LOCAL HELPER FUNCTION ---
-// This function is a copy of the one we removed from player.js. It's needed here
-// for the cosmetic purpose of disabling the craft button if the player lacks materials.
-// The server will still perform the authoritative check.
 function hasMaterials(materials, checkBank = true) {
     for (const material in materials) {
         const requiredCount = materials[material];
@@ -363,7 +360,6 @@ export function renderCrafting() {
         }
         materialsList += '</ul>';
 
-        // REFACTORED: Use the new local hasMaterials function
         const canCraft = hasMaterials(recipe.materials);
 
         recipeEl.innerHTML = `
@@ -450,7 +446,7 @@ export function renderBankInterface() {
 }
 
 export function renderMerchant() {
-    checkAndRotateMerchantStock();
+    // REFACTORED: REMOVED checkAndRotateMerchantStock(); call from here.
     document.getElementById('gold-display').textContent = gameState.gold;
 
     const permanentContainer = document.getElementById('merchant-permanent-stock');
@@ -475,20 +471,24 @@ export function renderMerchant() {
         permanentContainer.appendChild(itemEl);
     });
 
-    gameState.merchantStock.forEach((item, index) => {
-        const itemEl = document.createElement('div');
-        itemEl.className = 'merchant-item';
-        itemEl.innerHTML = `
-            <div>
-                <strong>${item.name} (x${item.quantity})</strong>
-                <div>${item.description}</div>
-            </div>
-            <button class="btn btn-success" data-buy-item="${index}" data-permanent="false" ${gameState.gold < item.price || item.quantity <= 0 ? 'disabled' : ''}>
-                Buy (${item.price}g)
-            </button>
-        `;
-        rotatingContainer.appendChild(itemEl);
-    });
+    // The gameState.merchantStock is now sent authoritatively by the server
+    if (gameState.merchantStock) {
+        gameState.merchantStock.forEach((item, index) => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'merchant-item';
+            itemEl.innerHTML = `
+                <div>
+                    <strong>${item.name} (x${item.quantity})</strong>
+                    <div>${item.description}</div>
+                </div>
+                <button class="btn btn-success" data-buy-item="${index}" data-permanent="false" ${gameState.gold < item.price || item.quantity <= 0 ? 'disabled' : ''}>
+                    Buy (${item.price}g)
+                </button>
+            `;
+            rotatingContainer.appendChild(itemEl);
+        });
+    }
+
 
     if (merchantTimerInterval) clearInterval(merchantTimerInterval);
     merchantTimerInterval = setInterval(updateRestockTimer, 1000);

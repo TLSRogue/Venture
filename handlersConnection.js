@@ -64,8 +64,10 @@ function createInitialCharacter(characterName, characterIcon) {
         spellCooldowns: {},
         weaponCooldowns: {},
         itemCooldowns: {},
+        // --- NEWLY ADDED FOR MERCHANT FIX ---
         merchantStock: [],
         merchantLastStocked: null,
+        // ---------------------------------
         cardDefeatTimes: {},
         partyId: null,
         duelId: null,

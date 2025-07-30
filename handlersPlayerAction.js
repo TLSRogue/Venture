@@ -7,7 +7,8 @@
 
 import { players, parties } from './serverState.js';
 import { gameData } from './game-data.js';
-import { addItemToInventoryServer, playerHasMaterials, consumeMaterials } from './utilsHelpers.js';
+// REFACTORED: Import checkAndRotateMerchantStock
+import { addItemToInventoryServer, playerHasMaterials, consumeMaterials, checkAndRotateMerchantStock } from './utilsHelpers.js';
 
 export const registerPlayerActionHandlers = (io, socket) => {
     socket.on('playerAction', (action) => {
@@ -27,13 +28,24 @@ export const registerPlayerActionHandlers = (io, socket) => {
         switch(type) {
             case 'buyItem':
                 {
+                    // --- REFACTORED LOGIC ---
+                    // First, ensure the merchant stock is fresh before processing the purchase.
+                    checkAndRotateMerchantStock(character);
+
                     const { identifier, isPermanent } = payload;
+                    // Now, this line will work correctly because character.merchantStock is managed by the server.
                     const stockItem = isPermanent ? null : character.merchantStock[identifier];
                     const itemData = isPermanent ? gameData.allItems.find(i => i.name === identifier) : stockItem;
+                    
                     if (itemData && character.gold >= itemData.price) {
-                        if(addItemToInventoryServer(character, { ...itemData })) {
+                        // For rotating stock, we need to create a copy of the item without the 'quantity' property of the stock itself.
+                        const itemToGive = isPermanent ? { ...itemData } : (({ quantity, ...rest }) => rest)(itemData);
+
+                        if(addItemToInventoryServer(character, itemToGive)) {
                             character.gold -= itemData.price;
-                            if (!isPermanent && stockItem) stockItem.quantity--;
+                            if (!isPermanent && stockItem && stockItem.quantity > 0) {
+                                stockItem.quantity--;
+                            }
                             success = true;
                         }
                     }
