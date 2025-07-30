@@ -1,13 +1,8 @@
 // handlersAdventure.js
 
-/**
- * Manages all gameplay logic for when a party is in an adventure zone.
- * Handles entering a zone and processing all in-adventure player actions.
- */
-
 import { players, parties } from './serverState.js';
 import { gameData } from './game-data.js';
-import { broadcastAdventureUpdate, broadcastPartyUpdate } from './utilsBroadcast.js';
+import { broadcastAdventureUpdate } from './utilsBroadcast.js';
 import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, addItemToInventoryServer } from './utilsHelpers.js';
 
 // --- ADVENTURE HELPER FUNCTIONS ---
@@ -63,7 +58,7 @@ function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     }
 }
 
-function processWeaponAttack(party, player, payload) {
+function processWeaponAttack(io, party, player, payload) {
     const { weaponSlot, targetIndex } = payload;
     const character = player.character;
     const { sharedState } = party;
@@ -901,6 +896,8 @@ export const registerAdventureHandlers = (io, socket) => {
             log: [{ message: `Party has entered the ${zoneName}!`, type: 'info' }]
         };
         drawCardsForServer(party.sharedState, 3);
+        
+        console.log(`[SERVER LOG] Emitting 'party:adventureStarted' to ${party.members.length} member(s).`);
         party.members.forEach(memberName => {
             const member = players[memberName];
             if(member && member.id) io.to(member.id).emit('party:adventureStarted', party.sharedState);
@@ -942,7 +939,7 @@ export const registerAdventureHandlers = (io, socket) => {
 
         switch(action.type) {
             case 'weaponAttack':
-                processWeaponAttack(party, player, action.payload);
+                processWeaponAttack(io, party, player, action.payload);
                 break;
             case 'castSpell':
                 processCastSpell(io, party, player, action.payload);
