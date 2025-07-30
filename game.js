@@ -366,7 +366,8 @@ function addEventListeners() {
                     UI.showInfoModal("Only the party leader can start an adventure.");
                     return;
                 }
-                Network.emitPartyEnterZone(zoneName, gameState);
+                // --- REFACTORED: REMOVED gameState from the emit call ---
+                Network.emitPartyEnterZone(zoneName);
             };
 
             if (zoneName === 'arena') {
@@ -482,7 +483,7 @@ function addEventListeners() {
     });
 
     document.body.addEventListener('enter-zone', (e) => {
-        Network.emitPartyEnterZone(e.detail.zoneName, gameState);
+        Network.emitPartyEnterZone(e.detail.zoneName);
     });
 
     document.addEventListener('mousemove', (e) => {

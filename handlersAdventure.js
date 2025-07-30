@@ -1,6 +1,6 @@
 // handlersAdventure.js
 
-import { players, parties } from './serverState.js';
+import { players, parties, duels } from './serverState.js';
 import { gameData } from './game-data.js';
 import { broadcastAdventureUpdate } from './utilsBroadcast.js';
 import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, addItemToInventoryServer } from './utilsHelpers.js';
@@ -833,14 +833,15 @@ function startNextPlayerTurn(io, partyId) {
 // --- MAIN EXPORT ---
 
 export const registerAdventureHandlers = (io, socket) => {
-    socket.on('party:enterZone', (zoneName, characterData) => {
+    socket.on('party:enterZone', (zoneName) => {
         const name = socket.characterName;
         const player = players[name];
         if (!player) return;
         
-        if (characterData) {
-            players[name].character = characterData;
-        }
+        // --- REFACTORED: REMOVED THE FOLLOWING BLOCK ---
+        // if (characterData) {
+        //     players[name].character = characterData;
+        // }
         
         if (player.character.duelId && duels[player.character.duelId]) {
             return; 
