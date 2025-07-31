@@ -11,11 +11,34 @@ function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     const { sharedState } = party;
     sharedState.log.push({ message: `${enemy.name} has been defeated!`, type: 'success' });
 
+    // --- NEW: LOOT TABLE PROCESSING ---
+    let rolledLootItems = [];
+    if (enemy.lootTable && enemy.lootTable.length > 0) {
+        const roll = Math.floor(Math.random() * 20) + 1;
+        const lootDrop = enemy.lootTable.find(entry => roll >= entry.range[0] && roll <= entry.range[1]);
+
+        if (lootDrop) {
+            if (lootDrop.items && lootDrop.items.length > 0) {
+                rolledLootItems.push(...lootDrop.items);
+            }
+            if (lootDrop.randomItems && lootDrop.randomItems.pool) {
+                for (let i = 0; i < lootDrop.randomItems.count; i++) {
+                    const randomItemName = lootDrop.randomItems.pool[Math.floor(Math.random() * lootDrop.randomItems.pool.length)];
+                    rolledLootItems.push(randomItemName);
+                }
+            }
+        }
+    }
+    const rolledLootObjects = rolledLootItems.map(name => gameData.allItems.find(i => i.name === name)).filter(Boolean);
+    // --- END: LOOT TABLE PROCESSING ---
+
+
     party.members.forEach(memberName => {
         const member = players[memberName];
         if (!member || !member.character) return;
         const character = member.character;
 
+        // Quest Progress
         character.quests.forEach(quest => {
             if (quest.status === 'active' && (quest.details.target === enemy.name || (quest.details.target === 'Goblin' && enemy.name.includes('Goblin')))) {
                 quest.progress++;
@@ -26,12 +49,14 @@ function defeatEnemyInParty(io, party, enemy, enemyIndex) {
             }
         });
 
+        // Guaranteed Gold
         if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
             const goldAmount = (Math.floor(Math.random() * 20) + 1) + (Math.floor(Math.random() * 20) + 1);
             const goldPerPlayer = Math.floor(goldAmount / party.members.length);
             character.gold += goldPerPlayer;
         }
 
+        // Guaranteed Items
         if (enemy.guaranteedLoot && enemy.guaranteedLoot.items) {
             enemy.guaranteedLoot.items.forEach(itemName => {
                  const itemData = gameData.allItems.find(i => i.name === itemName);
@@ -40,15 +65,30 @@ function defeatEnemyInParty(io, party, enemy, enemyIndex) {
                  }
             });
         }
+        
+        // --- NEW: Award Rolled Loot ---
+        if(rolledLootObjects.length > 0) {
+            rolledLootObjects.forEach(itemData => {
+                addItemToInventoryServer(character, itemData);
+            });
+        }
+        // --- END: Award Rolled Loot ---
+
         if (member.id) io.to(member.id).emit('characterUpdate', character);
     });
     
+    // Logging Drops
     if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
         sharedState.log.push({ message: `${enemy.name} dropped gold, which was split among the party.`, type: 'success'});
     }
      if (enemy.guaranteedLoot && enemy.guaranteedLoot.items) {
         sharedState.log.push({ message: `${enemy.name} dropped: ${enemy.guaranteedLoot.items.join(', ')} for everyone!`, type: 'success'});
     }
+    // --- NEW: Log Rolled Loot ---
+    if (rolledLootItems.length > 0) {
+        sharedState.log.push({ message: `${enemy.name} also dropped: ${rolledLootItems.join(', ')} for everyone!`, type: 'success' });
+    }
+    // --- END: Log Rolled Loot ---
 
     sharedState.zoneCards[enemyIndex] = null;
 
@@ -1060,10 +1100,10 @@ export const registerAdventureHandlers = (io, socket) => {
                 processCastSpell(io, party, player, action.payload);
                 break;
             case 'useItemAbility':
-                processUseItemAbility(io, party, player, action.payload);
+                processUseItemAbility(party, player, action.payload);
                 break;
             case 'useConsumable':
-                processConsumable(io, party, player, action.payload);
+                processUseConsumable(io, party, player, action.payload);
                 break;
             case 'interactWithCard':
                 processInteractWithCard(io, party, player, action.payload);
