@@ -25,7 +25,6 @@ function initGame() {
         onReceivePartyInvite: handleReceivePartyInvite,
         onPartyAdventureStarted: handlePartyAdventureStarted,
         onPartyAdventureUpdate: handlePartyAdventureUpdate,
-        // --- NEWLY ADDED FOR REACTION FIX ---
         onPartyRequestReaction: handlePartyRequestReaction,
         onShowDialogue: UI.showNPCDialogueFromServer,
         onHideDialogue: UI.hideModal,
@@ -171,8 +170,9 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     UI.renderPlayerActionBars(); 
 }
 
-// --- NEWLY ADDED FOR REACTION FIX ---
 function handlePartyRequestReaction(data) {
+    // --- DEBUGGING STEP ---
+    console.log('Received reaction request from server:', data);
     UI.showReactionModal(data);
 }
 
@@ -332,7 +332,6 @@ function addEventListeners() {
             return;
         }
         
-        // --- NEWLY ADDED FOR REACTION FIX ---
         const reactionButton = target.closest('#reaction-buttons button');
         if (reactionButton) {
             const reactionType = reactionButton.dataset.reaction;
