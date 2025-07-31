@@ -152,6 +152,16 @@ export const registerConnectionHandlers = (io, socket) => {
             const character = players[name].character;
             if (!character) return;
 
+            // --- FIX STARTS HERE ---
+            // Clean up temporary solo parties on disconnect to prevent stuck states
+            const partyId = character.partyId;
+            if (partyId && parties[partyId] && parties[partyId].isSoloParty) {
+                console.log(`Cleaning up solo party ${partyId} for disconnected player ${name}.`);
+                character.partyId = null;
+                delete parties[partyId];
+            }
+            // --- FIX ENDS HERE ---
+
             const duelId = character.duelId;
             if (duelId && duels[duelId] && !duels[duelId].ended) {
                 const duel = duels[duelId];
