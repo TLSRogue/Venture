@@ -47,7 +47,7 @@ function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         sharedState.log.push({ message: `${enemy.name} dropped gold, which was split among the party.`, type: 'success'});
     }
      if (enemy.guaranteedLoot && enemy.guaranteedLoot.items) {
-        sharedState.log.push({ message: `${enemy.name} dropped: ${enemy.name} dropped: ${enemy.guaranteedLoot.items.join(', ')} for everyone!`, type: 'success'});
+        sharedState.log.push({ message: `${enemy.name} dropped: ${enemy.guaranteedLoot.items.join(', ')} for everyone!`, type: 'success'});
     }
 
     sharedState.zoneCards[enemyIndex] = null;
@@ -770,7 +770,8 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                 if (availableReactions.length > 0) {
                     sharedState.pendingReaction = {
                         attackerName: enemy.name,
-                        attackerIndex,
+                        // --- BUG FIX: Use the correct variable name ---
+                        attackerIndex: enemyIndex,
                         targetName: targetPlayerState.name,
                         damage: attack.damage,
                         debuff: attack.debuff || null,
@@ -784,7 +785,6 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                     });
                     
                     sharedState.reactionTimeout = setTimeout(() => {
-                        // Auto-resolve to take damage if player is AFK
                         const playerSocket = io.sockets.sockets.get(targetPlayerState.playerId);
                         if (playerSocket) {
                             handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
@@ -935,7 +935,6 @@ async function handleResolveReaction(io, socket, payload) {
     const lastAttackerIndex = reaction.attackerIndex;
     sharedState.pendingReaction = null;
 
-    // IMPORTANT: Continue the enemy phase for the rest of the enemies
     const enemies = sharedState.zoneCards.map((c, i) => ({card: c, index: i})).filter(e => e.card && e.card.type === 'enemy');
     const lastEnemyListIndex = enemies.findIndex(e => e.index === lastAttackerIndex);
     
@@ -1071,7 +1070,7 @@ export const registerAdventureHandlers = (io, socket) => {
                 processDialogueChoice(io, player, party, action.payload);
                 break; 
             case 'lootPlayer':
-                processLootPlayer(io, player, party, action.payload);
+                processLootPlayer(io, player, action.payload);
                 break;
             case 'endTurn':
                 actingPlayerState.turnEnded = true;
