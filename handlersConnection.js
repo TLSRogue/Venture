@@ -3,20 +3,15 @@
 /**
  * Manages the initial connection, authentication (login/register),
  * and disconnection events for a player's socket.
+ * Now includes logic to save player data to a file on disconnect.
  */
 
 import { players, parties, duels } from './serverState.js';
 import { gameData } from './game-data.js';
 import { broadcastOnlinePlayers, broadcastPartyUpdate, broadcastDuelUpdate } from './utilsBroadcast.js';
 import { endDuel } from './handlersDuel.js';
+import fs from 'fs';
 
-/**
- * Creates a new character object with default stats and items.
- * This is the server's template for any new player.
- * @param {string} characterName - The name for the new character.
- * @param {string} characterIcon - The icon for the new character.
- * @returns {object} The initial character state object.
- */
 function createInitialCharacter(characterName, characterIcon) {
     return {
         characterName: characterName,
@@ -48,7 +43,7 @@ function createInitialCharacter(characterName, characterIcon) {
             gameData.allSpells.find(s => s.name === 'Punch'),
             gameData.allSpells.find(s => s.name === 'Kick'),
             gameData.allSpells.find(s => s.name === 'Dodge')
-        ].filter(Boolean).map(s => ({...s})), // Ensure we get copies
+        ].filter(Boolean).map(s => ({...s})),
         spellbook: [],
         knownRecipes: [],
         equipment: {
@@ -64,10 +59,8 @@ function createInitialCharacter(characterName, characterIcon) {
         spellCooldowns: {},
         weaponCooldowns: {},
         itemCooldowns: {},
-        // --- NEWLY ADDED FOR MERCHANT FIX ---
         merchantStock: [],
         merchantLastStocked: null,
-        // ---------------------------------
         cardDefeatTimes: {},
         partyId: null,
         duelId: null,
@@ -92,38 +85,31 @@ export const registerConnectionHandlers = (io, socket) => {
             return;
         }
         
-        // --- REFACTORED LOGIC ---
         let characterToUpdate;
 
         if (players[name]) {
-            // Player is RECONNECTING. Use existing server data.
+            // Player is RECONNECTING to an active session. Use existing server data.
             console.log(`Character ${name} is reconnecting with new socket ${socket.id}.`);
             players[name].id = socket.id;
             socket.characterName = name;
-            characterToUpdate = players[name].character; // Use the authoritative character from the server
+            characterToUpdate = players[name].character;
             
             const duelId = characterToUpdate.duelId;
             if (duelId && duels[duelId] && duels[duelId].disconnectTimeout) {
                 console.log(`Player ${name} reconnected, cancelling duel termination for ${duelId}`);
                 clearTimeout(duels[duelId].disconnectTimeout);
                 duels[duelId].disconnectTimeout = null;
-                const opponentState = duels[duelId].player1.name === name ? duels[duelId].player2 : duels[duelId].player1;
-                const opponent = players[opponentState.name];
-                if (opponent && opponent.id) {
-                    io.to(opponent.id).emit('duel:update', duels[duelId]);
-                    io.to(opponent.id).emit('info', `${name} has reconnected to the duel.`);
-                }
             }
         } else {
-            // Player is REGISTERING for the first time. Create a new character on the server.
-            console.log(`Character ${name} is connecting for the first time.`);
-            const newCharacter = createInitialCharacter(name, characterDataFromClient.characterIcon);
-            players[name] = { id: socket.id, character: newCharacter };
+            // Player is LOADING from localStorage or REGISTERING for the first time.
+            // Trust the client's data to establish the session state.
+            console.log(`Character ${name} is connecting for the first time or loading from save.`);
+            players[name] = { id: socket.id, character: characterDataFromClient };
             socket.characterName = name;
-            characterToUpdate = newCharacter;
+            characterToUpdate = characterDataFromClient;
         }
 
-        // Send the authoritative state to the client
+        // Send the authoritative state to the client for this session
         if (characterToUpdate.duelId && duels[characterToUpdate.duelId]) {
             socket.emit('duel:start', duels[characterToUpdate.duelId]);
         } else {
@@ -141,15 +127,20 @@ export const registerConnectionHandlers = (io, socket) => {
         broadcastOnlinePlayers(io);
     };
 
-    socket.on('registerPlayer', handlePlayerLogin);
-    socket.on('loadCharacter', handlePlayerLogin);
+    socket.on('registerPlayer', (characterData) => {
+        // When registering, we create a fresh character to ensure no modified data is sent.
+        const newCharacter = createInitialCharacter(characterData.characterName, characterData.characterIcon);
+        handlePlayerLogin(newCharacter);
+    });
+    
+    socket.on('loadCharacter', (characterData) => {
+        // When loading, we trust the data from localStorage.
+        handlePlayerLogin(characterData);
+    });
 
-    // This event should be used sparingly. The server should control the character object.
     socket.on('updateCharacter', (characterData) => {
         const name = socket.characterName;
         if (name && players[name]) {
-            // Only update specific, safe fields if necessary, or preferably,
-            // have specific events for actions instead of this generic update.
             players[name].character = characterData;
         }
     });
@@ -159,23 +150,29 @@ export const registerConnectionHandlers = (io, socket) => {
         console.log(`Socket ${socket.id} for character ${name} disconnected.`);
         if (name && players[name]) {
             const character = players[name].character;
-            if (!character) return; // Character might not be fully loaded
+            if (!character) return;
 
             const duelId = character.duelId;
             if (duelId && duels[duelId] && !duels[duelId].ended) {
                 const duel = duels[duelId];
                 const opponent = duel.player1.name === name ? duel.player2 : duel.player1;
-
-                duel.log.push({ message: `${name} has disconnected. The duel will end in 20 seconds if they do not reconnect.`, type: 'damage' });
+                duel.log.push({ message: `${name} has disconnected. The duel will end in 20 seconds...`, type: 'damage' });
                 broadcastDuelUpdate(io, duelId);
-
                 duel.disconnectTimeout = setTimeout(() => {
-                    console.log(`Disconnect timer for ${name} in duel ${duelId} has expired.`);
                     if(duels[duelId] && !duels[duelId].ended) {
                        endDuel(io, duelId, opponent.name, name);
                     }
                 }, 20000);
             }
+
+            // --- SAVE PROGRESS TO FILE ---
+            try {
+                fs.writeFileSync('players.json', JSON.stringify(players, null, 2));
+                console.log(`Progress for ${name} saved to players.json.`);
+            } catch (err) {
+                console.error('Failed to save player data:', err);
+            }
+            // ---------------------------
 
             players[name].id = null;
             broadcastOnlinePlayers(io);
