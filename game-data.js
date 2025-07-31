@@ -69,6 +69,7 @@ export const gameData = {
         { name: "Raw Chicken", type: "material", price: 8, description: "Uncooked chicken meat.", icon: "🍗" },
         { name: "Milk", type: "material", price: 6, description: "A bottle of fresh milk.", icon: "🥛" },
         { name: "Wheat", type: "material", price: 4, description: "A bundle of wheat.", icon: "🌾" },
+        { name: "Feather", type: "material", price: 2, description: "A small, light feather.", icon: "🪶" },
         { name: "Goblin Lucky Charm", type: "questItem", price: 0, description: "A strange, surprisingly shiny goblin trinket.", icon: "🍀" }
     ],
     
@@ -102,13 +103,11 @@ export const gameData = {
                 description: "An enraged bull, kicking up dust.",
                 icon: "🐂",
                 attackTable: [
-                    { range: [1, 7], action: 'miss', message: "The bull snorts and misses!" },
-                    { range: [8, 12], action: 'attack', damage: 3, damageType: 'Physical', message: "Bull Rush! Deals 3 Physical Damage!" },
-                    { range: [13, 18], action: 'attack', damage: 4, damageType: 'Physical', message: "Charge Through! Deals 4 Physical Damage!" },
-                    { range: [19, 20], action: 'special', message: "Tough Hide! The bull braces itself, gaining 2 Physical Resistance for its next turn, then acts again!" }
+                    { range: [1, 10], action: 'miss', message: "The bull snorts and misses!" },
+                    { range: [11, 15], action: 'attack', damage: 3, damageType: 'Physical', message: "Charge! Deals 3 Physical Damage!" },
+                    { range: [16, 20], action: 'special', message: "Thick Hide! Gain 1 Physical Resistance until the next Zone Turn then make another action!" }
                 ],
-                guaranteedLoot: { items: ["Bull Horn", "Cow Hide", "Cow Hide"] },
-                randomLoot: { tier: 1, count: 1, type: ['weapon', 'armor', 'shield', 'accessory'] }
+                guaranteedLoot: { items: ["Bull Horn", "Cow Hide", "Cow Hide"] }
             }, count: 1 },
             { card: { 
                 name: "Farmer", 
@@ -146,52 +145,56 @@ export const gameData = {
             }, count: 1 },
             { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", icon: "📦" }, count: 1 },
             { card: { 
-                name: "Chicken", type: "enemy", health: 3, maxHealth: 3, description: "A feisty farm chicken", icon: "🐔",
+                name: "Chicken", type: "enemy", health: 2, maxHealth: 2, description: "A feisty farm chicken", icon: "🐔",
                 attackTable: [
                     { range: [1, 10], action: 'miss', message: "Miss!" },
-                    { range: [11, 19], action: 'attack', damage: 1, damageType: 'Physical', message: "Peck! Deals 1 Physical Damage!" },
-                    { range: [20, 20], action: 'attack', damage: 2, damageType: 'Physical', message: "Eye Gouge! Deals 2 Physical Damage!" }
+                    { range: [11, 15], action: 'attack', damage: 1, damageType: 'Physical', message: "Peck! Deals 1 Physical Damage!" },
+                    { range: [16, 20], action: 'attack', damage: 2, damageType: 'Physical', message: "Eye Gouge! Deals 2 Physical Damage!" }
                 ],
+                guaranteedLoot: { items: ["Raw Chicken"] },
                 lootTable: [
-                    { range: [1, 5], items: ["Raw Chicken"] },
-                    { range: [6, 10], items: ["Feather"] },
-                    { range: [11, 15], items: ["Egg"] },
-                    { range: [16, 20], items: ["Raw Chicken", "Feather", "Egg"] }
+                    { range: [1, 10], items: ["Egg"] },
+                    { range: [11, 20], items: ["Feather"] }
                 ]
             }, count: 8 },
             { card: { 
-                name: "Pig", type: "enemy", health: 4, maxHealth: 4, description: "A muddy pig", icon: "🐷",
+                name: "Pig", type: "enemy", health: 3, maxHealth: 3, description: "A muddy pig", icon: "🐷",
                 attackTable: [
                     { range: [1, 10], action: 'miss', message: "Miss!" },
-                    { range: [11, 19], action: 'attack', damage: 1, damageType: 'Physical', message: "Charge! Deals 1 Physical Damage!" },
-                    { range: [20, 20], action: 'attack', damage: 2, damageType: 'Physical', message: "Knockdown! Deals 2 Physical Damage!" }
+                    { range: [11, 15], action: 'attack', damage: 1, damageType: 'Physical', message: "Slam! Deals 1 Physical Damage!" },
+                    { range: [16, 20], action: 'attack', damage: 2, damageType: 'Physical', message: "Headbutt! Deals 2 Physical Damage!" }
                 ],
+                guaranteedLoot: { items: ["Pork"] },
                 lootTable: [
-                    { range: [1, 10], items: ["Pork"] },
-                    { range: [11, 20], items: ["Pork", "Animal Fat"] }
+                    { range: [1, 10], items: [] },
+                    { range: [11, 20], items: ["Animal Fat"] }
                 ]
             }, count: 8 },
             { card: { 
-                name: "Cow", type: "enemy", health: 5, maxHealth: 5, damage: 1, attackDesc: "Headbutt: Deals 1 damage.", description: "A gentle cow", icon: "🐮",
+                name: "Cow", type: "enemy", health: 4, maxHealth: 4, description: "A gentle cow", icon: "🐮",
+                attackTable: [
+                    { range: [1, 10], action: 'miss', message: "Miss!" },
+                    { range: [11, 15], action: 'attack', damage: 2, damageType: 'Physical', message: "Kick! Deals 2 Physical Damage!" },
+                    { range: [16, 20], action: 'attack', damage: 2, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Press! Deals 2 Physical Damage and applies Daze!" }
+                ],
                 guaranteedLoot: { items: ["Cow Hide"] },
                 lootTable: [
                     { range: [1, 10], items: ["Milk"] },
-                    { range: [11, 20], items: [] }
+                    { range: [11, 20], items: ["Animal Fat"] }
                 ] 
             }, count: 8 },
             { card: { 
-                name: "Angry Farmhand", type: "enemy", health: 5, maxHealth: 5, description: "An angry local. Wants you off his land.", icon: "🧑‍🌾",
+                name: "Angry Farmhand", type: "enemy", health: 4, maxHealth: 4, description: "An angry local. Wants you off his land.", icon: "🧑‍🌾",
                 attackTable: [
-                    { range: [1, 8], action: 'miss', message: "Miss!" },
-                    { range: [9, 15], action: 'attack', damage: 1, damageType: 'Physical', message: "Stab! Deals 1 Physical Damage!" },
-                    { range: [16, 20], action: 'attack', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Slash! Deals 2 Physical Damage and Bleed!" }
+                    { range: [1, 10], action: 'miss', message: "Miss!" },
+                    { range: [11, 15], action: 'attack', damage: 2, damageType: 'Physical', message: "Stab! Deals 2 Physical Damage!" },
+                    { range: [16, 20], action: 'attack', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Slash! Deals 2 Physical Damage and applies Bleed!" }
                 ],
+                guaranteedLoot: { gold: true, items: ["Cloth"] },
                 lootTable: [
-                    { range: [1, 10], items: ["Cloth"] },
-                    { range: [11, 18], items: ["Cloth", "Cloth"] },
-                    { range: [19, 20], items: ["Pitchfork"] }
-                ],
-                guaranteedLoot: { gold: true }
+                    { range: [1, 19], randomItems: { pool: ['Iron', 'Wood', 'Wheat', 'Fish'], count: 2 } },
+                    { range: [20, 20], items: ["Pitchfork"] }
+                ]
             }, count: 3 },
             { card: { name: "Iron Node", type: "resource", skill: "mining", description: "Requires Mining Pickaxe (T1)", loot: {name: "Iron", type: "material", price: 5}, tool: "Mining Pickaxe (T1)", icon: "⛏️" }, count: 6 },
             { card: { name: "Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Axe (T1)", loot: {name: "Wood", type: "material", price: 5}, tool: "Woodcutting Axe (T1)", icon: "🌲" }, count: 6 },
