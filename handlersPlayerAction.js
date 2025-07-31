@@ -7,7 +7,6 @@
 
 import { players, parties } from './serverState.js';
 import { gameData } from './game-data.js';
-// REFACTORED: Import checkAndRotateMerchantStock
 import { addItemToInventoryServer, playerHasMaterials, consumeMaterials, checkAndRotateMerchantStock } from './utilsHelpers.js';
 
 export const registerPlayerActionHandlers = (io, socket) => {
@@ -26,19 +25,23 @@ export const registerPlayerActionHandlers = (io, socket) => {
         let success = false; // Flag to check if an action successfully changed the state
 
         switch(type) {
+            // --- NEWLY ADDED CASE ---
+            case 'viewMerchant':
+                {
+                    checkAndRotateMerchantStock(character);
+                    success = true; // Set to true to ensure an update is sent to the client
+                }
+                break;
+
             case 'buyItem':
                 {
-                    // --- REFACTORED LOGIC ---
-                    // First, ensure the merchant stock is fresh before processing the purchase.
                     checkAndRotateMerchantStock(character);
 
                     const { identifier, isPermanent } = payload;
-                    // Now, this line will work correctly because character.merchantStock is managed by the server.
                     const stockItem = isPermanent ? null : character.merchantStock[identifier];
                     const itemData = isPermanent ? gameData.allItems.find(i => i.name === identifier) : stockItem;
                     
                     if (itemData && character.gold >= itemData.price) {
-                        // For rotating stock, we need to create a copy of the item without the 'quantity' property of the stock itself.
                         const itemToGive = isPermanent ? { ...itemData } : (({ quantity, ...rest }) => rest)(itemData);
 
                         if(addItemToInventoryServer(character, itemToGive)) {

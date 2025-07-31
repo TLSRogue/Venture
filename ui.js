@@ -3,9 +3,10 @@
 import { gameData } from './game-data.js';
 import { gameState } from './state.js';
 import { getBonusStats } from './player.js';
-// REFACTORED: Removed checkAndRotateMerchantStock as it's now a server-side responsibility.
 import {} from './merchant.js';
 import { socket } from './network.js';
+// REFACTORED: Import the full network module to emit actions
+import * as Network from './network.js';
 
 /**
  * @file ui.js
@@ -446,7 +447,6 @@ export function renderBankInterface() {
 }
 
 export function renderMerchant() {
-    // REFACTORED: REMOVED checkAndRotateMerchantStock(); call from here.
     document.getElementById('gold-display').textContent = gameState.gold;
 
     const permanentContainer = document.getElementById('merchant-permanent-stock');
@@ -471,7 +471,6 @@ export function renderMerchant() {
         permanentContainer.appendChild(itemEl);
     });
 
-    // The gameState.merchantStock is now sent authoritatively by the server
     if (gameState.merchantStock) {
         gameState.merchantStock.forEach((item, index) => {
             const itemEl = document.createElement('div');
@@ -488,7 +487,6 @@ export function renderMerchant() {
             rotatingContainer.appendChild(itemEl);
         });
     }
-
 
     if (merchantTimerInterval) clearInterval(merchantTimerInterval);
     merchantTimerInterval = setInterval(updateRestockTimer, 1000);
@@ -1192,6 +1190,8 @@ export function showTab(tabName) {
     if (merchantTimerInterval) { clearInterval(merchantTimerInterval); merchantTimerInterval = null; }
     
     if (tabName === 'merchant') { 
+        // --- REFACTORED: Send event to server to get latest stock ---
+        Network.emitPlayerAction('viewMerchant');
         renderMerchant(); 
         renderSellableInventory(); 
     }
