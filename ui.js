@@ -685,6 +685,24 @@ export function showConfirmationModal(message, onConfirmCallback) {
     showModal(fragment);
 }
 
+// --- NEWLY ADDED FOR REACTION FIX ---
+export function showReactionModal({ damage, attacker, availableReactions }) {
+    let buttons = '';
+    availableReactions.forEach(reaction => {
+        buttons += `<button class="btn btn-primary" data-reaction="${reaction.name}">Use ${reaction.name}</button>`;
+    });
+
+    const modalContent = `
+        <h2>Reaction!</h2>
+        <p>${attacker} is about to deal ${damage} damage to you!</p>
+        <div class="action-buttons" id="reaction-buttons">
+            ${buttons}
+            <button class="btn btn-danger" data-reaction="take_damage">Take Damage</button>
+        </div>
+    `;
+    showModal(modalContent);
+}
+
 export function showCharacterSelectScreen() {
     document.querySelector('.game-container').style.display = 'none';
     const characterSlots = JSON.parse(localStorage.getItem('ventureCharacterSlots') || '[null, null, null]');
@@ -770,8 +788,6 @@ export function showNPCDialogueFromServer({ npcName, node, cardIndex }) {
             choice: option
         };
         
-        // --- QUEST BUG FIX ---
-        // Escape single quotes in the stringified JSON to prevent HTML attributes from breaking.
         const safePayload = JSON.stringify(payload).replace(/'/g, "&#39;");
         let action = `data-action="choice" data-payload='${safePayload}'`;
         

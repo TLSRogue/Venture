@@ -25,6 +25,8 @@ function initGame() {
         onReceivePartyInvite: handleReceivePartyInvite,
         onPartyAdventureStarted: handlePartyAdventureStarted,
         onPartyAdventureUpdate: handlePartyAdventureUpdate,
+        // --- NEWLY ADDED FOR REACTION FIX ---
+        onPartyRequestReaction: handlePartyRequestReaction,
         onShowDialogue: UI.showNPCDialogueFromServer,
         onHideDialogue: UI.hideModal,
         onPartyAdventureEnded: Player.resetToHomeState,
@@ -85,8 +87,6 @@ function handleCharacterUpdate(serverState) {
     if (activeSlotIndex !== null) {
         const characterSlots = JSON.parse(localStorage.getItem('ventureCharacterSlots') || '[null, null, null]');
         
-        // Create a clean copy of the state for saving, excluding client-side derived properties
-        // and transient adventure state to prevent state pollution on the next load.
         const stateToSave = { ...gameState };
         delete stateToSave.isPartyLeader;
         delete stateToSave.turnState;
@@ -116,7 +116,6 @@ function handlePartyUpdate(party) {
     if (gameState && gameState.characterName) {
        gameState.partyId = party ? party.partyId : null;
        gameState.partyMembers = party ? party.members : [];
-       // Accept the authoritative value from the server instead of calculating it.
        gameState.isPartyLeader = party ? party.isPartyLeader : false;
     }
     UI.renderPartyManagement(party);
@@ -155,6 +154,10 @@ function handlePartyAdventureStarted(serverAdventureState) {
 }
 
 function handlePartyAdventureUpdate(serverAdventureState) {
+    // Hide any lingering reaction modals if the state updates for another reason
+    if (document.getElementById('reaction-buttons')) {
+        UI.hideModal();
+    }
     gameState.zoneCards = serverAdventureState.zoneCards;
     gameState.partyMemberStates = serverAdventureState.partyMemberStates;
     
@@ -166,6 +169,11 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     UI.renderAdventureScreen();
     UI.updateDisplay();
     UI.renderPlayerActionBars(); 
+}
+
+// --- NEWLY ADDED FOR REACTION FIX ---
+function handlePartyRequestReaction(data) {
+    UI.showReactionModal(data);
 }
 
 // --- DUEL HANDLERS ---
@@ -323,10 +331,16 @@ function addEventListeners() {
             }
             return;
         }
-
+        
+        // --- NEWLY ADDED FOR REACTION FIX ---
         const reactionButton = target.closest('#reaction-buttons button');
-        if(reactionButton) {
-            Combat.resolveReaction(reactionButton.dataset.reaction);
+        if (reactionButton) {
+            const reactionType = reactionButton.dataset.reaction;
+            Network.emitPartyAction({
+                type: 'resolveReaction',
+                payload: { reactionType }
+            });
+            UI.hideModal();
             return;
         }
 
@@ -366,7 +380,6 @@ function addEventListeners() {
                     UI.showInfoModal("Only the party leader can start an adventure.");
                     return;
                 }
-                // --- REFACTORED: REMOVED gameState from the emit call ---
                 Network.emitPartyEnterZone(zoneName);
             };
 

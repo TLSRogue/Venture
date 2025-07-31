@@ -717,12 +717,13 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false) {
 
     const enemies = sharedState.zoneCards.map((card, index) => ({ card, index })).filter(e => e.card && e.card.type === 'enemy');
 
-    for (const { card: enemy, index } of enemies) {
+    for (const { card: enemy, index: enemyIndex } of enemies) {
         if (enemy.health <= 0) continue;
         
         try {
             await new Promise(resolve => setTimeout(resolve, 1000));
 
+            // --- DOT damage logic remains the same ---
             let tookDotDamage = false;
             const burnDebuff = enemy.debuffs.find(d => d.type === 'burn');
             if (burnDebuff) {
@@ -733,7 +734,7 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false) {
             }
             if (enemy.health <= 0) {
                  sharedState.log.push({ message: `${enemy.name} succumbed to its wounds!`, type: 'success' });
-                 sharedState.zoneCards[index] = null;
+                 sharedState.zoneCards[enemyIndex] = null;
                  broadcastAdventureUpdate(io, partyId);
                  continue;
             }
@@ -750,43 +751,73 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false) {
             const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);
             if (alivePlayers.length === 0) continue;
 
-            const targetPlayer = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+            const targetPlayerState = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+            const targetPlayerObject = players[targetPlayerState.name];
+            if (!targetPlayerObject) continue;
+            
             const roll = Math.floor(Math.random() * 20) + 1;
+            const attack = enemy.attackTable ? enemy.attackTable.find(a => roll >= a.range[0] && roll <= a.range[1]) : null;
 
-            if (enemy.attackTable) {
-                const attack = enemy.attackTable.find(a => roll >= a.range[0] && roll <= a.range[1]);
-                if (attack && attack.action === 'attack') {
-                    targetPlayer.health -= attack.damage;
-                    let attackMessage = `${enemy.name} ${attack.message} It hits ${targetPlayer.name} for ${attack.damage} damage!`;
+            // --- REFACTORED ATTACK LOGIC ---
+            if (attack && attack.action === 'attack') {
+                const targetCharacter = targetPlayerObject.character;
+                const availableReactions = [];
+                const dodgeSpell = targetCharacter.equippedSpells.find(s => s.name === "Dodge");
+                if (dodgeSpell && (targetPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
+                    availableReactions.push({ name: 'Dodge', type: 'spell' });
+                }
+                
+                if (availableReactions.length > 0) {
+                    // Player CAN react. Pause the game and ask for input.
+                    sharedState.pendingReaction = {
+                        attackerName: enemy.name,
+                        attackerIndex: enemyIndex,
+                        targetName: targetPlayerState.name,
+                        damage: attack.damage,
+                        debuff: attack.debuff || null,
+                        message: attack.message
+                    };
+                    
+                    io.to(targetPlayerState.playerId).emit('party:requestReaction', {
+                        damage: attack.damage,
+                        attacker: enemy.name,
+                        availableReactions
+                    });
+                    
+                    // Set a timeout to auto-resolve if the player is AFK
+                    sharedState.reactionTimeout = setTimeout(() => {
+                        // We will add the auto-resolve logic in a later step
+                        console.log(`Player ${targetPlayerState.name} did not react in time.`);
+                    }, 15000); // 15 seconds
+
+                    // IMPORTANT: We stop this enemy's turn here and wait for the player's response.
+                    return; 
+                } else {
+                    // Player cannot react, deal damage immediately.
+                    targetPlayerState.health -= attack.damage;
+                    let attackMessage = `${enemy.name} ${attack.message} It hits ${targetPlayerState.name} for ${attack.damage} damage!`;
                     if (attack.debuff) {
-                        targetPlayer.debuffs.push({ ...attack.debuff });
-                        attackMessage += ` ${targetPlayer.name} is now ${attack.debuff.type}!`;
+                        targetPlayerState.debuffs.push({ ...attack.debuff });
+                        attackMessage += ` ${targetPlayerState.name} is now ${attack.debuff.type}!`;
                     }
                     sharedState.log.push({ message: attackMessage, type: 'damage'});
-                } else if (attack && attack.action === 'special') {
-                    sharedState.log.push({ message: `${enemy.name} uses a special ability: ${attack.message}`, type: 'reaction' });
-                } else {
-                    sharedState.log.push({ message: `${enemy.name} misses its attack.`, type: 'info' });
                 }
+
+            } else if (attack && attack.action === 'special') {
+                sharedState.log.push({ message: `${enemy.name} uses a special ability: ${attack.message}`, type: 'reaction' });
             } else {
-                if (roll >= 10) {
-                    targetPlayer.health -= enemy.damage;
-                    sharedState.log.push({ message: `${enemy.name} attacks ${targetPlayer.name} for ${enemy.damage} damage!`, type: 'damage' });
-                } else {
-                    sharedState.log.push({ message: `${enemy.name} misses its attack.`, type: 'info' });
-                }
+                sharedState.log.push({ message: `${enemy.name} misses its attack.`, type: 'info' });
             }
             
-            if (targetPlayer.health <= 0) {
-                targetPlayer.health = 0;
-                targetPlayer.isDead = true;
-                const deadPlayerCharacter = players[targetPlayer.name]?.character;
-                if (deadPlayerCharacter) {
-                    targetPlayer.lootableInventory = [...deadPlayerCharacter.inventory.filter(Boolean)];
-                    deadPlayerCharacter.inventory = Array(24).fill(null);
-                    if(players[targetPlayer.name].id) io.to(players[targetPlayer.name].id).emit('characterUpdate', deadPlayerCharacter);
+            if (targetPlayerState.health <= 0) {
+                targetPlayerState.health = 0;
+                targetPlayerState.isDead = true;
+                if (targetPlayerObject.character) {
+                    targetPlayerState.lootableInventory = [...targetPlayerObject.character.inventory.filter(Boolean)];
+                    targetPlayerObject.character.inventory = Array(24).fill(null);
+                    if(targetPlayerObject.id) io.to(targetPlayerObject.id).emit('characterUpdate', targetPlayerObject.character);
                 }
-                sharedState.log.push({ message: `${targetPlayer.name} has been defeated!`, type: 'damage' });
+                sharedState.log.push({ message: `${targetPlayerState.name} has been defeated!`, type: 'damage' });
             }
             
             broadcastAdventureUpdate(io, partyId);
@@ -837,11 +868,6 @@ export const registerAdventureHandlers = (io, socket) => {
         const name = socket.characterName;
         const player = players[name];
         if (!player) return;
-        
-        // --- REFACTORED: REMOVED THE FOLLOWING BLOCK ---
-        // if (characterData) {
-        //     players[name].character = characterData;
-        // }
         
         if (player.character.duelId && duels[player.character.duelId]) {
             return; 
@@ -894,7 +920,9 @@ export const registerAdventureHandlers = (io, socket) => {
                     focus: 0,
                 };
             }),
-            log: [{ message: `Party has entered the ${zoneName}!`, type: 'info' }]
+            log: [{ message: `Party has entered the ${zoneName}!`, type: 'info' }],
+            pendingReaction: null, // Add state for pending reactions
+            reactionTimeout: null
         };
         drawCardsForServer(party.sharedState, 3);
         
@@ -914,6 +942,12 @@ export const registerAdventureHandlers = (io, socket) => {
         const partyId = player.character.partyId;
         const party = parties[partyId];
         if (!party) return;
+
+        // We will add the reaction response handler here in a future step
+        if (action.type === 'resolveReaction') {
+            // Placeholder for Step 4
+            return;
+        }
 
         if (action.type === 'equipItem') {
             processEquipItem(io, party, player, action.payload);
