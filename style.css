@@ -607,10 +607,9 @@ hr {
     margin: 20px 0;
 }
 
+/* REFACTORED: Removed board-divider style */
 .board-divider {
-    width: 80%;
-    margin: 15px auto;
-    border-color: rgba(255, 255, 255, 0.1);
+    display: none;
 }
 
 #player-action-bar {
@@ -619,12 +618,13 @@ hr {
     left: 0;
     width: 100%;
     background: rgba(0,0,0,0.8);
-    padding: 10px 20px;
+    padding: 10px;
     border-top: 2px solid var(--primary-color);
     display: flex;
-    justify-content: space-between;
+    /* REFACTORED: Changed from space-between to have more control */
+    justify-content: center;
     align-items: center;
-    gap: 20px;
+    gap: 15px;
     z-index: 1000;
 }
 
@@ -632,8 +632,22 @@ hr {
     display: flex;
     flex-direction: column;
     gap: 5px;
+    /* REFACTORED: Allow this to grow to fill space */
     flex-grow: 1;
     max-width: 800px;
+}
+
+/* REFACTORED: New styles for the hub layout */
+.player-hub-left, .player-hub-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.player-hub-right .btn {
+    padding: 15px 25px;
+    font-size: 1.1em;
 }
 
 .action-bar-row {
@@ -693,8 +707,8 @@ hr {
     background: #34495e;
     border: 2px solid #7f8c8d;
     border-radius: 50%;
-    width: 60px;
-    height: 60px;
+    width: 50px; /* REFACTORED: Slightly smaller */
+    height: 50px; /* REFACTORED: Slightly smaller */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -711,8 +725,8 @@ hr {
 }
 
 #backpack-btn svg, #character-sheet-btn svg {
-    width: 32px;
-    height: 32px;
+    width: 28px; /* REFACTORED: Slightly smaller */
+    height: 28px; /* REFACTORED: Slightly smaller */
     fill: #ecf0f1;
     stroke: #ecf0f1;
 }
@@ -756,17 +770,11 @@ hr {
     pointer-events: auto; 
 }
 
+/* REFACTORED: Removed adventure-main-controls */
 #adventure-main-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    flex-shrink: 0;
+    display: none;
 }
-#adventure-main-controls .btn {
-    padding: 8px 15px;
-    font-size: 0.9em;
-    width: 130px;
-}
+
 
 #adventure-content-wrapper {
     display: flex;
@@ -775,8 +783,12 @@ hr {
     gap: 20px;
 }
 
+/* REFACTORED: New board layout style */
 #adventure-board {
     flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* This replaces the margin from the old <hr> */
 }
 
 .nav-arrow {
@@ -918,17 +930,11 @@ hr {
         justify-content: center;
         bottom: 140px; 
     }
-    #adventure-main-controls {
-        order: 2;
-        flex-direction: row;
-        width: 100%;
-        justify-content: center;
-        margin-top: 10px;
-    }
+    .player-hub-left { order: 1; }
+    .player-hub-right { order: 2; }
     #action-bars-container {
-        order: 1;
-    }
-    #backpack-btn {
         order: 3;
+        width: 100%;
+        margin-top: 10px;
     }
 }
