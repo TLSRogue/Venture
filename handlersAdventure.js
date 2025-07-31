@@ -770,7 +770,6 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                 if (availableReactions.length > 0) {
                     sharedState.pendingReaction = {
                         attackerName: enemy.name,
-                        // --- BUG FIX: Use the correct variable name ---
                         attackerIndex: enemyIndex,
                         targetName: targetPlayerState.name,
                         damage: attack.damage,
@@ -904,6 +903,9 @@ async function handleResolveReaction(io, socket, payload) {
             } else {
                 logMessage = `${name}'s Dodge: ${roll}(d20) + ${statValue} = ${total}. Failure!`;
             }
+        } else {
+            // --- BUG FIX: Add a log message for when Dodge fails due to cooldown or not being equipped ---
+            logMessage = `${name} tries to Dodge, but fails!`;
         }
     } else { // 'take_damage'
         logMessage = `${name} braces for the attack!`;
@@ -1058,10 +1060,10 @@ export const registerAdventureHandlers = (io, socket) => {
                 processCastSpell(io, party, player, action.payload);
                 break;
             case 'useItemAbility':
-                processUseItemAbility(party, player, action.payload);
+                processUseItemAbility(io, party, player, action.payload);
                 break;
             case 'useConsumable':
-                processUseConsumable(io, party, player, action.payload);
+                processConsumable(io, party, player, action.payload);
                 break;
             case 'interactWithCard':
                 processInteractWithCard(io, party, player, action.payload);
@@ -1070,7 +1072,7 @@ export const registerAdventureHandlers = (io, socket) => {
                 processDialogueChoice(io, player, party, action.payload);
                 break; 
             case 'lootPlayer':
-                processLootPlayer(io, player, action.payload);
+                processLootPlayer(io, player, party, action.payload);
                 break;
             case 'endTurn':
                 actingPlayerState.turnEnded = true;
