@@ -5,7 +5,6 @@ import { gameState } from './state.js';
 import { getBonusStats } from './player.js';
 import {} from './merchant.js';
 import { socket } from './network.js';
-// REFACTORED: Import the full network module to emit actions
 import * as Network from './network.js';
 
 /**
@@ -771,7 +770,11 @@ export function showNPCDialogueFromServer({ npcName, node, cardIndex }) {
             choice: option
         };
         
-        let action = `data-action="choice" data-payload='${JSON.stringify(payload)}'`;
+        // --- QUEST BUG FIX ---
+        // Escape single quotes in the stringified JSON to prevent HTML attributes from breaking.
+        const safePayload = JSON.stringify(payload).replace(/'/g, "&#39;");
+        let action = `data-action="choice" data-payload='${safePayload}'`;
+        
         if (option.next === 'farewell') {
             action = `data-action="hide"`;
         }
@@ -1190,7 +1193,6 @@ export function showTab(tabName) {
     if (merchantTimerInterval) { clearInterval(merchantTimerInterval); merchantTimerInterval = null; }
     
     if (tabName === 'merchant') { 
-        // --- REFACTORED: Send event to server to get latest stock ---
         Network.emitPlayerAction('viewMerchant');
         renderMerchant(); 
         renderSellableInventory(); 
