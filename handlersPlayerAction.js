@@ -25,14 +25,12 @@ export const registerPlayerActionHandlers = (io, socket) => {
         let success = false; // Flag to check if an action successfully changed the state
 
         switch(type) {
-            // --- NEWLY ADDED CASE ---
             case 'viewMerchant':
                 {
                     checkAndRotateMerchantStock(character);
                     success = true; // Set to true to ensure an update is sent to the client
                 }
                 break;
-
             case 'buyItem':
                 {
                     checkAndRotateMerchantStock(character);
@@ -196,6 +194,29 @@ export const registerPlayerActionHandlers = (io, socket) => {
                     if (character.inventory[index]) {
                         character.inventory[index] = null;
                         success = true;
+                    }
+                }
+                break;
+            case 'depositItem':
+                {
+                    const { index } = payload;
+                    const itemToDeposit = character.inventory[index];
+                    if (itemToDeposit) {
+                        character.bank.push(itemToDeposit);
+                        character.inventory[index] = null;
+                        success = true;
+                    }
+                }
+                break;
+            case 'withdrawItem':
+                {
+                    const { index } = payload;
+                    const itemToWithdraw = character.bank[index];
+                    if (itemToWithdraw) {
+                        if (addItemToInventoryServer(character, itemToWithdraw)) {
+                            character.bank.splice(index, 1);
+                            success = true;
+                        }
                     }
                 }
                 break;
