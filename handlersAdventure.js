@@ -485,6 +485,7 @@ function processTakeGroundLoot(io, party, player, payload) {
         if (addItemToInventoryServer(character, itemToTake)) {
             sharedState.groundLoot.splice(groundLootIndex, 1);
             sharedState.log.push({ message: `${character.characterName} picked up ${itemToTake.name}.`, type: 'success' });
+            io.to(player.id).emit('characterUpdate', character);
         } else {
             sharedState.log.push({ message: `${character.characterName} tried to pick up ${itemToTake.name}, but their inventory is full.`, type: 'damage' });
         }
