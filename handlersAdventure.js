@@ -786,15 +786,11 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                 burnDebuff.duration--;
                 tookDotDamage = true;
             }
-
-            // --- FIX STARTS HERE ---
             if (enemy.health <= 0) {
                 defeatEnemyInParty(io, party, enemy, enemyIndex);
                 broadcastAdventureUpdate(io, partyId);
                 continue;
             }
-            // --- FIX ENDS HERE ---
-
             enemy.debuffs = enemy.debuffs.filter(d => d.duration > 0);
             if(tookDotDamage) broadcastAdventureUpdate(io, partyId);
 
@@ -830,7 +826,8 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                         targetName: targetPlayerState.name,
                         damage: attack.damage,
                         debuff: attack.debuff || null,
-                        message: attack.message
+                        message: attack.message,
+                        isFleeing: isFleeing // --- FIX #1: Remember if we are fleeing
                     };
                     
                     io.to(targetPlayerState.playerId).emit('party:requestReaction', {
@@ -991,12 +988,13 @@ async function handleResolveReaction(io, socket, payload) {
     }
 
     const lastAttackerIndex = reaction.attackerIndex;
+    const wasFleeing = reaction.isFleeing || false; // --- FIX #2: Retrieve the fleeing status
     sharedState.pendingReaction = null;
 
     const enemies = sharedState.zoneCards.map((c, i) => ({card: c, index: i})).filter(e => e.card && e.card.type === 'enemy');
     const lastEnemyListIndex = enemies.findIndex(e => e.index === lastAttackerIndex);
     
-    await runEnemyPhaseForParty(io, partyId, false, lastEnemyListIndex + 1);
+    await runEnemyPhaseForParty(io, partyId, wasFleeing, lastEnemyListIndex + 1); // --- FIX #2: Pass the status along
 }
 
 // --- MAIN EXPORT ---

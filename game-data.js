@@ -186,8 +186,8 @@ export const gameData = {
             { card: { 
                 name: "Angry Farmhand", type: "enemy", health: 4, maxHealth: 4, description: "An angry local. Wants you off his land.", icon: "🧑‍🌾",
                 attackTable: [
-                    { range: [1, 10], action: 'miss', message: "Miss!" },
-                    { range: [11, 15], action: 'attack', damage: 2, damageType: 'Physical', message: "Stab! Deals 2 Physical Damage!" },
+                    { range: [1, 8], action: 'miss', message: "Miss!" },
+                    { range: [9, 15], action: 'attack', damage: 2, damageType: 'Physical', message: "Stab! Deals 2 Physical Damage!" },
                     { range: [16, 20], action: 'attack', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Slash! Deals 2 Physical Damage and applies Bleed!" }
                 ],
                 guaranteedLoot: { gold: true, items: ["Cloth"] },
