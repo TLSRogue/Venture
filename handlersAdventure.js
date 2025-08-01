@@ -786,12 +786,15 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                 burnDebuff.duration--;
                 tookDotDamage = true;
             }
+
+            // --- FIX STARTS HERE ---
             if (enemy.health <= 0) {
-                 sharedState.log.push({ message: `${enemy.name} succumbed to its wounds!`, type: 'success' });
-                 sharedState.zoneCards[enemyIndex] = null;
-                 broadcastAdventureUpdate(io, partyId);
-                 continue;
+                defeatEnemyInParty(io, party, enemy, enemyIndex);
+                broadcastAdventureUpdate(io, partyId);
+                continue;
             }
+            // --- FIX ENDS HERE ---
+
             enemy.debuffs = enemy.debuffs.filter(d => d.duration > 0);
             if(tookDotDamage) broadcastAdventureUpdate(io, partyId);
 
