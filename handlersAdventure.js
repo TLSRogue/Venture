@@ -468,6 +468,19 @@ function processUseConsumable(io, party, player, payload) {
     io.to(player.id).emit('characterUpdate', character);
 }
 
+function processDropItem(io, party, player, payload) {
+    const { inventoryIndex } = payload;
+    const { character } = player;
+    const { sharedState } = party;
+
+    if (character.inventory[inventoryIndex]) {
+        const itemName = character.inventory[inventoryIndex].name;
+        character.inventory[inventoryIndex] = null;
+        sharedState.log.push({ message: `${character.characterName} dropped ${itemName}.`, type: 'info' });
+        io.to(player.id).emit('characterUpdate', character);
+    }
+}
+
 function processInteractWithCard(io, party, player, payload) {
     const { cardIndex } = payload;
     const { character } = player;
@@ -1104,6 +1117,9 @@ export const registerAdventureHandlers = (io, socket) => {
                 break;
             case 'useConsumable':
                 processUseConsumable(io, party, player, action.payload);
+                break;
+            case 'dropItem':
+                processDropItem(io, party, player, action.payload);
                 break;
             case 'interactWithCard':
                 processInteractWithCard(io, party, player, action.payload);

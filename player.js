@@ -42,8 +42,16 @@ export function getBonusStats() {
 // --- ITEM & INVENTORY MANAGEMENT (EMITS TO SERVER) ---
 
 export function handleItemAction(action, index) {
-    // Forwards item actions to the server to be processed authoritatively.
-    Network.emitPlayerAction(action, { index });
+    if (gameState.currentZone || gameState.inDuel) {
+        // Actions during an adventure must be sent to the party/adventure handler
+        Network.emitPartyAction({
+            type: action,
+            payload: { inventoryIndex: index }
+        });
+    } else {
+        // Actions outside an adventure are sent to the general player handler
+        Network.emitPlayerAction(action, { index });
+    }
 }
 
 export function equipItem(itemIndex, chosenSlot) {

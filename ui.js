@@ -1259,11 +1259,18 @@ export function showBackpack() {
             if (item.charges) {
                 itemText += ` <div>(${item.charges})</div>`;
             }
+
+            let actionButtonsHTML = '';
+            if (item.type === 'consumable') {
+                actionButtonsHTML += `<button class="btn btn-primary btn-sm" data-inventory-action="useConsumable" data-index="${i}">Use</button>`;
+            }
+            // Equipping is complex from this view, so it's omitted for now. Players can equip from the main inventory screen.
+            actionButtonsHTML += `<button class="btn btn-danger btn-sm" data-inventory-action="dropItem" data-index="${i}">Drop</button>`;
+
             slot.innerHTML = `
                 ${itemText}
                 <div class="action-buttons" style="margin-top: 5px; flex-direction: column; gap: 5px;">
-                    <button class="btn btn-primary btn-sm" data-inventory-action="use" data-index="${i}">Use/Equip</button>
-                    <button class="btn btn-danger btn-sm" data-inventory-action="drop" data-index="${i}">Drop</button>
+                    ${actionButtonsHTML}
                 </div>
             `;
         } else {
