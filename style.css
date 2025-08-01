@@ -206,7 +206,29 @@ body {
     flex-wrap: wrap;
     gap: 15px;
     perspective: 1000px;
-    min-height: 150px; /* Give empty rows some height */
+    min-height: 150px;
+}
+
+#ground-loot-container {
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+    min-height: 60px;
+}
+
+#ground-loot-btn {
+    background: rgba(241, 196, 15, 0.2);
+    border: 2px solid var(--accent-color);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 1.8em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+#ground-loot-btn:hover {
+    background: rgba(241, 196, 15, 0.4);
+    transform: scale(1.1);
 }
 
 .card {
@@ -250,7 +272,6 @@ body {
     animation: glow-pulse 2s infinite;
 }
 
-/* NEW: Style for dead player cards */
 .card.player.dead {
     filter: grayscale(1);
     border-color: #7f8c8d;
@@ -607,7 +628,6 @@ hr {
     margin: 20px 0;
 }
 
-/* REFACTORED: Removed board-divider style */
 .board-divider {
     display: none;
 }
@@ -621,7 +641,6 @@ hr {
     padding: 10px;
     border-top: 2px solid var(--primary-color);
     display: flex;
-    /* REFACTORED: Changed from space-between to have more control */
     justify-content: center;
     align-items: center;
     gap: 15px;
@@ -632,12 +651,10 @@ hr {
     display: flex;
     flex-direction: column;
     gap: 5px;
-    /* REFACTORED: Allow this to grow to fill space */
     flex-grow: 1;
     max-width: 800px;
 }
 
-/* REFACTORED: New styles for the hub layout */
 .player-hub-left, .player-hub-right {
     display: flex;
     align-items: center;
@@ -707,8 +724,8 @@ hr {
     background: #34495e;
     border: 2px solid #7f8c8d;
     border-radius: 50%;
-    width: 50px; /* REFACTORED: Slightly smaller */
-    height: 50px; /* REFACTORED: Slightly smaller */
+    width: 50px;
+    height: 50px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -725,8 +742,8 @@ hr {
 }
 
 #backpack-btn svg, #character-sheet-btn svg {
-    width: 28px; /* REFACTORED: Slightly smaller */
-    height: 28px; /* REFACTORED: Slightly smaller */
+    width: 28px;
+    height: 28px;
     fill: #ecf0f1;
     stroke: #ecf0f1;
 }
@@ -770,7 +787,6 @@ hr {
     pointer-events: auto; 
 }
 
-/* REFACTORED: Removed adventure-main-controls */
 #adventure-main-controls {
     display: none;
 }
@@ -783,12 +799,11 @@ hr {
     gap: 20px;
 }
 
-/* REFACTORED: New board layout style */
 #adventure-board {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: 20px; /* This replaces the margin from the old <hr> */
+    gap: 20px;
 }
 
 .nav-arrow {

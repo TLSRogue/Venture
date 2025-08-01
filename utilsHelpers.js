@@ -128,13 +128,15 @@ export function getBonusStatsForPlayer(character, playerState) {
     return bonuses;
 }
 
-export function addItemToInventoryServer(character, itemData, quantity = 1) {
+export function addItemToInventoryServer(character, itemData, quantity = 1, groundLoot = null) {
     if (!itemData) return false;
     const baseItem = gameData.allItems.find(i => i.name === itemData.name);
     if (!baseItem) return false;
 
     let remainingQuantity = quantity;
+    let addedToInventory = false;
 
+    // First, try to stack with existing items in inventory
     if (baseItem.stackable) {
         for (const invItem of character.inventory) {
             if (invItem && invItem.name === itemData.name && invItem.quantity < baseItem.stackable) {
@@ -142,25 +144,37 @@ export function addItemToInventoryServer(character, itemData, quantity = 1) {
                 const toAdd = Math.min(remainingQuantity, canAdd);
                 invItem.quantity += toAdd;
                 remainingQuantity -= toAdd;
+                addedToInventory = true;
                 if (remainingQuantity <= 0) return true;
             }
         }
-        while (remainingQuantity > 0) {
-            const emptySlotIndex = character.inventory.findIndex(slot => !slot);
-            if (emptySlotIndex === -1) return false;
-            const newStackAmount = Math.min(remainingQuantity, baseItem.stackable);
-            character.inventory[emptySlotIndex] = { ...baseItem, quantity: newStackAmount };
-            remainingQuantity -= newStackAmount;
-        }
-    } else {
-        for (let i = 0; i < quantity; i++) {
-            const emptySlotIndex = character.inventory.findIndex(slot => !slot);
-            if (emptySlotIndex === -1) return false;
-            character.inventory[emptySlotIndex] = { ...baseItem, quantity: 1 };
-        }
     }
-    return true;
+
+    // Then, try to add remaining items to new slots
+    while (remainingQuantity > 0) {
+        const emptySlotIndex = character.inventory.findIndex(slot => !slot);
+        if (emptySlotIndex === -1) {
+            break; // Inventory is full
+        }
+        
+        const amountToAdd = baseItem.stackable ? Math.min(remainingQuantity, baseItem.stackable) : 1;
+        character.inventory[emptySlotIndex] = { ...baseItem, quantity: amountToAdd };
+        remainingQuantity -= amountToAdd;
+        addedToInventory = true;
+        if (!baseItem.stackable && remainingQuantity > 0) continue;
+    }
+    
+    // If items still remain and a groundLoot array is provided, add them there
+    if (remainingQuantity > 0 && groundLoot !== null) {
+        for (let i = 0; i < remainingQuantity; i++) {
+            groundLoot.push({ ...baseItem, quantity: 1 });
+        }
+        return true; // Return true because the loot was handled (put on the ground)
+    }
+
+    return addedToInventory;
 }
+
 
 export function playerHasMaterials(character, materials) {
     for (const material in materials) {

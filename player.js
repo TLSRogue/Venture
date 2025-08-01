@@ -54,6 +54,13 @@ export function handleItemAction(action, index) {
     }
 }
 
+export function takeGroundLoot(index) {
+    Network.emitPartyAction({
+        type: 'takeGroundLoot',
+        payload: { groundLootIndex: index }
+    });
+}
+
 export function equipItem(itemIndex, chosenSlot) {
     Network.emitPlayerAction('equipItem', { itemIndex, chosenSlot });
 }
@@ -100,6 +107,7 @@ export function resetToHomeState() {
     UI.setTabsDisabled(false);
     gameState.currentZone = null;
     gameState.zoneCards = [];
+    gameState.groundLoot = [];
     gameState.health = gameState.maxHealth;
     gameState.spellCooldowns = {};
     gameState.weaponCooldowns = {};

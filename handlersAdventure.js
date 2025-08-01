@@ -11,7 +11,6 @@ function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     const { sharedState } = party;
     sharedState.log.push({ message: `${enemy.name} has been defeated!`, type: 'success' });
 
-    // --- NEW: LOOT TABLE PROCESSING ---
     let rolledLootItems = [];
     if (enemy.lootTable && enemy.lootTable.length > 0) {
         const roll = Math.floor(Math.random() * 20) + 1;
@@ -30,15 +29,12 @@ function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         }
     }
     const rolledLootObjects = rolledLootItems.map(name => gameData.allItems.find(i => i.name === name)).filter(Boolean);
-    // --- END: LOOT TABLE PROCESSING ---
-
 
     party.members.forEach(memberName => {
         const member = players[memberName];
         if (!member || !member.character) return;
         const character = member.character;
 
-        // Quest Progress
         character.quests.forEach(quest => {
             if (quest.status === 'active' && (quest.details.target === enemy.name || (quest.details.target === 'Goblin' && enemy.name.includes('Goblin')))) {
                 quest.progress++;
@@ -49,46 +45,43 @@ function defeatEnemyInParty(io, party, enemy, enemyIndex) {
             }
         });
 
-        // Guaranteed Gold
         if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
             const goldAmount = (Math.floor(Math.random() * 20) + 1) + (Math.floor(Math.random() * 20) + 1);
             const goldPerPlayer = Math.floor(goldAmount / party.members.length);
             character.gold += goldPerPlayer;
         }
 
-        // Guaranteed Items
         if (enemy.guaranteedLoot && enemy.guaranteedLoot.items) {
             enemy.guaranteedLoot.items.forEach(itemName => {
                  const itemData = gameData.allItems.find(i => i.name === itemName);
                  if (itemData) {
-                    addItemToInventoryServer(character, itemData);
+                    if (!addItemToInventoryServer(character, itemData, 1, sharedState.groundLoot)) {
+                        sharedState.log.push({ message: `${itemName} dropped, but your inventory is full! It was left on the ground.`, type: 'damage'});
+                    }
                  }
             });
         }
         
-        // --- NEW: Award Rolled Loot ---
         if(rolledLootObjects.length > 0) {
             rolledLootObjects.forEach(itemData => {
-                addItemToInventoryServer(character, itemData);
+                if (!addItemToInventoryServer(character, itemData, 1, sharedState.groundLoot)) {
+                     sharedState.log.push({ message: `${itemData.name} dropped, but your inventory is full! It was left on the ground.`, type: 'damage'});
+                }
             });
         }
-        // --- END: Award Rolled Loot ---
 
         if (member.id) io.to(member.id).emit('characterUpdate', character);
     });
     
-    // Logging Drops
     if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
         sharedState.log.push({ message: `${enemy.name} dropped gold, which was split among the party.`, type: 'success'});
     }
      if (enemy.guaranteedLoot && enemy.guaranteedLoot.items) {
-        sharedState.log.push({ message: `${enemy.name} dropped: ${enemy.guaranteedLoot.items.join(', ')} for everyone!`, type: 'success'});
+        sharedState.log.push({ message: `${enemy.name} dropped: ${enemy.guaranteedLoot.items.join(', ')}!`, type: 'success'});
     }
-    // --- NEW: Log Rolled Loot ---
     if (rolledLootItems.length > 0) {
-        sharedState.log.push({ message: `${enemy.name} also dropped: ${rolledLootItems.join(', ')} for everyone!`, type: 'success' });
+        sharedState.log.push({ message: `${enemy.name} also dropped: ${rolledLootItems.join(', ')}!`, type: 'success' });
     }
-    // --- END: Log Rolled Loot ---
 
     sharedState.zoneCards[enemyIndex] = null;
 
@@ -472,12 +465,29 @@ function processDropItem(io, party, player, payload) {
     const { inventoryIndex } = payload;
     const { character } = player;
     const { sharedState } = party;
+    const itemToDrop = character.inventory[inventoryIndex];
 
-    if (character.inventory[inventoryIndex]) {
-        const itemName = character.inventory[inventoryIndex].name;
+    if (itemToDrop) {
         character.inventory[inventoryIndex] = null;
-        sharedState.log.push({ message: `${character.characterName} dropped ${itemName}.`, type: 'info' });
+        sharedState.groundLoot.push(itemToDrop);
+        sharedState.log.push({ message: `${character.characterName} dropped ${itemToDrop.name} to the ground.`, type: 'info' });
         io.to(player.id).emit('characterUpdate', character);
+    }
+}
+
+function processTakeGroundLoot(io, party, player, payload) {
+    const { groundLootIndex } = payload;
+    const { character } = player;
+    const { sharedState } = party;
+    const itemToTake = sharedState.groundLoot[groundLootIndex];
+
+    if (itemToTake) {
+        if (addItemToInventoryServer(character, itemToTake)) {
+            sharedState.groundLoot.splice(groundLootIndex, 1);
+            sharedState.log.push({ message: `${character.characterName} picked up ${itemToTake.name}.`, type: 'success' });
+        } else {
+            sharedState.log.push({ message: `${character.characterName} tried to pick up ${itemToTake.name}, but their inventory is full.`, type: 'damage' });
+        }
     }
 }
 
@@ -505,14 +515,13 @@ function processInteractWithCard(io, party, player, payload) {
         let logMessage = `${character.characterName}'s gathering attempt: ${roll}(d20) + ${skillValue} = ${total}. (Target: ${hitTarget}+)`;
 
         if (roll > 1 && total >= hitTarget) {
-            if (addItemToInventoryServer(character, card.loot)) {
-                logMessage += ` Success! They gathered 1 ${card.loot.name}.`;
-                sharedState.log.push({ message: logMessage, type: 'success' });
-                io.to(player.id).emit('characterUpdate', character);
+            if (!addItemToInventoryServer(character, card.loot, 1, sharedState.groundLoot)) {
+                 sharedState.log.push({ message: `Success! But their inventory is full. They dropped 1 ${card.loot.name} on the ground.`, type: 'damage' });
             } else {
-                logMessage += ` Success! But their inventory is full.`;
-                sharedState.log.push({ message: logMessage, type: 'damage' });
+                 logMessage += ` Success! They gathered 1 ${card.loot.name}.`;
+                 sharedState.log.push({ message: logMessage, type: 'success' });
             }
+             io.to(player.id).emit('characterUpdate', character);
         } else {
             logMessage += ` Failure!`;
             sharedState.log.push({ message: logMessage, type: 'info' });
@@ -558,8 +567,10 @@ function processInteractWithCard(io, party, player, payload) {
                         });
                         foundItemsLog += `${randomLoot.gold} Gold (split), `;
                     } else {
-                        if (addItemToInventoryServer(character, randomLoot)) {
+                        if (addItemToInventoryServer(character, randomLoot, 1, sharedState.groundLoot)) {
                            foundItemsLog += `${randomLoot.name}, `;
+                        } else {
+                           sharedState.log.push({ message: `Found ${randomLoot.name}, but inventory was full. It was left on the ground.`, type: 'damage' });
                         }
                     }
                 }
@@ -702,6 +713,7 @@ async function processVentureDeeper(io, player, party) {
     
     const proceedToNextArea = () => {
         sharedState.zoneCards = [];
+        sharedState.groundLoot = [];
         drawCardsForServer(sharedState, 3);
 
         sharedState.partyMemberStates.forEach(p => {
@@ -746,13 +758,13 @@ function processLootPlayer(io, lootingPlayer, party, payload) {
 
     const itemToLoot = deadPlayerState.lootableInventory[0];
 
-    if (addItemToInventoryServer(lootingCharacter, itemToLoot, itemToLoot.quantity || 1)) {
+    if (addItemToInventoryServer(lootingCharacter, itemToLoot, 1, sharedState.groundLoot)) {
         deadPlayerState.lootableInventory.splice(0, 1);
         sharedState.log.push({ message: `${lootingCharacter.characterName} looted ${itemToLoot.name} from ${deadPlayerState.name}'s bag.`, type: 'info' });
         
         io.to(lootingPlayer.id).emit('characterUpdate', lootingCharacter);
     } else {
-        sharedState.log.push({ message: `${lootingCharacter.characterName} tried to loot ${itemToLoot.name}, but their inventory is full.`, type: 'damage' });
+        sharedState.log.push({ message: `${lootingCharacter.characterName} tried to loot, but their inventory is full. The item was left on the ground.`, type: 'damage' });
     }
 }
 
@@ -773,7 +785,7 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
 
     for (let i = startIndex; i < enemies.length; i++) {
         const { card: enemy, index: enemyIndex } = enemies[i];
-        if (enemy.health <= 0) continue;
+        if (!enemy || enemy.health <= 0) continue;
         
         try {
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -827,7 +839,7 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                         damage: attack.damage,
                         debuff: attack.debuff || null,
                         message: attack.message,
-                        isFleeing: isFleeing // --- FIX #1: Remember if we are fleeing
+                        isFleeing: isFleeing
                     };
                     
                     io.to(targetPlayerState.playerId).emit('party:requestReaction', {
@@ -957,7 +969,6 @@ async function handleResolveReaction(io, socket, payload) {
                 logMessage = `${name}'s Dodge: ${roll}(d20) + ${statValue} = ${total}. Failure!`;
             }
         } else {
-            // --- BUG FIX: Add a log message for when Dodge fails due to cooldown or not being equipped ---
             logMessage = `${name} tries to Dodge, but fails!`;
         }
     } else { // 'take_damage'
@@ -988,13 +999,13 @@ async function handleResolveReaction(io, socket, payload) {
     }
 
     const lastAttackerIndex = reaction.attackerIndex;
-    const wasFleeing = reaction.isFleeing || false; // --- FIX #2: Retrieve the fleeing status
+    const wasFleeing = reaction.isFleeing || false;
     sharedState.pendingReaction = null;
 
     const enemies = sharedState.zoneCards.map((c, i) => ({card: c, index: i})).filter(e => e.card && e.card.type === 'enemy');
     const lastEnemyListIndex = enemies.findIndex(e => e.index === lastAttackerIndex);
     
-    await runEnemyPhaseForParty(io, partyId, wasFleeing, lastEnemyListIndex + 1); // --- FIX #2: Pass the status along
+    await runEnemyPhaseForParty(io, partyId, wasFleeing, lastEnemyListIndex + 1);
 }
 
 // --- MAIN EXPORT ---
@@ -1030,6 +1041,7 @@ export const registerAdventureHandlers = (io, socket) => {
             currentZone: zoneName,
             zoneDeck: deck,
             zoneCards: [],
+            groundLoot: [],
             turnNumber: 0,
             isPlayerTurn: true,
             partyMemberStates: party.members.map(memberName => {
@@ -1121,6 +1133,9 @@ export const registerAdventureHandlers = (io, socket) => {
                 break;
             case 'dropItem':
                 processDropItem(io, party, player, action.payload);
+                break;
+            case 'takeGroundLoot':
+                processTakeGroundLoot(io, party, player, action.payload);
                 break;
             case 'interactWithCard':
                 processInteractWithCard(io, party, player, action.payload);

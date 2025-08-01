@@ -55,12 +55,12 @@ function handleCharacterUpdate(serverState) {
         inDuel: gameState.inDuel,
         duelState: gameState.duelState,
         zoneCards: gameState.zoneCards,
-        partyMemberStates: gameState.partyMemberStates
+        partyMemberStates: gameState.partyMemberStates,
+        groundLoot: gameState.groundLoot
     };
 
     Object.assign(gameState, serverState);
 
-    // After loading state from the server, re-initialize the transient turnState object if it doesn't exist.
     if (!gameState.turnState) {
         gameState.turnState = {
             isPlayerTurn: true,
@@ -76,11 +76,13 @@ function handleCharacterUpdate(serverState) {
         gameState.duelState = preservedSession.duelState;
         gameState.zoneCards = preservedSession.zoneCards;
         gameState.partyMemberStates = preservedSession.partyMemberStates;
+        gameState.groundLoot = preservedSession.groundLoot;
     } else {
         gameState.inDuel = false;
         gameState.duelState = null;
         gameState.currentZone = null;
         gameState.zoneCards = [];
+        gameState.groundLoot = [];
     }
 
     if (activeSlotIndex !== null) {
@@ -91,6 +93,7 @@ function handleCharacterUpdate(serverState) {
         delete stateToSave.turnState;
         delete stateToSave.partyMemberStates;
         delete stateToSave.zoneCards;
+        delete stateToSave.groundLoot;
         
         characterSlots[activeSlotIndex] = stateToSave;
         localStorage.setItem('ventureCharacterSlots', JSON.stringify(characterSlots));
@@ -134,6 +137,7 @@ function handlePartyAdventureStarted(serverAdventureState) {
     gameState.currentZone = serverAdventureState.currentZone;
     gameState.zoneCards = serverAdventureState.zoneCards;
     gameState.partyMemberStates = serverAdventureState.partyMemberStates;
+    gameState.groundLoot = serverAdventureState.groundLoot;
 
     Player.resetPlayerCombatState();
 
@@ -153,12 +157,12 @@ function handlePartyAdventureStarted(serverAdventureState) {
 }
 
 function handlePartyAdventureUpdate(serverAdventureState) {
-    // Hide any lingering reaction modals if the state updates for another reason
     if (document.getElementById('reaction-buttons')) {
         UI.hideModal();
     }
     gameState.zoneCards = serverAdventureState.zoneCards;
     gameState.partyMemberStates = serverAdventureState.partyMemberStates;
+    gameState.groundLoot = serverAdventureState.groundLoot;
     
     const logContainer = document.getElementById('adventure-log');
     const existingLogCount = logContainer.children.length;
@@ -171,7 +175,6 @@ function handlePartyAdventureUpdate(serverAdventureState) {
 }
 
 function handlePartyRequestReaction(data) {
-    // --- DEBUGGING STEP ---
     console.log('Received reaction request from server:', data);
     UI.showReactionModal(data);
 }
@@ -189,6 +192,7 @@ function handleDuelStart(duelState) {
     gameState.duelState = duelState;
     
     gameState.currentZone = null;
+    gameState.groundLoot = [];
 
     Player.resetPlayerCombatState();
 
@@ -361,6 +365,11 @@ function addEventListeners() {
             return;
         }
 
+        if (target.closest('#ground-loot-btn')) {
+            UI.showGroundLootModal();
+            return;
+        }
+
         // Adventure Controls
         if (target.closest('#backpack-btn')) return UI.showBackpack();
         if (target.closest('#character-sheet-btn')) return UI.showCharacterSheet();
@@ -448,11 +457,21 @@ function addEventListeners() {
             }
 
             if (button.id === 'info-ok-btn') return UI.hideModal();
+            
+            if (button.dataset.action === 'takeGroundLoot') {
+                const index = parseInt(button.dataset.index, 10);
+                Player.takeGroundLoot(index);
+                return;
+            }
 
             if (button.dataset.inventoryAction) {
                 const index = parseInt(button.dataset.index, 10);
                 Player.handleItemAction(button.dataset.inventoryAction, index);
-                UI.hideModal();
+                // Note: The ground loot modal should not close automatically.
+                // It will re-render based on the server update.
+                if (!button.closest('#ground-loot-modal')) {
+                    UI.hideModal();
+                }
                 return;
             }
             if (button.dataset.spellAction) {
