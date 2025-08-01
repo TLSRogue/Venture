@@ -70,9 +70,20 @@ export const registerPartyHandlers = (io, socket) => {
     if (!name || !players[name] || !players[name].character) return;
 
     const partyId = players[name].character.partyId;
-    if (!partyId || !parties[partyId]) return;
+    if (!partyId) return; // Player isn't in a party.
     
     const party = parties[partyId];
+
+    // --- FIX: Handle cases where the party doesn't exist on the server (desync/stuck state) ---
+    if (!party) {
+        players[name].character.partyId = null;
+        console.log(`Corrected state for player ${name} who was in a non-existent party.`);
+        socket.emit('characterUpdate', players[name].character);
+        broadcastOnlinePlayers(io);
+        return;
+    }
+    
+    // --- Original logic for leaving a valid party ---
     party.members = party.members.filter(memberName => memberName !== name);
     players[name].character.partyId = null;
     
