@@ -172,6 +172,14 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     UI.renderAdventureScreen();
     UI.updateDisplay();
     UI.renderPlayerActionBars(); 
+
+    // --- FIX STARTS HERE ---
+    // If the ground loot modal is open when an update arrives, refresh its content.
+    const groundLootModal = document.getElementById('ground-loot-modal');
+    if (groundLootModal && !groundLootModal.closest('.modal-overlay').classList.contains('hidden')) {
+        UI.showGroundLootModal();
+    }
+    // --- FIX ENDS HERE ---
 }
 
 function handlePartyRequestReaction(data) {
@@ -467,8 +475,6 @@ function addEventListeners() {
             if (button.dataset.inventoryAction) {
                 const index = parseInt(button.dataset.index, 10);
                 Player.handleItemAction(button.dataset.inventoryAction, index);
-                // Note: The ground loot modal should not close automatically.
-                // It will re-render based on the server update.
                 if (!button.closest('#ground-loot-modal')) {
                     UI.hideModal();
                 }
