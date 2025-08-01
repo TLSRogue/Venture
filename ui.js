@@ -696,7 +696,6 @@ export function showConfirmationModal(message, onConfirmCallback) {
     showModal(fragment);
 }
 
-// --- NEWLY ADDED FOR REACTION FIX ---
 export function showReactionModal({ damage, attacker, availableReactions }) {
     let buttons = '';
     availableReactions.forEach(reaction => {
@@ -820,6 +819,95 @@ export function showNPCDialogueFromServer({ npcName, node, cardIndex }) {
     showModal(modalContent);
 }
 
+function renderGroundLootButton() {
+    const container = document.getElementById('ground-loot-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (gameState.groundLoot && gameState.groundLoot.length > 0 && (gameState.currentZone || gameState.inDuel)) {
+        const button = document.createElement('button');
+        button.id = 'ground-loot-btn';
+        button.className = 'btn';
+        button.textContent = `💰 Ground Loot (${gameState.groundLoot.length})`;
+        container.appendChild(button);
+    }
+}
+
+export function showGroundLootModal() {
+    const modalContentEl = document.createElement('div');
+    modalContentEl.id = 'ground-loot-modal';
+    modalContentEl.innerHTML = '<h2>Ground Loot & Inventory</h2><p>Take items from the ground or drop items from your inventory to make space.</p>';
+
+    const storageGrid = document.createElement('div');
+    storageGrid.className = 'storage-grid';
+
+    // --- Ground Loot Side ---
+    const groundLootSide = document.createElement('div');
+    groundLootSide.innerHTML = '<h3>On The Ground</h3>';
+    const groundGrid = document.createElement('div');
+    groundGrid.className = 'inventory-grid';
+    
+    if (gameState.groundLoot && gameState.groundLoot.length > 0) {
+        gameState.groundLoot.forEach((item, index) => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'inventory-item';
+            let itemText = `<strong>${item.name}</strong>`;
+            if (item.quantity > 1) itemText += ` (x${item.quantity})`;
+            itemEl.innerHTML = `
+                <div>${itemText}</div>
+                <button class="btn btn-success btn-sm" data-action="takeGroundLoot" data-index="${index}">Take</button>
+            `;
+            groundGrid.appendChild(itemEl);
+        });
+    } else {
+        groundGrid.innerHTML = '<p>Nothing on the ground.</p>';
+    }
+    groundLootSide.appendChild(groundGrid);
+
+    // --- Inventory Side ---
+    const inventorySide = document.createElement('div');
+    inventorySide.innerHTML = '<h3>Your Inventory</h3>';
+    const inventoryGrid = document.createElement('div');
+    inventoryGrid.className = 'inventory-grid';
+
+    gameState.inventory.forEach((item, index) => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'inventory-item';
+        if (item) {
+            let itemText = `<strong>${item.name}</strong>`;
+            if (item.quantity > 1) itemText += ` (x${item.quantity})`;
+            itemEl.innerHTML = `
+                <div>${itemText}</div>
+                <button class="btn btn-danger btn-sm" data-inventory-action="dropItem" data-index="${index}">Drop to Ground</button>
+            `;
+        } else {
+            itemEl.innerHTML = 'Empty';
+            itemEl.style.opacity = '0.5';
+        }
+        inventoryGrid.appendChild(itemEl);
+    });
+    inventorySide.appendChild(inventoryGrid);
+    
+    storageGrid.appendChild(groundLootSide);
+    storageGrid.appendChild(inventorySide);
+    modalContentEl.appendChild(storageGrid);
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'btn';
+    closeButton.style.marginTop = '20px';
+    closeButton.textContent = 'Close';
+    closeButton.onclick = hideModal;
+    modalContentEl.appendChild(closeButton);
+
+    const modal = document.getElementById('modal');
+    const modalContentContainer = modal.querySelector('.modal-content');
+    modalContentContainer.classList.add('modal-wide');
+    
+    showModal(modalContentEl);
+}
+
+
 export function renderAdventureScreen() {
     const ventureArrow = document.getElementById('venture-deeper-arrow');
     const homeArrow = document.getElementById('return-home-arrow');
@@ -834,6 +922,7 @@ export function renderAdventureScreen() {
     } else if (!gameState.partyId && gameState.currentZone) {
         renderSoloScreen();
     }
+    renderGroundLootButton();
     updateActionUI();
 }
 
@@ -937,7 +1026,6 @@ function renderDuelScreen() {
     
     if (opponent.health <= 0) {
         opponentCardEl.classList.add('dead');
-        // *** CHANGE HERE: Removed the broken loot button ***
         opponentCardEl.innerHTML = `
             <div class="card-icon">💀</div>
             <div class="card-title">${opponent.name}</div>
