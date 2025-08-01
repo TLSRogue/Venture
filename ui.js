@@ -597,7 +597,18 @@ export function renderPartyManagement(party) {
                 <button id="leave-party-btn" class="btn btn-danger">Leave Party</button>
             </div>
         `;
+    } else if (gameState.partyId) {
+        // This is the "stuck" or "desynced" party state. Show a manual fix UI.
+        container.innerHTML = `
+            <h3>Party Desynchronized</h3>
+            <p>Your character data indicates you are in a party (ID: ${gameState.partyId}), but the party is no longer active on the server. This can happen after a disconnect.</p>
+            <p>Click here to force-leave the party and fix your character's state.</p>
+            <div class="action-buttons">
+                <button id="leave-party-btn" class="btn btn-danger">Force Leave Party</button>
+            </div>
+        `;
     } else {
+        // This is the normal state for a player not in a party.
         container.innerHTML = `
             <p>You are not in a party. Create one to invite friends, or join a friend's party using their ID.</p>
             <div class="action-buttons">
