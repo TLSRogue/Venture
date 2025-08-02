@@ -822,14 +822,16 @@ export function showNPCDialogueFromServer({ npcName, node, cardIndex }) {
 function renderGroundLootButton() {
     const container = document.getElementById('ground-loot-container');
     if (!container) return;
-
     container.innerHTML = '';
 
-    if (gameState.groundLoot && gameState.groundLoot.length > 0 && (gameState.currentZone || gameState.inDuel)) {
+    if (gameState.groundLoot && gameState.groundLoot.length > 0 && gameState.currentZone) {
         const button = document.createElement('button');
         button.id = 'ground-loot-btn';
-        button.className = 'btn';
-        button.textContent = `💰 Ground Loot (${gameState.groundLoot.length})`;
+        button.title = `View items on the ground (${gameState.groundLoot.length})`;
+        button.innerHTML = `
+            <div class="ground-loot-icon">💰</div>
+            <div class="ground-loot-text">GROUND LOOT (${gameState.groundLoot.length})</div>
+        `;
         container.appendChild(button);
     }
 }
@@ -871,7 +873,8 @@ export function showGroundLootModal() {
     const inventoryGrid = document.createElement('div');
     inventoryGrid.className = 'inventory-grid';
 
-    gameState.inventory.forEach((item, index) => {
+    for (let i = 0; i < 24; i++) {
+        const item = gameState.inventory[i];
         const itemEl = document.createElement('div');
         itemEl.className = 'inventory-item';
         if (item) {
@@ -879,14 +882,14 @@ export function showGroundLootModal() {
             if (item.quantity > 1) itemText += ` (x${item.quantity})`;
             itemEl.innerHTML = `
                 <div>${itemText}</div>
-                <button class="btn btn-danger btn-sm" data-inventory-action="dropItem" data-index="${index}">Drop to Ground</button>
+                <button class="btn btn-danger btn-sm" data-inventory-action="dropItem" data-index="${i}">Drop to Ground</button>
             `;
         } else {
             itemEl.innerHTML = 'Empty';
             itemEl.style.opacity = '0.5';
         }
         inventoryGrid.appendChild(itemEl);
-    });
+    }
     inventorySide.appendChild(inventoryGrid);
     
     storageGrid.appendChild(groundLootSide);
