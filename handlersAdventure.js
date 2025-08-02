@@ -679,31 +679,55 @@ function processDialogueChoice(io, player, party, payload) {
     }
 }
 
-function processEndAdventure(io, player, party) {
+async function processEndAdventure(io, player, party) {
     const { sharedState } = party;
     if (!sharedState) return;
 
-    party.members.forEach(memberName => {
-        const memberPlayer = players[memberName];
-        const memberCharacter = memberPlayer?.character;
-        if (memberCharacter) {
-            memberCharacter.health = memberCharacter.maxHealth; 
-            if(memberPlayer.id) {
-                io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
-                io.to(memberPlayer.id).emit('party:adventureEnded');
+    const endTheAdventure = () => {
+        party.members.forEach(memberName => {
+            const memberPlayer = players[memberName];
+            const memberCharacter = memberPlayer?.character;
+            if (memberCharacter) {
+                // Restore health only if they are not dead
+                if (!sharedState.partyMemberStates.find(p => p.name === memberName)?.isDead) {
+                    const bonuses = getBonusStatsForPlayer(memberCharacter, null);
+                    memberCharacter.health = 10 + bonuses.maxHealth;
+                }
+                if(memberPlayer.id) {
+                    io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
+                    io.to(memberPlayer.id).emit('party:adventureEnded');
+                }
             }
-        }
-    });
+        });
 
-    if (party.isSoloParty) {
-        const player = players[party.leaderId];
-        if (player && player.character) {
-            player.character.partyId = null;
-            if(player.id) io.to(player.id).emit('partyUpdate', null);
+        if (party.isSoloParty) {
+            if (player && player.character) {
+                player.character.partyId = null;
+                if(player.id) io.to(player.id).emit('partyUpdate', null);
+            }
+            delete parties[party.id];
+        } else {
+           party.sharedState = null;
         }
-        delete parties[party.id];
+    };
+
+    const inCombat = sharedState.zoneCards.some(c => c && c.type === 'enemy');
+    if (inCombat) {
+        sharedState.log.push({ message: "The party tries to flee combat to return home. Enemies get a final attack!", type: 'reaction' });
+        broadcastAdventureUpdate(io, party.id);
+        await runEnemyPhaseForParty(io, party.id, true);
+
+        const alivePlayers = sharedState.partyMemberStates.filter(p => p.health > 0);
+        if (alivePlayers.length > 0) {
+            sharedState.log.push({ message: "They escaped and returned home safely!", type: 'success' });
+            endTheAdventure();
+        } else {
+            sharedState.log.push({ message: "The party was wiped out while trying to return home!", type: 'damage' });
+            // Let the adventure end naturally with the party defeated
+        }
     } else {
-       party.sharedState = null;
+        sharedState.log.push({ message: "The party returns home.", type: 'info' });
+        endTheAdventure();
     }
 }
 
@@ -731,6 +755,7 @@ async function processVentureDeeper(io, player, party) {
     const inCombat = sharedState.zoneCards.some(c => c && c.type === 'enemy');
     if (inCombat) {
         sharedState.log.push({ message: "The party attempts to flee, but the enemies get one last attack!", type: 'reaction' });
+        broadcastAdventureUpdate(io, party.id);
         await runEnemyPhaseForParty(io, party.id, true); 
 
         const alivePlayers = sharedState.partyMemberStates.filter(p => p.health > 0);
@@ -832,7 +857,7 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                     availableReactions.push({ name: 'Dodge', type: 'spell', spell: dodgeSpell });
                 }
                 
-                if (availableReactions.length > 0) {
+                if (availableReactions.length > 0 && !isFleeing) {
                     sharedState.pendingReaction = {
                         attackerName: enemy.name,
                         attackerIndex: enemyIndex,
@@ -1106,7 +1131,7 @@ export const registerAdventureHandlers = (io, socket) => {
 
         if (action.type === 'returnHome' || action.type === 'ventureDeeper') {
             if (name !== party.leaderId) return;
-            if (action.type === 'returnHome') processEndAdventure(io, player, party);
+            if (action.type === 'returnHome') await processEndAdventure(io, player, party);
             if (action.type === 'ventureDeeper') await processVentureDeeper(io, player, party);
             broadcastAdventureUpdate(io, partyId);
             return;
