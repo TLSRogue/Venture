@@ -17,10 +17,25 @@ try {
     
     // We only want to load the character data, not the transient 'id' (socket id)
     for (const characterName in savedPlayers) {
-        players[characterName] = {
-            id: null, // Sockets are always null on startup
-            character: savedPlayers[characterName].character
-        };
+        if (savedPlayers.hasOwnProperty(characterName)) {
+            const character = savedPlayers[characterName].character;
+            
+            // --- BACKWARDS COMPATIBILITY FOR BIRTHDAY CAKE QUEST ---
+            // If a player has completed the old quest, grant them the recipe automatically.
+            const hasCompletedQuest = character.quests.some(q => q.details.id === 'BAKERS_REQUEST' && q.status === 'completed');
+            if (hasCompletedQuest) {
+                if (!character.knownRecipes.includes('Birthday Cake')) {
+                    character.knownRecipes.push('Birthday Cake');
+                    console.log(`Retroactively granted 'Birthday Cake' recipe to ${characterName}.`);
+                }
+            }
+            // --- END OF COMPATIBILITY FIX ---
+
+            players[characterName] = {
+                id: null, // Sockets are always null on startup
+                character: character
+            };
+        }
     }
     console.log('Player data loaded successfully from players.json');
 } catch (err) {

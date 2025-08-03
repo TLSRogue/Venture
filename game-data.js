@@ -134,11 +134,11 @@ export const gameData = {
                 type: "npc", 
                 description: "She seems worried about something.", 
                 icon: "👩‍🌾",
-                quests: [ {id: "BAKERS_REQUEST", title: "A Birthday Surprise", turnInItems: { "Birthday Cake": 1 }, reward: {gold: 25, qp: 1}, prerequisite: null} ],
+                quests: [ {id: "BAKERS_REQUEST", title: "A Birthday Surprise", turnInItems: { "Egg": 1, "Milk": 1, "Wheat": 1 }, reward: {gold: 25, qp: 1, recipeReward: "Birthday Cake"}, prerequisite: null} ],
                 dialogue: {
-                    BAKERS_REQUEST_start: { text: "Oh, hello there. My husband's birthday is soon, and I'd love to surprise him with a cake. Could you possibly make one?", options: [{ text: "I'd be happy to help.", questId: "BAKERS_REQUEST", next: "BAKERS_REQUEST_inProgress" }, { text: "I'm not much of a baker.", next: "farewell" }] },
-                    BAKERS_REQUEST_inProgress: { text: "I'm sure you can find the ingredients around the farmlands. He'll be so happy!", options: [{ text: "I'll do my best.", next: "farewell" }] },
-                    BAKERS_REQUEST_ready: { text: "Oh, that looks wonderful! Thank you so much! Here is a little something for your effort.", options: [{ text: "You're welcome.", questComplete: "BAKERS_REQUEST", next: "allQuestsDone" }] },
+                    BAKERS_REQUEST_start: { text: "Oh, hello there. My husband's birthday is soon, and I'd love to surprise him with a cake. Could you possibly gather the ingredients for one?", options: [{ text: "I'd be happy to help.", questId: "BAKERS_REQUEST", next: "BAKERS_REQUEST_inProgress" }, { text: "I'm not much of a baker.", next: "farewell" }] },
+                    BAKERS_REQUEST_inProgress: { text: "I'm sure you can find the ingredients around the farmlands. You'll need an Egg, some Milk, and a bit of Wheat. He'll be so happy!", options: [{ text: "I'll do my best.", next: "farewell" }] },
+                    BAKERS_REQUEST_ready: { text: "Oh, these are perfect! Thank you so much! As a thank you, let me teach you the recipe. Here is a little something for your effort, too.", options: [{ text: "You're welcome.", questComplete: "BAKERS_REQUEST", next: "allQuestsDone" }] },
                     allQuestsDone: { text: "He's going to love this. Thank you again!", options: [{ text: "Happy to help.", next: "farewell" }] },
                     farewell: { text: "Have a sweet day.", options: [] }
                 }
@@ -346,7 +346,7 @@ export const gameData = {
         { result: { name: "Longbow" }, materials: { "Wood": 2, "Cow Hide": 1 }, category: "Fletching" },
         { result: { name: "Cooked Fish" }, materials: { "Fish": 1, "Spices": 1 }, category: "Cooking" },
         { result: { name: "Cooked Pork" }, materials: { "Pork": 1, "Spices": 1 }, category: "Cooking" },
-        { result: { name: "Birthday Cake" }, materials: { "Egg": 1, "Milk": 1, "Wheat": 1 }, category: "Cooking" },
+        { result: { name: "Birthday Cake" }, materials: { "Egg": 1, "Milk": 1, "Wheat": 1 }, category: "Cooking", requiresDiscovery: true },
         { result: { name: "Iron Dagger" }, materials: { "Iron": 1, "Wood": 1 }, category: "Blacksmithing" },
         { result: { name: "Iron Sword" }, materials: { "Wood": 1, "Iron": 1 }, category: "Blacksmithing" },
         { result: { name: "Iron Mace" }, materials: { "Iron": 2, "Wood": 1 }, category: "Blacksmithing" },

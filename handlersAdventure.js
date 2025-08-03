@@ -677,14 +677,34 @@ function processDialogueChoice(io, player, party, payload) {
         const questToComplete = character.quests.find(q => q.details.id === choice.questComplete);
         if (questToComplete && questToComplete.status === 'readyToTurnIn') {
              party.members.forEach(memberName => {
-                const member = players[memberName]?.character;
+                const memberPlayer = players[memberName];
+                const member = memberPlayer?.character;
                 if (member) {
                     const memberQuest = member.quests.find(q => q.details.id === choice.questComplete);
                     if (memberQuest) {
+                        const reward = memberQuest.details.reward;
                         memberQuest.status = 'completed';
-                        if (memberQuest.details.reward.gold) member.gold += memberQuest.details.reward.gold;
-                        if (memberQuest.details.reward.qp) member.questPoints += memberQuest.details.reward.qp;
-                        if(players[memberName].id) io.to(players[memberName].id).emit('characterUpdate', member);
+                        
+                        if (reward.gold) member.gold += reward.gold;
+                        if (reward.qp) member.questPoints += reward.qp;
+                        
+                        if (reward.titleReward && !member.unlockedTitles.includes(reward.titleReward)) {
+                            member.unlockedTitles.push(reward.titleReward);
+                        }
+                        
+                        if (reward.spellReward) {
+                            const spellData = gameData.allSpells.find(s => s.name === reward.spellReward.name);
+                            const alreadyHasSpell = member.spellbook.some(s => s.name === spellData.name) || member.equippedSpells.some(s => s.name === spellData.name);
+                            if (spellData && !alreadyHasSpell) {
+                                member.spellbook.push({...spellData});
+                            }
+                        }
+                        
+                        if (reward.recipeReward && !member.knownRecipes.includes(reward.recipeReward)) {
+                            member.knownRecipes.push(reward.recipeReward);
+                        }
+
+                        if(memberPlayer.id) io.to(memberPlayer.id).emit('characterUpdate', member);
                     }
                 }
             });
