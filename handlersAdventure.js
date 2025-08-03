@@ -595,6 +595,29 @@ function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNodeKey = '
 
     let currentDialogueNodeKey = dialogueNodeKey;
     if (dialogueNodeKey === 'start') {
+        // Pre-check for turn-in quests before deciding dialogue path
+        npc.quests.forEach(questDef => {
+            if (questDef.turnInItems) {
+                const playerQuest = leaderCharacter.quests.find(q => q.details.id === questDef.id);
+                if (playerQuest && playerQuest.status === 'active') {
+                    let hasAllItems = true;
+                    for (const itemName in questDef.turnInItems) {
+                        const requiredAmount = questDef.turnInItems[itemName];
+                        const currentAmount = leaderCharacter.inventory
+                            .filter(i => i && i.name === itemName)
+                            .reduce((total, item) => total + (item.quantity || 1), 0);
+                        if (currentAmount < requiredAmount) {
+                            hasAllItems = false;
+                            break;
+                        }
+                    }
+                    if (hasAllItems) {
+                        playerQuest.status = 'readyToTurnIn';
+                    }
+                }
+            }
+        });
+
         let nextQuestDef = null;
         for (const quest of npc.quests) {
             const playerQuest = leaderCharacter.quests.find(q => q.details.id === quest.id);

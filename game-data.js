@@ -15,7 +15,7 @@ export const gameData = {
         { name: "Powder Keg", price: 75, type: "consumable", cost: 1, description: "Deals 3 Fire damage to all enemies. They can avoid on a 12+ roll.", icon: "💣" },
         
         // Arrows
-        { name: "Iron Arrows", type: "arrows", price: 2, stackable: 200, bonus: { rollBonus: 1 }, description: "A bundle of simple iron-tipped arrows. Provides +1 to bow attack rolls.", tier: 1, icon: "🏹" },
+        { name: "Iron Arrows", type: "arrows", price: 2, stackable: 200, slot: "ammo", bonus: { rollBonus: 1 }, description: "A bundle of simple iron-tipped arrows. Provides +1 to bow attack rolls.", tier: 1, icon: "🏹" },
 
         // Tools
         { name: "Mining Pickaxe (T1)", price: 50, type: "tool", slot: "mainHand", skillBonus: { mining: 1 }, description: "Allows mining iron nodes. +1 Mining.", tier: 1, icon: "⛏️" },
