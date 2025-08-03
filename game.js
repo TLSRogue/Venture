@@ -257,12 +257,9 @@ function handleDuelEnd({ outcome, reward }) {
         gameState.duelState.ended = true;
     }
     
-    gameState.inDuel = false; 
-    
     if (outcome === 'win') {
         let rewardText = "You are victorious!";
         if (reward && reward.gold) {
-            gameState.gold += reward.gold;
             rewardText += ` You won ${reward.gold} gold.`;
         }
         UI.showInfoModal(rewardText);
@@ -270,9 +267,9 @@ function handleDuelEnd({ outcome, reward }) {
         UI.showInfoModal("You have been defeated!");
     }
     
-    UI.renderAdventureScreen();
-    UI.renderInventory();
-    UI.updateDisplay();
+    // Instead of re-rendering the adventure screen, we will now automatically
+    // return to the home screen after a short delay to allow the user to see the result.
+    setTimeout(Player.resetToHomeState, 3000);
 }
 
 

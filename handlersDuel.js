@@ -24,12 +24,18 @@ export function endDuel(io, duelId, winnerName, loserName) {
     if (winner && winner.character) {
         winner.character.gold += duelReward.gold;
         winner.character.duelId = null;
-        if (winner.id) io.to(winner.id).emit('duel:end', { outcome: 'win', reward: duelReward });
+        if (winner.id) {
+            io.to(winner.id).emit('duel:end', { outcome: 'win', reward: duelReward });
+            io.to(winner.id).emit('characterUpdate', winner.character);
+        }
     }
 
     if (loser && loser.character) {
         loser.character.duelId = null;
-        if (loser.id) io.to(loser.id).emit('duel:end', { outcome: 'loss', reward: null });
+        if (loser.id) {
+            io.to(loser.id).emit('duel:end', { outcome: 'loss', reward: null });
+            io.to(loser.id).emit('characterUpdate', loser.character);
+        }
     }
 
     delete duels[duelId];
@@ -184,6 +190,15 @@ export const registerDuelHandlers = (io, socket) => {
                         } else if (spell.type === 'attack') {
                             target.health -= spell.damage;
                             duel.log.push({ message: `Dealt ${spell.damage} damage to ${target.name}.`, type: 'damage' });
+                        } else if (spell.type === 'versatile') {
+                            const effectValue = spell.baseEffect + statValue;
+                            if (target === opponentPlayerState) {
+                                target.health -= effectValue;
+                                duel.log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${target.name}.`, type: 'damage' });
+                            } else {
+                                target.health = Math.min(target.maxHealth, target.health + effectValue);
+                                duel.log.push({ message: `${playerName} healed ${target.name} for ${effectValue} HP.`, type: 'heal' });
+                            }
                         }
                     }
                     actionTaken = true;
