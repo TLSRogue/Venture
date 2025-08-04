@@ -3,7 +3,7 @@
 import { players, parties, duels } from './serverState.js';
 import { gameData } from './game-data.js';
 import { broadcastAdventureUpdate } from './utilsBroadcast.js';
-import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, addItemToInventoryServer } from './utilsHelpers.js';
+import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, addItemToInventoryServer, consumeMaterials } from './utilsHelpers.js';
 
 // --- ADVENTURE HELPER FUNCTIONS ---
 
@@ -676,6 +676,11 @@ function processDialogueChoice(io, player, party, payload) {
     if (choice.questComplete) {
         const questToComplete = character.quests.find(q => q.details.id === choice.questComplete);
         if (questToComplete && questToComplete.status === 'readyToTurnIn') {
+            // Consume items from the party leader who turned in the quest
+            if (questToComplete.details.turnInItems) {
+                consumeMaterials(character, questToComplete.details.turnInItems);
+            }
+
              party.members.forEach(memberName => {
                 const memberPlayer = players[memberName];
                 const member = memberPlayer?.character;
