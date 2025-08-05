@@ -396,6 +396,33 @@ body {
     background: rgba(127, 140, 141, 0.3);
 }
 
+.crafting-item-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.crafting-item-header .item-icon {
+    font-size: 2em;
+}
+.crafting-modal-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    justify-content: center;
+    margin: 20px 0;
+}
+.crafting-modal-controls input[type="range"] {
+    flex-grow: 1;
+    max-width: 250px;
+}
+.crafting-modal-controls span {
+    font-size: 1.2em;
+    font-weight: bold;
+    min-width: 30px;
+    text-align: center;
+}
+
 .equipment-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -902,16 +929,6 @@ hr {
     background: #34495e;
     color: white;
     width: 160px;
-}
-
-.party-id-display {
-    background: rgba(0,0,0,0.3);
-    padding: 10px 15px;
-    border-radius: 8px;
-    font-family: monospace;
-    font-size: 1.1em;
-    border: 1px solid var(--accent-color);
-    margin: 10px 0;
 }
 
 .party-member-list {

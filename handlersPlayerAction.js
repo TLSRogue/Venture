@@ -66,12 +66,24 @@ export const registerPlayerActionHandlers = (io, socket) => {
                 break;
             case 'craftItem':
                 {
-                    const recipe = gameData.craftingRecipes[payload.recipeIndex];
-                    if (recipe && playerHasMaterials(character, recipe.materials)) {
-                        consumeMaterials(character, recipe.materials);
-                        const baseItem = gameData.allItems.find(i => i.name === recipe.result.name);
-                        addItemToInventoryServer(character, baseItem, recipe.result.quantity || 1);
-                        success = true;
+                    const { recipeIndex, quantity } = payload;
+                    const recipe = gameData.craftingRecipes[recipeIndex];
+                    if (recipe && quantity > 0) {
+                        let craftedCount = 0;
+                        for (let i = 0; i < quantity; i++) {
+                            if (playerHasMaterials(character, recipe.materials)) {
+                                consumeMaterials(character, recipe.materials);
+                                const baseItem = gameData.allItems.find(i => i.name === recipe.result.name);
+                                addItemToInventoryServer(character, baseItem, recipe.result.quantity || 1);
+                                craftedCount++;
+                            } else {
+                                // Stop crafting if materials run out
+                                break;
+                            }
+                        }
+                        if (craftedCount > 0) {
+                            success = true;
+                        }
                     }
                 }
                 break;

@@ -361,16 +361,92 @@ export function renderCrafting() {
         materialsList += '</ul>';
 
         const canCraft = hasMaterials(recipe.materials);
+        const resultItem = gameData.allItems.find(i => i.name === recipe.result.name);
 
         recipeEl.innerHTML = `
-            <h4>${recipe.result.quantity || 1}x ${recipe.result.name}</h4>
+            <div class="crafting-item-header">
+                <div class="item-icon">${resultItem.icon || '❓'}</div>
+                <h4>${recipe.result.quantity || 1}x ${recipe.result.name}</h4>
+            </div>
             <p>Requires:</p>
             ${materialsList}
             <button class="btn btn-success" data-craft-index="${gameData.craftingRecipes.indexOf(recipe)}" ${!canCraft ? 'disabled' : ''}>Craft</button>
         `;
+        
+        // Add ALT-hover tooltip listener
+        recipeEl.addEventListener('mousemove', (e) => {
+            if (e.altKey) {
+                let breakdown = `<strong>${resultItem.name}</strong><br>${resultItem.description}`;
+                if (resultItem.bonus) {
+                    breakdown += '<hr><strong>Bonuses:</strong><br>';
+                    for (const stat in resultItem.bonus) {
+                        breakdown += `${stat.charAt(0).toUpperCase() + stat.slice(1)}: +${resultItem.bonus[stat]}<br>`;
+                    }
+                }
+                 if (resultItem.traits) {
+                    breakdown += `<hr><strong>Traits:</strong> ${resultItem.traits.join(', ')}`;
+                }
+                showTooltip(breakdown);
+            } else {
+                hideTooltip();
+            }
+        });
+        recipeEl.addEventListener('mouseleave', hideTooltip);
+
         gridContainer.appendChild(recipeEl);
     });
 }
+
+
+export function showCraftingModal(recipeIndex) {
+    const recipe = gameData.craftingRecipes[recipeIndex];
+    const resultItem = gameData.allItems.find(i => i.name === recipe.result.name);
+
+    // Calculate max craftable amount
+    let maxCraftable = Infinity;
+    for (const materialName in recipe.materials) {
+        const requiredAmount = recipe.materials[materialName];
+        const playerAmount = (gameState.inventory.filter(i => i && i.name === materialName).reduce((sum, i) => sum + (i.quantity || 1), 0)) + 
+                             (gameState.bank.filter(i => i && i.name === materialName).reduce((sum, i) => sum + (i.quantity || 1), 0));
+        maxCraftable = Math.min(maxCraftable, Math.floor(playerAmount / requiredAmount));
+    }
+    
+    if (maxCraftable === 0) return; // Should not happen if button is enabled, but a good safeguard
+
+    const modalContent = document.createElement('div');
+    modalContent.innerHTML = `
+        <h2>Craft: ${resultItem.name}</h2>
+        <p>Select how many you want to craft.</p>
+        <div class="crafting-modal-controls">
+            <input type="range" id="craft-quantity-slider" min="1" max="${maxCraftable}" value="1">
+            <span id="craft-quantity-display">1</span>
+        </div>
+        <div class="action-buttons">
+            <button id="confirm-craft-btn" class="btn btn-success">Confirm</button>
+            <button id="cancel-craft-btn" class="btn btn-danger">Cancel</button>
+        </div>
+    `;
+
+    const slider = modalContent.querySelector('#craft-quantity-slider');
+    const display = modalContent.querySelector('#craft-quantity-display');
+    const confirmBtn = modalContent.querySelector('#confirm-craft-btn');
+    const cancelBtn = modalContent.querySelector('#cancel-craft-btn');
+
+    slider.addEventListener('input', () => {
+        display.textContent = slider.value;
+    });
+
+    confirmBtn.addEventListener('click', () => {
+        const quantity = parseInt(slider.value, 10);
+        Network.emitPlayerAction('craftItem', { recipeIndex, quantity });
+        hideModal();
+    });
+
+    cancelBtn.addEventListener('click', hideModal);
+
+    showModal(modalContent);
+}
+
 
 export function renderTrainer() {
     const categoriesContainer = document.getElementById('trainer-categories');
