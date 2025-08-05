@@ -33,7 +33,7 @@ export const gameData = {
         { name: "Staff", price: 50, type: "weapon", slot: "mainHand", hands: 2, cost: 1, cooldown: 2, stat: "wisdom", hit: 15, weaponType: "Two-Hand Staff", weaponDamage: 3, damageType: "Arcane", description: "1AP, 2CD | D20+Wis (15+) | Deals 3 Arcane Damage. Ranged.", tier: 1, icon: "🪄" },
         { name: "Magna Clavis", price: 500, type: "weapon", slot: "mainHand", hands: 2, cost: 1, cooldown: 3, weaponDamage: 5, damageType: "Physical", bonus: { strength: 1, wisdom: 1 }, description: "1AP, 3CD | D20+Str (15+) | Deals 5 Physical Damage. +1 Str, +1 Wis.", weaponType: "Two-Hand Mace", tier: 1, icon: "🔨" },
         { name: "Iron Spear", price: 120, type: "weapon", slot: "mainHand", hands: 2, cost: 1, cooldown: 2, stat: "agility", hit: 15, weaponType: "Two-Hand Spear", weaponDamage: 3, damageType: "Physical", description: "1AP, 2CD | D20+Agi (15+) | Deals 3 Physical Damage. On 20+, applies Bleed.", tier: 1, onCrit: { debuff: { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' } }, icon: "🔱" },
-        { name: "Iron Mace", price: 120, type: "weapon", slot: "mainHand", hands: 2, cost: 1, cooldown: 2, stat: "strength", hit: 15, weaponType: "Two-Hand Mace", weaponDamage: 3, damageType: "Physical", description: "1AP, 2CD | D20+Str (15+) | Deals 3 Physical Damage. On 20+, applies Dazed.", tier: 1, onCrit: { debuff: { type: 'daze', duration: 2 } }, icon: "🔨" },
+        { name: "Large Iron Mace", price: 100, type: "weapon", slot: "mainHand", hands: 2, cost: 1, cooldown: 2, stat: "strength", hit: 10, weaponType: "Two-Hand Mace", weaponDamage: 3, damageType: "Physical", description: "A hefty chunk of iron on a stick—great for cracking skulls or tenderizing chickens.", tier: 1, onCrit: { debuff: { type: 'daze', duration: 2 } }, icon: "🔨", traits: ['Mace', 'Melee', 'Tier 1'] },
         
         // Armor & Accessories
         { name: "Bull Horn", price: 0, type: "accessory", slot: "accessory", description: "When equipped, provides an activatable ability.", activatedAbility: { name: "Bull Horn", cost: 1, cooldown: 3, buff: { type: 'War Cry', duration: 3, bonus: { strength: 1, agility: 1, wisdom: 1, defense: 1 } }, description: "1AP 3CD: Gain +1 to all stats for 2 turns." }, tier: 1, icon: "🐂" },
@@ -349,10 +349,10 @@ export const gameData = {
         { result: { name: "Birthday Cake" }, materials: { "Egg": 1, "Milk": 1, "Wheat": 1 }, category: "Cooking", requiresDiscovery: true },
         { result: { name: "Iron Dagger" }, materials: { "Iron": 1, "Wood": 1 }, category: "Blacksmithing" },
         { result: { name: "Iron Sword" }, materials: { "Wood": 1, "Iron": 1 }, category: "Blacksmithing" },
-        { result: { name: "Iron Mace" }, materials: { "Iron": 2, "Wood": 1 }, category: "Blacksmithing" },
+        { result: { name: "Large Iron Mace" }, materials: { "Iron": 2, "Wood": 1 }, category: "Blacksmithing" },
         { result: { name: "Iron Spear" }, materials: { "Wood": 2, "Iron": 1 }, category: "Blacksmithing" },
         { result: { name: "Iron Shield" }, materials: { "Iron": 1, "Cow Hide": 1 }, category: "Blacksmithing" },
-        { result: { name: "Iron Armor" }, materials: { "Iron Ore": 2, "Cow Hide": 1 }, category: "Blacksmithing" },
+        { result: { name: "Iron Armor" }, materials: { "Iron": 2, "Cow Hide": 1 }, category: "Blacksmithing" },
         { result: { name: "Iron Helm" }, materials: { "Iron": 1, "Cow Hide": 1 }, category: "Blacksmithing" },
         { result: { name: "Steel Bar" }, materials: { "Iron": 1, "Coal": 1 }, category: "Blacksmithing" },
         { result: { name: "Steel Armor" }, materials: { "Steel Bar": 2 }, category: "Blacksmithing" },
