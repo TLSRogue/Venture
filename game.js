@@ -496,7 +496,7 @@ function addEventListeners() {
                 return;
             }
 
-            if (button.dataset.craftIndex) return Merchant.craftItem(parseInt(button.dataset.craftIndex, 10));
+            if (button.dataset.craftIndex) return UI.showCraftingModal(parseInt(button.dataset.craftIndex, 10));
             if (button.dataset.spellName) return Merchant.buySpell(button.dataset.spellName);
             if (button.dataset.sellIndex) return Merchant.sellItem(parseInt(button.dataset.sellIndex, 10));
             if (button.dataset.buyItem) {
