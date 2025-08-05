@@ -378,13 +378,23 @@ export function renderCrafting() {
             if (e.altKey) {
                 let breakdown = `<strong>${resultItem.name}</strong><br>${resultItem.description}`;
                 if (resultItem.bonus) {
-                    breakdown += '<hr><strong>Bonuses:</strong><br>';
+                    breakdown += '<hr style="margin: 5px 0;"><strong>Bonuses:</strong><br>';
                     for (const stat in resultItem.bonus) {
                         breakdown += `${stat.charAt(0).toUpperCase() + stat.slice(1)}: +${resultItem.bonus[stat]}<br>`;
                     }
                 }
+                if (resultItem.type === 'weapon') {
+                    breakdown += `<hr style="margin: 5px 0;"><strong>Ability:</strong><br>`;
+                    breakdown += `Cost: ${resultItem.cost} AP | CD: ${resultItem.cooldown}<br>`;
+                    const statName = resultItem.stat.charAt(0).toUpperCase() + resultItem.stat.slice(1);
+                    breakdown += `Roll: D20 + ${statName} (${resultItem.hit}+)<br>`;
+                    breakdown += `Deals ${resultItem.weaponDamage} ${resultItem.damageType} Damage.`;
+                    if (resultItem.onCrit && resultItem.onCrit.debuff) {
+                        breakdown += `<br>On Crit (20): Apply ${resultItem.onCrit.debuff.type}.`;
+                    }
+                }
                  if (resultItem.traits) {
-                    breakdown += `<hr><strong>Traits:</strong> ${resultItem.traits.join(', ')}`;
+                    breakdown += `<hr style="margin: 5px 0;"><strong>Traits:</strong> ${resultItem.traits.join(', ')}`;
                 }
                 showTooltip(breakdown);
             } else {
