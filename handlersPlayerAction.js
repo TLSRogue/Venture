@@ -124,12 +124,14 @@ export const registerPlayerActionHandlers = (io, socket) => {
                         character.equipment.offHand = itemToEquip;
             
                     } else {
-                        if (character.equipment.mainHand && character.equipment.mainHand.hands === 2) {
+                        // ** BUG FIX START ** // Only unequip a 2H weapon if equipping an item into a hand slot.
+                        if (['mainHand', 'offHand'].includes(chosenSlot) && character.equipment.mainHand && character.equipment.mainHand.hands === 2) {
                             const twoHandedWeapon = character.equipment.mainHand;
                             character.equipment.mainHand = null;
                             character.equipment.offHand = null;
                             addItemToInventoryServer(character, twoHandedWeapon);
                         }
+                        // ** BUG FIX END **
                         
                         character.equipment[chosenSlot] = itemToEquip;
                         character.inventory[itemIndex] = currentlyEquipped;

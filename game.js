@@ -439,6 +439,7 @@ function addEventListeners() {
                 gameState.title = button.dataset.title;
                 UI.renderTitleSelection();
                 UI.renderHeader();
+                Network.emitUpdateCharacter(gameState); // BUG FIX: Notify server of title change
                 return;
             }
             if (button.matches('.category-tab')) {
