@@ -19,10 +19,10 @@ async function checkAndEndTurnForPlayer(io, party, player) {
         const allTurnsEnded = party.sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
         if (allTurnsEnded) {
             await runEnemyPhaseForParty(io, partyId);
+            return true; // Enemy phase was triggered
         }
-        return true; // Turn was ended
     }
-    return false; // Turn did not end
+    return false; // Turn did not end, or enemy phase not triggered
 }
 
 
@@ -119,7 +119,7 @@ async function processWeaponAttack(io, party, player, payload) {
     const target = sharedState.zoneCards[targetIndex];
 
     if (!weapon || weapon.type !== 'weapon' || !target || target.type !== 'enemy' || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weapon.name] || 0) > 0) {
-        return;
+        return false;
     }
 
     actingPlayerState.actionPoints -= weapon.cost;
@@ -163,7 +163,7 @@ async function processWeaponAttack(io, party, player, payload) {
         sharedState.log.push({ message: logMessage, type: 'info' });
     }
 
-    await checkAndEndTurnForPlayer(io, party, player);
+    return await checkAndEndTurnForPlayer(io, party, player);
 }
 
 async function processCastSpell(io, party, player, payload) {
@@ -174,7 +174,7 @@ async function processCastSpell(io, party, player, payload) {
     const spell = character.equippedSpells[spellIndex];
 
     if (!spell || actingPlayerState.actionPoints < (spell.cost || 0) || (actingPlayerState.spellCooldowns[spell.name] || 0) > 0) {
-        return;
+        return false;
     }
 
     if (spell.requires) {
@@ -185,12 +185,12 @@ async function processCastSpell(io, party, player, payload) {
 
             if (requiredHand) {
                 if (!character.equipment[requiredHand] || !spell.requires.weaponType.includes(character.equipment[requiredHand].weaponType)) {
-                    return;
+                    return false;
                 }
             } else {
                 if ((!mainHand || !spell.requires.weaponType.includes(mainHand.weaponType)) &&
                     (!offHand || !spell.requires.weaponType.includes(offHand.weaponType))) {
-                    return;
+                    return false;
                 }
             }
         }
@@ -209,8 +209,7 @@ async function processCastSpell(io, party, player, payload) {
         } else {
             sharedState.log.push({ message: `${character.characterName} has no Focus to spend!`, type: 'info' });
         }
-        await checkAndEndTurnForPlayer(io, party, player);
-        return;
+        return await checkAndEndTurnForPlayer(io, party, player);
     }
 
     const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
@@ -238,15 +237,13 @@ async function processCastSpell(io, party, player, payload) {
     if (roll === 1) {
         description += ` Critical Failure! The spell fizzles!`;
         sharedState.log.push({ message: description, type: 'damage' });
-        await checkAndEndTurnForPlayer(io, party, player);
-        return;
+        return await checkAndEndTurnForPlayer(io, party, player);
     }
 
     if (total < hitTarget) {
         description += ` The spell fizzles!`;
         sharedState.log.push({ message: description, type: 'info' });
-        await checkAndEndTurnForPlayer(io, party, player);
-        return;
+        return await checkAndEndTurnForPlayer(io, party, player);
     }
 
     description += ` Success!`;
@@ -354,7 +351,7 @@ async function processCastSpell(io, party, player, payload) {
         });
     }
 
-    await checkAndEndTurnForPlayer(io, party, player);
+    return await checkAndEndTurnForPlayer(io, party, player);
 }
 
 async function processEquipItem(io, party, player, payload) {
@@ -362,14 +359,14 @@ async function processEquipItem(io, party, player, payload) {
     const { character } = player;
     
     const itemToEquip = character.inventory[inventoryIndex];
-    if (!itemToEquip) return;
+    if (!itemToEquip) return false;
     
     const chosenSlot = Array.isArray(itemToEquip.slot) ? itemToEquip.slot[0] : itemToEquip.slot;
-    if (!chosenSlot) return;
+    if (!chosenSlot) return false;
 
     if (party.sharedState) { 
         const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.playerId === player.id);
-        if (actingPlayerState.actionPoints < 1) return;
+        if (actingPlayerState.actionPoints < 1) return false;
         actingPlayerState.actionPoints--;
         party.sharedState.log.push({ message: `${character.characterName} spends 1 AP to change equipment.`, type: 'info' });
     }
@@ -387,7 +384,7 @@ async function processEquipItem(io, party, player, payload) {
     }
 
     const freeSlots = character.inventory.filter(i => !i).length;
-    if (itemsToUnequip.length > freeSlots) return;
+    if (itemsToUnequip.length > freeSlots) return false;
 
     const { hands } = itemToEquip;
     if (hands === 2) {
@@ -419,7 +416,7 @@ async function processEquipItem(io, party, player, payload) {
     character.inventory[inventoryIndex] = null;
     
     io.to(player.id).emit('characterUpdate', character);
-    await checkAndEndTurnForPlayer(io, party, player);
+    return await checkAndEndTurnForPlayer(io, party, player);
 }
 
 async function processUseItemAbility(party, player, payload) {
@@ -429,8 +426,8 @@ async function processUseItemAbility(party, player, payload) {
     const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
     const item = character.equipment[slot];
     
-    if (!item || !item.activatedAbility || actingPlayerState.actionPoints < item.activatedAbility.cost || (actingPlayerState.itemCooldowns[item.name] || 0) > 0) {
-        return;
+    if (!item || !item.activatedAbility || !actingPlayerState || actingPlayerState.actionPoints < item.activatedAbility.cost || (actingPlayerState.itemCooldowns[item.name] || 0) > 0) {
+        return false;
     }
     
     const ability = item.activatedAbility;
@@ -455,7 +452,7 @@ async function processUseItemAbility(party, player, payload) {
         }
     }
 
-    await checkAndEndTurnForPlayer(io, party, player);
+    return await checkAndEndTurnForPlayer(io, party, player);
 }
 
 async function processUseConsumable(io, party, player, payload) {
@@ -466,7 +463,7 @@ async function processUseConsumable(io, party, player, payload) {
     const item = character.inventory[inventoryIndex];
 
     if (!item || item.type !== 'consumable' || actingPlayerState.actionPoints < (item.cost || 0)) {
-        return;
+        return false;
     }
 
     actingPlayerState.actionPoints -= (item.cost || 0);
@@ -489,7 +486,7 @@ async function processUseConsumable(io, party, player, payload) {
     }
     io.to(player.id).emit('characterUpdate', character);
 
-    await checkAndEndTurnForPlayer(io, party, player);
+    return await checkAndEndTurnForPlayer(io, party, player);
 }
 
 function processDropItem(io, party, player, payload) {
@@ -504,6 +501,7 @@ function processDropItem(io, party, player, payload) {
         sharedState.log.push({ message: `${character.characterName} dropped ${itemToDrop.name} to the ground.`, type: 'info' });
         io.to(player.id).emit('characterUpdate', character);
     }
+    return false; // Does not end turn
 }
 
 function processTakeGroundLoot(io, party, player, payload) {
@@ -521,6 +519,7 @@ function processTakeGroundLoot(io, party, player, payload) {
             sharedState.log.push({ message: `${character.characterName} tried to pick up ${itemToTake.name}, but their inventory is full.`, type: 'damage' });
         }
     }
+    return false; // Does not end turn
 }
 
 async function processInteractWithCard(io, party, player, payload) {
@@ -530,7 +529,7 @@ async function processInteractWithCard(io, party, player, payload) {
     const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
     const card = sharedState.zoneCards[cardIndex];
 
-    if (!card) return;
+    if (!card) return false;
 
     if (card.name === 'Sewer Grate') {
         sharedState.log.push({ message: "The party descends through the grate into the darkness below...", type: 'info' });
@@ -539,14 +538,14 @@ async function processInteractWithCard(io, party, player, payload) {
         party.sharedState.zoneCards = [];
         party.sharedState.groundLoot = [];
         drawCardsForServer(party.sharedState, 3);
-        return; 
+        return true; 
     }
 
     if (card.type === 'resource') {
         const hasTool = character.inventory.some(item => item && item.name === card.tool) || (character.equipment.mainHand && character.equipment.mainHand.name === card.tool);
-        if (!hasTool) return;
+        if (!hasTool) return false;
 
-        if (actingPlayerState.actionPoints < 1) return;
+        if (actingPlayerState.actionPoints < 1) return false;
         actingPlayerState.actionPoints--;
 
         const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
@@ -587,11 +586,11 @@ async function processInteractWithCard(io, party, player, payload) {
     }
     
     else if (card.type === 'enemy') {
-        return;
+        return false;
     }
     
     else if (card.type === 'npc' && player.character.characterName !== party.leaderId) {
-        return;
+        return false;
     }
 
     else if (actingPlayerState.actionPoints >= 1) {
@@ -640,7 +639,7 @@ async function processInteractWithCard(io, party, player, payload) {
         }
     }
 
-    await checkAndEndTurnForPlayer(io, party, player);
+    return await checkAndEndTurnForPlayer(io, party, player);
 }
 
 function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNodeKey = 'start') {
@@ -810,6 +809,7 @@ async function processEndAdventure(io, player, party) {
             delete parties[party.id];
         } else {
            party.sharedState = null;
+           broadcastPartyUpdate(io, party.id);
         }
     };
 
@@ -872,15 +872,15 @@ async function processVentureDeeper(io, player, party) {
     }
 }
 
-function processLootPlayer(io, lootingPlayer, party, payload) {
+function processLootPlayer(io, player, party, payload) {
     const { targetPlayerIndex } = payload;
     const { sharedState } = party;
     
     const deadPlayerState = sharedState.partyMemberStates[targetPlayerIndex];
-    const lootingCharacter = lootingPlayer.character;
+    const lootingCharacter = player.character;
 
     if (!deadPlayerState || !deadPlayerState.isDead || deadPlayerState.lootableInventory.length === 0) {
-        return; 
+        return false;
     }
 
     const itemToLoot = deadPlayerState.lootableInventory[0];
@@ -889,10 +889,11 @@ function processLootPlayer(io, lootingPlayer, party, payload) {
         deadPlayerState.lootableInventory.splice(0, 1);
         sharedState.log.push({ message: `${lootingCharacter.characterName} looted ${itemToLoot.name} from ${deadPlayerState.name}'s bag.`, type: 'info' });
         
-        io.to(lootingPlayer.id).emit('characterUpdate', lootingCharacter);
+        io.to(player.id).emit('characterUpdate', lootingCharacter);
     } else {
         sharedState.log.push({ message: `${lootingCharacter.characterName} tried to loot, but their inventory is full. The item was left on the ground.`, type: 'damage' });
     }
+    return false;
 }
 
 async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex = 0) {
@@ -974,13 +975,13 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                     if (isWearingHeavy) {
                         sharedState.log.push({ message: `${targetPlayerState.name} could have Dodged, but their heavy gear prevented it!`, type: 'info' });
                     } else {
-                        availableReactions.push({ name: 'Dodge', type: 'spell', spell: dodgeSpell });
+                        availableReactions.push({ name: 'Dodge' });
                     }
                 }
 
                 const shield = targetCharacter.equipment.offHand;
                 if (shield && shield.type === 'shield' && shield.reaction && (targetPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
-                    availableReactions.push({ name: 'Block', type: 'item', item: shield });
+                    availableReactions.push({ name: 'Block' });
                 }
                 
                 if (availableReactions.length > 0 && !isFleeing) {
@@ -1033,6 +1034,7 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                     emptyIndices.forEach(idx => {
                         const kegCard = { ...gameData.specialCards.powderKeg };
                         kegCard.id = Date.now() + idx;
+                        kegCard.debuffs = [];
                         sharedState.zoneCards[idx] = kegCard;
                     });
                     if (emptyIndices.length > 0) {
@@ -1116,10 +1118,8 @@ async function handleResolveReaction(io, socket, payload) {
 
     if (reaction.targetName !== name) return;
 
-    // ** BUG FIX START ** Clear the timeout to prevent a duplicate call.
     clearTimeout(sharedState.reactionTimeout);
     sharedState.reactionTimeout = null;
-    // ** BUG FIX END **
 
     const { reactionType } = payload;
     const reactingPlayerState = sharedState.partyMemberStates.find(p => p.name === name);
@@ -1315,78 +1315,72 @@ export const registerAdventureHandlers = (io, socket) => {
         const party = parties[partyId];
         if (!party) return;
 
-        // ** BUG FIX START ** Wrap all actions in a try/catch to prevent server crashes.
         try {
             if (action.type === 'resolveReaction') {
                 await handleResolveReaction(io, socket, action.payload);
                 return;
             }
-    
-            if (action.type === 'equipItem') {
-                await processEquipItem(io, party, player, action.payload);
-                if (party.sharedState) broadcastAdventureUpdate(io, partyId);
-                return;
-            }
             
             if (!party.sharedState || party.sharedState.pendingReaction) return;
-    
-            if (action.type === 'returnHome' || action.type === 'ventureDeeper') {
-                if (name !== party.leaderId) return;
-                if (action.type === 'returnHome') await processEndAdventure(io, player, party);
-                if (action.type === 'ventureDeeper') await processVentureDeeper(io, player, party);
-                broadcastAdventureUpdate(io, partyId);
-                return;
-            }
+            
+            let enemyPhaseStarted = false;
     
             const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.name === name);
             if (!actingPlayerState || actingPlayerState.isDead) return;
-    
             if (!party.sharedState.isPlayerTurn) return;
             if (actingPlayerState.turnEnded && action.type !== 'dialogueChoice') return;
             if (action.type === 'dialogueChoice' && name !== party.leaderId) return;
     
             switch(action.type) {
                 case 'weaponAttack':
-                    await processWeaponAttack(io, party, player, action.payload);
+                    enemyPhaseStarted = await processWeaponAttack(io, party, player, action.payload);
                     break;
                 case 'castSpell':
-                    await processCastSpell(io, party, player, action.payload);
+                    enemyPhaseStarted = await processCastSpell(io, party, player, action.payload);
                     break;
                 case 'useItemAbility':
-                    await processUseItemAbility(party, player, action.payload);
+                    enemyPhaseStarted = await processUseItemAbility(party, player, action.payload);
                     break;
                 case 'useConsumable':
-                    await processUseConsumable(io, party, player, action.payload);
+                    enemyPhaseStarted = await processUseConsumable(io, party, player, action.payload);
                     break;
-                case 'dropItem':
-                    processDropItem(io, party, player, action.payload);
-                    break;
-                case 'takeGroundLoot':
-                    processTakeGroundLoot(io, party, player, action.payload);
+                case 'equipItem':
+                    enemyPhaseStarted = await processEquipItem(io, party, player, action.payload);
                     break;
                 case 'interactWithCard':
-                    await processInteractWithCard(io, party, player, action.payload);
+                    enemyPhaseStarted = await processInteractWithCard(io, party, player, action.payload);
+                    break;
+                case 'dropItem':
+                    enemyPhaseStarted = processDropItem(io, party, player, action.payload);
+                    break;
+                case 'takeGroundLoot':
+                    enemyPhaseStarted = processTakeGroundLoot(io, party, player, action.payload);
                     break;
                 case 'dialogueChoice':
                     processDialogueChoice(io, player, party, action.payload);
                     break; 
                 case 'lootPlayer':
-                    processLootPlayer(io, player, action.payload);
+                    enemyPhaseStarted = processLootPlayer(io, player, party, action.payload);
                     break;
                 case 'endTurn':
                     actingPlayerState.turnEnded = true;
                     party.sharedState.log.push({ message: `${player.character.characterName} has ended their turn.`, type: 'info' });
-                    
                     const allTurnsEnded = party.sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
-                    
                     if (allTurnsEnded) {
                         await runEnemyPhaseForParty(io, partyId);
-                        return; 
+                        enemyPhaseStarted = true;
                     }
                     break;
+                case 'returnHome':
+                case 'ventureDeeper':
+                     if (name !== party.leaderId) return;
+                     if (action.type === 'returnHome') await processEndAdventure(io, player, party);
+                     if (action.type === 'ventureDeeper') await processVentureDeeper(io, player, party);
+                     enemyPhaseStarted = true; // These functions handle their own broadcasts and state changes
+                     break;
             }
     
-            if (party.sharedState) {
+            if (party.sharedState && !enemyPhaseStarted) {
                 broadcastAdventureUpdate(io, partyId);
             }
         } catch (error) {
@@ -1394,6 +1388,5 @@ export const registerAdventureHandlers = (io, socket) => {
             console.error(error);
             socket.emit('partyError', 'A server error occurred. Your action may not have completed.');
         }
-        // ** BUG FIX END **
     });
 };
