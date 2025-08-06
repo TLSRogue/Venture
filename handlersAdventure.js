@@ -960,27 +960,38 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
 
                 const availableReactions = [];
 
-                const dodgeSpell = targetCharacter.equippedSpells.find(s => s.name === "Dodge");
-                if (dodgeSpell && (targetPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
-                    let isWearingHeavy = false;
-                    for (const slot in targetCharacter.equipment) {
-                        const item = targetCharacter.equipment[slot];
-                        if (item && item.traits && item.traits.includes('Heavy')) {
-                            isWearingHeavy = true;
-                            break;
+                // --- START: MODIFIED CODE ---
+                // --- Defensive Check for Dodge ---
+                if (targetCharacter.equippedSpells && Array.isArray(targetCharacter.equippedSpells)) {
+                    const dodgeSpell = targetCharacter.equippedSpells.find(s => s.name === "Dodge");
+                    if (dodgeSpell && (targetPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
+                        let isWearingHeavy = false;
+                        // Check for heavy gear (also ensures equipment exists)
+                        if (targetCharacter.equipment) {
+                            for (const slot in targetCharacter.equipment) {
+                                const item = targetCharacter.equipment[slot];
+                                if (item && item.traits && item.traits.includes('Heavy')) {
+                                    isWearingHeavy = true;
+                                    break;
+                                }
+                            }
                         }
-                    }
-                    if (isWearingHeavy) {
-                        sharedState.log.push({ message: `${targetPlayerState.name} could have Dodged, but their heavy gear prevented it!`, type: 'info' });
-                    } else {
-                        availableReactions.push({ name: 'Dodge' });
+                        if (isWearingHeavy) {
+                            sharedState.log.push({ message: `${targetPlayerState.name} could have Dodged, but their heavy gear prevented it!`, type: 'info' });
+                        } else {
+                            availableReactions.push({ name: 'Dodge' });
+                        }
                     }
                 }
 
-                const shield = targetCharacter.equipment.offHand;
-                if (shield && shield.type === 'shield' && shield.reaction && (targetPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
-                    availableReactions.push({ name: 'Block' });
+                // --- Defensive Check for Block ---
+                if (targetCharacter.equipment) {
+                    const shield = targetCharacter.equipment.offHand;
+                    if (shield && shield.type === 'shield' && shield.reaction && (targetPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
+                        availableReactions.push({ name: 'Block' });
+                    }
                 }
+                // --- END: MODIFIED CODE ---
                 
                 if (availableReactions.length > 0 && !isFleeing) {
                     sharedState.pendingReaction = {

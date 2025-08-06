@@ -157,9 +157,20 @@ function handlePartyAdventureStarted(serverAdventureState) {
 }
 
 function handlePartyAdventureUpdate(serverAdventureState) {
-    if (document.getElementById('reaction-buttons')) {
+    // --- START: MODIFIED CODE ---
+    // Check if the reaction modal is currently open.
+    const reactionModalIsOpen = document.getElementById('reaction-buttons');
+
+    // Determine if a reaction is still pending for the current player in the NEW state from the server.
+    const isReactionPendingForMe = serverAdventureState.pendingReaction &&
+                                   serverAdventureState.pendingReaction.targetName === gameState.characterName;
+
+    // Only hide the modal if it's currently open AND the new state says the reaction is no longer needed.
+    if (reactionModalIsOpen && !isReactionPendingForMe) {
         UI.hideModal();
     }
+    // --- END: MODIFIED CODE ---
+
     gameState.zoneCards = serverAdventureState.zoneCards;
     gameState.partyMemberStates = serverAdventureState.partyMemberStates;
     gameState.groundLoot = serverAdventureState.groundLoot;
@@ -173,13 +184,11 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     UI.updateDisplay();
     UI.renderPlayerActionBars(); 
 
-    // --- FIX STARTS HERE ---
     // If the ground loot modal is open when an update arrives, refresh its content.
     const groundLootModal = document.getElementById('ground-loot-modal');
     if (groundLootModal && !groundLootModal.closest('.modal-overlay').classList.contains('hidden')) {
         UI.showGroundLootModal();
     }
-    // --- FIX ENDS HERE ---
 }
 
 function handlePartyRequestReaction(data) {
