@@ -7,7 +7,7 @@ import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, add
 
 // --- ADVENTURE HELPER FUNCTIONS ---
 
-// ** NEW FEATURE ** Helper to check AP and automatically end a player's turn.
+// Helper to check AP and automatically end a player's turn.
 async function checkAndEndTurnForPlayer(io, party, player) {
     const partyId = party.id;
     const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.playerId === player.id);
@@ -379,13 +379,11 @@ async function processEquipItem(io, party, player, payload) {
         if (character.equipment.mainHand) itemsToUnequip.push(character.equipment.mainHand);
         if (character.equipment.offHand && character.equipment.offHand !== character.equipment.mainHand) itemsToUnequip.push(character.equipment.offHand);
     } else {
-        // ** BUG FIX START ** Only unequip a 2H weapon if equipping an item into a hand slot.
         if (['mainHand', 'offHand'].includes(chosenSlot) && character.equipment.mainHand && character.equipment.mainHand.hands === 2) {
             itemsToUnequip.push(character.equipment.mainHand);
         } else if (character.equipment[chosenSlot]) {
             itemsToUnequip.push(character.equipment[chosenSlot]);
         }
-        // ** BUG FIX END **
     }
 
     const freeSlots = character.inventory.filter(i => !i).length;
@@ -534,7 +532,6 @@ async function processInteractWithCard(io, party, player, payload) {
 
     if (!card) return;
 
-    // ** BUG FIX START ** Sewer Grate zone transition logic.
     if (card.name === 'Sewer Grate') {
         sharedState.log.push({ message: "The party descends through the grate into the darkness below...", type: 'info' });
         party.sharedState.currentZone = 'sewers';
@@ -542,9 +539,8 @@ async function processInteractWithCard(io, party, player, payload) {
         party.sharedState.zoneCards = [];
         party.sharedState.groundLoot = [];
         drawCardsForServer(party.sharedState, 3);
-        return; // End interaction here
+        return; 
     }
-    // ** BUG FIX END **
 
     if (card.type === 'resource') {
         const hasTool = character.inventory.some(item => item && item.name === card.tool) || (character.equipment.mainHand && character.equipment.mainHand.name === card.tool);
@@ -652,7 +648,6 @@ function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNodeKey = '
 
     let currentDialogueNodeKey = dialogueNodeKey;
     if (dialogueNodeKey === 'start') {
-        // Pre-check for turn-in quests before deciding dialogue path
         npc.quests.forEach(questDef => {
             if (questDef.turnInItems) {
                 const playerQuest = leaderCharacter.quests.find(q => q.details.id === questDef.id);
@@ -660,7 +655,6 @@ function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNodeKey = '
                     let hasAllItems = true;
                     for (const itemName in questDef.turnInItems) {
                         const requiredAmount = questDef.turnInItems[itemName];
-                        // ** BUG FIX START ** Check both inventory and bank for quest items.
                         const inventoryAmount = leaderCharacter.inventory
                             .filter(i => i && i.name === itemName)
                             .reduce((total, item) => total + (item.quantity || 1), 0);
@@ -668,7 +662,6 @@ function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNodeKey = '
                             .filter(i => i && i.name === itemName)
                             .reduce((total, item) => total + (item.quantity || 1), 0);
                         const currentAmount = inventoryAmount + bankAmount;
-                        // ** BUG FIX END **
                         if (currentAmount < requiredAmount) {
                             hasAllItems = false;
                             break;
@@ -739,7 +732,6 @@ function processDialogueChoice(io, player, party, payload) {
     if (choice.questComplete) {
         const questToComplete = character.quests.find(q => q.details.id === choice.questComplete);
         if (questToComplete && questToComplete.status === 'readyToTurnIn') {
-            // Consume items from the party leader who turned in the quest
             if (questToComplete.details.turnInItems) {
                 consumeMaterials(character, questToComplete.details.turnInItems);
             }
@@ -799,7 +791,6 @@ async function processEndAdventure(io, player, party) {
             const memberPlayer = players[memberName];
             const memberCharacter = memberPlayer?.character;
             if (memberCharacter) {
-                // Restore health only if they are not dead
                 if (!sharedState.partyMemberStates.find(p => p.name === memberName)?.isDead) {
                     const bonuses = getBonusStatsForPlayer(memberCharacter, null);
                     memberCharacter.health = 10 + bonuses.maxHealth;
@@ -834,7 +825,6 @@ async function processEndAdventure(io, player, party) {
             endTheAdventure();
         } else {
             sharedState.log.push({ message: "The party was wiped out while trying to return home!", type: 'damage' });
-            // Let the adventure end naturally with the party defeated
         }
     } else {
         sharedState.log.push({ message: "The party returns home.", type: 'info' });
@@ -962,14 +952,12 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
 
             if (attack && attack.action === 'attack') {
                 const targetCharacter = targetPlayerObject.character;
-                // ** BUG FIX START ** Apply Physical Resistance
                 let damageToDeal = attack.damage;
                 if (attack.damageType === 'Physical') {
                     const bonuses = getBonusStatsForPlayer(targetCharacter, targetPlayerState);
                     const resistance = bonuses.physicalResistance || 0;
                     damageToDeal = Math.max(0, attack.damage - resistance);
                 }
-                // ** BUG FIX END **
 
                 const availableReactions = [];
 
@@ -1000,7 +988,7 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                         attackerName: enemy.name,
                         attackerIndex: enemyIndex,
                         targetName: targetPlayerState.name,
-                        damage: attack.damage, // Pass original damage for reaction modal
+                        damage: attack.damage,
                         damageType: attack.damageType,
                         debuff: attack.debuff || null,
                         message: attack.message,
@@ -1024,6 +1012,9 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                 } else {
                     targetPlayerState.health -= damageToDeal;
                     let attackMessage = `${enemy.name} ${attack.message} It hits ${targetPlayerState.name} for ${damageToDeal} damage!`;
+                    if (damageToDeal < attack.damage) {
+                        attackMessage += ` (${attack.damage - damageToDeal} resisted)`;
+                    }
                     if (attack.debuff) {
                         targetPlayerState.debuffs.push({ ...attack.debuff });
                         attackMessage += ` ${targetPlayerState.name} is now ${attack.debuff.type}!`;
@@ -1033,7 +1024,6 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
 
             } else if (attack && attack.action === 'special') {
                 sharedState.log.push({ message: `${enemy.name} uses a special ability: ${attack.message}`, type: 'reaction' });
-                // ** BUG FIX START ** Logic for special enemy actions
                 if (enemy.name === 'Loot Goblin' && attack.message.includes('escapes')) {
                     sharedState.log.push({ message: `The Loot Goblin escaped with its treasure!`, type: 'damage' });
                     sharedState.zoneCards[enemyIndex] = null;
@@ -1052,11 +1042,9 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                 if (enemy.name === 'Raging Bull' && attack.message.includes('Thick Hide')) {
                     if (!enemy.buffs) enemy.buffs = [];
                     enemy.buffs.push({ type: 'Thick Hide', duration: 2, bonus: { physicalResistance: 1 }});
-                    // Raging Bull gets another action this turn. We will re-run this specific enemy's turn.
-                    i--; // Decrement the counter to re-process this enemy.
+                    i--; 
                     continue;
                 }
-                // ** BUG FIX END **
             } else {
                 sharedState.log.push({ message: `${enemy.name} misses its attack.`, type: 'info' });
             }
@@ -1128,8 +1116,10 @@ async function handleResolveReaction(io, socket, payload) {
 
     if (reaction.targetName !== name) return;
 
+    // ** BUG FIX START ** Clear the timeout to prevent a duplicate call.
     clearTimeout(sharedState.reactionTimeout);
     sharedState.reactionTimeout = null;
+    // ** BUG FIX END **
 
     const { reactionType } = payload;
     const reactingPlayerState = sharedState.partyMemberStates.find(p => p.name === name);
@@ -1190,17 +1180,18 @@ async function handleResolveReaction(io, socket, payload) {
     sharedState.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
 
     if (finalDamage > 0) {
-        // ** BUG FIX START ** Apply Physical Resistance
         let damageToDeal = finalDamage;
         if (reaction.damageType === 'Physical') {
             const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
             const resistance = bonuses.physicalResistance || 0;
             damageToDeal = Math.max(0, finalDamage - resistance);
         }
-        // ** BUG FIX END **
 
         reactingPlayerState.health -= damageToDeal;
         let damageMessage = `${reaction.attackerName} ${reaction.message} It hits ${name} for ${damageToDeal} damage!`;
+        if (damageToDeal < finalDamage) {
+            damageMessage += ` (${finalDamage - damageToDeal} resisted)`;
+        }
         if (reaction.debuff && !dodged) {
             reactingPlayerState.debuffs.push({ ...reaction.debuff });
             damageMessage += ` ${name} is now ${reaction.debuff.type}!`;
@@ -1293,19 +1284,19 @@ export const registerAdventureHandlers = (io, socket) => {
             reactionTimeout: null
         };
         
-        // ** BUG FIX START ** Custom setup for the Arena zone.
         if (zoneName === 'arena') {
             const bossIndex = party.sharedState.zoneDeck.findIndex(card => card.name === 'Pulvis Cadus');
             if (bossIndex !== -1) {
                 const [bossCard] = party.sharedState.zoneDeck.splice(bossIndex, 1);
-                party.sharedState.zoneCards = [null, bossCard, null]; // Place boss in the middle
+                bossCard.id = Date.now();
+                bossCard.debuffs = [];
+                party.sharedState.zoneCards = [null, bossCard, null];
             } else {
-                drawCardsForServer(party.sharedState, 1); // Fallback if boss isn't found
+                drawCardsForServer(party.sharedState, 1);
             }
         } else {
             drawCardsForServer(party.sharedState, 3);
         }
-        // ** BUG FIX END **
         
         console.log(`[SERVER LOG] Emitting 'party:adventureStarted' to ${party.members.length} member(s).`);
         party.members.forEach(memberName => {
@@ -1324,77 +1315,85 @@ export const registerAdventureHandlers = (io, socket) => {
         const party = parties[partyId];
         if (!party) return;
 
-        if (action.type === 'resolveReaction') {
-            await handleResolveReaction(io, socket, action.payload);
-            return;
+        // ** BUG FIX START ** Wrap all actions in a try/catch to prevent server crashes.
+        try {
+            if (action.type === 'resolveReaction') {
+                await handleResolveReaction(io, socket, action.payload);
+                return;
+            }
+    
+            if (action.type === 'equipItem') {
+                await processEquipItem(io, party, player, action.payload);
+                if (party.sharedState) broadcastAdventureUpdate(io, partyId);
+                return;
+            }
+            
+            if (!party.sharedState || party.sharedState.pendingReaction) return;
+    
+            if (action.type === 'returnHome' || action.type === 'ventureDeeper') {
+                if (name !== party.leaderId) return;
+                if (action.type === 'returnHome') await processEndAdventure(io, player, party);
+                if (action.type === 'ventureDeeper') await processVentureDeeper(io, player, party);
+                broadcastAdventureUpdate(io, partyId);
+                return;
+            }
+    
+            const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.name === name);
+            if (!actingPlayerState || actingPlayerState.isDead) return;
+    
+            if (!party.sharedState.isPlayerTurn) return;
+            if (actingPlayerState.turnEnded && action.type !== 'dialogueChoice') return;
+            if (action.type === 'dialogueChoice' && name !== party.leaderId) return;
+    
+            switch(action.type) {
+                case 'weaponAttack':
+                    await processWeaponAttack(io, party, player, action.payload);
+                    break;
+                case 'castSpell':
+                    await processCastSpell(io, party, player, action.payload);
+                    break;
+                case 'useItemAbility':
+                    await processUseItemAbility(party, player, action.payload);
+                    break;
+                case 'useConsumable':
+                    await processUseConsumable(io, party, player, action.payload);
+                    break;
+                case 'dropItem':
+                    processDropItem(io, party, player, action.payload);
+                    break;
+                case 'takeGroundLoot':
+                    processTakeGroundLoot(io, party, player, action.payload);
+                    break;
+                case 'interactWithCard':
+                    await processInteractWithCard(io, party, player, action.payload);
+                    break;
+                case 'dialogueChoice':
+                    processDialogueChoice(io, player, party, action.payload);
+                    break; 
+                case 'lootPlayer':
+                    processLootPlayer(io, player, action.payload);
+                    break;
+                case 'endTurn':
+                    actingPlayerState.turnEnded = true;
+                    party.sharedState.log.push({ message: `${player.character.characterName} has ended their turn.`, type: 'info' });
+                    
+                    const allTurnsEnded = party.sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
+                    
+                    if (allTurnsEnded) {
+                        await runEnemyPhaseForParty(io, partyId);
+                        return; 
+                    }
+                    break;
+            }
+    
+            if (party.sharedState) {
+                broadcastAdventureUpdate(io, partyId);
+            }
+        } catch (error) {
+            console.error(`!!! PLAYER ACTION ERROR !!! A server crash was prevented. Action:`, action);
+            console.error(error);
+            socket.emit('partyError', 'A server error occurred. Your action may not have completed.');
         }
-
-        if (action.type === 'equipItem') {
-            await processEquipItem(io, party, player, action.payload);
-            if (party.sharedState) broadcastAdventureUpdate(io, partyId);
-            return;
-        }
-        
-        if (!party.sharedState || party.sharedState.pendingReaction) return;
-
-        if (action.type === 'returnHome' || action.type === 'ventureDeeper') {
-            if (name !== party.leaderId) return;
-            if (action.type === 'returnHome') await processEndAdventure(io, player, party);
-            if (action.type === 'ventureDeeper') await processVentureDeeper(io, player, party);
-            broadcastAdventureUpdate(io, partyId);
-            return;
-        }
-
-        const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.name === name);
-        if (!actingPlayerState || actingPlayerState.isDead) return;
-
-        if (!party.sharedState.isPlayerTurn) return;
-        if (actingPlayerState.turnEnded && action.type !== 'dialogueChoice') return;
-        if (action.type === 'dialogueChoice' && name !== party.leaderId) return;
-
-        switch(action.type) {
-            case 'weaponAttack':
-                await processWeaponAttack(io, party, player, action.payload);
-                break;
-            case 'castSpell':
-                await processCastSpell(io, party, player, action.payload);
-                break;
-            case 'useItemAbility':
-                await processUseItemAbility(party, player, action.payload);
-                break;
-            case 'useConsumable':
-                await processUseConsumable(io, party, player, action.payload);
-                break;
-            case 'dropItem':
-                processDropItem(io, party, player, action.payload);
-                break;
-            case 'takeGroundLoot':
-                processTakeGroundLoot(io, party, player, action.payload);
-                break;
-            case 'interactWithCard':
-                await processInteractWithCard(io, party, player, action.payload);
-                break;
-            case 'dialogueChoice':
-                processDialogueChoice(io, player, party, action.payload);
-                break; 
-            case 'lootPlayer':
-                processLootPlayer(io, player, party, action.payload);
-                break;
-            case 'endTurn':
-                actingPlayerState.turnEnded = true;
-                party.sharedState.log.push({ message: `${player.character.characterName} has ended their turn.`, type: 'info' });
-                
-                const allTurnsEnded = party.sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
-                
-                if (allTurnsEnded) {
-                    await runEnemyPhaseForParty(io, partyId);
-                    return; 
-                }
-                break;
-        }
-
-        if (party.sharedState) {
-            broadcastAdventureUpdate(io, partyId);
-        }
+        // ** BUG FIX END **
     });
 };
