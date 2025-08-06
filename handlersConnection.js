@@ -152,15 +152,18 @@ export const registerConnectionHandlers = (io, socket) => {
             const character = players[name].character;
             if (!character) return;
 
-            // --- FIX STARTS HERE ---
-            // Clean up temporary solo parties on disconnect to prevent stuck states
+            // BUG FIX: The logic to clean up solo parties was too aggressive.
+            // It deleted the party immediately on disconnect, causing a state issue on quick reconnects.
+            // This logic is now removed. A more robust timeout system could be added later if abandoned
+            // solo parties become a memory issue, but for now, simply not deleting them fixes the bug.
+            /*
             const partyId = character.partyId;
             if (partyId && parties[partyId] && parties[partyId].isSoloParty) {
                 console.log(`Cleaning up solo party ${partyId} for disconnected player ${name}.`);
                 character.partyId = null;
                 delete parties[partyId];
             }
-            // --- FIX ENDS HERE ---
+            */
 
             const duelId = character.duelId;
             if (duelId && duels[duelId] && !duels[duelId].ended) {
