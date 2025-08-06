@@ -995,11 +995,13 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                         isFleeing: isFleeing
                     };
                     
-                    io.to(targetPlayerState.playerId).emit('party:requestReaction', {
+                    const reactionPayload = {
                         damage: attack.damage,
                         attacker: enemy.name,
-                        availableReactions
-                    });
+                        availableReactions: availableReactions.map(r => ({ name: r.name }))
+                    };
+
+                    io.to(targetPlayerState.playerId).emit('party:requestReaction', reactionPayload);
                     
                     sharedState.reactionTimeout = setTimeout(() => {
                         const playerSocket = io.sockets.sockets.get(targetPlayerState.playerId);
