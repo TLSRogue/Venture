@@ -36,6 +36,7 @@ let activeCraftingCategory = 'Blacksmithing';
 let activeTrainerCategory = 'Physical';
 let tooltipTimeout = null;
 let merchantTimerInterval = null;
+let bankCurrentPage = 1;
 
 // --- EXPORTED RENDER FUNCTIONS ---
 
@@ -51,7 +52,6 @@ export function renderAll() {
     renderSpells();
     renderEquipment();
     renderMerchant();
-    renderSellableInventory();
     renderBankInterface();
     renderCrafting();
     renderTrainer();
@@ -185,18 +185,18 @@ export function renderInventory() {
 
             let itemText = `<div class="item-icon">${item.icon || '❓'}</div><div><strong>${item.name}</strong></div>`;
             if (item.quantity > 1) {
-                itemText += ` <div>(x${item.quantity})</div>`
+                itemText += ` <div class="item-quantity">${item.quantity}</div>`
             }
             if (item.charges) {
-                itemText += ` <div>(${item.charges})</div>`
+                itemText += ` <div class="item-quantity">${item.charges}</div>`
             }
             slot.innerHTML = `
                 ${itemText}
                 <button class="btn btn-primary btn-sm item-action-btn" data-index="${i}">Actions</button>
             `;
         } else {
-            slot.innerHTML = 'Empty';
-            slot.style.opacity = '0.5';
+            slot.innerHTML = '';
+            slot.classList.add('empty');
         }
         
         container.appendChild(slot);
@@ -350,7 +350,7 @@ export function renderEquipment() {
             slotEl.classList.add('filled');
             let itemText = `<div class="item-icon">${item.icon || '❓'}</div><div><strong>${item.name}</strong></div>`;
             if (item.quantity > 1) {
-                itemText += ` <div>(x${item.quantity})</div>`;
+                itemText += ` <div class="item-quantity">${item.quantity}</div>`;
             }
             slotEl.innerHTML = `<div><strong>${slotNames[slotKey]}</strong></div>${itemText}<button class="btn btn-danger btn-sm" data-equipment-action="unequip" data-slot="${slotKey}">Unequip</button>`;
         } else {
@@ -532,84 +532,193 @@ export function renderTrainer() {
 }
 
 export function renderBankInterface() {
-    const invContainer = document.getElementById('bank-inventory-grid');
-    const bankContainer = document.getElementById('bank-storage-grid');
-    invContainer.innerHTML = '';
-    bankContainer.innerHTML = '';
+    const container = document.getElementById('bank-tab');
+    container.innerHTML = '<h2>Bank</h2>'; // Reset container
 
-    gameState.inventory.forEach((item, index) => {
-        if (!item) return;
-        const itemEl = document.createElement('div');
-        itemEl.className = 'inventory-item';
-        let itemText = `<strong>${item.name}</strong>`;
-        if (item.quantity > 1) itemText += ` (x${item.quantity})`;
-        itemEl.innerHTML = `
-            <div>${itemText}</div>
-            <button class="btn btn-primary btn-sm" data-bank-action="deposit" data-index="${index}">Deposit</button>
-        `;
-        invContainer.appendChild(itemEl);
-    });
+    const bankItems = [...gameState.bank].sort((a, b) => a.name.localeCompare(b.name));
+    const itemsPerPage = 24;
+    const totalPages = Math.ceil(bankItems.length / itemsPerPage);
+    if (bankCurrentPage > totalPages) bankCurrentPage = totalPages || 1;
 
-    gameState.bank.forEach((item, index) => {
-        if (!item) return;
-        const itemEl = document.createElement('div');
-        itemEl.className = 'inventory-item';
-        let itemText = `<strong>${item.name}</strong>`;
-        if (item.quantity > 1) itemText += ` (x${item.quantity})`;
-        itemEl.innerHTML = `
-            <div>${itemText}</div>
-            <button class="btn btn-success btn-sm" data-bank-action="withdraw" data-index="${index}">Withdraw</button>
+    // Bank Grid
+    const bankGrid = document.createElement('div');
+    bankGrid.className = 'inventory-grid';
+    const startIndex = (bankCurrentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageItems = bankItems.slice(startIndex, endIndex);
+
+    for (let i = 0; i < itemsPerPage; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'inventory-item';
+        const item = pageItems[i];
+        if (item) {
+            slot.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div><div class="item-quantity">${item.quantity || 1}</div>`;
+            slot.dataset.bankAction = 'withdraw';
+            const originalIndex = gameState.bank.findIndex(bankItem => bankItem.name === item.name);
+            slot.dataset.index = originalIndex;
+            slot.onmouseover = () => showTooltip(`<strong>${item.name}</strong><br>${item.description}<br><br>Click to Withdraw`);
+            slot.onmouseout = () => hideTooltip();
+        } else {
+            slot.classList.add('empty');
+        }
+        bankGrid.appendChild(slot);
+    }
+    container.appendChild(bankGrid);
+
+    // Pagination Controls
+    if (totalPages > 1) {
+        const paginationControls = document.createElement('div');
+        paginationControls.className = 'pagination-controls';
+        paginationControls.innerHTML = `
+            <button id="bank-prev-btn" class="btn" ${bankCurrentPage === 1 ? 'disabled' : ''}>Previous</button>
+            <span>Page ${bankCurrentPage} / ${totalPages}</span>
+            <button id="bank-next-btn" class="btn" ${bankCurrentPage === totalPages ? 'disabled' : ''}>Next</button>
         `;
-        bankContainer.appendChild(itemEl);
+        container.appendChild(paginationControls);
+
+        paginationControls.querySelector('#bank-prev-btn').addEventListener('click', () => {
+            if (bankCurrentPage > 1) {
+                bankCurrentPage--;
+                renderBankInterface();
+            }
+        });
+        paginationControls.querySelector('#bank-next-btn').addEventListener('click', () => {
+            if (bankCurrentPage < totalPages) {
+                bankCurrentPage++;
+                renderBankInterface();
+            }
+        });
+    }
+
+    // Player Inventory Panel (for depositing)
+    renderPlayerInventoryPanel(container, 'deposit');
+}
+
+
+function renderPlayerInventoryPanel(parentContainer, mode) {
+    const panel = document.createElement('div');
+    panel.className = 'player-inventory-panel';
+
+    let title = '';
+    let action = '';
+    if (mode === 'deposit') {
+        title = 'Your Inventory (Click to Deposit)';
+        action = 'deposit';
+    } else if (mode === 'sell') {
+        title = 'Your Items to Sell (Click to Sell)';
+        action = 'sell';
+    }
+    panel.innerHTML = `<h3>${title}</h3>`;
+
+    const inventoryGrid = document.createElement('div');
+    inventoryGrid.className = 'inventory-grid';
+
+    const inventoryItems = [...gameState.inventory];
+
+    for (let i = 0; i < 24; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'inventory-item';
+        const item = inventoryItems[i];
+        if (item) {
+            slot.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div><div class="item-quantity">${item.quantity || ''}</div>`;
+            slot.dataset.inventoryAction = action;
+            slot.dataset.index = i; // The original index in the unsorted inventory
+            slot.onmouseover = () => showTooltip(`<strong>${item.name}</strong><br>${item.description}`);
+            slot.onmouseout = () => hideTooltip();
+        } else {
+            slot.classList.add('empty');
+        }
+        inventoryGrid.appendChild(slot);
+    }
+
+    panel.appendChild(inventoryGrid);
+    parentContainer.appendChild(panel);
+}
+
+
+function showSellConfirmationModal(itemIndex) {
+    const item = gameState.inventory[itemIndex];
+    if (!item) return;
+
+    const sellPrice = Math.floor(item.price / 2) || 1;
+
+    const modalContent = `
+        <h2>Confirm Sell</h2>
+        <div class="item-icon" style="font-size: 3em; margin: 10px;">${item.icon || '❓'}</div>
+        <p>Sell 1x ${item.name} for ${sellPrice} Gold?</p>
+        <div class="action-buttons">
+            <button id="confirm-sell-btn" class="btn btn-success">Sell</button>
+            <button class="btn btn-danger" onclick="this.closest('.modal-overlay').classList.add('hidden')">Cancel</button>
+        </div>
+    `;
+    showModal(modalContent);
+
+    document.getElementById('confirm-sell-btn').addEventListener('click', () => {
+        Network.emitPlayerAction('sellItem', { itemIndex });
+        hideModal();
     });
 }
 
 export function renderMerchant() {
+    const container = document.getElementById('merchant-tab');
+    container.innerHTML = `
+        <h2>Merchant's Shop</h2>
+        <p>Your Gold: <span id="gold-display">${gameState.gold}</span> | Restock in: <span id="restock-timer">10:00</span></p>
+        <hr>
+        <div id="merchant-wares-container"></div>
+    `;
+    
     document.getElementById('gold-display').textContent = gameState.gold;
-
-    const permanentContainer = document.getElementById('merchant-permanent-stock');
-    const rotatingContainer = document.getElementById('merchant-rotating-stock');
-    permanentContainer.innerHTML = '';
-    rotatingContainer.innerHTML = '';
+    const waresContainer = document.getElementById('merchant-wares-container');
 
     const permanentStock = gameData.allItems.filter(item => item.type === 'tool' || item.name === 'Spices');
-
+    const rotatingStock = gameState.merchantStock || [];
+    
+    // Permanent Stock
+    waresContainer.innerHTML += '<h3>Permanent Stock</h3>';
+    const permanentGrid = document.createElement('div');
+    permanentGrid.className = 'inventory-grid';
     permanentStock.forEach(item => {
         const itemEl = document.createElement('div');
-        itemEl.className = 'merchant-item';
-        itemEl.innerHTML = `
-            <div>
-                <strong>${item.name}</strong>
-                <div>${item.description}</div>
-            </div>
-            <button class="btn btn-success" data-buy-item='${item.name}' data-permanent="true" ${gameState.gold < item.price ? 'disabled' : ''}>
-                Buy (${item.price}g)
-            </button>
-        `;
-        permanentContainer.appendChild(itemEl);
+        itemEl.className = 'inventory-item';
+        itemEl.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div>`;
+        itemEl.dataset.buyItem = item.name;
+        itemEl.dataset.permanent = 'true';
+        itemEl.onmouseover = () => showTooltip(`<strong>${item.name}</strong> (${item.price}g)<br>${item.description}<br><br>Click to Buy`);
+        itemEl.onmouseout = () => hideTooltip();
+        if (gameState.gold < item.price) itemEl.classList.add('disabled');
+        permanentGrid.appendChild(itemEl);
     });
-
-    if (gameState.merchantStock) {
-        gameState.merchantStock.forEach((item, index) => {
-            const itemEl = document.createElement('div');
-            itemEl.className = 'merchant-item';
-            itemEl.innerHTML = `
-                <div>
-                    <strong>${item.name} (x${item.quantity})</strong>
-                    <div>${item.description}</div>
-                </div>
-                <button class="btn btn-success" data-buy-item="${index}" data-permanent="false" ${gameState.gold < item.price || item.quantity <= 0 ? 'disabled' : ''}>
-                    Buy (${item.price}g)
-                </button>
-            `;
-            rotatingContainer.appendChild(itemEl);
+    waresContainer.appendChild(permanentGrid);
+    
+    // Rotating Wares
+    waresContainer.innerHTML += '<h3 style="margin-top: 20px;">Rotating Wares</h3>';
+    const rotatingGrid = document.createElement('div');
+    rotatingGrid.className = 'inventory-grid';
+     if (rotatingStock.length > 0) {
+        rotatingStock.forEach((item, index) => {
+             const itemEl = document.createElement('div');
+            itemEl.className = 'inventory-item';
+            itemEl.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div><div class="item-quantity">${item.quantity}</div>`;
+            itemEl.dataset.buyItem = index;
+            itemEl.dataset.permanent = 'false';
+            itemEl.onmouseover = () => showTooltip(`<strong>${item.name}</strong> (${item.price}g)<br>${item.description}<br><br>Click to Buy`);
+            itemEl.onmouseout = () => hideTooltip();
+            if (gameState.gold < item.price || item.quantity <= 0) itemEl.classList.add('disabled');
+            rotatingGrid.appendChild(itemEl);
         });
     }
+    waresContainer.appendChild(rotatingGrid);
+
+
+    // Player Inventory Panel (for selling)
+    renderPlayerInventoryPanel(container, 'sell');
 
     if (merchantTimerInterval) clearInterval(merchantTimerInterval);
     merchantTimerInterval = setInterval(updateRestockTimer, 1000);
     updateRestockTimer();
 }
+
 
 function updateRestockTimer() {
     const TEN_MINUTES = 10 * 60 * 1000;
@@ -628,33 +737,9 @@ function updateRestockTimer() {
     }
 }
 
+// DEPRECATED - Combined into renderPlayerInventoryPanel
 export function renderSellableInventory() {
-    const container = document.getElementById('sell-grid');
-    container.innerHTML = '';
-
-    if(gameState.inventory.every(i => !i)) {
-        container.innerHTML = "<p>You have no items to sell.</p>";
-        return;
-    }
-    
-    const getSellPrice = (item) => {
-        if (!item.price) return 1; 
-        return Math.floor(item.price / 2) || 1;
-    }
-
-    gameState.inventory.forEach((item, index) => {
-        if (!item) return;
-        const sellPrice = getSellPrice(item);
-        const slot = document.createElement('div');
-        slot.className = 'inventory-item';
-        let itemText = `<strong>${item.name}</strong>`;
-        if (item.quantity > 1) itemText += ` (x${item.quantity})`;
-        slot.innerHTML = `
-            <div>${itemText}</div>
-            <button class="btn btn-success btn-sm" data-sell-index="${index}">Sell (${sellPrice}g)</button>
-        `;
-        container.appendChild(slot);
-    });
+   // This function is now handled by renderPlayerInventoryPanel(container, 'sell');
 }
 
 export function renderTitleSelection() {
@@ -1311,7 +1396,7 @@ export function renderPlayerActionBars() {
              slotEl.disabled = true;
              let itemText = item.name;
              if (item.quantity > 1) {
-                 itemText += ` (x${item.quantity})`;
+                 itemText += ` <div class="item-quantity">${item.quantity}</div>`;
              }
              slotEl.innerHTML = `<div class="item-name">${itemText}</div><div class="slot-name">${slotInfo.name}</div>`;
         } else {
@@ -1431,11 +1516,9 @@ export function showTab(tabName) {
     
     if (tabName === 'merchant') { 
         Network.emitPlayerAction('viewMerchant');
-        renderMerchant(); 
-        renderSellableInventory(); 
     }
-    if (tabName === 'crafting') renderCrafting();
     if (tabName === 'bank') renderBankInterface();
+    if (tabName === 'crafting') renderCrafting();
     if (tabName === 'trainer') renderTrainer();
     if (tabName === 'home') renderTitleSelection();
     if (tabName === 'spells') renderSpells();
@@ -1475,10 +1558,10 @@ export function showBackpack() {
 
             let itemText = `<div class="item-icon">${item.icon || '❓'}</div><div><strong>${item.name}</strong></div>`;
             if (item.quantity > 1) {
-                itemText += ` <div>(x${item.quantity})</div>`;
+                itemText += ` <div class="item-quantity">${item.quantity}</div>`;
             }
             if (item.charges) {
-                itemText += ` <div>(${item.charges})</div>`;
+                itemText += ` <div class="item-quantity">${item.charges}</div>`;
             }
 
             let actionButtonsHTML = '';
@@ -1497,8 +1580,8 @@ export function showBackpack() {
                 </div>
             `;
         } else {
-            slot.textContent = 'Empty';
-            slot.style.opacity = '0.5';
+            slot.classList.add('empty');
+            slot.textContent = '';
         }
         itemsGrid.appendChild(slot);
     }

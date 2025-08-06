@@ -214,7 +214,14 @@ export const registerPlayerActionHandlers = (io, socket) => {
                     const { index } = payload;
                     const itemToDeposit = character.inventory[index];
                     if (itemToDeposit) {
-                        character.bank.push(itemToDeposit);
+                        const existingBankItem = character.bank.find(item => item.name === itemToDeposit.name);
+                        if (existingBankItem) {
+                            existingBankItem.quantity = (existingBankItem.quantity || 1) + 1;
+                        } else {
+                            // Create a copy to avoid reference issues and add quantity
+                            const newItemForBank = { ...itemToDeposit, quantity: 1 };
+                            character.bank.push(newItemForBank);
+                        }
                         character.inventory[index] = null;
                         success = true;
                     }
@@ -222,11 +229,19 @@ export const registerPlayerActionHandlers = (io, socket) => {
                 break;
             case 'withdrawItem':
                 {
-                    const { index } = payload;
+                    const { index } = payload; // This is the index in the sorted bank array from the client
                     const itemToWithdraw = character.bank[index];
+                    
                     if (itemToWithdraw) {
-                        if (addItemToInventoryServer(character, itemToWithdraw)) {
-                            character.bank.splice(index, 1);
+                        // Create a fresh instance of the item for the inventory, stripping quantity.
+                         const { quantity, ...itemWithoutQuantity } = itemToWithdraw;
+                         const baseItem = { ...itemWithoutQuantity };
+
+                        if (addItemToInventoryServer(character, baseItem)) {
+                            itemToWithdraw.quantity--;
+                            if (itemToWithdraw.quantity <= 0) {
+                                character.bank.splice(index, 1);
+                            }
                             success = true;
                         }
                     }

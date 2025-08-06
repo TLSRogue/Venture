@@ -319,49 +319,32 @@ function finalizeCharacterCreation(slotIndex) {
 function addEventListeners() {
     document.body.addEventListener('click', (e) => {
         const target = e.target;
-        const button = target.closest('button');
-
+        
+        // Modal and Character Select Buttons
         if (target.closest('.item-action-btn')) {
             const index = parseInt(target.closest('.item-action-btn').dataset.index, 10);
-            UI.showItemActions(index);
-            return;
+            return UI.showItemActions(index);
         }
-
         const npcOptionButton = target.closest('#npc-dialogue-options button');
         if (npcOptionButton) {
             const { action, payload } = npcOptionButton.dataset;
-            if (action === 'hide') {
-                UI.hideModal();
-            } else if (action === 'choice') {
-                Network.emitPartyAction({
-                    type: 'dialogueChoice',
-                    payload: JSON.parse(payload)
-                });
-            }
-            return;
+            if (action === 'hide') return UI.hideModal();
+            if (action === 'choice') return Network.emitPartyAction({ type: 'dialogueChoice', payload: JSON.parse(payload) });
         }
-        
         const reactionButton = target.closest('#reaction-buttons button');
         if (reactionButton) {
             const reactionType = reactionButton.dataset.reaction;
-            Network.emitPartyAction({
-                type: 'resolveReaction',
-                payload: { reactionType }
-            });
-            UI.hideModal();
-            return;
+            Network.emitPartyAction({ type: 'resolveReaction', payload: { reactionType } });
+            return UI.hideModal();
         }
-
         const charSelectButton = target.closest('#character-select-grid button');
         if (charSelectButton) {
             const { action, slot } = charSelectButton.dataset;
             const slotIndex = parseInt(slot, 10);
-            if (action === 'load') loadCharacterFromServer(slotIndex);
-            else if (action === 'create') UI.showNewGameModal(slotIndex);
-            else if (action === 'delete') deleteCharacter(slotIndex);
-            return;
+            if (action === 'load') return loadCharacterFromServer(slotIndex);
+            if (action === 'create') return UI.showNewGameModal(slotIndex);
+            if (action === 'delete') return deleteCharacter(slotIndex);
         }
-        
         if (target.closest('#finalize-char-btn')) return finalizeCharacterCreation(parseInt(target.closest('#finalize-char-btn').dataset.slot, 10));
         if (target.closest('#cancel-creation-btn')) return UI.showCharacterSelectScreen();
         if (target.closest('.icon-option')) {
@@ -370,12 +353,28 @@ function addEventListeners() {
             return;
         }
 
-        if (target.closest('#ground-loot-btn')) {
-            UI.showGroundLootModal();
-            return;
+        // --- NEW UI INTERACTIONS for BANK and MERCHANT ---
+        const inventoryPanelItem = target.closest('[data-inventory-action]');
+        if (inventoryPanelItem) {
+            const action = inventoryPanelItem.dataset.inventoryAction;
+            const index = parseInt(inventoryPanelItem.dataset.index, 10);
+            if (action === 'deposit') return Player.depositItem(index);
+            if (action === 'sell') return UI.showSellConfirmationModal(index);
+        }
+        const bankItem = target.closest('[data-bank-action="withdraw"]');
+        if (bankItem) {
+            const index = parseInt(bankItem.dataset.index, 10);
+            return Player.withdrawItem(index);
+        }
+        const buyItem = target.closest('[data-buy-item]');
+        if (buyItem && !buyItem.classList.contains('disabled')) {
+            const isPermanent = buyItem.dataset.permanent === 'true';
+            const identifier = isPermanent ? buyItem.dataset.buyItem : parseInt(buyItem.dataset.buyItem, 10);
+            return Merchant.buyItem(identifier, isPermanent);
         }
 
-        // Adventure Controls
+        // Adventure and Zone Interactions
+        if (target.closest('#ground-loot-btn')) return UI.showGroundLootModal();
         if (target.closest('#backpack-btn')) return UI.showBackpack();
         if (target.closest('#character-sheet-btn')) return UI.showCharacterSheet();
         if (target.closest('#end-turn-btn')) {
@@ -384,8 +383,6 @@ function addEventListeners() {
         }
         if (target.closest('#return-home-arrow')) return Player.returnToHome();
         if (target.closest('#venture-deeper-arrow')) return ventureDeeper();
-
-        // Zone interactions
         if (target.closest('.zone-card')) {
             const zoneName = target.closest('.zone-card').dataset.zone;
             const startAdventure = () => {
@@ -395,12 +392,8 @@ function addEventListeners() {
                 }
                 Network.emitPartyEnterZone(zoneName);
             };
-
             if (zoneName === 'arena') {
-                if (gameState.gold < 100) {
-                    UI.showInfoModal("You don't have enough gold to enter the Arena! (Requires 100G)");
-                    return;
-                }
+                if (gameState.gold < 100) return UI.showInfoModal("You don't have enough gold to enter the Arena! (Requires 100G)");
                 UI.showConfirmationModal("Pay 100G to enter the Arena?", () => {
                     UI.hideModal();
                     startAdventure();
@@ -410,23 +403,20 @@ function addEventListeners() {
             }
             return;
         }
-        
         if (target.closest('#zone-cards .card')) return Interactions.interactWithCard(parseInt(target.closest('.card').dataset.index, 10));
-        
         if (target.closest('[data-action="lootPlayer"]')) {
             const playerCard = target.closest('.card');
-            const playerIndex = parseInt(playerCard.dataset.index.substring(1), 10); // "p0" -> 0
+            const playerIndex = parseInt(playerCard.dataset.index.substring(1), 10);
             return Interactions.lootPlayer(playerIndex);
         }
-
         if (target.closest('#party-cards-container .card')) {
             const cardElement = target.closest('.card');
-            if (cardElement.classList.contains('is-local-player')) {
-                return Interactions.interactWithPlayerCard();
-            }
+            if (cardElement.classList.contains('is-local-player')) return Interactions.interactWithPlayerCard();
             return Interactions.interactWithCard(cardElement.dataset.index);
         }
 
+        // General Button Handlers
+        const button = target.closest('button');
         if(button) {
             if (button.id === 'create-party-btn') return Network.emitCreateParty();
             if (button.id === 'join-party-btn') {
@@ -451,60 +441,35 @@ function addEventListeners() {
                 return;
             }
             if (button.matches('.category-tab')) {
-                if (button.closest('#crafting-categories')) {
-                    UI.setActiveCraftingCategory(button.dataset.category);
-                    UI.renderCrafting();
-                } else if (button.closest('#trainer-categories')) {
-                    UI.setActiveTrainerCategory(button.dataset.category);
-                    UI.renderTrainer();
-                }
+                if (button.closest('#crafting-categories')) UI.setActiveCraftingCategory(button.dataset.category);
+                else if (button.closest('#trainer-categories')) UI.setActiveTrainerCategory(button.dataset.category);
+                UI.renderAll(); // Re-render the active tab
                 return;
             }
 
             if (button.id === 'info-ok-btn') return UI.hideModal();
             
-            if (button.dataset.action === 'takeGroundLoot') {
-                const index = parseInt(button.dataset.index, 10);
-                Player.takeGroundLoot(index);
-                return;
-            }
+            if (button.dataset.action === 'takeGroundLoot') return Player.takeGroundLoot(parseInt(button.dataset.index, 10));
 
             if (button.dataset.inventoryAction) {
                 const index = parseInt(button.dataset.index, 10);
                 Player.handleItemAction(button.dataset.inventoryAction, index);
-                if (!button.closest('#ground-loot-modal')) {
-                    UI.hideModal();
-                }
+                if (!button.closest('#ground-loot-modal')) UI.hideModal();
                 return;
             }
             if (button.dataset.spellAction) {
                 const index = parseInt(button.dataset.index, 10);
-                if (button.dataset.spellAction === 'unequip') Player.unequipSpell(index);
-                else if (button.dataset.spellAction === 'equip') Player.equipSpell(index);
-                return;
+                if (button.dataset.spellAction === 'unequip') return Player.unequipSpell(index);
+                if (button.dataset.spellAction === 'equip') return Player.equipSpell(index);
             }
             if (button.dataset.equipmentAction) return Player.unequipItem(button.dataset.slot);
-            if (button.dataset.bankAction) {
-                const index = parseInt(button.dataset.index, 10);
-                if (button.dataset.bankAction === 'deposit') Player.depositItem(index);
-                else if (button.dataset.bankAction === 'withdraw') Player.withdrawItem(index);
-                return;
-            }
             if (button.dataset.equipSlot) {
                 Player.equipItem(parseInt(button.dataset.itemIndex), button.dataset.equipSlot);
-                UI.hideModal();
-                return;
+                return UI.hideModal();
             }
 
             if (button.dataset.craftIndex) return UI.showCraftingModal(parseInt(button.dataset.craftIndex, 10));
             if (button.dataset.spellName) return Merchant.buySpell(button.dataset.spellName);
-            if (button.dataset.sellIndex) return Merchant.sellItem(parseInt(button.dataset.sellIndex, 10));
-            if (button.dataset.buyItem) {
-                const isPermanent = button.dataset.permanent === 'true';
-                const identifier = isPermanent ? button.dataset.buyItem : parseInt(button.dataset.buyItem, 10);
-                Merchant.buyItem(identifier, isPermanent);
-                return;
-            }
             
             if (button.closest('#player-action-bar')) {
                 const { action, actionData, spellIndex, slot } = button.dataset;
