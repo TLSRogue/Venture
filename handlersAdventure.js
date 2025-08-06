@@ -7,7 +7,6 @@ import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, add
 
 // --- ADVENTURE HELPER FUNCTIONS ---
 
-// Helper to check AP and automatically end a player's turn.
 async function checkAndEndTurnForPlayer(io, party, player) {
     const partyId = party.id;
     const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.playerId === player.id);
@@ -19,10 +18,8 @@ async function checkAndEndTurnForPlayer(io, party, player) {
         const allTurnsEnded = party.sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
         if (allTurnsEnded) {
             await runEnemyPhaseForParty(io, partyId);
-            return true; // Enemy phase was triggered
         }
     }
-    return false; // Turn did not end, or enemy phase not triggered
 }
 
 
@@ -119,7 +116,7 @@ async function processWeaponAttack(io, party, player, payload) {
     const target = sharedState.zoneCards[targetIndex];
 
     if (!weapon || weapon.type !== 'weapon' || !target || target.type !== 'enemy' || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weapon.name] || 0) > 0) {
-        return false;
+        return;
     }
 
     actingPlayerState.actionPoints -= weapon.cost;
@@ -163,7 +160,7 @@ async function processWeaponAttack(io, party, player, payload) {
         sharedState.log.push({ message: logMessage, type: 'info' });
     }
 
-    return await checkAndEndTurnForPlayer(io, party, player);
+    await checkAndEndTurnForPlayer(io, party, player);
 }
 
 async function processCastSpell(io, party, player, payload) {
@@ -174,7 +171,7 @@ async function processCastSpell(io, party, player, payload) {
     const spell = character.equippedSpells[spellIndex];
 
     if (!spell || actingPlayerState.actionPoints < (spell.cost || 0) || (actingPlayerState.spellCooldowns[spell.name] || 0) > 0) {
-        return false;
+        return;
     }
 
     if (spell.requires) {
@@ -185,12 +182,12 @@ async function processCastSpell(io, party, player, payload) {
 
             if (requiredHand) {
                 if (!character.equipment[requiredHand] || !spell.requires.weaponType.includes(character.equipment[requiredHand].weaponType)) {
-                    return false;
+                    return;
                 }
             } else {
                 if ((!mainHand || !spell.requires.weaponType.includes(mainHand.weaponType)) &&
                     (!offHand || !spell.requires.weaponType.includes(offHand.weaponType))) {
-                    return false;
+                    return;
                 }
             }
         }
@@ -209,7 +206,8 @@ async function processCastSpell(io, party, player, payload) {
         } else {
             sharedState.log.push({ message: `${character.characterName} has no Focus to spend!`, type: 'info' });
         }
-        return await checkAndEndTurnForPlayer(io, party, player);
+        await checkAndEndTurnForPlayer(io, party, player);
+        return;
     }
 
     const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
@@ -237,13 +235,15 @@ async function processCastSpell(io, party, player, payload) {
     if (roll === 1) {
         description += ` Critical Failure! The spell fizzles!`;
         sharedState.log.push({ message: description, type: 'damage' });
-        return await checkAndEndTurnForPlayer(io, party, player);
+        await checkAndEndTurnForPlayer(io, party, player);
+        return;
     }
 
     if (total < hitTarget) {
         description += ` The spell fizzles!`;
         sharedState.log.push({ message: description, type: 'info' });
-        return await checkAndEndTurnForPlayer(io, party, player);
+        await checkAndEndTurnForPlayer(io, party, player);
+        return;
     }
 
     description += ` Success!`;
@@ -351,7 +351,7 @@ async function processCastSpell(io, party, player, payload) {
         });
     }
 
-    return await checkAndEndTurnForPlayer(io, party, player);
+    await checkAndEndTurnForPlayer(io, party, player);
 }
 
 async function processEquipItem(io, party, player, payload) {
@@ -359,14 +359,14 @@ async function processEquipItem(io, party, player, payload) {
     const { character } = player;
     
     const itemToEquip = character.inventory[inventoryIndex];
-    if (!itemToEquip) return false;
+    if (!itemToEquip) return;
     
     const chosenSlot = Array.isArray(itemToEquip.slot) ? itemToEquip.slot[0] : itemToEquip.slot;
-    if (!chosenSlot) return false;
+    if (!chosenSlot) return;
 
     if (party.sharedState) { 
         const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.playerId === player.id);
-        if (actingPlayerState.actionPoints < 1) return false;
+        if (actingPlayerState.actionPoints < 1) return;
         actingPlayerState.actionPoints--;
         party.sharedState.log.push({ message: `${character.characterName} spends 1 AP to change equipment.`, type: 'info' });
     }
@@ -384,7 +384,7 @@ async function processEquipItem(io, party, player, payload) {
     }
 
     const freeSlots = character.inventory.filter(i => !i).length;
-    if (itemsToUnequip.length > freeSlots) return false;
+    if (itemsToUnequip.length > freeSlots) return;
 
     const { hands } = itemToEquip;
     if (hands === 2) {
@@ -416,7 +416,7 @@ async function processEquipItem(io, party, player, payload) {
     character.inventory[inventoryIndex] = null;
     
     io.to(player.id).emit('characterUpdate', character);
-    return await checkAndEndTurnForPlayer(io, party, player);
+    await checkAndEndTurnForPlayer(io, party, player);
 }
 
 async function processUseItemAbility(io, party, player, payload) {
@@ -427,7 +427,7 @@ async function processUseItemAbility(io, party, player, payload) {
     const item = character.equipment[slot];
     
     if (!item || !item.activatedAbility || !actingPlayerState || actingPlayerState.actionPoints < item.activatedAbility.cost || (actingPlayerState.itemCooldowns[item.name] || 0) > 0) {
-        return false;
+        return;
     }
     
     const ability = item.activatedAbility;
@@ -452,7 +452,7 @@ async function processUseItemAbility(io, party, player, payload) {
         }
     }
 
-    return await checkAndEndTurnForPlayer(io, party, player);
+    await checkAndEndTurnForPlayer(io, party, player);
 }
 
 async function processUseConsumable(io, party, player, payload) {
@@ -463,7 +463,7 @@ async function processUseConsumable(io, party, player, payload) {
     const item = character.inventory[inventoryIndex];
 
     if (!item || item.type !== 'consumable' || actingPlayerState.actionPoints < (item.cost || 0)) {
-        return false;
+        return;
     }
 
     actingPlayerState.actionPoints -= (item.cost || 0);
@@ -486,7 +486,7 @@ async function processUseConsumable(io, party, player, payload) {
     }
     io.to(player.id).emit('characterUpdate', character);
 
-    return await checkAndEndTurnForPlayer(io, party, player);
+    await checkAndEndTurnForPlayer(io, party, player);
 }
 
 function processDropItem(io, party, player, payload) {
@@ -501,7 +501,6 @@ function processDropItem(io, party, player, payload) {
         sharedState.log.push({ message: `${character.characterName} dropped ${itemToDrop.name} to the ground.`, type: 'info' });
         io.to(player.id).emit('characterUpdate', character);
     }
-    return false; // Does not end turn
 }
 
 function processTakeGroundLoot(io, party, player, payload) {
@@ -519,7 +518,6 @@ function processTakeGroundLoot(io, party, player, payload) {
             sharedState.log.push({ message: `${character.characterName} tried to pick up ${itemToTake.name}, but their inventory is full.`, type: 'damage' });
         }
     }
-    return false; // Does not end turn
 }
 
 async function processInteractWithCard(io, party, player, payload) {
@@ -529,7 +527,7 @@ async function processInteractWithCard(io, party, player, payload) {
     const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
     const card = sharedState.zoneCards[cardIndex];
 
-    if (!card) return false;
+    if (!card) return;
 
     if (card.name === 'Sewer Grate') {
         sharedState.log.push({ message: "The party descends through the grate into the darkness below...", type: 'info' });
@@ -538,14 +536,14 @@ async function processInteractWithCard(io, party, player, payload) {
         party.sharedState.zoneCards = [];
         party.sharedState.groundLoot = [];
         drawCardsForServer(party.sharedState, 3);
-        return false; // Does not end turn, but we want a broadcast
+        return; 
     }
 
     if (card.type === 'resource') {
         const hasTool = character.inventory.some(item => item && item.name === card.tool) || (character.equipment.mainHand && character.equipment.mainHand.name === card.tool);
-        if (!hasTool) return false;
+        if (!hasTool) return;
 
-        if (actingPlayerState.actionPoints < 1) return false;
+        if (actingPlayerState.actionPoints < 1) return;
         actingPlayerState.actionPoints--;
 
         const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
@@ -586,11 +584,11 @@ async function processInteractWithCard(io, party, player, payload) {
     }
     
     else if (card.type === 'enemy') {
-        return false;
+        return;
     }
     
     else if (card.type === 'npc' && player.character.characterName !== party.leaderId) {
-        return false;
+        return;
     }
 
     else if (actingPlayerState.actionPoints >= 1) {
@@ -639,7 +637,7 @@ async function processInteractWithCard(io, party, player, payload) {
         }
     }
 
-    return await checkAndEndTurnForPlayer(io, party, player);
+    await checkAndEndTurnForPlayer(io, party, player);
 }
 
 function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNodeKey = 'start') {
@@ -1329,7 +1327,7 @@ export const registerAdventureHandlers = (io, socket) => {
                      if (action.type === 'returnHome') await processEndAdventure(io, player, party);
                      if (action.type === 'ventureDeeper') await processVentureDeeper(io, player, party);
                 }
-                return; 
+                return;
             }
     
             const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.name === name);
