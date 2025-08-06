@@ -904,7 +904,19 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                 // Check for Dodge spell
                 const dodgeSpell = targetCharacter.equippedSpells.find(s => s.name === "Dodge");
                 if (dodgeSpell && (targetPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
-                    availableReactions.push({ name: 'Dodge', type: 'spell', spell: dodgeSpell });
+                    let isWearingHeavy = false;
+                    for (const slot in targetCharacter.equipment) {
+                        const item = targetCharacter.equipment[slot];
+                        if (item && item.traits && item.traits.includes('Heavy')) {
+                            isWearingHeavy = true;
+                            break;
+                        }
+                    }
+                    if (isWearingHeavy) {
+                        sharedState.log.push({ message: `${targetPlayerState.name} could have Dodged, but their heavy gear prevented it!`, type: 'info' });
+                    } else {
+                        availableReactions.push({ name: 'Dodge', type: 'spell', spell: dodgeSpell });
+                    }
                 }
 
                 // Check for Shield block reaction

@@ -231,6 +231,37 @@ export function showItemActions(itemIndex) {
     showModal(modalContent);
 }
 
+function addSpellTooltipListener(element, spell) {
+    element.addEventListener('mousemove', (e) => {
+        if (e.altKey) {
+            let breakdown = `<strong>${spell.name}</strong><br>${spell.description}`;
+            breakdown += `<hr style="margin: 5px 0;">`;
+            breakdown += `<strong>Type:</strong> ${spell.type.charAt(0).toUpperCase() + spell.type.slice(1)}<br>`;
+            breakdown += `<strong>School:</strong> ${spell.school}<br>`;
+            if (spell.cost) breakdown += `<strong>Cost:</strong> ${spell.cost} AP<br>`;
+            breakdown += `<strong>Cooldown:</strong> ${spell.cooldown}`;
+
+            if (['attack', 'versatile', 'reaction', 'heal', 'aoe'].includes(spell.type)) {
+                const statName = spell.stat.charAt(0).toUpperCase() + spell.stat.slice(1);
+                breakdown += `<br><strong>Roll:</strong> D20 + ${statName} (${spell.hit}+)`;
+            }
+            if (spell.damage) {
+                 breakdown += `<br><strong>Effect:</strong> Deals ${spell.damage} ${spell.damageType} damage.`;
+            }
+            if (spell.heal) {
+                 breakdown += `<br><strong>Effect:</strong> Heals for ${spell.heal} HP.`;
+            }
+             if (spell.debuff) {
+                 breakdown += `<br><strong>Debuff:</strong> Applies ${spell.debuff.type}.`;
+            }
+            showTooltip(breakdown);
+        } else {
+            hideTooltip();
+        }
+    });
+    element.addEventListener('mouseleave', hideTooltip);
+}
+
 export function renderSpells() {
     const equippedContainer = document.getElementById('spells-grid');
     const spellbookContainer = document.getElementById('spellbook-grid');
@@ -270,6 +301,7 @@ export function renderSpells() {
                 <div>${spell.description}</div>
                 ${swapButton}
             `;
+            addSpellTooltipListener(slot, spell);
         } else {
             slot.className = 'spell-card';
             slot.innerHTML = 'Empty Spell Slot';
@@ -290,6 +322,7 @@ export function renderSpells() {
             <div>${spell.description}</div>
             ${equipButton}
         `;
+        addSpellTooltipListener(card, spell);
         spellbookContainer.appendChild(card);
     });
 }
