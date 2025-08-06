@@ -418,6 +418,7 @@ function addEventListeners() {
         // General Button Handlers
         const button = target.closest('button');
         if(button) {
+            if (button.id === 'consolidate-btn') return Network.emitPlayerAction('consolidateBank');
             if (button.id === 'create-party-btn') return Network.emitCreateParty();
             if (button.id === 'join-party-btn') {
                 const input = document.getElementById('party-id-input');

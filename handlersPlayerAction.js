@@ -215,11 +215,15 @@ export const registerPlayerActionHandlers = (io, socket) => {
                     const itemToDeposit = character.inventory[index];
                     if (itemToDeposit) {
                         const existingBankItem = character.bank.find(item => item.name === itemToDeposit.name);
+                        const amountToDeposit = itemToDeposit.quantity || 1;
+
                         if (existingBankItem) {
-                            existingBankItem.quantity = (existingBankItem.quantity || 1) + 1;
+                            existingBankItem.quantity += amountToDeposit;
                         } else {
-                            // Create a copy to avoid reference issues and add quantity
-                            const newItemForBank = { ...itemToDeposit, quantity: 1 };
+                            const newItemForBank = { ...itemToDeposit };
+                            if (!newItemForBank.quantity) {
+                                newItemForBank.quantity = 1;
+                            }
                             character.bank.push(newItemForBank);
                         }
                         character.inventory[index] = null;
@@ -229,15 +233,19 @@ export const registerPlayerActionHandlers = (io, socket) => {
                 break;
             case 'withdrawItem':
                 {
-                    const { index } = payload; // This is the index in the sorted bank array from the client
+                    const { index } = payload;
                     const itemToWithdraw = character.bank[index];
                     
                     if (itemToWithdraw) {
-                        // Create a fresh instance of the item for the inventory, stripping quantity.
-                         const { quantity, ...itemWithoutQuantity } = itemToWithdraw;
-                         const baseItem = { ...itemWithoutQuantity };
+                        const baseItemData = gameData.allItems.find(i => i.name === itemToWithdraw.name);
+                        let itemToAdd = { ...itemToWithdraw };
 
-                        if (addItemToInventoryServer(character, baseItem)) {
+                        // If the base item is not naturally stackable (like armor), remove quantity before adding to inventory
+                        if (!baseItemData.stackable) {
+                             delete itemToAdd.quantity;
+                        }
+
+                        if (addItemToInventoryServer(character, itemToAdd, 1)) {
                             itemToWithdraw.quantity--;
                             if (itemToWithdraw.quantity <= 0) {
                                 character.bank.splice(index, 1);
@@ -245,6 +253,27 @@ export const registerPlayerActionHandlers = (io, socket) => {
                             success = true;
                         }
                     }
+                }
+                break;
+            case 'consolidateBank':
+                {
+                    const itemMap = new Map();
+                    for (const item of character.bank) {
+                        const quantity = item.quantity || 1;
+                        if (itemMap.has(item.name)) {
+                            const existing = itemMap.get(item.name);
+                            existing.quantity += quantity;
+                        } else {
+                            // Create a fresh copy to avoid reference issues
+                            const newItem = {...item};
+                            if (!newItem.quantity) {
+                                newItem.quantity = 1;
+                            }
+                            itemMap.set(item.name, newItem);
+                        }
+                    }
+                    character.bank = Array.from(itemMap.values());
+                    success = true;
                 }
                 break;
         }

@@ -183,7 +183,7 @@ export function renderInventory() {
             slot.onmouseover = () => showTooltip(tooltipContent);
             slot.onmouseout = () => hideTooltip();
 
-            let itemText = `<div class="item-icon">${item.icon || '❓'}</div><div><strong>${item.name}</strong></div>`;
+            let itemText = `<div class="item-icon">${item.icon || '❓'}</div>`;
             if (item.quantity > 1) {
                 itemText += ` <div class="item-quantity">${item.quantity}</div>`
             }
@@ -192,7 +192,7 @@ export function renderInventory() {
             }
             slot.innerHTML = `
                 ${itemText}
-                <button class="btn btn-primary btn-sm item-action-btn" data-index="${i}">Actions</button>
+                <button class="btn btn-primary btn-sm item-action-btn" data-index="${i}">...</button>
             `;
         } else {
             slot.innerHTML = '';
@@ -533,14 +533,17 @@ export function renderTrainer() {
 
 export function renderBankInterface() {
     const container = document.getElementById('bank-tab');
-    container.innerHTML = '<h2>Bank</h2>'; // Reset container
+    container.innerHTML = `
+        <div class="bank-header">
+            <h2>Bank</h2>
+            <button id="consolidate-btn" class="btn btn-sm">Consolidate Stacks</button>
+        </div>`;
 
     const bankItems = [...gameState.bank].sort((a, b) => a.name.localeCompare(b.name));
     const itemsPerPage = 24;
-    const totalPages = Math.ceil(bankItems.length / itemsPerPage);
-    if (bankCurrentPage > totalPages) bankCurrentPage = totalPages || 1;
+    const totalPages = Math.ceil(bankItems.length / itemsPerPage) || 1;
+    if (bankCurrentPage > totalPages) bankCurrentPage = totalPages;
 
-    // Bank Grid
     const bankGrid = document.createElement('div');
     bankGrid.className = 'inventory-grid';
     const startIndex = (bankCurrentPage - 1) * itemsPerPage;
@@ -556,7 +559,7 @@ export function renderBankInterface() {
             slot.dataset.bankAction = 'withdraw';
             const originalIndex = gameState.bank.findIndex(bankItem => bankItem.name === item.name);
             slot.dataset.index = originalIndex;
-            slot.onmouseover = () => showTooltip(`<strong>${item.name}</strong><br>${item.description}<br><br>Click to Withdraw`);
+            slot.onmouseover = () => showTooltip(`<strong>${item.name}</strong><br>${item.description}<br><br>Click to Withdraw 1`);
             slot.onmouseout = () => hideTooltip();
         } else {
             slot.classList.add('empty');
@@ -565,7 +568,6 @@ export function renderBankInterface() {
     }
     container.appendChild(bankGrid);
 
-    // Pagination Controls
     if (totalPages > 1) {
         const paginationControls = document.createElement('div');
         paginationControls.className = 'pagination-controls';
@@ -590,7 +592,6 @@ export function renderBankInterface() {
         });
     }
 
-    // Player Inventory Panel (for depositing)
     renderPlayerInventoryPanel(container, 'deposit');
 }
 
@@ -622,7 +623,7 @@ function renderPlayerInventoryPanel(parentContainer, mode) {
         if (item) {
             slot.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div><div class="item-quantity">${item.quantity || ''}</div>`;
             slot.dataset.inventoryAction = action;
-            slot.dataset.index = i; // The original index in the unsorted inventory
+            slot.dataset.index = i;
             slot.onmouseover = () => showTooltip(`<strong>${item.name}</strong><br>${item.description}`);
             slot.onmouseout = () => hideTooltip();
         } else {
@@ -1556,7 +1557,7 @@ export function showBackpack() {
             slot.onmouseover = () => showTooltip(tooltipContent);
             slot.onmouseout = () => hideTooltip();
 
-            let itemText = `<div class="item-icon">${item.icon || '❓'}</div><div><strong>${item.name}</strong></div>`;
+            let itemText = `<div class="item-icon">${item.icon || '❓'}</div>`;
             if (item.quantity > 1) {
                 itemText += ` <div class="item-quantity">${item.quantity}</div>`;
             }
