@@ -606,7 +606,7 @@ function renderPlayerInventoryPanel(parentContainer, mode) {
         title = 'Your Inventory (Click to Deposit)';
         action = 'deposit';
     } else if (mode === 'sell') {
-        title = 'Your Items to Sell (Click to Sell)';
+        title = 'Your Items to Sell';
         action = 'sell';
     }
     panel.innerHTML = `<h3>${title}</h3>`;
@@ -614,17 +614,21 @@ function renderPlayerInventoryPanel(parentContainer, mode) {
     const inventoryGrid = document.createElement('div');
     inventoryGrid.className = 'inventory-grid';
 
-    const inventoryItems = [...gameState.inventory];
-
     for (let i = 0; i < 24; i++) {
         const slot = document.createElement('div');
         slot.className = 'inventory-item';
-        const item = inventoryItems[i];
+        const item = gameState.inventory[i];
         if (item) {
             slot.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div><div class="item-quantity">${item.quantity || ''}</div>`;
             slot.dataset.inventoryAction = action;
             slot.dataset.index = i;
-            slot.onmouseover = () => showTooltip(`<strong>${item.name}</strong><br>${item.description}`);
+            
+            let tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
+            if (mode === 'sell' && item.price) {
+                const sellPrice = Math.floor(item.price / 2) || 1;
+                tooltipContent += `<hr style="margin: 5px 0;">Sell Price: ${sellPrice}g`;
+            }
+            slot.onmouseover = () => showTooltip(tooltipContent);
             slot.onmouseout = () => hideTooltip();
         } else {
             slot.classList.add('empty');
@@ -636,8 +640,7 @@ function renderPlayerInventoryPanel(parentContainer, mode) {
     parentContainer.appendChild(panel);
 }
 
-
-function showSellConfirmationModal(itemIndex) {
+export function showSellConfirmationModal(itemIndex) {
     const item = gameState.inventory[itemIndex];
     if (!item) return;
 

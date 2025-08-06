@@ -65,7 +65,7 @@ export const gameData = {
         { name: "Goblin Head", type: "material", price: 5, description: "A gruesome trophy.", icon: "💀" },
         { name: "Animal Fat", type: "material", price: 5, description: "A greasy lump of fat.", icon: "🧈" },
         { name: "Steel Bar", price: 50, type: "material", description: "A strong metal bar.", icon: "🔗" },
-        { name: "Spices", price: 10, type: "material", description: "A blend of savory spices.", icon: "🌶️" },
+        { name: "Spices", price: 10, type: "material", description: "A blend of savory spices.", icon: "🌶️", stackable: 200 },
         { name: "Cloth", type: "material", price: 8, description: "A piece of rough cloth.", icon: "📜" },
         { name: "Egg", type: "material", price: 5, description: "A fresh egg.", icon: "🥚" },
         { name: "Raw Chicken", type: "material", price: 8, description: "Uncooked chicken meat.", icon: "🍗" },
