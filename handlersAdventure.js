@@ -516,13 +516,23 @@ function processInteractWithCard(io, party, player, payload) {
         let logMessage = `${character.characterName}'s gathering attempt: ${roll}(d20) + ${skillValue} = ${total}. (Target: ${hitTarget}+)`;
 
         if (roll > 1 && total >= hitTarget) {
-            if (!addItemToInventoryServer(character, card.loot, 1, sharedState.groundLoot)) {
-                 sharedState.log.push({ message: `Success! But their inventory is full. They dropped 1 ${card.loot.name} on the ground.`, type: 'damage' });
+            let lootItemData = null;
+            if (card.lootPool && card.lootPool.length > 0) {
+                const randomLootInfo = card.lootPool[Math.floor(Math.random() * card.lootPool.length)];
+                lootItemData = gameData.allItems.find(i => i.name === randomLootInfo.name);
             } else {
-                 logMessage += ` Success! They gathered 1 ${card.loot.name}.`;
-                 sharedState.log.push({ message: logMessage, type: 'success' });
+                lootItemData = card.loot;
             }
-             io.to(player.id).emit('characterUpdate', character);
+    
+            if (lootItemData) {
+                if (!addItemToInventoryServer(character, lootItemData, 1, sharedState.groundLoot)) {
+                     sharedState.log.push({ message: `Success! But their inventory is full. They dropped 1 ${lootItemData.name} on the ground.`, type: 'damage' });
+                } else {
+                     logMessage += ` Success! They gathered 1 ${lootItemData.name}.`;
+                     sharedState.log.push({ message: logMessage, type: 'success' });
+                }
+                io.to(player.id).emit('characterUpdate', character);
+            }
         } else {
             logMessage += ` Failure!`;
             sharedState.log.push({ message: logMessage, type: 'info' });
