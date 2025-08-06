@@ -628,8 +628,8 @@ function renderPlayerInventoryPanel(parentContainer, mode) {
                 const sellPrice = Math.floor(item.price / 2) || 1;
                 tooltipContent += `<hr style="margin: 5px 0;">Sell Price: ${sellPrice}g`;
             }
-            slot.onmouseover = () => showTooltip(tooltipContent);
-            slot.onmouseout = () => hideTooltip();
+            slot.addEventListener('mouseover', () => showTooltip(tooltipContent));
+            slot.addEventListener('mouseout', () => hideTooltip());
         } else {
             slot.classList.add('empty');
         }
@@ -669,17 +669,24 @@ export function renderMerchant() {
         <h2>Merchant's Shop</h2>
         <p>Your Gold: <span id="gold-display">${gameState.gold}</span> | Restock in: <span id="restock-timer">10:00</span></p>
         <hr>
-        <div id="merchant-wares-container"></div>
+        <div class="storage-grid">
+            <div id="merchant-wares-container"></div>
+            <div id="merchant-sell-container"></div>
+        </div>
     `;
     
     document.getElementById('gold-display').textContent = gameState.gold;
     const waresContainer = document.getElementById('merchant-wares-container');
+    waresContainer.innerHTML = ''; // Clear previous content
 
     const permanentStock = gameData.allItems.filter(item => item.type === 'tool' || item.name === 'Spices');
     const rotatingStock = gameState.merchantStock || [];
     
     // Permanent Stock
-    waresContainer.innerHTML += '<h3>Permanent Stock</h3>';
+    const permanentHeader = document.createElement('h3');
+    permanentHeader.textContent = 'Permanent Stock';
+    waresContainer.appendChild(permanentHeader);
+
     const permanentGrid = document.createElement('div');
     permanentGrid.className = 'inventory-grid';
     permanentStock.forEach(item => {
@@ -688,35 +695,48 @@ export function renderMerchant() {
         itemEl.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div>`;
         itemEl.dataset.buyItem = item.name;
         itemEl.dataset.permanent = 'true';
-        itemEl.onmouseover = () => showTooltip(`<strong>${item.name}</strong> (${item.price}g)<br>${item.description}<br><br>Click to Buy`);
-        itemEl.onmouseout = () => hideTooltip();
-        if (gameState.gold < item.price) itemEl.classList.add('disabled');
+        
+        itemEl.addEventListener('mouseover', () => showTooltip(`<strong>${item.name}</strong> (${item.price}g)<br>${item.description}<br><br>Click to Buy`));
+        itemEl.addEventListener('mouseout', () => hideTooltip());
+
+        if (gameState.gold < item.price) {
+            itemEl.classList.add('disabled');
+        }
         permanentGrid.appendChild(itemEl);
     });
     waresContainer.appendChild(permanentGrid);
     
     // Rotating Wares
-    waresContainer.innerHTML += '<h3 style="margin-top: 20px;">Rotating Wares</h3>';
+    const rotatingHeader = document.createElement('h3');
+    rotatingHeader.textContent = 'Rotating Wares';
+    rotatingHeader.style.marginTop = '20px';
+    waresContainer.appendChild(rotatingHeader);
+
     const rotatingGrid = document.createElement('div');
     rotatingGrid.className = 'inventory-grid';
      if (rotatingStock.length > 0) {
         rotatingStock.forEach((item, index) => {
-             const itemEl = document.createElement('div');
+            const itemEl = document.createElement('div');
             itemEl.className = 'inventory-item';
             itemEl.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div><div class="item-quantity">${item.quantity}</div>`;
             itemEl.dataset.buyItem = index;
             itemEl.dataset.permanent = 'false';
-            itemEl.onmouseover = () => showTooltip(`<strong>${item.name}</strong> (${item.price}g)<br>${item.description}<br><br>Click to Buy`);
-            itemEl.onmouseout = () => hideTooltip();
-            if (gameState.gold < item.price || item.quantity <= 0) itemEl.classList.add('disabled');
+
+            itemEl.addEventListener('mouseover', () => showTooltip(`<strong>${item.name}</strong> (${item.price}g)<br>${item.description}<br><br>Click to Buy`));
+            itemEl.addEventListener('mouseout', () => hideTooltip());
+
+            if (gameState.gold < item.price || item.quantity <= 0) {
+                itemEl.classList.add('disabled');
+            }
             rotatingGrid.appendChild(itemEl);
         });
     }
     waresContainer.appendChild(rotatingGrid);
 
-
     // Player Inventory Panel (for selling)
-    renderPlayerInventoryPanel(container, 'sell');
+    const sellContainer = document.getElementById('merchant-sell-container');
+    sellContainer.innerHTML = ''; // Clear previous content
+    renderPlayerInventoryPanel(sellContainer, 'sell');
 
     if (merchantTimerInterval) clearInterval(merchantTimerInterval);
     merchantTimerInterval = setInterval(updateRestockTimer, 1000);
