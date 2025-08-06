@@ -823,7 +823,6 @@ async function processEndAdventure(io, player, party) {
             endTheAdventure();
         } else {
             sharedState.log.push({ message: "The party was wiped out while trying to return home!", type: 'damage' });
-            // Let the adventure end naturally with the party defeated
         }
     } else {
         sharedState.log.push({ message: "The party returns home.", type: 'info' });
