@@ -900,9 +900,17 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
             if (attack && attack.action === 'attack') {
                 const targetCharacter = targetPlayerObject.character;
                 const availableReactions = [];
+
+                // Check for Dodge spell
                 const dodgeSpell = targetCharacter.equippedSpells.find(s => s.name === "Dodge");
                 if (dodgeSpell && (targetPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
                     availableReactions.push({ name: 'Dodge', type: 'spell', spell: dodgeSpell });
+                }
+
+                // Check for Shield block reaction
+                const shield = targetCharacter.equipment.offHand;
+                if (shield && shield.type === 'shield' && shield.reaction && (targetPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
+                    availableReactions.push({ name: 'Block', type: 'item', item: shield });
                 }
                 
                 if (availableReactions.length > 0 && !isFleeing) {
@@ -1022,6 +1030,7 @@ async function handleResolveReaction(io, socket, payload) {
     
     let finalDamage = reaction.damage;
     let dodged = false;
+    let blocked = false;
     let logMessage = '';
 
     if (reactionType === 'Dodge') {
@@ -1045,11 +1054,33 @@ async function handleResolveReaction(io, socket, payload) {
         } else {
             logMessage = `${name} tries to Dodge, but fails!`;
         }
+    } else if (reactionType === 'Block') {
+        const shield = reactingPlayer.character.equipment.offHand;
+        if (shield && shield.reaction && (reactingPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
+            reactingPlayerState.itemCooldowns[shield.name] = shield.cooldown;
+            const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
+            const statValue = reactingPlayer.character.defense + bonuses.defense;
+            const roll = Math.floor(Math.random() * 20) + 1;
+            const total = roll + statValue;
+
+            if (roll === 1) {
+                logMessage = `${name}'s Block: ${roll}(d20) + ${statValue} = ${total}. Critical Failure!`;
+            } else if (total >= shield.reaction.hit) {
+                const damageReduction = shield.reaction.value;
+                finalDamage = Math.max(0, finalDamage - damageReduction);
+                blocked = true;
+                logMessage = `${name}'s Block: ${roll}(d20) + ${statValue} = ${total}. Success! They block ${damageReduction} damage.`;
+            } else {
+                 logMessage = `${name}'s Block: ${roll}(d20) + ${statValue} = ${total}. Failure!`;
+            }
+        } else {
+            logMessage = `${name} tries to Block, but fails!`;
+        }
     } else { // 'take_damage'
         logMessage = `${name} braces for the attack!`;
     }
     
-    sharedState.log.push({ message: logMessage, type: dodged ? 'success' : 'reaction' });
+    sharedState.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
 
     if (finalDamage > 0) {
         reactingPlayerState.health -= finalDamage;
