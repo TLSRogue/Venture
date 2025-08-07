@@ -19,7 +19,7 @@ body {
     background: var(--bg-gradient);
     color: var(--text-color);
     min-height: 100vh;
-    padding-bottom: 20px; /* Reduced padding */
+    padding-bottom: 20px;
     transition: background-color 0.5s;
 }
 
@@ -29,28 +29,26 @@ body {
     padding: 20px;
 }
 
-/* --- LAYOUT & GAP FIX (START) --- */
+/* --- LAYOUT & GAP FIX --- */
 #adventure-tab {
-    display: none; /* Changed from flex to none by default */
+    display: flex; /* BUG FIX: This was incorrectly set to 'none' before */
     flex-direction: column;
-    gap: 15px; /* Spacing between elements */
+    gap: 15px;
 }
 
 #player-action-bar {
-    /* No longer fixed position */
     background: rgba(0,0,0,0.8);
     padding: 10px;
     border-top: 2px solid var(--primary-color);
-    display: flex;
+    display: none; /* Hide by default, shown by JS */
     justify-content: center;
     align-items: center;
     gap: 15px;
     z-index: 1000;
-    width: 100%; /* Ensure it takes full width */
-    border-radius: 8px; /* Added for polish */
+    width: 100%;
+    border-radius: 8px;
 }
-/* --- LAYOUT & GAP FIX (END) --- */
-
+/* --- END FIX --- */
 
 .hidden-on-load {
     display: none;
@@ -107,7 +105,7 @@ body {
 }
 
 #adventure-hud {
-    display: flex;
+    display: none; /* Hide by default, shown by JS */
     justify-content: space-between;
     align-items: center;
     gap: 20px;

@@ -62,7 +62,7 @@ function handleCharacterUpdate(serverState) {
         zoneCards: gameState.zoneCards,
         partyMemberStates: gameState.partyMemberStates,
         groundLoot: gameState.groundLoot,
-        isPartyLeader: gameState.isPartyLeader, // BUG FIX: Preserve party leader status
+        isPartyLeader: gameState.isPartyLeader,
     };
 
     Object.assign(gameState, serverState);
@@ -83,7 +83,7 @@ function handleCharacterUpdate(serverState) {
         gameState.zoneCards = preservedSession.zoneCards;
         gameState.partyMemberStates = preservedSession.partyMemberStates;
         gameState.groundLoot = preservedSession.groundLoot;
-        gameState.isPartyLeader = preservedSession.isPartyLeader; // BUG FIX: Restore party leader status
+        gameState.isPartyLeader = preservedSession.isPartyLeader;
     } else {
         gameState.inDuel = false;
         gameState.duelState = null;
@@ -150,7 +150,10 @@ function handlePartyAdventureStarted(serverAdventureState) {
 
     UIMain.setTabsDisabled(true);
     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
-    document.getElementById('adventure-tab').style.display = 'block';
+    
+    // This is the only line that needs changing in this file
+    document.getElementById('adventure-tab').style.display = 'flex'; 
+
     document.getElementById('main-stats-display').style.display = 'none';
     document.getElementById('adventure-hud').style.display = 'flex';
     document.getElementById('player-action-bar').style.display = 'flex';
@@ -223,7 +226,7 @@ function handleDuelStart(duelState) {
 
     UIMain.setTabsDisabled(true);
     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
-    document.getElementById('adventure-tab').style.display = 'block';
+    document.getElementById('adventure-tab').style.display = 'flex';
     document.getElementById('main-stats-display').style.display = 'none';
     document.getElementById('adventure-hud').style.display = 'flex';
     document.getElementById('player-action-bar').style.display = 'flex';
