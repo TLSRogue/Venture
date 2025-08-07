@@ -5,6 +5,25 @@ import { socket } from '../network.js';
 import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js';
 import { getBonusStats } from '../player.js';
 
+// --- NEW: Centralized map for all status effect icons ---
+const effectIcons = {
+    'bleed': '🩸',
+    'burn': '🔥',
+    'stun': '💫',
+    'daze': '😵',
+    'poison': '☠️',
+    'Stealth': '🤫',
+    "Warrior's Might": '💪',
+    'War Cry': '🗣️',
+    'Thick Hide': '🛡️',
+    'Well Fed (Str)': '🍖',
+    'Well Fed (Agi)': '🐟',
+    'Well Fed (Wis)': '🥣',
+    'Light Source': '🔥',
+    'Focus': '🧘',
+    'Magic Barrier': '💠'
+};
+
 // --- HELPER FUNCTION FOR DETAILED TOOLTIPS ---
 function addActionTooltipListener(element, itemOrSpell) {
     element.addEventListener('mousemove', (e) => {
@@ -111,7 +130,8 @@ function renderPartyScreen() {
                 cardEl.style.opacity = '0.6';
             }
             
-            let effectsHtml = `<div class="player-card-effects">AP: ${playerState.actionPoints}</div>`;
+            // Pass the full playerState to getEffectsHtml
+            let effectsHtml = getEffectsHtml(playerState);
 
             cardEl.innerHTML = `
                 <div class="card-icon">${playerState.icon}</div>
@@ -151,7 +171,7 @@ function renderDuelScreen() {
         <div class="card-icon">${localPlayer.icon}</div>
         <div class="card-title">${localPlayer.name}</div>
         <div>❤️ ${localPlayer.health}/${localPlayer.maxHealth}</div>
-        <div class="player-card-effects">AP: ${localPlayer.actionPoints}</div>
+        ${getEffectsHtml(localPlayer)}
     `;
     partyContainer.appendChild(playerCardEl);
 
@@ -174,7 +194,7 @@ function renderDuelScreen() {
             <div class="card-icon">${opponent.icon}</div>
             <div class="card-title">${opponent.name}</div>
             <div>❤️ ${opponent.health}/${opponent.maxHealth}</div>
-            <div class="player-card-effects">AP: ${opponent.actionPoints}</div>
+            ${getEffectsHtml(opponent)}
         `;
     }
     zoneContainer.appendChild(opponentCardEl);
@@ -209,15 +229,18 @@ function renderZoneCards(cards) {
         }
         
         let healthDisplay = '';
+        let effectsDisplay = ''; // For buffs/debuffs
+
         if (card.type === 'enemy') {
             healthDisplay = `<div>❤️ ${card.health}/${card.maxHealth}</div>`;
-            if(card.debuffs && card.debuffs.length > 0) {
+            // Use the same logic as players for debuffs
+            if (card.debuffs && card.debuffs.length > 0) {
+                effectsDisplay = '<div class="player-card-effects">';
                 card.debuffs.forEach(debuff => {
-                    if(debuff.type === 'stun') healthDisplay += `<div class="debuff-icon">💫</div>`;
-                    if(debuff.type === 'burn') healthDisplay += `<div class="debuff-icon">🔥</div>`;
-                    if(debuff.type === 'bleed') healthDisplay += `<div class="debuff-icon">🩸</div>`;
-                    if(debuff.type === 'daze') healthDisplay += `<div class="debuff-icon">😵</div>`;
+                    const icon = effectIcons[debuff.type] || '❓';
+                    effectsDisplay += `<span class="player-card-effect debuff" onmouseover="showTooltip('<strong>${debuff.type}</strong><br>Turns Remaining: ${debuff.duration}')" onmouseout="hideTooltip()">${icon} ${debuff.type}</span>`;
                 });
+                effectsDisplay += '</div>';
             }
         } else if (card.type === 'resource') {
             healthDisplay = `<div>Charges: ${card.charges}</div>`;
@@ -227,6 +250,7 @@ function renderZoneCards(cards) {
             <div class="card-icon">${card.icon || '❓'}</div>
             <div class="card-title">${card.name}</div>
             ${healthDisplay}
+            ${effectsDisplay}
         `;
         
         zoneContainer.appendChild(cardEl);
@@ -235,12 +259,19 @@ function renderZoneCards(cards) {
 
 function getEffectsHtml(playerState) {
     let effectsHtml = '<div class="player-card-effects">';
-    playerState.buffs.forEach(buff => {
-        effectsHtml += `<span class="player-card-effect buff" onmouseover="showTooltip('<strong>${buff.type}</strong><br>Turns Remaining: ${buff.duration -1}')" onmouseout="hideTooltip()">${buff.type}</span>`;
-    });
-    playerState.playerDebuffs.forEach(debuff => {
-        effectsHtml += `<span class="player-card-effect debuff" onmouseover="showTooltip('<strong>${debuff.type}</strong><br>Turns Remaining: ${debuff.duration}')" onmouseout="hideTooltip()">${debuff.type}</span>`;
-    });
+    if (playerState.buffs) {
+        playerState.buffs.forEach(buff => {
+            const icon = effectIcons[buff.type] || '✨';
+            effectsHtml += `<span class="player-card-effect buff" onmouseover="showTooltip('<strong>${buff.type}</strong><br>Turns Remaining: ${buff.duration -1}')" onmouseout="hideTooltip()">${icon} ${buff.type}</span>`;
+        });
+    }
+    const debuffs = playerState.playerDebuffs || playerState.debuffs || [];
+    if (debuffs) {
+        debuffs.forEach(debuff => {
+            const icon = effectIcons[debuff.type] || '❓';
+            effectsHtml += `<span class="player-card-effect debuff" onmouseover="showTooltip('<strong>${debuff.type}</strong><br>Turns Remaining: ${debuff.duration}')" onmouseout="hideTooltip()">${icon} ${debuff.type}</span>`;
+        });
+    }
     effectsHtml += '</div>';
     return effectsHtml;
 }
