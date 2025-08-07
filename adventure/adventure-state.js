@@ -3,7 +3,8 @@
 import { players, parties } from '../serverState.js';
 import { gameData } from '../game-data.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
-import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
+// BUG FIX: Added the missing 'drawCardsForServer' function to the import list
+import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer } from '../utilsHelpers.js';
 
 // --- HELPER FUNCTIONS (Moved here as they are tightly coupled to adventure state) ---
 
