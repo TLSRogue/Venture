@@ -2,7 +2,7 @@
 
 import { players, parties, duels } from './serverState.js';
 import { gameData } from './game-data.js';
-import { broadcastAdventureUpdate } from './utilsBroadcast.js';
+import { broadcastAdventureUpdate, broadcastPartyUpdate } from './utilsBroadcast.js';
 import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, addItemToInventoryServer, consumeMaterials } from './utilsHelpers.js';
 
 // --- ADVENTURE HELPER FUNCTIONS ---
@@ -823,6 +823,8 @@ async function processEndAdventure(io, player, party) {
             endTheAdventure();
         } else {
             sharedState.log.push({ message: "The party was wiped out while trying to return home!", type: 'damage' });
+            // BUG FIX: Ensure the adventure ends even if the party is wiped out during the flee attempt.
+            endTheAdventure();
         }
     } else {
         sharedState.log.push({ message: "The party returns home.", type: 'info' });
