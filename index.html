@@ -167,8 +167,8 @@
                 </div>
             </div>
             
-            <div id="adventure-tab" class="tab-content" style="display: none;">
-                 <div id="adventure-hud" style="display: none;">
+            <div id="adventure-tab" class="tab-content">
+                 <div id="adventure-hud">
                     <div class="hud-health-bar-container">
                         <div id="hud-health-bar" class="hud-health-bar">10 / 10</div>
                     </div>
@@ -190,36 +190,39 @@
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     </button>
                 </div>
+                <div id="player-action-bar">
+                    <div class="player-hub-left">
+                        <button id="character-sheet-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </button>
+                        <button id="backpack-btn">
+                            <svg fill="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20,6h-3V4c0-1.1-0.9-2-2-2h-6C7.9,2,7,2.9,7,4v2H4C2.9,6,2,6.9,2,8v12c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2V8 C22,6.9,21.1,6,20,6z M9,4h6v2H9V4z M20,20H4V8h16V20z"/></svg>
+                        </button>
+                    </div>
+                    <div id="action-bars-container">
+                        <div id="equipment-bar" class="action-bar-row"></div>
+                        <div id="spell-bar" class="action-bar-row"></div>
+                    </div>
+                    <div class="player-hub-right">
+                        <button id="end-turn-btn" class="btn btn-danger">End Turn</button>
+                    </div>
+                </div>
+                <div id="adventure-log-container">
+                    <div id="adventure-log" class="log"></div>
+                </div>
             </div>
             <div id="quest-log-tab" class="tab-content" style="display: none;">
                 </div>
         </div>
     </div>
 
-    <div id="player-action-bar" style="display: none;">
-        <div class="player-hub-left">
-            <button id="character-sheet-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </button>
-            <button id="backpack-btn">
-                <svg fill="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20,6h-3V4c0-1.1-0.9-2-2-2h-6C7.9,2,7,2.9,7,4v2H4C2.9,6,2,6.9,2,8v12c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2V8 C22,6.9,21.1,6,20,6z M9,4h6v2H9V4z M20,20H4V8h16V20z"/></svg>
-            </button>
-        </div>
-        <div id="action-bars-container">
-            <div id="equipment-bar" class="action-bar-row"></div>
-            <div id="spell-bar" class="action-bar-row"></div>
-        </div>
-        <div class="player-hub-right">
-            <button id="end-turn-btn" class="btn btn-danger">End Turn</button>
-        </div>
-    </div>
-
-    <div id="adventure-log-container" style="display: none;">
-        <div id="adventure-log" class="log"></div>
-    </div>
-
     <div id="modal" class="modal-overlay">
         <div id="modal-content" class="modal-content"></div>
+    </div>
+
+    <div id="dice-roll-container" class="hidden">
+        <div id="dice"></div>
+        <div id="dice-roll-details"></div>
     </div>
 
     <script type="module" src="game.js"></script>

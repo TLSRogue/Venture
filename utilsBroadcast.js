@@ -71,3 +71,16 @@ export function broadcastDuelUpdate(io, duelId) {
         if (player2 && player2.id) io.to(player2.id).emit('duel:update', duel);
     }
 }
+
+// --- NEW FUNCTION TO BROADCAST DICE ROLLS ---
+export function broadcastDiceRoll(io, partyId, rollData) {
+    const party = parties[partyId];
+    if (party) {
+        party.members.forEach(memberName => {
+            const member = players[memberName];
+            if (member && member.id) {
+                io.to(member.id).emit('dice:roll', rollData);
+            }
+        });
+    }
+}

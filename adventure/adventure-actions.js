@@ -3,6 +3,7 @@
 import { players } from '../serverState.js';
 import { gameData } from '../game-data.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
+import { broadcastDiceRoll } from '../utilsBroadcast.js'; // <-- Add this import
 
 import { checkAndEndTurnForPlayer, defeatEnemyInParty } from './adventure-state.js';
 
@@ -19,7 +20,7 @@ export async function processWeaponAttack(io, party, player, payload) {
     }
 
     actingPlayerState.actionPoints -= weapon.cost;
-    actingPlayerState.threat += weapon.cost; // Add threat equal to AP cost
+    actingPlayerState.threat += weapon.cost;
     actingPlayerState.weaponCooldowns[weapon.name] = weapon.cooldown;
 
     const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
@@ -32,7 +33,21 @@ export async function processWeaponAttack(io, party, player, payload) {
     const total = roll + statValue + dazeModifier;
     const hitTarget = weapon.hit || 15;
 
-    let logMessage = `${character.characterName} attacks ${target.name} with ${weapon.name}: ${roll}(d20) + ${statValue} ${dazeModifier < 0 ? dazeModifier : ''} = ${total}. (Target: ${hitTarget}+)`;
+    // --- NEW: Broadcast the roll and wait for the animation ---
+    const rollData = {
+        rollerName: character.characterName,
+        roll,
+        statValue,
+        dazeModifier,
+        total,
+        hitTarget,
+        actionName: `attacks with ${weapon.name}`
+    };
+    broadcastDiceRoll(io, party.id, rollData);
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds for animation
+    // --- END OF NEW CODE ---
+
+    let logMessage = `${character.characterName} ${rollData.actionName}: ${roll}(d20) + ${statValue} ${dazeModifier < 0 ? dazeModifier : ''} = ${total}. (Target: ${hitTarget}+)`;
 
     if (roll === 1) {
         logMessage += ` Critical Failure! They miss!`;
@@ -98,7 +113,6 @@ export async function processCastSpell(io, party, player, payload) {
     actingPlayerState.threat += cost;
     actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
 
-    // --- NEW: Handle bonus threat for spells that have it ---
     if (spell.bonusThreat) {
         actingPlayerState.threat += spell.bonusThreat;
         sharedState.log.push({ message: `${character.characterName} generates ${spell.bonusThreat} bonus threat!`, type: 'reaction' });
@@ -122,7 +136,6 @@ export async function processCastSpell(io, party, player, payload) {
     let statValue = 0;
     let rollDescription = "";
 
-    // --- NEW: Handle special roll for Warrior's Might ---
     if (spell.name === "Warrior's Might") {
         const strength = (character.strength || 0) + (bonuses.strength || 0);
         const defense = (character.defense || 0) + (bonuses.defense || 0);
@@ -280,7 +293,7 @@ export async function processEquipItem(io, party, player, payload) {
         const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.playerId === player.id);
         if (actingPlayerState.actionPoints < 1) return;
         actingPlayerState.actionPoints--;
-        actingPlayerState.threat += 1; // Add threat equal to AP cost
+        actingPlayerState.threat += 1;
         party.sharedState.log.push({ message: `${character.characterName} spends 1 AP to change equipment.`, type: 'info' });
     }
 
@@ -345,7 +358,7 @@ export async function processUseItemAbility(io, party, player, payload) {
     
     const ability = item.activatedAbility;
     actingPlayerState.actionPoints -= ability.cost;
-    actingPlayerState.threat += ability.cost; // Add threat equal to AP cost
+    actingPlayerState.threat += ability.cost;
     actingPlayerState.itemCooldowns[item.name] = ability.cooldown;
     
     if (ability.buff) {
@@ -382,7 +395,7 @@ export async function processUseConsumable(io, party, player, payload) {
     }
 
     actingPlayerState.actionPoints -= cost;
-    actingPlayerState.threat += cost; // Add threat equal to AP cost
+    actingPlayerState.threat += cost;
     
     if (item.heal) {
         actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + item.heal);
