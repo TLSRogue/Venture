@@ -960,13 +960,10 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
 
                 const availableReactions = [];
 
-                // --- START: MODIFIED CODE ---
-                // --- Defensive Check for Dodge ---
                 if (targetCharacter.equippedSpells && Array.isArray(targetCharacter.equippedSpells)) {
                     const dodgeSpell = targetCharacter.equippedSpells.find(s => s.name === "Dodge");
                     if (dodgeSpell && (targetPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
                         let isWearingHeavy = false;
-                        // Check for heavy gear (also ensures equipment exists)
                         if (targetCharacter.equipment) {
                             for (const slot in targetCharacter.equipment) {
                                 const item = targetCharacter.equipment[slot];
@@ -984,14 +981,12 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
                     }
                 }
 
-                // --- Defensive Check for Block ---
                 if (targetCharacter.equipment) {
                     const shield = targetCharacter.equipment.offHand;
                     if (shield && shield.type === 'shield' && shield.reaction && (targetPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
                         availableReactions.push({ name: 'Block' });
                     }
                 }
-                // --- END: MODIFIED CODE ---
                 
                 if (availableReactions.length > 0 && !isFleeing) {
                     sharedState.pendingReaction = {
@@ -1013,7 +1008,7 @@ async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex 
 
                     io.to(targetPlayerState.playerId).emit('party:requestReaction', reactionPayload);
                     
-                    sharedState.reactionTimeout = setTimeout(() => {
+                    party.reactionTimeout = setTimeout(() => { // CHANGE 2: Store on party, not sharedState
                         const playerSocket = io.sockets.sockets.get(targetPlayerState.playerId);
                         if (playerSocket) {
                             handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
@@ -1129,8 +1124,8 @@ async function handleResolveReaction(io, socket, payload) {
 
     if (reaction.targetName !== name) return;
 
-    clearTimeout(sharedState.reactionTimeout);
-    sharedState.reactionTimeout = null;
+    clearTimeout(party.reactionTimeout); // CHANGE 3: Clear from party, not sharedState
+    party.reactionTimeout = null; // CHANGE 3: Clear from party, not sharedState
 
     const { reactionType } = payload;
     const reactingPlayerState = sharedState.partyMemberStates.find(p => p.name === name);
@@ -1291,8 +1286,8 @@ export const registerAdventureHandlers = (io, socket) => {
                 };
             }),
             log: [{ message: `Party has entered the ${zoneName}!`, type: 'info' }],
-            pendingReaction: null,
-            reactionTimeout: null
+            pendingReaction: null
+            // CHANGE 1: The 'reactionTimeout' property has been removed from this object
         };
         
         if (zoneName === 'arena') {
