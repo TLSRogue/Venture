@@ -1,8 +1,6 @@
 'use strict';
 
-import { gameData } from './game-data.js';
 import { gameState } from './state.js';
-import * as UI from './ui.js';
 import * as Network from './network.js';
 
 // --- VENDOR ACTIONS (EMIT TO SERVER) ---

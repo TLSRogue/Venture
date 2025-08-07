@@ -1,9 +1,10 @@
 'use strict';
 
 import { gameState } from './state.js';
-import * as UI from './ui.js';
 import * as Combat from './combat.js';
 import * as Network from './network.js';
+import * as UIMain from './ui/ui-main.js';
+import * as UIAdventure from './ui/ui-adventure.js';
 
 /**
  * @file interactions.js
@@ -50,7 +51,7 @@ export function interactWithCard(cardIndex) {
                 Combat.weaponAttack(cardIndex);
             }
         } else {
-            UI.addToLog("Invalid target. Action cancelled.", "info");
+            UIMain.addToLog("Invalid target. Action cancelled.", "info");
             clearSelection();
         }
         return;
@@ -82,7 +83,7 @@ export function interactWithPlayerCard() {
         if (spell.type === 'heal' || spell.type === 'buff' || spell.type === 'versatile') {
             Combat.castSpell(selectedAction.index, localPlayerTargetIndex);
         } else {
-            UI.addToLog("You can't use that on yourself.", "info");
+            UIMain.addToLog("You can't use that on yourself.", "info");
             clearSelection();
         }
     }
@@ -94,12 +95,12 @@ export function selectAction(action) {
         return;
     }
     gameState.turnState.selectedAction = action;
-    UI.updateActionUI();
+    UIAdventure.updateActionUI();
 }
 
 export function clearSelection() {
     gameState.turnState.selectedAction = null;
-    UI.updateActionUI();
+    UIAdventure.updateActionUI();
 }
 
 // NOTE: All solo-play logic functions that were here previously have been removed.

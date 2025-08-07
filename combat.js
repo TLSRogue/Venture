@@ -1,9 +1,9 @@
 'use strict';
 
 import { gameState } from './state.js';
-import * as UI from './ui.js';
 import * as Interactions from './interactions.js';
 import * as Network from './network.js';
+import * as UIMain from './ui/ui-main.js';
 
 /**
  * @file combat.js
@@ -18,7 +18,7 @@ export function endTurn() {
         // This now handles both solo and party adventures, as both have a partyId
         Network.emitPartyAction({ type: 'endTurn' });
         document.getElementById('end-turn-btn').disabled = true; // Disable locally until server update
-        UI.addToLog("You have ended your turn.", "info");
+        UIMain.addToLog("You have ended your turn.", "info");
     }
     Interactions.clearSelection();
 }

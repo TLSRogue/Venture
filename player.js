@@ -1,9 +1,10 @@
 'use strict';
 
 import { gameState } from './state.js';
-import * as UI from './ui.js';
 import * as Interactions from './interactions.js';
 import * as Network from './network.js';
+import * as UIMain from './ui/ui-main.js';
+import * as UIPlayer from './ui/ui-player.js';
 
 // --- CORE PLAYER STATS ---
 
@@ -96,7 +97,7 @@ export function returnToHome() {
         if (gameState.isPartyLeader) {
             Network.emitPartyAction({ type: 'returnHome' });
         } else {
-            UI.showInfoModal("Only the party leader can end the adventure.");
+            UIMain.showInfoModal("Only the party leader can end the adventure.");
         }
     }
 }
@@ -104,7 +105,7 @@ export function returnToHome() {
 export function resetToHomeState() {
     // This function is now called by a server event ('party:adventureEnded')
     // to clean up the client's UI and return to the home screen.
-    UI.setTabsDisabled(false);
+    UIMain.setTabsDisabled(false);
     gameState.currentZone = null;
     gameState.zoneCards = [];
     gameState.groundLoot = [];
@@ -126,13 +127,13 @@ export function resetToHomeState() {
     
     Interactions.clearSelection();
     document.getElementById('end-turn-btn').disabled = false;
-    UI.hideModal();
-    UI.showTab('home');
-    UI.addToLog("Returned home safely. Health and cooldowns have been restored.");
+    UIMain.hideModal();
+    UIPlayer.showTab('home');
+    UIMain.addToLog("Returned home safely. Health and cooldowns have been restored.");
     gameState.focus = 0;
-    UI.renderSpells();
-    UI.renderInventory();
-    UI.updateDisplay();
+    UIPlayer.renderSpells();
+    UIPlayer.renderInventory();
+    UIPlayer.updateDisplay();
 }
 
 export function resetPlayerCombatState() {
@@ -145,19 +146,19 @@ export function resetPlayerCombatState() {
     const persistentBuffs = ['Well Fed (Agi)', 'Well Fed (Str)', 'Light Source'];
     const expiredBuffs = gameState.buffs.filter(b => !persistentBuffs.includes(b.type));
     if (expiredBuffs.length > 0) {
-        UI.addToLog(`Combat buffs worn off: ${expiredBuffs.map(b => b.type).join(', ')}.`, 'info');
+        UIMain.addToLog(`Combat buffs worn off: ${expiredBuffs.map(b => b.type).join(', ')}.`, 'info');
     }
     gameState.buffs = gameState.buffs.filter(b => persistentBuffs.includes(b.type));
     
     if (gameState.playerDebuffs.length > 0) {
-        UI.addToLog("All debuffs have been cleared.", 'heal');
+        UIMain.addToLog("All debuffs have been cleared.", 'heal');
         gameState.playerDebuffs = [];
     }
     
     gameState.shield = 0;
     gameState.focus = 0;
 
-    UI.addToLog("Cooldowns and Action Points have been reset.", "success");
+    UIMain.addToLog("Cooldowns and Action Points have been reset.", "success");
 }
 
 // NOTE: The following functions have been REMOVED as they are now handled by the server:
