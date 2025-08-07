@@ -429,7 +429,7 @@ export async function handleResolveReaction(io, socket, payload) {
     const { sharedState } = party;
     const reaction = sharedState.pendingReaction;
 
-    if (reaction.targetName !== name) return.
+    if (reaction.targetName !== name) return;
 
     clearTimeout(party.reactionTimeout);
     party.reactionTimeout = null;
