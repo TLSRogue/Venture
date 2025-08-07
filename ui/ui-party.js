@@ -1,7 +1,7 @@
 'use strict';
 
 import { gameState } from '../state.js';
-import { showModal, showInfoModal } from './ui-main.js';
+import { showModal, hideModal, showInfoModal } from './ui-main.js'; // BUG FIX: Added hideModal
 
 export function renderPartyManagement(party) {
     const container = document.getElementById('party-management-area');

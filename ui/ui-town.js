@@ -3,7 +3,7 @@
 import { gameData } from '../game-data.js';
 import { gameState } from '../state.js';
 import * as Network from '../network.js';
-import { showModal, hideModal, showTooltip } from './ui-main.js';
+import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js'; // BUG FIX: Added hideTooltip
 
 // --- LOCAL STATE & HELPERS ---
 
@@ -229,7 +229,10 @@ export function updateRestockTimer() {
 
     if (timeRemaining <= 0) {
         timerEl.textContent = '00:00';
-        if (merchantTimerInterval) clearInterval(merchantTimerInterval);
+        if (merchantTimerInterval) {
+            clearInterval(merchantTimerInterval);
+            merchantTimerInterval = null;
+        }
     } else {
         const minutes = Math.floor(timeRemaining / 60000);
         const seconds = Math.floor((timeRemaining % 60000) / 1000);
