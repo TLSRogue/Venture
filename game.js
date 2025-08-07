@@ -30,7 +30,7 @@ function initGame() {
         onReceivePartyInvite: handleReceivePartyInvite,
         onPartyAdventureStarted: handlePartyAdventureStarted,
         onPartyAdventureUpdate: handlePartyAdventureUpdate,
-        onPartyRequestReaction: handlePartyRequestReaction,
+        onPartyRequestReaction: UIAdventure.showReactionModal,
         onShowDialogue: UIParty.showNPCDialogueFromServer,
         onHideDialogue: UIMain.hideModal,
         onPartyAdventureEnded: Player.resetToHomeState,
@@ -61,7 +61,8 @@ function handleCharacterUpdate(serverState) {
         duelState: gameState.duelState,
         zoneCards: gameState.zoneCards,
         partyMemberStates: gameState.partyMemberStates,
-        groundLoot: gameState.groundLoot
+        groundLoot: gameState.groundLoot,
+        isPartyLeader: gameState.isPartyLeader, // BUG FIX: Preserve party leader status
     };
 
     Object.assign(gameState, serverState);
@@ -82,6 +83,7 @@ function handleCharacterUpdate(serverState) {
         gameState.zoneCards = preservedSession.zoneCards;
         gameState.partyMemberStates = preservedSession.partyMemberStates;
         gameState.groundLoot = preservedSession.groundLoot;
+        gameState.isPartyLeader = preservedSession.isPartyLeader; // BUG FIX: Restore party leader status
     } else {
         gameState.inDuel = false;
         gameState.duelState = null;
@@ -162,19 +164,14 @@ function handlePartyAdventureStarted(serverAdventureState) {
 }
 
 function handlePartyAdventureUpdate(serverAdventureState) {
-    // --- START: MODIFIED CODE ---
-    // Check if the reaction modal is currently open.
     const reactionModalIsOpen = document.getElementById('reaction-buttons');
 
-    // Determine if a reaction is still pending for the current player in the NEW state from the server.
     const isReactionPendingForMe = serverAdventureState.pendingReaction &&
                                    serverAdventureState.pendingReaction.targetName === gameState.characterName;
 
-    // Only hide the modal if it's currently open AND the new state says the reaction is no longer needed.
     if (reactionModalIsOpen && !isReactionPendingForMe) {
         UIMain.hideModal();
     }
-    // --- END: MODIFIED CODE ---
 
     gameState.zoneCards = serverAdventureState.zoneCards;
     gameState.partyMemberStates = serverAdventureState.partyMemberStates;
@@ -189,16 +186,10 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     UIPlayer.updateDisplay();
     UIAdventure.renderPlayerActionBars(); 
 
-    // If the ground loot modal is open when an update arrives, refresh its content.
     const groundLootModal = document.getElementById('ground-loot-modal');
     if (groundLootModal && !groundLootModal.closest('.modal-overlay').classList.contains('hidden')) {
         UIAdventure.showGroundLootModal();
     }
-}
-
-function handlePartyRequestReaction(data) {
-    console.log('Received reaction request from server:', data);
-    UIAdventure.showReactionModal(data);
 }
 
 // --- DUEL HANDLERS ---
@@ -281,8 +272,6 @@ function handleDuelEnd({ outcome, reward }) {
         UIMain.showInfoModal("You have been defeated!");
     }
     
-    // Instead of re-rendering the adventure screen, we will now automatically
-    // return to the home screen after a short delay to allow the user to see the result.
     setTimeout(Player.resetToHomeState, 3000);
 }
 
@@ -453,7 +442,7 @@ function addEventListeners() {
                 gameState.title = button.dataset.title;
                 UIPlayer.renderTitleSelection();
                 UIPlayer.renderHeader();
-                Network.emitUpdateCharacter(gameState); // BUG FIX: Notify server of title change
+                Network.emitUpdateCharacter(gameState);
                 return;
             }
             if (button.matches('.category-tab')) {
