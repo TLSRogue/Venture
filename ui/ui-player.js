@@ -7,6 +7,7 @@ import { getBonusStats } from '../player.js';
 import { showModal, hideModal, showTooltip } from './ui-main.js';
 import * as TownUI from './ui-town.js';
 import * as AdventureUI from './ui-adventure.js';
+import * as UIParty from './ui-party.js';
 
 // --- MAIN RENDER ORCHESTRATOR ---
 
@@ -54,6 +55,8 @@ export function showTab(tabName) {
     
     TownUI.updateRestockTimer(); // Clears or updates the timer interval
     
+    // BUG FIX: Added the missing call to render the party tab UI
+    if (tabName === 'party') UIParty.renderPartyManagement(null);
     if (tabName === 'merchant') { 
         Network.emitPlayerAction('viewMerchant');
     }
