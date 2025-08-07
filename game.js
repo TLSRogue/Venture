@@ -2,12 +2,17 @@
 
 import { gameData } from './game-data.js';
 import { gameState, setGameState, getInitialGameState } from './state.js';
-import * as UI from './ui.js';
 import * as Network from './network.js';
 import * as Combat from './combat.js';
 import * as Interactions from './interactions.js';
 import * as Player from './player.js';
 import * as Merchant from './merchant.js';
+import * as UIMain from './ui/ui-main.js';
+import * as UIAdventure from './ui/ui-adventure.js';
+import * as UIParty from './ui/ui-party.js';
+import * as UIPlayer from './ui/ui-player.js';
+import * as UITown from './ui/ui-town.js';
+
 
 // --- STATE VARIABLES ---
 let activeSlotIndex = null;
@@ -20,21 +25,21 @@ function initGame() {
         onCharacterUpdate: handleCharacterUpdate,
         onLoadError: handleLoadError,
         onPartyUpdate: handlePartyUpdate,
-        onOnlinePlayersUpdate: UI.renderOnlinePlayers,
+        onOnlinePlayersUpdate: UIParty.renderOnlinePlayers,
         onPartyError: handlePartyError,
         onReceivePartyInvite: handleReceivePartyInvite,
         onPartyAdventureStarted: handlePartyAdventureStarted,
         onPartyAdventureUpdate: handlePartyAdventureUpdate,
         onPartyRequestReaction: handlePartyRequestReaction,
-        onShowDialogue: UI.showNPCDialogueFromServer,
-        onHideDialogue: UI.hideModal,
+        onShowDialogue: UIParty.showNPCDialogueFromServer,
+        onHideDialogue: UIMain.hideModal,
         onPartyAdventureEnded: Player.resetToHomeState,
         onDuelReceiveChallenge: handleDuelReceiveChallenge,
         onDuelStart: handleDuelStart,
         onDuelUpdate: handleDuelUpdate,
         onDuelEnd: handleDuelEnd,
     });
-    UI.showCharacterSelectScreen();
+    UIParty.showCharacterSelectScreen();
 }
 
 // --- NETWORK HANDLERS ---
@@ -100,18 +105,18 @@ function handleCharacterUpdate(serverState) {
     }
 
     document.querySelector('.game-container').style.display = 'block';
-    UI.hideModal();
-    UI.renderAll();
+    UIMain.hideModal();
+    UIPlayer.renderAll();
     
     if (wasInParty && !gameState.partyId) {
-        UI.renderPartyManagement(null);
+        UIParty.renderPartyManagement(null);
     }
 }
 
 
 function handleLoadError(message) {
-    UI.showInfoModal(message);
-    setTimeout(UI.showCharacterSelectScreen, 1000);
+    UIMain.showInfoModal(message);
+    setTimeout(UIParty.showCharacterSelectScreen, 1000);
 }
 
 function handlePartyUpdate(party) {
@@ -120,16 +125,16 @@ function handlePartyUpdate(party) {
        gameState.partyMembers = party ? party.members : [];
        gameState.isPartyLeader = party ? party.isPartyLeader : false;
     }
-    UI.renderPartyManagement(party);
+    UIParty.renderPartyManagement(party);
 }
 
 function handlePartyError(message) {
-    UI.showInfoModal(message);
+    UIMain.showInfoModal(message);
 }
 function handleReceivePartyInvite({ inviterName, partyId }) {
-    UI.showConfirmationModal(`${inviterName} has invited you to their party. Join?`, () => {
+    UIMain.showConfirmationModal(`${inviterName} has invited you to their party. Join?`, () => {
         Network.emitJoinParty(partyId);
-        UI.hideModal();
+        UIMain.hideModal();
     });
 }
 function handlePartyAdventureStarted(serverAdventureState) {
@@ -141,7 +146,7 @@ function handlePartyAdventureStarted(serverAdventureState) {
 
     Player.resetPlayerCombatState();
 
-    UI.setTabsDisabled(true);
+    UIMain.setTabsDisabled(true);
     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
     document.getElementById('adventure-tab').style.display = 'block';
     document.getElementById('main-stats-display').style.display = 'none';
@@ -149,11 +154,11 @@ function handlePartyAdventureStarted(serverAdventureState) {
     document.getElementById('player-action-bar').style.display = 'flex';
     document.getElementById('adventure-log-container').style.display = 'block';
 
-    UI.renderAdventureScreen();
+    UIAdventure.renderAdventureScreen();
     document.getElementById('adventure-log').innerHTML = '';
-    serverAdventureState.log.forEach(entry => UI.addToLog(entry.message, entry.type));
-    UI.updateDisplay();
-    UI.renderPlayerActionBars();
+    serverAdventureState.log.forEach(entry => UIMain.addToLog(entry.message, entry.type));
+    UIPlayer.updateDisplay();
+    UIAdventure.renderPlayerActionBars();
 }
 
 function handlePartyAdventureUpdate(serverAdventureState) {
@@ -167,7 +172,7 @@ function handlePartyAdventureUpdate(serverAdventureState) {
 
     // Only hide the modal if it's currently open AND the new state says the reaction is no longer needed.
     if (reactionModalIsOpen && !isReactionPendingForMe) {
-        UI.hideModal();
+        UIMain.hideModal();
     }
     // --- END: MODIFIED CODE ---
 
@@ -178,29 +183,29 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     const logContainer = document.getElementById('adventure-log');
     const existingLogCount = logContainer.children.length;
     const newLogEntries = serverAdventureState.log.slice(existingLogCount);
-    newLogEntries.reverse().forEach(entry => UI.addToLog(entry.message, entry.type));
+    newLogEntries.reverse().forEach(entry => UIMain.addToLog(entry.message, entry.type));
     
-    UI.renderAdventureScreen();
-    UI.updateDisplay();
-    UI.renderPlayerActionBars(); 
+    UIAdventure.renderAdventureScreen();
+    UIPlayer.updateDisplay();
+    UIAdventure.renderPlayerActionBars(); 
 
     // If the ground loot modal is open when an update arrives, refresh its content.
     const groundLootModal = document.getElementById('ground-loot-modal');
     if (groundLootModal && !groundLootModal.closest('.modal-overlay').classList.contains('hidden')) {
-        UI.showGroundLootModal();
+        UIAdventure.showGroundLootModal();
     }
 }
 
 function handlePartyRequestReaction(data) {
     console.log('Received reaction request from server:', data);
-    UI.showReactionModal(data);
+    UIAdventure.showReactionModal(data);
 }
 
 // --- DUEL HANDLERS ---
 function handleDuelReceiveChallenge({ challengerName, challengerId }) {
-    UI.showConfirmationModal(`${challengerName} has challenged you to a duel! Accept?`, () => {
+    UIMain.showConfirmationModal(`${challengerName} has challenged you to a duel! Accept?`, () => {
         Network.emitDuelAccept(challengerId);
-        UI.hideModal();
+        UIMain.hideModal();
     });
 }
 
@@ -225,7 +230,7 @@ function handleDuelStart(duelState) {
     };
     gameState.zoneCards = [opponentCard];
 
-    UI.setTabsDisabled(true);
+    UIMain.setTabsDisabled(true);
     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
     document.getElementById('adventure-tab').style.display = 'block';
     document.getElementById('main-stats-display').style.display = 'none';
@@ -234,11 +239,11 @@ function handleDuelStart(duelState) {
     document.getElementById('adventure-log-container').style.display = 'block';
 
     document.getElementById('adventure-log').innerHTML = '';
-    duelState.log.forEach(entry => UI.addToLog(entry.message, entry.type));
+    duelState.log.forEach(entry => UIMain.addToLog(entry.message, entry.type));
     
-    UI.renderAdventureScreen();
-    UI.updateDisplay();
-    UI.renderPlayerActionBars();
+    UIAdventure.renderAdventureScreen();
+    UIPlayer.updateDisplay();
+    UIAdventure.renderPlayerActionBars();
 }
 
 function handleDuelUpdate(duelState) {
@@ -254,11 +259,11 @@ function handleDuelUpdate(duelState) {
     const logContainer = document.getElementById('adventure-log');
     const existingLogCount = logContainer.children.length;
     const newLogEntries = duelState.log.slice(existingLogCount);
-    newLogEntries.reverse().forEach(entry => UI.addToLog(entry.message, entry.type));
+    newLogEntries.reverse().forEach(entry => UIMain.addToLog(entry.message, entry.type));
     
-    UI.renderAdventureScreen();
-    UI.updateDisplay();
-    UI.renderPlayerActionBars();
+    UIAdventure.renderAdventureScreen();
+    UIPlayer.updateDisplay();
+    UIAdventure.renderPlayerActionBars();
 }
 
 function handleDuelEnd({ outcome, reward }) {
@@ -271,9 +276,9 @@ function handleDuelEnd({ outcome, reward }) {
         if (reward && reward.gold) {
             rewardText += ` You won ${reward.gold} gold.`;
         }
-        UI.showInfoModal(rewardText);
+        UIMain.showInfoModal(rewardText);
     } else {
-        UI.showInfoModal("You have been defeated!");
+        UIMain.showInfoModal("You have been defeated!");
     }
     
     // Instead of re-rendering the adventure screen, we will now automatically
@@ -289,9 +294,9 @@ function loadCharacterFromServer(slotIndex) {
     if (characterData) {
         activeSlotIndex = slotIndex;
         Network.emitLoadCharacter(characterData);
-        UI.showModal('<h2>Loading character...</h2>');
+        UIMain.showModal('<h2>Loading character...</h2>');
     } else {
-        UI.showInfoModal("Could not find character data in that slot.");
+        UIMain.showInfoModal("Could not find character data in that slot.");
     }
 }
 function deleteCharacter(slotIndex) {
@@ -299,11 +304,11 @@ function deleteCharacter(slotIndex) {
     const charToDelete = characterSlots[slotIndex];
     if(!charToDelete) return;
 
-    UI.showConfirmationModal(`Are you sure you want to delete ${charToDelete.characterName}? This is permanent.`, () => {
+    UIMain.showConfirmationModal(`Are you sure you want to delete ${charToDelete.characterName}? This is permanent.`, () => {
         characterSlots[slotIndex] = null;
         localStorage.setItem('ventureCharacterSlots', JSON.stringify(characterSlots));
-        UI.showCharacterSelectScreen();
-        UI.hideModal();
+        UIParty.showCharacterSelectScreen();
+        UIMain.hideModal();
     });
 }
 function finalizeCharacterCreation(slotIndex) {
@@ -312,7 +317,7 @@ function finalizeCharacterCreation(slotIndex) {
     const selectedIconEl = document.querySelector('.icon-option.selected');
     const characterIcon = selectedIconEl ? selectedIconEl.dataset.icon : '🧑';
     if (!characterName) {
-        UI.showInfoModal("Please enter a name for your character.");
+        UIMain.showInfoModal("Please enter a name for your character.");
         return;
     }
     const newGameState = getInitialGameState();
@@ -321,7 +326,7 @@ function finalizeCharacterCreation(slotIndex) {
     setGameState(newGameState);
     activeSlotIndex = slotIndex; 
     Network.emitRegisterPlayer(gameState);
-    UI.showModal('<h2>Creating character...</h2>');
+    UIMain.showModal('<h2>Creating character...</h2>');
 }
 
 // --- EVENT LISTENERS ---
@@ -332,30 +337,30 @@ function addEventListeners() {
         // Modal and Character Select Buttons
         if (target.closest('.item-action-btn')) {
             const index = parseInt(target.closest('.item-action-btn').dataset.index, 10);
-            return UI.showItemActions(index);
+            return UIPlayer.showItemActions(index);
         }
         const npcOptionButton = target.closest('#npc-dialogue-options button');
         if (npcOptionButton) {
             const { action, payload } = npcOptionButton.dataset;
-            if (action === 'hide') return UI.hideModal();
+            if (action === 'hide') return UIMain.hideModal();
             if (action === 'choice') return Network.emitPartyAction({ type: 'dialogueChoice', payload: JSON.parse(payload) });
         }
         const reactionButton = target.closest('#reaction-buttons button');
         if (reactionButton) {
             const reactionType = reactionButton.dataset.reaction;
             Network.emitPartyAction({ type: 'resolveReaction', payload: { reactionType } });
-            return UI.hideModal();
+            return UIMain.hideModal();
         }
         const charSelectButton = target.closest('#character-select-grid button');
         if (charSelectButton) {
             const { action, slot } = charSelectButton.dataset;
             const slotIndex = parseInt(slot, 10);
             if (action === 'load') return loadCharacterFromServer(slotIndex);
-            if (action === 'create') return UI.showNewGameModal(slotIndex);
+            if (action === 'create') return UIParty.showNewGameModal(slotIndex);
             if (action === 'delete') return deleteCharacter(slotIndex);
         }
         if (target.closest('#finalize-char-btn')) return finalizeCharacterCreation(parseInt(target.closest('#finalize-char-btn').dataset.slot, 10));
-        if (target.closest('#cancel-creation-btn')) return UI.showCharacterSelectScreen();
+        if (target.closest('#cancel-creation-btn')) return UIParty.showCharacterSelectScreen();
         if (target.closest('.icon-option')) {
             document.querySelectorAll('.icon-option').forEach(el => el.classList.remove('selected'));
             target.closest('.icon-option').classList.add('selected');
@@ -368,7 +373,7 @@ function addEventListeners() {
             const action = inventoryPanelItem.dataset.inventoryAction;
             const index = parseInt(inventoryPanelItem.dataset.index, 10);
             if (action === 'deposit') return Player.depositItem(index);
-            if (action === 'sell') return UI.showSellConfirmationModal(index);
+            if (action === 'sell') return UITown.showSellConfirmationModal(index);
         }
         const bankItem = target.closest('[data-bank-action="withdraw"]');
         if (bankItem) {
@@ -383,9 +388,9 @@ function addEventListeners() {
         }
 
         // Adventure and Zone Interactions
-        if (target.closest('#ground-loot-btn')) return UI.showGroundLootModal();
-        if (target.closest('#backpack-btn')) return UI.showBackpack();
-        if (target.closest('#character-sheet-btn')) return UI.showCharacterSheet();
+        if (target.closest('#ground-loot-btn')) return UIAdventure.showGroundLootModal();
+        if (target.closest('#backpack-btn')) return UIAdventure.showBackpack();
+        if (target.closest('#character-sheet-btn')) return UIAdventure.showCharacterSheet();
         if (target.closest('#end-turn-btn')) {
             if (gameState.inDuel) return Network.emitDuelAction({ type: 'endTurn' });
             return Combat.endTurn();
@@ -396,15 +401,15 @@ function addEventListeners() {
             const zoneName = target.closest('.zone-card').dataset.zone;
             const startAdventure = () => {
                 if (gameState.partyId && !gameState.isPartyLeader) {
-                    UI.showInfoModal("Only the party leader can start an adventure.");
+                    UIMain.showInfoModal("Only the party leader can start an adventure.");
                     return;
                 }
                 Network.emitPartyEnterZone(zoneName);
             };
             if (zoneName === 'arena') {
-                if (gameState.gold < 100) return UI.showInfoModal("You don't have enough gold to enter the Arena! (Requires 100G)");
-                UI.showConfirmationModal("Pay 100G to enter the Arena?", () => {
-                    UI.hideModal();
+                if (gameState.gold < 100) return UIMain.showInfoModal("You don't have enough gold to enter the Arena! (Requires 100G)");
+                UIMain.showConfirmationModal("Pay 100G to enter the Arena?", () => {
+                    UIMain.hideModal();
                     startAdventure();
                 });
             } else {
@@ -437,35 +442,35 @@ function addEventListeners() {
             if (button.id === 'leave-party-btn') return Network.emitLeaveParty();
             if (button.id === 'copy-party-id-btn') {
                 const partyId = document.querySelector('.party-id-display').textContent;
-                navigator.clipboard.writeText(partyId).then(() => UI.showInfoModal('Party ID copied to clipboard!'));
+                navigator.clipboard.writeText(partyId).then(() => UIMain.showInfoModal('Party ID copied to clipboard!'));
                 return;
             }
             if (button.dataset.action === 'invite') return Network.emitSendPartyInvite(button.dataset.id);
             if (button.dataset.action === 'duel') return Network.emitDuelChallenge(button.dataset.id);
 
-            if (button.matches('.tab, [data-tab-target]')) return UI.showTab(button.dataset.tab || button.dataset.tabTarget);
+            if (button.matches('.tab, [data-tab-target]')) return UIPlayer.showTab(button.dataset.tab || button.dataset.tabTarget);
             if (button.matches('#title-selection-container .btn')) {
                 gameState.title = button.dataset.title;
-                UI.renderTitleSelection();
-                UI.renderHeader();
+                UIPlayer.renderTitleSelection();
+                UIPlayer.renderHeader();
                 Network.emitUpdateCharacter(gameState); // BUG FIX: Notify server of title change
                 return;
             }
             if (button.matches('.category-tab')) {
-                if (button.closest('#crafting-categories')) UI.setActiveCraftingCategory(button.dataset.category);
-                else if (button.closest('#trainer-categories')) UI.setActiveTrainerCategory(button.dataset.category);
-                UI.renderAll(); // Re-render the active tab
+                if (button.closest('#crafting-categories')) UITown.setActiveCraftingCategory(button.dataset.category);
+                else if (button.closest('#trainer-categories')) UITown.setActiveTrainerCategory(button.dataset.category);
+                UIPlayer.renderAll(); // Re-render the active tab
                 return;
             }
 
-            if (button.id === 'info-ok-btn') return UI.hideModal();
+            if (button.id === 'info-ok-btn') return UIMain.hideModal();
             
             if (button.dataset.action === 'takeGroundLoot') return Player.takeGroundLoot(parseInt(button.dataset.index, 10));
 
             if (button.dataset.inventoryAction) {
                 const index = parseInt(button.dataset.index, 10);
                 Player.handleItemAction(button.dataset.inventoryAction, index);
-                if (!button.closest('#ground-loot-modal')) UI.hideModal();
+                if (!button.closest('#ground-loot-modal')) UIMain.hideModal();
                 return;
             }
             if (button.dataset.spellAction) {
@@ -476,10 +481,10 @@ function addEventListeners() {
             if (button.dataset.equipmentAction) return Player.unequipItem(button.dataset.slot);
             if (button.dataset.equipSlot) {
                 Player.equipItem(parseInt(button.dataset.itemIndex), button.dataset.equipSlot);
-                return UI.hideModal();
+                return UIMain.hideModal();
             }
 
-            if (button.dataset.craftIndex) return UI.showCraftingModal(parseInt(button.dataset.craftIndex, 10));
+            if (button.dataset.craftIndex) return UITown.showCraftingModal(parseInt(button.dataset.craftIndex, 10));
             if (button.dataset.spellName) return Merchant.buySpell(button.dataset.spellName);
             
             if (button.closest('#player-action-bar')) {
@@ -508,7 +513,7 @@ async function ventureDeeper() {
         if (gameState.isPartyLeader) {
             Network.emitPartyAction({ type: 'ventureDeeper' });
         } else {
-            UI.showInfoModal("Only the party leader can decide to venture deeper.");
+            UIMain.showInfoModal("Only the party leader can decide to venture deeper.");
         }
         return;
     }
