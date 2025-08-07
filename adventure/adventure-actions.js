@@ -4,7 +4,6 @@ import { players } from '../serverState.js';
 import { gameData } from '../game-data.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
 
-// Note: We will create the adventure-state.js file in a later step.
 import { checkAndEndTurnForPlayer, defeatEnemyInParty } from './adventure-state.js';
 
 export async function processWeaponAttack(io, party, player, payload) {
@@ -96,8 +95,14 @@ export async function processCastSpell(io, party, player, payload) {
     }
 
     actingPlayerState.actionPoints -= cost;
-    actingPlayerState.threat += cost; // Add threat equal to AP cost
+    actingPlayerState.threat += cost;
     actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
+
+    // --- NEW: Handle bonus threat for spells that have it ---
+    if (spell.bonusThreat) {
+        actingPlayerState.threat += spell.bonusThreat;
+        sharedState.log.push({ message: `${character.characterName} generates ${spell.bonusThreat} bonus threat!`, type: 'reaction' });
+    }
 
     if (spell.name === "Monk's Training") {
         const focusAmount = actingPlayerState.focus || 0;
@@ -117,12 +122,16 @@ export async function processCastSpell(io, party, player, payload) {
     let statValue = 0;
     let rollDescription = "";
 
+    // --- NEW: Handle special roll for Warrior's Might ---
     if (spell.name === "Warrior's Might") {
-        statValue = actingPlayerState.maxHealth - actingPlayerState.health;
-        rollDescription = `(Missing Health)`;
+        const strength = (character.strength || 0) + (bonuses.strength || 0);
+        const defense = (character.defense || 0) + (bonuses.defense || 0);
+        statValue = Math.max(strength, defense);
+        rollDescription = strength > defense ? `(Str)` : `(Def)`;
     } else {
-        statValue = (character[spell.stat] || 0) + (bonuses[spell.stat] || 0);
-        rollDescription = `(${spell.stat.slice(0, 3)})`;
+        const statName = Array.isArray(spell.stat) ? spell.stat[0] : spell.stat;
+        statValue = (character[statName] || 0) + (bonuses[statName] || 0);
+        rollDescription = `(${statName.slice(0, 3)})`;
     }
 
     const dazeDebuff = actingPlayerState.debuffs.find(d => d.type === 'daze');

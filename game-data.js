@@ -88,7 +88,23 @@ export const gameData = {
         { name: "Aim True", price: 100, cost: 1, cooldown: 3, school: "Physical", description: "Requires Bow. D20+Agi, 10+ deals 3 damage. On 15+, also applies Stun.", type: "attack", stat: "agility", damage: 3, hit: 10, damageType: 'Physical', onHit: { threshold: 15, debuff: { type: 'stun', duration: 1 } }, icon: "🎯" },
         { name: "Flame Strike", price: 100, cost: 1, cooldown: 4, school: "Arcane", description: "D20+Wis, 15+ deals 3 damage and Burn to target and adjacent enemies.", type: "aoe", stat: "wisdom", damage: 3, hit: 15, damageType: 'Arcane', debuff: { type: 'burn', duration: 1, damage: 2, damageType: 'Arcane' }, icon: "💥" },
         { name: "Stealth", cost: 1, cooldown: 3, school: "Physical", description: "D20+Agi, 15+ gain Stealth until your next turn.", type: "buff", stat: "agility", hit: 15, buff: { type: 'Stealth', duration: 2 }, icon: "🤫" },
-        { name: "Warrior's Might", price: 100, cost: 1, cooldown: 4, school: "Physical", description: "D20+Missing Health. On 15+, gain +2 Strength and +2 Defense for 3 turns.", type: "buff", hit: 15, buff: { type: "Warrior's Might", duration: 4, bonus: { strength: 2, defense: 2 } }, icon: "💪" },
+        
+        // --- WARRIOR'S MIGHT UPDATE ---
+        { 
+            name: "Warrior's Might", 
+            price: 100,
+            cost: 1, 
+            cooldown: 3, 
+            school: "Physical", 
+            description: "Let out a fierce shout that draws enemy attention and surges your strength for a short time.", 
+            type: "buff", 
+            bonusThreat: 2,
+            stat: ['strength', 'defense'], // Indicates a multi-stat roll
+            hit: 10, 
+            buff: { type: "Warrior's Might", duration: 2, bonus: { strength: 2, defense: 2 } }, 
+            icon: "💪" 
+        },
+        
         { name: "Ambush", price: 100, cost: 1, cooldown: 3, school: "Physical", description: "Requires Dagger(s). D20+Agi, 15+ deal weapon damage with all equipped daggers and apply Bleed for 1 turn per dagger.", type: "attack", stat: "agility", hit: 15, requires: { weaponType: "Dagger" }, icon: "🗡️" },
         { name: "Dagger Throw", price: 100, cost: 1, cooldown: 3, school: "Physical", description: "Requires Main-Hand Dagger. D20+Agi, 15+ deal main-hand weapon damage + 2. Ranged.", type: "attack", stat: "agility", hit: 15, requires: { weaponType: "Dagger", hand: "mainHand" }, damageBonus: 2, icon: "🔪" },
         { name: "Magic Barrier", price: 100, cost: 1, cooldown: 3, school: "Arcane", description: "D20+Wisdom. On 15+, gain a shield equal to your Wisdom+1 for 3 turns.", type: "buff", stat: "wisdom", hit: 15, buff: { type: 'Magic Barrier', duration: 4, shield: 'wisdom' }, icon: "💠" },
