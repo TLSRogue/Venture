@@ -130,7 +130,6 @@ function renderPartyScreen() {
                 cardEl.style.opacity = '0.6';
             }
             
-            // Pass the full playerState to getEffectsHtml
             let effectsHtml = getEffectsHtml(playerState);
 
             cardEl.innerHTML = `
@@ -257,19 +256,24 @@ function renderZoneCards(cards) {
     });
 }
 
+// THIS FUNCTION IS UPDATED
 function getEffectsHtml(playerState) {
     let effectsHtml = '<div class="player-card-effects">';
+    
+    // Add threat display
+    effectsHtml += `<span>🎯 Threat: ${playerState.threat || 0}</span>`;
+    
     if (playerState.buffs) {
         playerState.buffs.forEach(buff => {
             const icon = effectIcons[buff.type] || '✨';
-            effectsHtml += `<span class="player-card-effect buff" onmouseover="showTooltip('<strong>${buff.type}</strong><br>Turns Remaining: ${buff.duration -1}')" onmouseout="hideTooltip()">${icon} ${buff.type}</span>`;
+            effectsHtml += `<span class="player-card-effect buff" onmouseover="showTooltip('<strong>${buff.type}</strong><br>Turns Remaining: ${buff.duration -1}')" onmouseout="hideTooltip()">${icon}</span>`;
         });
     }
     const debuffs = playerState.playerDebuffs || playerState.debuffs || [];
     if (debuffs) {
         debuffs.forEach(debuff => {
             const icon = effectIcons[debuff.type] || '❓';
-            effectsHtml += `<span class="player-card-effect debuff" onmouseover="showTooltip('<strong>${debuff.type}</strong><br>Turns Remaining: ${debuff.duration}')" onmouseout="hideTooltip()">${icon} ${debuff.type}</span>`;
+            effectsHtml += `<span class="player-card-effect debuff" onmouseover="showTooltip('<strong>${debuff.type}</strong><br>Turns Remaining: ${debuff.duration}')" onmouseout="hideTooltip()">${icon}</span>`;
         });
     }
     effectsHtml += '</div>';

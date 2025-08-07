@@ -20,6 +20,7 @@ export async function processWeaponAttack(io, party, player, payload) {
     }
 
     actingPlayerState.actionPoints -= weapon.cost;
+    actingPlayerState.threat += weapon.cost; // Add threat equal to AP cost
     actingPlayerState.weaponCooldowns[weapon.name] = weapon.cooldown;
 
     const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
@@ -69,8 +70,9 @@ export async function processCastSpell(io, party, player, payload) {
     const { sharedState } = party;
     const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
     const spell = character.equippedSpells[spellIndex];
+    const cost = spell.cost || 0;
 
-    if (!spell || actingPlayerState.actionPoints < (spell.cost || 0) || (actingPlayerState.spellCooldowns[spell.name] || 0) > 0) {
+    if (!spell || actingPlayerState.actionPoints < cost || (actingPlayerState.spellCooldowns[spell.name] || 0) > 0) {
         return;
     }
 
@@ -93,7 +95,8 @@ export async function processCastSpell(io, party, player, payload) {
         }
     }
 
-    actingPlayerState.actionPoints -= (spell.cost || 0);
+    actingPlayerState.actionPoints -= cost;
+    actingPlayerState.threat += cost; // Add threat equal to AP cost
     actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
 
     if (spell.name === "Monk's Training") {
@@ -268,6 +271,7 @@ export async function processEquipItem(io, party, player, payload) {
         const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.playerId === player.id);
         if (actingPlayerState.actionPoints < 1) return;
         actingPlayerState.actionPoints--;
+        actingPlayerState.threat += 1; // Add threat equal to AP cost
         party.sharedState.log.push({ message: `${character.characterName} spends 1 AP to change equipment.`, type: 'info' });
     }
 
@@ -332,6 +336,7 @@ export async function processUseItemAbility(io, party, player, payload) {
     
     const ability = item.activatedAbility;
     actingPlayerState.actionPoints -= ability.cost;
+    actingPlayerState.threat += ability.cost; // Add threat equal to AP cost
     actingPlayerState.itemCooldowns[item.name] = ability.cooldown;
     
     if (ability.buff) {
@@ -361,12 +366,14 @@ export async function processUseConsumable(io, party, player, payload) {
     const { sharedState } = party;
     const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
     const item = character.inventory[inventoryIndex];
+    const cost = item.cost || 0;
 
-    if (!item || item.type !== 'consumable' || actingPlayerState.actionPoints < (item.cost || 0)) {
+    if (!item || item.type !== 'consumable' || actingPlayerState.actionPoints < cost) {
         return;
     }
 
-    actingPlayerState.actionPoints -= (item.cost || 0);
+    actingPlayerState.actionPoints -= cost;
+    actingPlayerState.threat += cost; // Add threat equal to AP cost
     
     if (item.heal) {
         actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + item.heal);

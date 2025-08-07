@@ -3,7 +3,6 @@
 import { players, parties } from '../serverState.js';
 import { gameData } from '../game-data.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
-// BUG FIX: Added the missing 'drawCardsForServer' function to the import list
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer } from '../utilsHelpers.js';
 
 // --- HELPER FUNCTIONS (Moved here as they are tightly coupled to adventure state) ---
@@ -178,6 +177,7 @@ export async function processVentureDeeper(io, player, party) {
             p.weaponCooldowns = {};
             p.spellCooldowns = {};
             p.itemCooldowns = {};
+            p.threat = 0;
         });
         sharedState.turnNumber = 0;
         sharedState.isPlayerTurn = true;
@@ -251,7 +251,17 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);
             if (alivePlayers.length === 0) continue;
 
-            const targetPlayerState = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+            // --- THREAT-BASED TARGETING WITH RANDOMNESS ON TIES ---
+            let targetPlayerState;
+            if (alivePlayers.length > 0) {
+                const maxThreat = Math.max(...alivePlayers.map(p => p.threat));
+                const topThreatPlayers = alivePlayers.filter(p => p.threat === maxThreat);
+                targetPlayerState = topThreatPlayers[Math.floor(Math.random() * topThreatPlayers.length)];
+            } else {
+                continue;
+            }
+            // --- END OF NEW TARGETING LOGIC ---
+            
             const targetPlayerObject = players[targetPlayerState.name];
             if (!targetPlayerObject) continue;
             

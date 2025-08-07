@@ -65,6 +65,7 @@ export const registerAdventureHandlers = (io, socket) => {
                     weaponCooldowns: {},
                     spellCooldowns: {},
                     itemCooldowns: {},
+                    threat: 0, // Add this line to track threat
                     focus: 0,
                 };
             }),
