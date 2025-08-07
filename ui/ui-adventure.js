@@ -3,7 +3,7 @@
 import { gameState } from '../state.js';
 import { socket } from '../network.js';
 import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js';
-import { getBonusStats } from '../player.js'; // BUG FIX: Added missing import
+import { getBonusStats } from '../player.js';
 
 // --- ADVENTURE SCREEN RENDERING ---
 
@@ -264,24 +264,40 @@ export function renderPlayerActionBars() {
         }
 
         if (item && item.activatedAbility) {
-            const canUse = localPlayerAP >= item.activatedAbility.cost && !localPlayerTurnEnded;
+            const cooldown = itemCooldowns[item.name] || 0;
+            const canUse = localPlayerAP >= item.activatedAbility.cost && !localPlayerTurnEnded && cooldown <= 0;
             slotEl.className = 'action-slot active';
             slotEl.disabled = !canUse;
             slotEl.dataset.action = 'useAbility';
             slotEl.dataset.slot = slotInfo.key;
-            slotEl.innerHTML = `<div class="item-name">${item.name}</div><div class="item-details">AP: ${item.activatedAbility.cost} | CD: ${itemCooldowns[item.name] || 0}</div>`;
+            slotEl.innerHTML = `
+                <div class="item-name">${item.name}</div>
+                <div class="item-details">
+                    <span>⚡ ${item.activatedAbility.cost}</span>
+                    <span>⏳ ${item.activatedAbility.cooldown}</span>
+                </div>
+                <div class="cooldown-overlay" style="height: ${cooldown > 0 ? '100' : '0'}%">${cooldown}</div>
+            `;
         } else if (item && item.type === 'weapon') {
             if(item.hands === 2 && slotInfo.key === 'offHand') {
                  slotEl.className = 'action-slot';
                  slotEl.disabled = true;
                  slotEl.innerHTML = `<div class="slot-name">(2H Weapon)</div>`;
             } else {
-                const canAttack = localPlayerAP >= item.cost && !localPlayerTurnEnded;
+                const cooldown = weaponCooldowns[item.name] || 0;
+                const canAttack = localPlayerAP >= item.cost && !localPlayerTurnEnded && cooldown <= 0;
                 slotEl.className = 'action-slot active';
                 slotEl.disabled = !canAttack;
                 slotEl.dataset.action = 'select';
                 slotEl.dataset.actionData = JSON.stringify({ type: 'weapon', data: item, slot: slotInfo.key });
-                slotEl.innerHTML = `<div class="item-name">${item.name}</div><div class="item-details">AP: ${item.cost} | CD: ${weaponCooldowns[item.name] || 0}</div>`;
+                slotEl.innerHTML = `
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-details">
+                        <span>⚡ ${item.cost}</span>
+                        <span>⏳ ${item.cooldown}</span>
+                    </div>
+                    <div class="cooldown-overlay" style="height: ${cooldown > 0 ? '100' : '0'}%">${cooldown}</div>
+                `;
             }
         } else if (item) {
              slotEl.className = 'action-slot';
@@ -304,14 +320,23 @@ export function renderPlayerActionBars() {
         const spell = gameState.equippedSpells[i];
 
         if (spell) {
+            const cooldown = spellCooldowns[spell.name] || 0;
             const tooltipContent = `<strong>${spell.name}</strong><br>${spell.description}`;
             slotEl.onmouseover = () => showTooltip(tooltipContent);
             slotEl.onmouseout = () => hideTooltip();
 
-            const canCast = (spellCooldowns[spell.name] || 0) <= 0 && localPlayerAP >= (spell.cost || 0) && !localPlayerTurnEnded;
+            const canCast = cooldown <= 0 && localPlayerAP >= (spell.cost || 0) && !localPlayerTurnEnded;
             slotEl.className = 'action-slot active';
             slotEl.disabled = !canCast;
-            slotEl.innerHTML = `<div class="item-name">${spell.name}</div><div class="item-details">AP: ${spell.cost || 0} | CD: ${spellCooldowns[spell.name] || 0}</div>`;
+            
+            slotEl.innerHTML = `
+                <div class="item-name">${spell.name}</div>
+                <div class="item-details">
+                    <span>⚡ ${spell.cost || 0}</span>
+                    <span>⏳ ${spell.cooldown}</span>
+                </div>
+                <div class="cooldown-overlay" style="height: ${cooldown > 0 ? '100' : '0'}%">${cooldown}</div>
+            `;
 
             if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile') {
                 slotEl.dataset.action = 'select';
