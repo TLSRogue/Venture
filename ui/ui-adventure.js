@@ -2,7 +2,8 @@
 
 import { gameState } from '../state.js';
 import { socket } from '../network.js';
-import { showModal, showTooltip, hideTooltip } from './ui-main.js';
+import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js';
+import { getBonusStats } from '../player.js'; // BUG FIX: Added missing import
 
 // --- ADVENTURE SCREEN RENDERING ---
 
