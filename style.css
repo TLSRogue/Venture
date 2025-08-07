@@ -19,7 +19,7 @@ body {
     background: var(--bg-gradient);
     color: var(--text-color);
     min-height: 100vh;
-    padding-bottom: 300px;
+    padding-bottom: 20px; /* Reduced padding */
     transition: background-color 0.5s;
 }
 
@@ -28,6 +28,29 @@ body {
     margin: 0 auto;
     padding: 20px;
 }
+
+/* --- LAYOUT & GAP FIX (START) --- */
+#adventure-tab {
+    display: none; /* Changed from flex to none by default */
+    flex-direction: column;
+    gap: 15px; /* Spacing between elements */
+}
+
+#player-action-bar {
+    /* No longer fixed position */
+    background: rgba(0,0,0,0.8);
+    padding: 10px;
+    border-top: 2px solid var(--primary-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    z-index: 1000;
+    width: 100%; /* Ensure it takes full width */
+    border-radius: 8px; /* Added for polish */
+}
+/* --- LAYOUT & GAP FIX (END) --- */
+
 
 .hidden-on-load {
     display: none;
@@ -88,7 +111,6 @@ body {
     justify-content: space-between;
     align-items: center;
     gap: 20px;
-    margin-bottom: 20px;
 }
 
 .hud-health-bar-container {
@@ -721,23 +743,6 @@ hr {
     display: none;
 }
 
-/* --- ACTION BAR POLISH (START) --- */
-
-#player-action-bar {
-    position: fixed;
-    bottom: 140px; 
-    left: 0;
-    width: 100%;
-    background: rgba(0,0,0,0.8);
-    padding: 10px;
-    border-top: 2px solid var(--primary-color);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-    z-index: 1000;
-}
-
 #action-bars-container {
     display: flex;
     flex-direction: column;
@@ -765,7 +770,7 @@ hr {
 }
 
 .action-slot {
-    height: 60px; /* Increased height */
+    height: 60px;
     width: 120px;
     padding: 5px;
     border-radius: 8px;
@@ -778,8 +783,8 @@ hr {
     align-items: center;
     text-align: center;
     transition: all 0.2s;
-    position: relative; /* For positioning cooldown overlay */
-    overflow: hidden; /* Hide overflow from cooldown overlay */
+    position: relative;
+    overflow: hidden;
 }
 
 .action-slot.active {
@@ -840,9 +845,6 @@ hr {
     transition: height 0.2s ease;
     pointer-events: none;
 }
-
-/* --- ACTION BAR POLISH (END) --- */
-
 
 #backpack-btn, #character-sheet-btn {
     background: #34495e;
@@ -915,16 +917,12 @@ hr {
     display: none;
 }
 
-/* --- GAP FIX (START) --- */
 #adventure-content-wrapper {
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Changed from center */
+    justify-content: space-between;
     gap: 20px;
-    margin-bottom: 20px; /* Added margin */
 }
-/* --- GAP FIX (END) --- */
-
 
 #adventure-board {
     flex-grow: 1;
@@ -1060,7 +1058,6 @@ hr {
     #player-action-bar {
         flex-wrap: wrap;
         justify-content: center;
-        bottom: 140px; 
     }
     .player-hub-left { order: 1; }
     .player-hub-right { order: 2; }

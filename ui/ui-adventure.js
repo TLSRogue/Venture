@@ -5,6 +5,45 @@ import { socket } from '../network.js';
 import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js';
 import { getBonusStats } from '../player.js';
 
+// --- HELPER FUNCTION FOR DETAILED TOOLTIPS ---
+function addActionTooltipListener(element, itemOrSpell) {
+    element.addEventListener('mousemove', (e) => {
+        if (e.altKey) {
+            let breakdown = `<strong>${itemOrSpell.name}</strong><br>${itemOrSpell.description}`;
+            if (itemOrSpell.bonus) {
+                breakdown += '<hr style="margin: 5px 0;"><strong>Bonuses:</strong><br>';
+                for (const stat in itemOrSpell.bonus) {
+                    breakdown += `${stat.charAt(0).toUpperCase() + stat.slice(1)}: +${itemOrSpell.bonus[stat]}<br>`;
+                }
+            }
+            if (itemOrSpell.type === 'weapon') {
+                breakdown += `<hr style="margin: 5px 0;"><strong>Ability:</strong><br>`;
+                breakdown += `Cost: ${itemOrSpell.cost} AP | CD: ${itemOrSpell.cooldown}<br>`;
+                const statName = (itemOrSpell.stat || 'strength').charAt(0).toUpperCase() + (itemOrSpell.stat || 'strength').slice(1);
+                breakdown += `Roll: D20 + ${statName} (${itemOrSpell.hit}+)<br>`;
+                breakdown += `Deals ${itemOrSpell.weaponDamage} ${itemOrSpell.damageType} Damage.`;
+                if (itemOrSpell.onCrit && itemOrSpell.onCrit.debuff) {
+                    breakdown += `<br>On Crit (20): Apply ${itemOrSpell.onCrit.debuff.type}.`;
+                }
+            }
+            if (itemOrSpell.school) { // It's a spell
+                 breakdown += `<hr style="margin: 5px 0;">`;
+                 breakdown += `<strong>Type:</strong> ${itemOrSpell.type.charAt(0).toUpperCase() + itemOrSpell.type.slice(1)}<br>`;
+                 breakdown += `<strong>School:</strong> ${itemOrSpell.school}<br>`;
+                 if (itemOrSpell.cost) breakdown += `<strong>Cost:</strong> ${itemOrSpell.cost} AP<br>`;
+                 breakdown += `<strong>Cooldown:</strong> ${itemOrSpell.cooldown}`;
+            }
+            if (itemOrSpell.traits) {
+                breakdown += `<hr style="margin: 5px 0;"><strong>Traits:</strong> ${itemOrSpell.traits.join(', ')}`;
+            }
+            showTooltip(breakdown);
+        } else {
+             showTooltip(`<strong>${itemOrSpell.name}</strong><br>${itemOrSpell.description}<br><em style='color: #aaa; font-size: 0.9em;'>Hold [Alt] for details</em>`);
+        }
+    });
+    element.addEventListener('mouseleave', hideTooltip);
+}
+
 // --- ADVENTURE SCREEN RENDERING ---
 
 export function renderAdventureScreen() {
@@ -237,7 +276,6 @@ export function renderPlayerActionBars() {
         itemCooldowns = localPlayerState.itemCooldowns;
     }
 
-
     document.getElementById('end-turn-btn').disabled = localPlayerTurnEnded;
 
     const equipmentSlots = [
@@ -258,9 +296,7 @@ export function renderPlayerActionBars() {
         const item = gameState.equipment[slotInfo.key];
         
         if (item) {
-            const tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
-            slotEl.onmouseover = () => showTooltip(tooltipContent);
-            slotEl.onmouseout = () => hideTooltip();
+            addActionTooltipListener(slotEl, item);
         }
 
         if (item && item.activatedAbility) {
@@ -321,9 +357,7 @@ export function renderPlayerActionBars() {
 
         if (spell) {
             const cooldown = spellCooldowns[spell.name] || 0;
-            const tooltipContent = `<strong>${spell.name}</strong><br>${spell.description}`;
-            slotEl.onmouseover = () => showTooltip(tooltipContent);
-            slotEl.onmouseout = () => hideTooltip();
+            addActionTooltipListener(slotEl, spell);
 
             const canCast = cooldown <= 0 && localPlayerAP >= (spell.cost || 0) && !localPlayerTurnEnded;
             slotEl.className = 'action-slot active';
