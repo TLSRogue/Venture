@@ -30,8 +30,9 @@ export function initSocketListeners(handlers) {
     socket.on('party:showDialogue', handlers.onShowDialogue);
     socket.on('party:hideDialogue', handlers.onHideDialogue);
     socket.on('party:adventureEnded', handlers.onPartyAdventureEnded);
-    // --- NEWLY ADDED FOR REACTION FIX ---
     socket.on('party:requestReaction', handlers.onPartyRequestReaction);
+    socket.on('party:receiveMessage', handlers.onPartyReceiveMessage);
+    socket.on('dice:roll', handlers.onDiceRoll); // Add this listener
 
     // Duel Listeners
     socket.on('duel:receiveChallenge', handlers.onDuelReceiveChallenge);
@@ -73,6 +74,10 @@ export function emitLeaveParty() {
 
 export function emitSendPartyInvite(targetCharacterName) {
     socket.emit('sendPartyInvite', targetCharacterName);
+}
+
+export function emitPartySendMessage(message) {
+    socket.emit('party:sendMessage', message);
 }
 
 export function emitPartyEnterZone(zoneName) {

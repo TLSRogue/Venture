@@ -31,15 +31,50 @@ function initGame() {
         onPartyAdventureStarted: handlePartyAdventureStarted,
         onPartyAdventureUpdate: handlePartyAdventureUpdate,
         onPartyRequestReaction: UIAdventure.showReactionModal,
+        onPartyReceiveMessage: handlePartyReceiveMessage,
         onShowDialogue: UIParty.showNPCDialogueFromServer,
         onHideDialogue: UIMain.hideModal,
         onPartyAdventureEnded: Player.resetToHomeState,
+        onDiceRoll: handleDiceRoll, // Add this handler
         onDuelReceiveChallenge: handleDuelReceiveChallenge,
         onDuelStart: handleDuelStart,
         onDuelUpdate: handleDuelUpdate,
         onDuelEnd: handleDuelEnd,
     });
     UIParty.showCharacterSelectScreen();
+}
+
+// --- NEW FUNCTION TO HANDLE THE DICE ROLL ANIMATION ---
+function handleDiceRoll(data) {
+    const container = document.getElementById('dice-roll-container');
+    const diceEl = document.getElementById('dice');
+    const detailsEl = document.getElementById('dice-roll-details');
+
+    // Set the content
+    diceEl.textContent = data.roll;
+    detailsEl.innerHTML = `
+        <p>${data.rollerName} ${data.actionName}</p>
+        <p><strong>Total: ${data.total}</strong> (vs Target: ${data.hitTarget}+)</p>
+    `;
+
+    // Show the animation
+    container.classList.remove('hidden');
+    
+    // Add a class for success or failure styling
+    if (data.roll === 20) {
+        diceEl.style.color = 'var(--accent-color)'; // Critical Success
+    } else if (data.roll === 1) {
+        diceEl.style.color = 'var(--danger-color)'; // Critical Failure
+    } else if (data.total >= data.hitTarget) {
+        diceEl.style.color = 'var(--success-color)';
+    } else {
+        diceEl.style.color = 'var(--text-color)';
+    }
+
+    // Hide the container after 1.8 seconds (slightly less than the server's wait time)
+    setTimeout(() => {
+        container.classList.add('hidden');
+    }, 1800);
 }
 
 // --- NETWORK HANDLERS ---
@@ -150,14 +185,12 @@ function handlePartyAdventureStarted(serverAdventureState) {
 
     UIMain.setTabsDisabled(true);
     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
-    
-    // This is the only line that needs changing in this file
     document.getElementById('adventure-tab').style.display = 'flex'; 
-
     document.getElementById('main-stats-display').style.display = 'none';
     document.getElementById('adventure-hud').style.display = 'flex';
     document.getElementById('player-action-bar').style.display = 'flex';
     document.getElementById('adventure-log-container').style.display = 'block';
+    document.getElementById('chat-form').style.display = 'block';
 
     UIAdventure.renderAdventureScreen();
     document.getElementById('adventure-log').innerHTML = '';
@@ -195,6 +228,11 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     }
 }
 
+function handlePartyReceiveMessage({ senderName, message }) {
+    UIMain.addToLog(`[${senderName}]: ${message}`, 'chat');
+}
+
+
 // --- DUEL HANDLERS ---
 function handleDuelReceiveChallenge({ challengerName, challengerId }) {
     UIMain.showConfirmationModal(`${challengerName} has challenged you to a duel! Accept?`, () => {
@@ -231,6 +269,7 @@ function handleDuelStart(duelState) {
     document.getElementById('adventure-hud').style.display = 'flex';
     document.getElementById('player-action-bar').style.display = 'flex';
     document.getElementById('adventure-log-container').style.display = 'block';
+    document.getElementById('chat-form').style.display = 'block';
 
     document.getElementById('adventure-log').innerHTML = '';
     duelState.log.forEach(entry => UIMain.addToLog(entry.message, entry.type));
@@ -323,6 +362,16 @@ function finalizeCharacterCreation(slotIndex) {
 
 // --- EVENT LISTENERS ---
 function addEventListeners() {
+    document.getElementById('chat-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = document.getElementById('chat-input');
+        const message = input.value.trim();
+        if (message) {
+            Network.emitPartySendMessage(message);
+            input.value = '';
+        }
+    });
+
     document.body.addEventListener('click', (e) => {
         const target = e.target;
         
