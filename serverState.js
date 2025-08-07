@@ -7,6 +7,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { gameData } from './game-data.js'; // Import gameData to get the new spell version
 
 let players = {};
 
@@ -15,21 +16,30 @@ try {
     const data = fs.readFileSync('players.json', 'utf8');
     const savedPlayers = JSON.parse(data);
     
-    // We only want to load the character data, not the transient 'id' (socket id)
+    // Get the correct, new version of the spell
+    const newWarriorsMight = gameData.allSpells.find(s => s.name === "Warrior's Might");
+
     for (const characterName in savedPlayers) {
         if (savedPlayers.hasOwnProperty(characterName)) {
             const character = savedPlayers[characterName].character;
             
-            // --- BACKWARDS COMPATIBILITY FOR BIRTHDAY CAKE QUEST ---
-            // If a player has completed the old quest, grant them the recipe automatically.
-            const hasCompletedQuest = character.quests.some(q => q.details.id === 'BAKERS_REQUEST' && q.status === 'completed');
-            if (hasCompletedQuest) {
-                if (!character.knownRecipes.includes('Birthday Cake')) {
-                    character.knownRecipes.push('Birthday Cake');
-                    console.log(`Retroactively granted 'Birthday Cake' recipe to ${characterName}.`);
+            // --- START: One-Time Data Migration for Warrior's Might ---
+            if (newWarriorsMight) {
+                // Check equipped spells and replace if found
+                const equippedIndex = character.equippedSpells.findIndex(s => s && s.name === "Warrior's Might");
+                if (equippedIndex !== -1) {
+                    character.equippedSpells[equippedIndex] = { ...newWarriorsMight };
+                    console.log(`Updated Warrior's Might for ${characterName} in equipped spells.`);
+                }
+
+                // Check spellbook and replace if found
+                const spellbookIndex = character.spellbook.findIndex(s => s && s.name === "Warrior's Might");
+                if (spellbookIndex !== -1) {
+                    character.spellbook[spellbookIndex] = { ...newWarriorsMight };
+                    console.log(`Updated Warrior's Might for ${characterName} in spellbook.`);
                 }
             }
-            // --- END OF COMPATIBILITY FIX ---
+            // --- END: One-Time Data Migration ---
 
             players[characterName] = {
                 id: null, // Sockets are always null on startup
