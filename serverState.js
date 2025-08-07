@@ -10,6 +10,7 @@ import path from 'path';
 import { gameData } from './game-data.js'; // Import gameData to get the new spell version
 
 let players = {};
+let dataWasMigrated = false; // Flag to check if we need to save the file
 
 // Load players from a file on startup
 try {
@@ -25,18 +26,20 @@ try {
             
             // --- START: One-Time Data Migration for Warrior's Might ---
             if (newWarriorsMight) {
-                // Check equipped spells and replace if found
-                const equippedIndex = character.equippedSpells.findIndex(s => s && s.name === "Warrior's Might");
+                // Check equipped spells and replace if it's the old version
+                const equippedIndex = character.equippedSpells.findIndex(s => s && s.name === "Warrior's Might" && s.bonusThreat === undefined);
                 if (equippedIndex !== -1) {
                     character.equippedSpells[equippedIndex] = { ...newWarriorsMight };
                     console.log(`Updated Warrior's Might for ${characterName} in equipped spells.`);
+                    dataWasMigrated = true;
                 }
 
-                // Check spellbook and replace if found
-                const spellbookIndex = character.spellbook.findIndex(s => s && s.name === "Warrior's Might");
+                // Check spellbook and replace if it's the old version
+                const spellbookIndex = character.spellbook.findIndex(s => s && s.name === "Warrior's Might" && s.bonusThreat === undefined);
                 if (spellbookIndex !== -1) {
                     character.spellbook[spellbookIndex] = { ...newWarriorsMight };
                     console.log(`Updated Warrior's Might for ${characterName} in spellbook.`);
+                    dataWasMigrated = true;
                 }
             }
             // --- END: One-Time Data Migration ---
@@ -47,6 +50,15 @@ try {
             };
         }
     }
+    
+    // --- THIS IS THE FIX ---
+    // If we migrated any data, write the changes back to the file immediately.
+    if (dataWasMigrated) {
+        fs.writeFileSync('players.json', JSON.stringify(players, null, 2));
+        console.log('Successfully saved migrated player data to players.json.');
+    }
+    // --- END OF FIX ---
+
     console.log('Player data loaded successfully from players.json');
 } catch (err) {
     console.log('No existing players.json file found. Starting with a clean state.');
