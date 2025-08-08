@@ -868,18 +868,18 @@ hr {
 }
 
 #adventure-log-container {
-    padding: 0 20px 10px 20px; 
-    z-index: 999;
+    position: relative; /* Changed from fixed */
+    padding: 0;
+    z-index: 1;
 }
 
 #adventure-log-container .log {
-    max-width: 1200px;
-    margin: 0 auto;
-    margin-top: 0;
+    max-width: 100%; /* Changed from 1200px */
+    margin: 0;
 }
 
 #chat-form {
-    display: block;
+    display: none; /* Hide by default, shown by JS */
     margin-top: 5px;
 }
 
