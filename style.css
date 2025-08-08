@@ -714,6 +714,21 @@ hr {
     display: none;
 }
 
+#player-action-bar {
+    position: fixed;
+    bottom: 140px; 
+    left: 0;
+    width: 100%;
+    background: rgba(0,0,0,0.8);
+    padding: 10px;
+    border-top: 2px solid var(--primary-color);
+    display: flex; /* This should be flex */
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    z-index: 1000;
+}
+
 #action-bars-container {
     display: flex;
     flex-direction: column;
@@ -868,18 +883,21 @@ hr {
 }
 
 #adventure-log-container {
-    position: relative; /* Changed from fixed */
-    padding: 0;
-    z-index: 1;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 0 20px 10px 20px; 
+    z-index: 999;
 }
 
 #adventure-log-container .log {
-    max-width: 100%; /* Changed from 1200px */
-    margin: 0;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 #chat-form {
-    display: none; /* Hide by default, shown by JS */
+    display: none;
     margin-top: 5px;
 }
 
