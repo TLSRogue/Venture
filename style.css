@@ -19,7 +19,7 @@ body {
     background: var(--bg-gradient);
     color: var(--text-color);
     min-height: 100vh;
-    padding-bottom: 20px;
+    padding-bottom: 300px;
     transition: background-color 0.5s;
 }
 
@@ -28,27 +28,6 @@ body {
     margin: 0 auto;
     padding: 20px;
 }
-
-/* --- LAYOUT & GAP FIX --- */
-#adventure-tab {
-    display: none; /* This is correct, it's shown by JS */
-    flex-direction: column;
-    gap: 15px;
-}
-
-#player-action-bar {
-    background: rgba(0,0,0,0.8);
-    padding: 10px;
-    border-top: 2px solid var(--primary-color);
-    display: none; /* Hide by default, shown by JS */
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-    z-index: 1000;
-    width: 100%;
-    border-radius: 8px;
-}
-/* --- END FIX --- */
 
 .hidden-on-load {
     display: none;
@@ -105,10 +84,11 @@ body {
 }
 
 #adventure-hud {
-    display: none;
+    display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 20px;
+    margin-bottom: 20px;
 }
 
 .hud-health-bar-container {
@@ -896,6 +876,21 @@ hr {
     max-width: 1200px;
     margin: 0 auto;
     margin-top: 0;
+}
+
+#chat-form {
+    display: block;
+    margin-top: 5px;
+}
+
+#chat-input {
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--primary-color);
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    font-family: 'Inter', sans-serif;
 }
 
 #adventure-main-controls {
