@@ -715,14 +715,14 @@ hr {
 }
 
 #player-action-bar {
-    position: fixed;
+    position: fixed; /* --- BUG FIX: Restored fixed positioning --- */
     bottom: 140px; 
     left: 0;
     width: 100%;
     background: rgba(0,0,0,0.8);
     padding: 10px;
     border-top: 2px solid var(--primary-color);
-    display: flex; /* This should be flex */
+    display: flex;
     justify-content: center;
     align-items: center;
     gap: 15px;
@@ -883,17 +883,19 @@ hr {
 }
 
 #adventure-log-container {
-    position: fixed;
+    position: fixed; /* --- BUG FIX: Restored fixed positioning --- */
     bottom: 0;
     left: 0;
     width: 100%;
     padding: 0 20px 10px 20px; 
     z-index: 999;
+    pointer-events: none;
 }
 
 #adventure-log-container .log {
     max-width: 1200px;
     margin: 0 auto;
+    pointer-events: auto;
 }
 
 #chat-form {
