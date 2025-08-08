@@ -35,7 +35,7 @@ function initGame() {
         onShowDialogue: UIParty.showNPCDialogueFromServer,
         onHideDialogue: UIMain.hideModal,
         onPartyAdventureEnded: Player.resetToHomeState,
-        onDiceRoll: handleDiceRoll, // Add this handler
+        onDiceRoll: handleDiceRoll,
         onDuelReceiveChallenge: handleDuelReceiveChallenge,
         onDuelStart: handleDuelStart,
         onDuelUpdate: handleDuelUpdate,
@@ -44,34 +44,29 @@ function initGame() {
     UIParty.showCharacterSelectScreen();
 }
 
-// --- NEW FUNCTION TO HANDLE THE DICE ROLL ANIMATION ---
 function handleDiceRoll(data) {
     const container = document.getElementById('dice-roll-container');
     const diceEl = document.getElementById('dice');
     const detailsEl = document.getElementById('dice-roll-details');
 
-    // Set the content
     diceEl.textContent = data.roll;
     detailsEl.innerHTML = `
         <p>${data.rollerName} ${data.actionName}</p>
         <p><strong>Total: ${data.total}</strong> (vs Target: ${data.hitTarget}+)</p>
     `;
 
-    // Show the animation
     container.classList.remove('hidden');
     
-    // Add a class for success or failure styling
     if (data.roll === 20) {
-        diceEl.style.color = 'var(--accent-color)'; // Critical Success
+        diceEl.style.color = 'var(--accent-color)';
     } else if (data.roll === 1) {
-        diceEl.style.color = 'var(--danger-color)'; // Critical Failure
+        diceEl.style.color = 'var(--danger-color)';
     } else if (data.total >= data.hitTarget) {
         diceEl.style.color = 'var(--success-color)';
     } else {
         diceEl.style.color = 'var(--text-color)';
     }
 
-    // Hide the container after 1.8 seconds (slightly less than the server's wait time)
     setTimeout(() => {
         container.classList.add('hidden');
     }, 1800);
@@ -191,6 +186,18 @@ function handlePartyAdventureStarted(serverAdventureState) {
     document.getElementById('player-action-bar').style.display = 'flex';
     document.getElementById('adventure-log-container').style.display = 'block';
     document.getElementById('chat-form').style.display = 'block';
+
+    // --- BUG FIX: Move chat listener here ---
+    // This ensures the listener is only added once the chat form is visible.
+    document.getElementById('chat-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = document.getElementById('chat-input');
+        const message = input.value.trim();
+        if (message) {
+            Network.emitPartySendMessage(message);
+            input.value = '';
+        }
+    });
 
     UIAdventure.renderAdventureScreen();
     document.getElementById('adventure-log').innerHTML = '';
@@ -362,16 +369,6 @@ function finalizeCharacterCreation(slotIndex) {
 
 // --- EVENT LISTENERS ---
 function addEventListeners() {
-    document.getElementById('chat-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const input = document.getElementById('chat-input');
-        const message = input.value.trim();
-        if (message) {
-            Network.emitPartySendMessage(message);
-            input.value = '';
-        }
-    });
-
     document.body.addEventListener('click', (e) => {
         const target = e.target;
         
