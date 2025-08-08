@@ -29,8 +29,9 @@ body {
     padding: 20px;
 }
 
+/* --- LAYOUT & GAP FIX --- */
 #adventure-tab {
-    display: flex;
+    display: none; /* This is correct, it's shown by JS */
     flex-direction: column;
     gap: 15px;
 }
@@ -39,7 +40,7 @@ body {
     background: rgba(0,0,0,0.8);
     padding: 10px;
     border-top: 2px solid var(--primary-color);
-    display: none;
+    display: none; /* Hide by default, shown by JS */
     justify-content: center;
     align-items: center;
     gap: 15px;
@@ -47,6 +48,7 @@ body {
     width: 100%;
     border-radius: 8px;
 }
+/* --- END FIX --- */
 
 .hidden-on-load {
     display: none;
@@ -1050,61 +1052,3 @@ hr {
         margin-top: 10px;
     }
 }
-
-
-//new stuff
-
-/* ... (keep all your existing CSS) ... */
-
-@media (max-width: 900px) {
-    #player-action-bar {
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-    .player-hub-left { order: 1; }
-    .player-hub-right { order: 2; }
-    #action-bars-container {
-        order: 3;
-        width: 100%;
-        margin-top: 10px;
-    }
-}
-
-/* --- START: Add these new styles for the dice animation --- */
-#dice-roll-container {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(44, 62, 80, 0.95);
-    border: 2px solid var(--accent-color);
-    border-radius: 12px;
-    padding: 25px;
-    z-index: 4000;
-    text-align: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    width: 300px;
-}
-
-#dice-roll-container.hidden {
-    display: none;
-}
-
-#dice {
-    font-size: 5em;
-    font-weight: bold;
-    line-height: 1;
-    margin-bottom: 15px;
-    animation: tumble 0.5s ease-out forwards;
-}
-
-#dice-roll-details {
-    font-size: 1.1em;
-}
-
-@keyframes tumble {
-    0% { transform: scale(0.5) rotate(0deg); opacity: 0; }
-    50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
-    100% { transform: scale(1) rotate(360deg); opacity: 1; }
-}
-/* --- END: Add these new styles --- */
