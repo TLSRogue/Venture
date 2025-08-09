@@ -112,6 +112,8 @@ function handleCharacterUpdate(serverState) {
         partyMemberStates: gameState.partyMemberStates,
         groundLoot: gameState.groundLoot,
         isPartyLeader: gameState.isPartyLeader,
+        // --- FIX: Also preserve pvpEncounter during character updates ---
+        pvpEncounter: gameState.pvpEncounter 
     };
 
     Object.assign(gameState, serverState);
@@ -128,12 +130,13 @@ function handleCharacterUpdate(serverState) {
         gameState.currentZone = null;
         gameState.zoneCards = [];
         gameState.groundLoot = [];
+        gameState.pvpEncounter = null;
     }
 
     if (activeSlotIndex !== null) {
         const characterSlots = JSON.parse(localStorage.getItem('ventureCharacterSlots') || '[null, null, null]');
         const stateToSave = { ...gameState };
-        ['isPartyLeader', 'turnState', 'partyMemberStates', 'zoneCards', 'groundLoot'].forEach(key => delete stateToSave[key]);
+        ['isPartyLeader', 'turnState', 'partyMemberStates', 'zoneCards', 'groundLoot', 'pvpEncounter'].forEach(key => delete stateToSave[key]);
         characterSlots[activeSlotIndex] = stateToSave;
         localStorage.setItem('ventureCharacterSlots', JSON.stringify(characterSlots));
     }
@@ -169,13 +172,10 @@ function handleReceivePartyInvite({ inviterName, partyId }) {
         UIMain.hideModal();
     });
 }
+
 function handlePartyAdventureStarted(serverAdventureState) {
-    Object.assign(gameState, {
-        currentZone: serverAdventureState.currentZone,
-        zoneCards: serverAdventureState.zoneCards,
-        partyMemberStates: serverAdventureState.partyMemberStates,
-        groundLoot: serverAdventureState.groundLoot,
-    });
+    // --- FIX: Copy the ENTIRE state object from the server ---
+    Object.assign(gameState, serverAdventureState);
 
     Player.resetPlayerCombatState();
 
@@ -185,7 +185,7 @@ function handlePartyAdventureStarted(serverAdventureState) {
 
     document.getElementById('main-stats-display').style.display = 'none';
     document.getElementById('adventure-hud').style.display = 'flex';
-    document.getElementById('player-action-bar').style.display = 'flex'; // <-- THE FIX IS HERE
+    document.getElementById('player-action-bar').style.display = 'flex';
     document.getElementById('adventure-log-container').style.display = 'block';
 
     UIAdventure.renderAdventureScreen();
@@ -208,12 +208,8 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     const newLogEntries = serverAdventureState.log.slice(existingLogCount);
     const effectsToPlay = getEffectsFromLog(newLogEntries);
 
-    Object.assign(gameState, {
-        zoneCards: serverAdventureState.zoneCards,
-        partyMemberStates: serverAdventureState.partyMemberStates,
-        groundLoot: serverAdventureState.groundLoot,
-        pendingLootRoll: serverAdventureState.pendingLootRoll, // Sync loot roll state
-    });
+    // --- FIX: Copy the ENTIRE state object from the server to ensure pvpEncounter is synced ---
+    Object.assign(gameState, serverAdventureState);
     
     newLogEntries.reverse().forEach(entry => UIMain.addToLog(entry.message, entry.type));
     
@@ -225,7 +221,7 @@ function handlePartyAdventureUpdate(serverAdventureState) {
         UIAdventure.playEffectQueue(effectsToPlay);
     }
     
-    updateLootRollUI(serverAdventureState.pendingLootRoll);
+    updateLootRollUI(gameState.pendingLootRoll);
 
     if (document.getElementById('ground-loot-modal') && !document.getElementById('ground-loot-modal').closest('.modal-overlay').classList.contains('hidden')) {
         UIAdventure.showGroundLootModal();
