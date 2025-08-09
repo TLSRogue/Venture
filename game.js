@@ -519,6 +519,8 @@ function addEventListeners() {
             if (button.id === 'end-turn-btn') return gameState.inDuel ? Network.emitDuelAction({ type: 'endTurn' }) : Combat.endTurn();
             if (button.id === 'return-home-arrow') return Player.returnToHome();
             if (button.id === 'venture-deeper-arrow') return ventureDeeper();
+            if (button.id === 'backpack-btn') return UIAdventure.showBackpack();
+            if (button.id === 'character-sheet-btn') return UIAdventure.showCharacterSheet();
             
             if (button.dataset.action === 'takeGroundLoot') return Player.takeGroundLoot(parseInt(button.dataset.index, 10));
 
