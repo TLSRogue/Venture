@@ -185,7 +185,7 @@ function handlePartyAdventureStarted(serverAdventureState) {
 
     document.getElementById('main-stats-display').style.display = 'none';
     document.getElementById('adventure-hud').style.display = 'flex';
-    document.getElementById('player-action-bar').style.display = 'block';
+    document.getElementById('player-action-bar').style.display = 'flex'; // <-- THE FIX IS HERE
     document.getElementById('adventure-log-container').style.display = 'block';
 
     UIAdventure.renderAdventureScreen();
