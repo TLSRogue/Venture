@@ -9,15 +9,15 @@ export const gameData = {
         // Consumables
         { name: "Healing Potion", price: 25, type: "consumable", cost: 1, heal: 3, description: "Heals 3 HP for 1 Action Point", icon: "🧪" },
         { name: "Cooked Fish", price: 30, type: "consumable", cost: 1, heal: 3, buff: { type: 'Well Fed (Agi)', duration: 2, bonus: { agility: 1 } }, description: "Heals 3 HP, +1 Agility for 1 turn (ends after your next turn).", icon: "🐟" },
-        { name: "Cooked Pork", price: 35, type: "consumable", cost: 1, heal: 3, buff: { type: 'Well Fed (Str)', duration: 2, bonus: { strength: 1 } }, description: "Heals 3 HP, +1 Strength for 1 turn (ends after your next turn).", icon: "🍖" },
-        { name: "Cooked Chicken", price: 25, type: "consumable", cost: 1, heal: 4, description: "A simple but hearty meal. Heals 4 HP.", icon: "🍗" },
-        { name: "Spiced Carrots", price: 25, type: "consumable", cost: 1, heal: 3, buff: { type: 'Well Fed (Wis)', duration: 2, bonus: { wisdom: 1 } }, description: "Heals 3 HP and grants +1 Wisdom for your next turn.", icon: "🥣" },
+        { name: "Cooked Pork", price: 30, type: "consumable", cost: 1, heal: 3, buff: { type: 'Well Fed (Str)', duration: 2, bonus: { strength: 1 } }, description: "Heals 3 HP, +1 Strength for 1 turn (ends after your next turn).", icon: "🍖" },
+        { name: "Cooked Chicken", price: 30, type: "consumable", cost: 1, heal: 4, description: "A simple but hearty meal. Heals 4 HP.", icon: "🍗" },
+        { name: "Spiced Carrots", price: 30, type: "consumable", cost: 1, heal: 3, buff: { type: 'Well Fed (Wis)', duration: 2, bonus: { wisdom: 1 } }, description: "Heals 3 HP and grants +1 Wisdom for your next turn.", icon: "🥣" },
         { name: "Birthday Cake", price: 100, type: "consumable", cost: 1, heal: 2, charges: 3, description: "A delicious cake. Heals 2 HP. Has 3 charges.", icon: "🎂" },
-        { name: "Wooden Torch", price: 15, type: "consumable", cost: 0, buff: { type: 'Light Source', duration: 4 }, description: "Provides light for 3 turns. Costs no AP to use outside combat.", icon: "🔥" },
-        { name: "Powder Keg", price: 75, type: "consumable", cost: 1, description: "Deals 3 Fire damage to all enemies. They can avoid on a 12+ roll.", icon: "💣" },
+        { name: "Wooden Torch", price: 30, type: "consumable", cost: 0, buff: { type: 'Light Source', duration: 4 }, description: "Provides light for 3 turns. Costs no AP to use outside combat.", icon: "🔥" },
+        { name: "Powder Keg", price: 100, type: "consumable", cost: 1, description: "Deals 3 Fire damage to all enemies. They can avoid on a 12+ roll.", icon: "💣" },
         
         // Arrows
-        { name: "Iron Arrows", type: "arrows", price: 2, stackable: 200, slot: "ammo", bonus: { rollBonus: 1 }, description: "A bundle of simple iron-tipped arrows. Provides +1 to bow attack rolls.", tier: 1, icon: "🏹" },
+        { name: "Iron Arrows", type: "arrows", price: 1, stackable: 200, slot: "ammo", bonus: { rollBonus: 1 }, description: "A bundle of simple iron-tipped arrows. Provides +1 to bow attack rolls.", tier: 1, icon: "🏹" },
 
         // Tools
         { name: "Mining Pickaxe (T1)", price: 50, type: "tool", slot: "mainHand", skillBonus: { mining: 1 }, description: "Allows mining iron nodes. +1 Mining.", tier: 1, icon: "⛏️" },
@@ -28,17 +28,17 @@ export const gameData = {
         // Weapons
         { name: "Wooden Training Sword", type: "weapon", slot: "mainHand", cost: 1, cooldown: 1, hit: 10, weaponType: "One-Hand Sword", weaponDamage: 1, damageType: "Physical", description: "1AP, 1CD | D20+Str (10+) | Deals 1 Physical Damage.", tier: 1, icon: "⚔️" },
         { name: "Iron Dagger", price: 70, type: "weapon", slot: ["mainHand", "offHand"], cost: 1, cooldown: 1, stat: "agility", hit: 10, weaponType: "Dagger", weaponDamage: 2, damageType: "Physical", description: "Perfect for peeling fruit or poking unsuspecting goblins.", tier: 1, icon: "🗡️", traits: ['Dagger', 'Melee', 'Tier 1'] },
-        { name: "Mugger's Knife", price: 150, type: "weapon", slot: ["mainHand", "offHand"], cost: 1, cooldown: 1, hit: 15, stat: "agility", weaponType: "Dagger", weaponDamage: 2, damageType: "Physical", description: "1AP, 1CD | D20+Agi (15+) | Deals 2 Physical Damage and applies Bleed.", onHit: { debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' } }, tier: 1, icon: "🔪" },
+        { name: "Mugger's Knife", price: 100, type: "weapon", slot: ["mainHand", "offHand"], cost: 1, cooldown: 1, hit: 10, stat: "agility", weaponType: "Dagger", weaponDamage: 2, damageType: "Physical", description: "1AP, 1CD | D20+Agi (15+) | Deals 2 Physical Damage and applies Bleed.", onHit: { debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' } }, tier: 1, icon: "🔪" },
         { name: "Iron Sword", price: 70, type: "weapon", slot: "mainHand", cost: 1, cooldown: 1, stat: "strength", hit: 10, weaponType: "Sword", weaponDamage: 2, damageType: "Physical", description: "Basic, balanced, and barely exciting—but it’ll stab just fine.", tier: 1, icon: "⚔️", traits: ['Sword', 'Melee', 'Tier 1'] },
-        { name: "Pitchfork", price: 50, type: "weapon", slot: "mainHand", hands: 2, cost: 1, cooldown: 2, stat: "agility", hit: 15, weaponType: "Two-Hand Polearm", weaponDamage: 3, damageType: "Physical", description: "1AP, 2CD | D20+Agi (15+) | Deals 3 Physical Damage. On 20+, also applies Bleed.", onCrit: { debuff: { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' } }, tier: 1, icon: "🔱" },
+        { name: "Pitchfork", price: 50, type: "weapon", slot: "mainHand", hands: 2, cost: 1, cooldown: 2, stat: "agility", hit: 10, weaponType: "Two-Hand Polearm", weaponDamage: 3, damageType: "Physical", description: "1AP, 2CD | D20+Agi (15+) | Deals 3 Physical Damage. On 20+, also applies Bleed.", onCrit: { debuff: { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' } }, tier: 1, icon: "🔱" },
         { name: "Longbow", price: 100, type: "weapon", slot: "mainHand", hands: 2, cost: 1, cooldown: 2, stat: "agility", hit: 10, weaponType: "Two-Hand Bow", weaponDamage: 3, damageType: "Physical", description: "A simple wooden bow with frayed string.", tier: 1, icon: "🏹", traits: ['Bow', 'Ranged', 'Tier 1'] },
         { name: "Staff", price: 100, type: "weapon", slot: "mainHand", hands: 2, cost: 1, cooldown: 2, stat: "wisdom", hit: 10, weaponType: "Two-Hand Staff", weaponDamage: 3, damageType: "Arcane", description: "A simple wooden staff with a faint magical pulse—just enough to spark a spell or two.", tier: 1, icon: "🪄", traits: ['Staff', 'Ranged', 'Tier 1'] },
-        { name: "Magna Clavis", price: 500, type: "weapon", slot: "mainHand", hands: 2, cost: 1, cooldown: 3, weaponDamage: 5, damageType: "Physical", bonus: { strength: 1, wisdom: 1 }, description: "1AP, 3CD | D20+Str (15+) | Deals 5 Physical Damage. +1 Str, +1 Wis.", weaponType: "Two-Hand Mace", tier: 1, icon: "🔨" },
-        { name: "Iron Spear", price: 100, type: "weapon", slot: "mainHand", hands: 2, cost: 1, cooldown: 1, stat: "agility", hit: 10, weaponType: "Two-Hand Spear", weaponDamage: 3, damageType: "Physical", description: "Pointy, pokey, and perfect for keeping danger at arm’s length.", tier: 1, onCrit: { debuff: { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' } }, icon: "🔱", traits: ['Spear', 'Melee', 'Tier 1'] },
+        { name: "Magna Clavis", price: 500, type: "weapon", slot: "mainHand", hands: 2, cost: 1, cooldown: 2, weaponDamage: 5, damageType: "Physical", bonus: { strength: 1, wisdom: 1 }, description: "1AP, 3CD | D20+Str (15+) | Deals 5 Physical Damage. +1 Str, +1 Wis.", weaponType: "Two-Hand Mace", tier: 1, icon: "🔨" },
+        { name: "Iron Spear", price: 100, type: "weapon", slot: "mainHand", hands: 2, cost: 1, cooldown: 2, stat: "agility", hit: 10, weaponType: "Two-Hand Spear", weaponDamage: 3, damageType: "Physical", description: "Pointy, pokey, and perfect for keeping danger at arm’s length.", tier: 1, onCrit: { debuff: { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' } }, icon: "🔱", traits: ['Spear', 'Melee', 'Tier 1'] },
         { name: "Large Iron Mace", price: 100, type: "weapon", slot: "mainHand", hands: 2, cost: 1, cooldown: 2, stat: "strength", hit: 10, weaponType: "Two-Hand Mace", weaponDamage: 3, damageType: "Physical", description: "A hefty chunk of iron on a stick—great for cracking skulls or tenderizing chickens.", tier: 1, onCrit: { debuff: { type: 'daze', duration: 2 } }, icon: "🔨", traits: ['Mace', 'Melee', 'Tier 1'] },
         
         // Armor & Accessories
-        { name: "Bull Horn", price: 0, type: "accessory", slot: "accessory", description: "When equipped, provides an activatable ability.", activatedAbility: { name: "Bull Horn", cost: 1, cooldown: 3, buff: { type: 'War Cry', duration: 3, bonus: { strength: 1, agility: 1, wisdom: 1, defense: 1 } }, description: "1AP 3CD: Gain +1 to all stats for 2 turns." }, tier: 1, icon: "🐂" },
+        { name: "Bull Horn", price: 50, type: "accessory", slot: "accessory", description: "When equipped, provides an activatable ability.", activatedAbility: { name: "Bull Horn", cost: 1, cooldown: 3, buff: { type: 'War Cry', duration: 3, bonus: { strength: 1, agility: 1, wisdom: 1, defense: 1 } }, description: "1AP 3CD: Gain +1 to all stats for 2 turns." }, tier: 1, icon: "🐂" },
         { name: "Rat Tail Cloak", price: 250, type: "accessory", slot: "accessory", bonus: { agility: 1, maxHealth: 1 }, activatedAbility: { name: "Cleanse", cost: 1, cooldown: 3, effect: 'cleanse', description: "1AP 3CD: Remove a Poison or Bleed effect." }, tier: 1, icon: "🧥" },
         { name: "Quiver", price: 50, type: "accessory", slot: "accessory", grantsSlot: 'ammo', bonus: { agility: 1 }, description: "+1 Agility. Unlocks an Ammo slot.", tier: 1, icon: "🎒" },
         { name: "Iron Shield", price: 70, type: "shield", slot: "offHand", weaponType: "Shield", cooldown: 1, reaction: { type: 'block', value: 2, hit: 10, stat: 'defense' }, description: "Solid enough to stop a charging pig—though you'll still feel it in your teeth.", tier: 1, icon: "🛡️", weaponDamage: 2, damageType: 'Physical', traits: ['Shield', 'Melee', 'Tier 1'] },
@@ -59,10 +59,10 @@ export const gameData = {
         { name: "Wood", type: "material", price: 5, description: "A sturdy log of wood.", icon: "🪵" },
         { name: "Fish", type: "material", price: 8, description: "A fresh fish.", icon: "🐟" },
         { name: "Pork", type: "material", price: 10, description: "A slab of raw pork.", icon: "🍖" },
-        { name: "Cow Hide", type: "material", price: 5, description: "A tough piece of leather.", icon: "🐮" },
-        { name: "Vines", type: "material", price: 5, description: "A length of sturdy vine.", icon: "🌿" },
-        { name: "Coal", type: "material", price: 8, description: "A lump of coal.", icon: "⚫" },
-        { name: "Goblin Head", type: "material", price: 5, description: "A gruesome trophy.", icon: "💀" },
+        { name: "Cow Hide", type: "material", price: 15, description: "A tough piece of leather.", icon: "🐮" },
+        { name: "Vines", type: "material", price: 15, description: "A length of sturdy vine.", icon: "🌿" },
+        { name: "Coal", type: "material", price: 15, description: "A lump of coal.", icon: "⚫" },
+        { name: "Goblin Head", type: "material", price: 30, description: "A gruesome trophy.", icon: "💀" },
         { name: "Animal Fat", type: "material", price: 5, description: "A greasy lump of fat.", icon: "🧈" },
         { name: "Steel Bar", price: 50, type: "material", description: "A strong metal bar.", icon: "🔗" },
         { name: "Spices", price: 10, type: "material", description: "A blend of savory spices.", icon: "🌶️", stackable: 200 },
@@ -118,14 +118,14 @@ export const gameData = {
             { card: { 
                 name: "Raging Bull", 
                 type: "enemy", 
-                health: 12, 
-                maxHealth: 12, 
+                health: 15, 
+                maxHealth: 15, 
                 description: "An enraged bull, kicking up dust.",
                 icon: "🐂",
                 attackTable: [
-                    { range: [1, 7], action: 'miss', message: "The bull snorts and misses!" },
-                    { range: [8, 15], action: 'attack', damage: 3, damageType: 'Physical', message: "Charge! Deals 3 Physical Damage!" },
-                    { range: [16, 20], action: 'special', message: "Thick Hide! Gain 1 Physical Resistance until the next Zone Turn then make another action!" }
+                    { range: [1, 3], action: 'miss', message: "The bull snorts and misses!" },
+                    { range: [4, 12], action: 'attack', damage: 3, damageType: 'Physical', message: "Charge! Deals 3 Physical Damage!" },
+                    { range: [13, 20], action: 'special', message: "Thick Hide! Gain 1 Physical Resistance until the next Zone Turn then make another action!" }
                 ],
                 guaranteedLoot: { items: ["Bull Horn", "Cow Hide", "Cow Hide"] }
             }, count: 1 },
@@ -167,8 +167,8 @@ export const gameData = {
             { card: { 
                 name: "Chicken", type: "enemy", health: 2, maxHealth: 2, description: "A feisty farm chicken", icon: "🐔",
                 attackTable: [
-                    { range: [1, 10], action: 'miss', message: "Miss!" },
-                    { range: [11, 15], action: 'attack', damage: 1, damageType: 'Physical', message: "Peck! Deals 1 Physical Damage!" },
+                    { range: [1, 3], action: 'miss', message: "Miss!" },
+                    { range: [4, 15], action: 'attack', damage: 1, damageType: 'Physical', message: "Peck! Deals 1 Physical Damage!" },
                     { range: [16, 20], action: 'attack', damage: 2, damageType: 'Physical', message: "Eye Gouge! Deals 2 Physical Damage!" }
                 ],
                 guaranteedLoot: { items: ["Raw Chicken"] },
@@ -180,8 +180,8 @@ export const gameData = {
             { card: { 
                 name: "Pig", type: "enemy", health: 3, maxHealth: 3, description: "A muddy pig", icon: "🐷",
                 attackTable: [
-                    { range: [1, 10], action: 'miss', message: "Miss!" },
-                    { range: [11, 15], action: 'attack', damage: 1, damageType: 'Physical', message: "Slam! Deals 1 Physical Damage!" },
+                    { range: [1, 3], action: 'miss', message: "Miss!" },
+                    { range: [4, 15], action: 'attack', damage: 1, damageType: 'Physical', message: "Slam! Deals 1 Physical Damage!" },
                     { range: [16, 20], action: 'attack', damage: 2, damageType: 'Physical', message: "Headbutt! Deals 2 Physical Damage!" }
                 ],
                 guaranteedLoot: { items: ["Pork"] },
@@ -193,8 +193,8 @@ export const gameData = {
             { card: { 
                 name: "Cow", type: "enemy", health: 4, maxHealth: 4, description: "A gentle cow", icon: "🐮",
                 attackTable: [
-                    { range: [1, 10], action: 'miss', message: "Miss!" },
-                    { range: [11, 15], action: 'attack', damage: 2, damageType: 'Physical', message: "Kick! Deals 2 Physical Damage!" },
+                    { range: [1, 3], action: 'miss', message: "Miss!" },
+                    { range: [4, 15], action: 'attack', damage: 2, damageType: 'Physical', message: "Kick! Deals 2 Physical Damage!" },
                     { range: [16, 20], action: 'attack', damage: 2, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Press! Deals 2 Physical Damage and applies Daze!" }
                 ],
                 guaranteedLoot: { items: ["Cow Hide"] },
@@ -206,8 +206,8 @@ export const gameData = {
             { card: { 
                 name: "Angry Farmhand", type: "enemy", health: 4, maxHealth: 4, description: "An angry local. Wants you off his land.", icon: "🧑‍🌾",
                 attackTable: [
-                    { range: [1, 8], action: 'miss', message: "Miss!" },
-                    { range: [9, 15], action: 'attack', damage: 2, damageType: 'Physical', message: "Stab! Deals 2 Physical Damage!" },
+                    { range: [1, 3], action: 'miss', message: "Miss!" },
+                    { range: [4, 15], action: 'attack', damage: 2, damageType: 'Physical', message: "Stab! Deals 2 Physical Damage!" },
                     { range: [16, 20], action: 'attack', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Slash! Deals 2 Physical Damage and applies Bleed!" }
                 ],
                 guaranteedLoot: { gold: true, items: ["Cloth"] },
