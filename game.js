@@ -51,6 +51,9 @@ function initGame() {
  */
 function processLogForFeedback(logEntries) {
     logEntries.forEach(entry => {
+        // --- ADD THIS LINE FOR DEBUGGING ---
+        console.log("Log Check:", entry.message); 
+        
         let match;
 
         // Player/Enemy Damage (e.g., "...hits Goblin for 3 damage!")
