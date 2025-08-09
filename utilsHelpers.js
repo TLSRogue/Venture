@@ -7,26 +7,26 @@
 
 import { gameData } from './game-data.js';
 
-// --- NEW MERCHANT LOGIC (MOVED FROM CLIENT'S merchant.js) ---
+// --- MERCHANT LOGIC (UPDATED) ---
 
 /**
  * Generates a new set of rotating wares for a character.
+ * This function now uses the 'canBeInMerchantWares' item tag.
  * @param {object} character - The character object to generate stock for.
  */
 function generateMerchantStock(character) {
-    const uniqueItemNames = ["Rat Tail Cloak", "Mugger's Knife", "Bull Horn", "Magna Clavis"];
+    // Filter all items to find only those eligible for the merchant's rotating wares.
     const stockPool = gameData.allItems.filter(item => 
-        item.price > 0 && 
-        item.type !== 'tool' && 
-        item.name !== 'Spices' &&
-        !uniqueItemNames.includes(item.name)
+        item.canBeInMerchantWares === true && item.price > 0
     );
     
+    // Shuffle the eligible items to ensure variety
     for (let i = stockPool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [stockPool[i], stockPool[j]] = [stockPool[j], stockPool[i]];
     }
 
+    // Assign a random quantity to the selected stock
     character.merchantStock = stockPool.slice(0, 5).map(item => ({
         ...item,
         quantity: Math.floor(Math.random() * 10) + 1
