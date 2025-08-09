@@ -63,10 +63,18 @@ function addActionTooltipListener(element, itemOrSpell) {
     element.addEventListener('mouseleave', hideTooltip);
 }
 
-// --- Function to trigger combat animations (WITH DIAGNOSTICS) ---
-export function showCombatFeedback({ targetName, type, text }) {
-    console.log(`--- Trying to show feedback: Looking for card named '${targetName}' ---`);
+// --- NEW: Function to play a queue of effects ---
+export function playEffectQueue(effects) {
+    effects.forEach((effect, index) => {
+        // Stagger each effect slightly so they don't all pop up at once
+        setTimeout(() => {
+            showCombatFeedback(effect);
+        }, index * 250); // 250ms delay between each effect
+    });
+}
 
+// --- Function to trigger combat animations ---
+export function showCombatFeedback({ targetName, type, text }) {
     const allCards = document.querySelectorAll('#adventure-board .card');
     let targetCard = null;
 
@@ -77,12 +85,9 @@ export function showCombatFeedback({ targetName, type, text }) {
             break;
         }
     }
-    
-    console.log("Target card element found:", targetCard); // This will show the HTML element or 'null'
 
     if (!targetCard) {
-        console.error(`Could not find card for target: ${targetName}`);
-        return;
+        return; // Don't show an error if the card isn't on screen (e.g. defeated)
     }
 
     // 1. Create and animate the popup
@@ -90,21 +95,18 @@ export function showCombatFeedback({ targetName, type, text }) {
     popup.className = `combat-feedback-popup popup-${type}`;
     popup.textContent = text;
     
-    // Append to the card so its position is relative to the card
     targetCard.appendChild(popup);
     
-    // Remove the element after the animation finishes
     setTimeout(() => {
         popup.remove();
-    }, 1900); // Animation is 2s, remove slightly before it ends
+    }, 1900);
 
     // 2. Trigger shake effect if needed
     if (type === 'damage' || type === 'resource') {
         targetCard.classList.add('shake-effect');
-        // Remove class after animation so it can be re-triggered
         setTimeout(() => {
             targetCard.classList.remove('shake-effect');
-        }, 500); // CSS animation-duration is 0.5s
+        }, 500);
     }
 }
 
@@ -277,7 +279,6 @@ function renderZoneCards(cards) {
 
         if (card.type === 'enemy') {
             healthDisplay = `<div>❤️ ${card.health}/${card.maxHealth}</div>`;
-            // Use the same logic as players for debuffs
             if (card.debuffs && card.debuffs.length > 0) {
                 effectsDisplay = '<div class="player-card-effects">';
                 card.debuffs.forEach(debuff => {
@@ -301,11 +302,9 @@ function renderZoneCards(cards) {
     });
 }
 
-// THIS FUNCTION IS UPDATED
 function getEffectsHtml(playerState) {
     let effectsHtml = '<div class="player-card-effects">';
     
-    // Add threat display
     effectsHtml += `<span>🎯 Threat: ${playerState.threat || 0}</span>`;
     
     if (playerState.buffs) {

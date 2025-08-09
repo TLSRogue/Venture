@@ -42,68 +42,62 @@ function initGame() {
     UIParty.showCharacterSelectScreen();
 }
 
-// --- VISUAL FEEDBACK HELPER (WITH DIAGNOSTICS) ---
+// --- VISUAL FEEDBACK HELPER (REVISED) ---
 /**
- * Parses new log entries to trigger visual feedback like popups and shakes.
- * This version is updated based on the actual combat logs provided.
+ * Parses new log entries and returns an array of visual effects to be played.
+ * It no longer directly manipulates the DOM.
  * @param {Array<object>} logEntries - An array of new log entry objects.
+ * @returns {Array<object>} A list of effect objects to be played.
  */
-function processLogForFeedback(logEntries) {
-    if (logEntries.length > 0) {
-        console.log(`Checking ${logEntries.length} new log entries for feedback triggers...`);
-    }
-
+function getEffectsFromLog(logEntries) {
+    const effects = [];
     logEntries.forEach(entry => {
         let match;
 
         // PATTERN 1: Simple damage log (e.g., "Dealt 1 damage to Chicken.")
         match = entry.message.match(/Dealt (\d+) damage to (.+?)\./);
         if (match) {
-            console.log("SUCCESS: Matched 'Simple Damage' pattern.", entry.message);
             const damage = match[1];
             const targetName = match[2];
-            UIAdventure.showCombatFeedback({ targetName, type: 'damage', text: `-${damage}` });
-            return; // Exit after finding a match
+            effects.push({ targetName, type: 'damage', text: `-${damage}` });
+            return;
         }
 
         // PATTERN 2: Complex player attack with damage (e.g., "...attacks Pig... Hit! Dealt 3 Physical damage.")
         match = entry.message.match(/(.+) attacks (.+?) with .* Hit! Dealt (\d+)/);
         if (match) {
-            console.log("SUCCESS: Matched 'Complex Damage' pattern.", entry.message);
             const targetName = match[2];
             const damage = match[3];
-            UIAdventure.showCombatFeedback({ targetName, type: 'damage', text: `-${damage}` });
+            effects.push({ targetName, type: 'damage', text: `-${damage}` });
             return;
         }
 
         // PATTERN 3: Simple spell success (e.g., "...casting Punch: ... Success!")
         match = entry.message.match(/(.+) casting .*:.* Success!/);
         if (match) {
-            console.log("SUCCESS: Matched 'Spell Success' pattern.", entry.message);
             const casterName = match[1];
-            UIAdventure.showCombatFeedback({ targetName: casterName, type: 'success', text: 'Success!' });
+            effects.push({ targetName: casterName, type: 'success', text: 'Success!' });
             return;
         }
 
         // PATTERN 4: Spell fizzle / Critical Failure
         match = entry.message.match(/(.+?) (?:attacks|casting).*(?:Critical Failure|fizzles)!/);
         if (match) {
-            console.log("SUCCESS: Matched 'Fizzle/Fail' pattern.", entry.message);
             const casterName = match[1];
-            UIAdventure.showCombatFeedback({ targetName: casterName, type: 'fail', text: 'Fail!' });
+            effects.push({ targetName: casterName, type: 'fail', text: 'Fail!' });
             return;
         }
 
         // PATTERN 5: Healing (e.g., "Healed Player for 5 HP.")
         match = entry.message.match(/Healed (.+?) for (\d+) HP/);
         if (match) {
-            console.log("SUCCESS: Matched 'Healing' pattern.", entry.message);
             const targetName = match[1];
             const amount = match[2];
-            UIAdventure.showCombatFeedback({ targetName, type: 'heal', text: `+${amount}` });
+            effects.push({ targetName, type: 'heal', text: `+${amount}` });
             return;
         }
     });
+    return effects;
 }
 
 
@@ -239,15 +233,15 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     if (reactionModalIsOpen && !isReactionPendingForMe) {
         UIMain.hideModal();
     }
-
-    // Process feedback BEFORE rendering
+    
+    // --- REVISED LOGIC ---
+    // 1. Determine which effects need to play from the new logs
     const logContainer = document.getElementById('adventure-log');
     const existingLogCount = logContainer.children.length;
     const newLogEntries = serverAdventureState.log.slice(existingLogCount);
+    const effectsToPlay = getEffectsFromLog(newLogEntries);
 
-    processLogForFeedback(newLogEntries);
-
-    // Update state and render UI
+    // 2. Update state and render the UI (this wipes and redraws the cards)
     gameState.zoneCards = serverAdventureState.zoneCards;
     gameState.partyMemberStates = serverAdventureState.partyMemberStates;
     gameState.groundLoot = serverAdventureState.groundLoot;
@@ -257,6 +251,12 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     UIAdventure.renderAdventureScreen();
     UIPlayer.updateDisplay();
     UIAdventure.renderPlayerActionBars(); 
+
+    // 3. NOW, play the effects on the newly rendered cards
+    if (effectsToPlay.length > 0) {
+        UIAdventure.playEffectQueue(effectsToPlay);
+    }
+    // --- END REVISED LOGIC ---
 
     const groundLootModal = document.getElementById('ground-loot-modal');
     if (groundLootModal && !groundLootModal.closest('.modal-overlay').classList.contains('hidden')) {
@@ -310,8 +310,13 @@ function handleDuelStart(duelState) {
 }
 
 function handleDuelUpdate(duelState) {
+    // This function can also be updated with the new effect logic
+    const logContainer = document.getElementById('adventure-log');
+    const existingLogCount = logContainer.children.length;
+    const newLogEntries = duelState.log.slice(existingLogCount);
+    const effectsToPlay = getEffectsFromLog(newLogEntries);
+
     gameState.duelState = duelState;
-    
     const opponent = duelState.player1.id === Network.socket.id ? duelState.player2 : duelState.player1;
     if (gameState.zoneCards[0] && gameState.zoneCards[0].isDuelOpponent) {
         gameState.zoneCards[0].health = opponent.health;
@@ -319,18 +324,15 @@ function handleDuelUpdate(duelState) {
         gameState.zoneCards[0].debuffs = opponent.debuffs || [];
     }
     
-    const logContainer = document.getElementById('adventure-log');
-    const existingLogCount = logContainer.children.length;
-    const newLogEntries = duelState.log.slice(existingLogCount);
-
-    // Also apply feedback to duels
-    processLogForFeedback(newLogEntries);
-
     newLogEntries.reverse().forEach(entry => UIMain.addToLog(entry.message, entry.type));
     
     UIAdventure.renderAdventureScreen();
     UIPlayer.updateDisplay();
     UIAdventure.renderPlayerActionBars();
+
+    if (effectsToPlay.length > 0) {
+        UIAdventure.playEffectQueue(effectsToPlay);
+    }
 }
 
 function handleDuelEnd({ outcome, reward }) {
