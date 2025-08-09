@@ -42,55 +42,52 @@ function initGame() {
     UIParty.showCharacterSelectScreen();
 }
 
-// --- NEW HELPER FOR VISUAL FEEDBACK ---
+// --- VISUAL FEEDBACK HELPER (UPDATED) ---
 /**
  * Parses new log entries to trigger visual feedback like popups and shakes.
- * Note: This relies on specific phrasing in the server's log messages. 
- * If server logs change, these regular expressions may need to be updated.
+ * This version is updated based on the actual combat logs provided.
  * @param {Array<object>} logEntries - An array of new log entry objects.
  */
 function processLogForFeedback(logEntries) {
     logEntries.forEach(entry => {
-        // --- ADD THIS LINE FOR DEBUGGING ---
-        console.log("Log Check:", entry.message); 
-        
         let match;
 
-        // Player/Enemy Damage (e.g., "...hits Goblin for 3 damage!")
-        match = entry.message.match(/hits (.+?) for (\d+) damage/);
+        // PATTERN 1: Simple damage log (e.g., "Dealt 1 damage to Chicken.")
+        match = entry.message.match(/Dealt (\d+) damage to (.+?)\./);
         if (match) {
-            const targetName = match[1];
-            const damage = match[2];
+            const damage = match[1];
+            const targetName = match[2];
+            UIAdventure.showCombatFeedback({ targetName, type: 'damage', text: `-${damage}` });
+            return; // Exit after finding a match
+        }
+
+        // PATTERN 2: Complex player attack with damage (e.g., "...attacks Pig... Hit! Dealt 3 Physical damage.")
+        match = entry.message.match(/(.+) attacks (.+?) with .* Hit! Dealt (\d+)/);
+        if (match) {
+            const targetName = match[2];
+            const damage = match[3];
             UIAdventure.showCombatFeedback({ targetName, type: 'damage', text: `-${damage}` });
             return;
         }
 
-        // Player Damage (e.g., "Player attacks Goblin... Hit! Dealt 2 ... damage")
-        match = entry.message.match(/attacks (.+?) with .* Hit! Dealt (\d+)/);
+        // PATTERN 3: Simple spell success (e.g., "...casting Punch: ... Success!")
+        match = entry.message.match(/(.+) casting .*:.* Success!/);
         if (match) {
-            const targetName = match[1];
-            const damage = match[2];
-            UIAdventure.showCombatFeedback({ targetName, type: 'damage', text: `-${damage}` });
-            return;
-        }
-        
-        // Attack misses (e.g., "...attacks Farmer... Miss!")
-        match = entry.message.match(/attacks (.+?) with .* Miss!/);
-         if (match) {
-            const targetName = match[1];
-            UIAdventure.showCombatFeedback({ targetName, type: 'miss', text: 'Miss!' });
+            const casterName = match[1];
+            // Show a simple success message over the caster
+            UIAdventure.showCombatFeedback({ targetName: casterName, type: 'success', text: 'Success!' });
             return;
         }
 
-        // Spell fizzles or critical failure
-        match = entry.message.match(/(.+?) (?:attacks|casting).*(Critical Failure|fizzles)!/);
-        if(match) {
+        // PATTERN 4: Spell fizzle / Critical Failure
+        match = entry.message.match(/(.+?) (?:attacks|casting).*(?:Critical Failure|fizzles)!/);
+        if (match) {
             const casterName = match[1];
             UIAdventure.showCombatFeedback({ targetName: casterName, type: 'fail', text: 'Fail!' });
             return;
         }
 
-        // Healing (e.g., "Healed Player for 5 HP.")
+        // PATTERN 5: Healing (e.g., "Healed Player for 5 HP.")
         match = entry.message.match(/Healed (.+?) for (\d+) HP/);
         if (match) {
             const targetName = match[1];
@@ -98,15 +95,9 @@ function processLogForFeedback(logEntries) {
             UIAdventure.showCombatFeedback({ targetName, type: 'heal', text: `+${amount}` });
             return;
         }
-        
-        // Resource gathering success (e.g., "Player's gathering attempt... Success!")
-        match = entry.message.match(/(.+?)'s gathering attempt:.* Success!/);
-        if(match) {
-            const casterName = match[1];
-            UIAdventure.showCombatFeedback({ targetName: casterName, type: 'success', text: 'Success!' });
-            // Future improvement: Shake the resource node itself.
-            return;
-        }
+
+        // Note: Miss logs like "Chicken misses its attack." from your logs don't specify a target,
+        // so we cannot create a popup on the card that was missed.
     });
 }
 
