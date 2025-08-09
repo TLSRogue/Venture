@@ -67,11 +67,13 @@ function startPvpEncounter(io, partyA, partyB) {
     // Update both parties' shared state to reflect the combined encounter
     partyA.sharedState.partyMemberStates = combinedStates;
     partyA.sharedState.pvpEncounter = encounterState;
+    partyA.sharedState.zoneCards = []; // --- FIX: Clear leftover PvE cards ---
     partyA.sharedState.log.push({ message: `You have encountered an opposing party! Battle begins!`, type: 'damage' });
     
     // Party B's state is a mirror, but pointing to Party A
     partyB.sharedState.partyMemberStates = combinedStates;
     partyB.sharedState.pvpEncounter = { ...encounterState, opponentPartyId: partyA.id };
+    partyB.sharedState.zoneCards = []; // --- FIX: Clear leftover PvE cards ---
     partyB.sharedState.log.push({ message: `You have encountered an opposing party! Battle begins!`, type: 'damage' });
     
     // Notify all players in both parties
