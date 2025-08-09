@@ -121,32 +121,13 @@ export function renderAdventureScreen() {
 
     if (gameState.inDuel) {
         renderDuelScreen();
+    } else if (gameState.partyMemberStates && gameState.pvpEncounter) { // <-- FIX: Check for PvP encounter
+        renderPvpScreen();
     } else if (gameState.partyId && gameState.partyMemberStates) {
         renderPartyScreen();
-    } else if (!gameState.partyId && gameState.currentZone) {
-        renderSoloScreen();
     }
     renderGroundLootButton();
     updateActionUI();
-}
-
-function renderSoloScreen() {
-    const partyContainer = document.getElementById('party-cards-container');
-    partyContainer.innerHTML = '';
-    
-    const playerCardEl = document.createElement('div');
-    playerCardEl.className = 'card player is-local-player';
-    playerCardEl.dataset.target = 'player';
-    let effectsHtml = getEffectsHtml(gameState);
-    playerCardEl.innerHTML = `
-        <div class="card-icon">${gameState.characterIcon}</div>
-        <div class="card-title">${gameState.characterName}</div>
-        <div>❤️ ${gameState.health}/${gameState.maxHealth}</div>
-        ${effectsHtml}
-    `;
-    partyContainer.appendChild(playerCardEl);
-
-    renderZoneCards(gameState.zoneCards);
 }
 
 function renderPartyScreen() {
@@ -191,6 +172,59 @@ function renderPartyScreen() {
         partyContainer.appendChild(cardEl);
     });
     renderZoneCards(gameState.zoneCards);
+}
+
+// --- NEW FUNCTION TO RENDER PVP ENCOUNTERS ---
+function renderPvpScreen() {
+    const partyContainer = document.getElementById('party-cards-container');
+    const zoneContainer = document.getElementById('zone-cards');
+    partyContainer.innerHTML = '';
+    zoneContainer.innerHTML = ''; // Clear PvE cards
+
+    const localPlayerState = gameState.partyMemberStates.find(p => p.playerId === socket.id);
+    if (!localPlayerState) return;
+    const localPlayerTeam = localPlayerState.team;
+
+    gameState.partyMemberStates.forEach((playerState, index) => {
+        const isFriendly = playerState.team === localPlayerTeam;
+        const container = isFriendly ? partyContainer : zoneContainer;
+        
+        const cardEl = document.createElement('div');
+        cardEl.className = 'card player';
+        if (!isFriendly) {
+            cardEl.classList.add('enemy'); // Make them targetable
+        }
+
+        if (playerState.isDead) {
+            cardEl.classList.add('dead');
+            cardEl.innerHTML = `
+                <div class="card-icon">💀</div>
+                <div class="card-title">${playerState.name}</div>
+                <div>DEFEATED</div>
+            `;
+        } else {
+            if (playerState.playerId === socket.id) {
+                cardEl.classList.add('is-local-player');
+                gameState.health = playerState.health;
+                gameState.maxHealth = playerState.maxHealth;
+            }
+            // Highlight active turn for the entire active team
+            if (gameState.pvpEncounter.activeTeam === playerState.team) {
+                cardEl.classList.add('active-turn');
+            }
+            
+            let effectsHtml = getEffectsHtml(playerState);
+            cardEl.innerHTML = `
+                <div class="card-icon">${playerState.icon}</div>
+                <div class="card-title">${playerState.name}</div>
+                <div>❤️ ${playerState.health}/${playerState.maxHealth}</div>
+                ${effectsHtml}
+            `;
+        }
+
+        cardEl.dataset.index = isFriendly ? `p${index}` : index;
+        container.appendChild(cardEl);
+    });
 }
 
 function renderDuelScreen() {
@@ -345,6 +379,11 @@ export function renderPlayerActionBars() {
             weaponCooldowns = localPlayerState.weaponCooldowns;
             spellCooldowns = localPlayerState.spellCooldowns;
             itemCooldowns = localPlayerState.itemCooldowns;
+
+            // --- FIX: In PvP, your turn is only active if it's your TEAM's turn ---
+            if (gameState.pvpEncounter) {
+                localPlayerTurnEnded = gameState.pvpEncounter.activeTeam !== localPlayerState.team;
+            }
         }
     } else if (gameState.inDuel && gameState.duelState) {
         const localPlayerState = gameState.duelState.player1.id === socket.id ? gameState.duelState.player1 : gameState.duelState.player2;

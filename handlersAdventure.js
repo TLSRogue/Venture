@@ -121,8 +121,16 @@ export const registerAdventureHandlers = (io, socket) => {
                     // Clean up the PvP state for the remaining party
                     sharedState.log.push({ message: `You have shown mercy and allowed the enemy to flee.`, type: 'info' });
                     sharedState.pvpEncounter = null;
-                    // Remove opponent players from the member states
-                    sharedState.partyMemberStates = sharedState.partyMemberStates.filter(p => p.team === 'A'); // Assuming the merciful party is always team A for now
+                    
+                    // --- FIX START ---
+                    // Dynamically find the local leader's team to correctly filter party states
+                    const localLeaderState = sharedState.partyMemberStates.find(p => p.name === party.leaderId);
+                    if (localLeaderState) {
+                        const localTeam = localLeaderState.team;
+                        sharedState.partyMemberStates = sharedState.partyMemberStates.filter(p => p.team === localTeam);
+                    }
+                    // --- FIX END ---
+
                 } else {
                     sharedState.log.push({ message: `You have denied their request for mercy.`, type: 'damage' });
                     opponentParty.sharedState.log.push({ message: `Your plea for mercy was denied!`, type: 'damage' });
