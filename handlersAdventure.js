@@ -114,18 +114,66 @@ export const registerAdventureHandlers = (io, socket) => {
                 if (!opponentParty) return;
 
                 if (action.payload.allow) {
-                    // --- REVERTED FIX START ---
-                    // Reverting to the simpler, more robust method of calling the official
-                    // processEndAdventure function for both parties now that client-side state is fixed.
-                    opponentParty.sharedState.log.push({ message: `Your plea was accepted! The encounter ends peacefully.`, type: 'success' });
-                    party.sharedState.log.push({ message: `You have shown mercy. The encounter ends peacefully.`, type: 'info' });
-
-                    await state.processEndAdventure(io, players[opponentParty.leaderId], opponentParty);
-                    await state.processEndAdventure(io, player, party);
+                    // --- NEW, ROBUST FIX START ---
+                    // This new logic handles sending both parties home safely without race conditions.
                     
-                    return;
-                    // --- REVERTED FIX END ---
+                    party.sharedState.log.push({ message: `You have shown mercy. The encounter ends peacefully, and both parties return home.`, type: 'info' });
+                    opponentParty.sharedState.log.push({ message: `Your plea was accepted! The encounter ends peacefully, and both parties return home.`, type: 'success' });
+
+                    // Broadcast the final log messages before ending the adventure.
+                    broadcastAdventureUpdate(io, party.id);
+                    broadcastAdventureUpdate(io, opponentParty.id);
+
+                    // 1. Combine all players from both parties into a single list.
+                    const allPlayersInvolved = [
+                        ...party.members.map(name => players[name]),
+                        ...opponentParty.members.map(name => players[name])
+                    ];
+
+                    // 2. Notify all players and reset their server-side character health.
+                    allPlayersInvolved.forEach(playerInstance => {
+                        if (playerInstance && playerInstance.character) {
+                            const char = playerInstance.character;
+                            const bonuses = getBonusStatsForPlayer(char, null);
+                            char.health = 10 + bonuses.maxHealth;
+                            
+                            if (playerInstance.id) {
+                                io.to(playerInstance.id).emit('characterUpdate', char);
+                                io.to(playerInstance.id).emit('party:adventureEnded');
+                            }
+                        }
+                    });
+
+                    // 3. Clean up the server state for both parties.
+                    const cleanupPartyState = (p) => {
+                        if (!p) return;
+                        if (p.isSoloParty) {
+                            const leader = players[p.leaderId];
+                            if (leader && leader.character) {
+                                leader.character.partyId = null;
+                            }
+                            delete parties[p.id];
+                        } else {
+                            p.sharedState = null;
+                        }
+                    };
+                    
+                    cleanupPartyState(party);
+                    cleanupPartyState(opponentParty);
+
+                    // 4. Update party UI for non-solo parties that are returning to the lobby.
+                    if (party && parties[party.id] && !party.isSoloParty) {
+                        broadcastPartyUpdate(io, party.id);
+                    }
+                    if (opponentParty && parties[opponentParty.id] && !opponentParty.isSoloParty) {
+                        broadcastPartyUpdate(io, opponentParty.id);
+                    }
+                    
+                    return; // End of new logic block.
+                    // --- NEW, ROBUST FIX END ---
+
                 } else {
+                    // This is the logic for denying the flee request.
                     sharedState.log.push({ message: `You have denied their request for mercy.`, type: 'damage' });
                     opponentParty.sharedState.log.push({ message: `Your plea for mercy was denied!`, type: 'damage' });
                     broadcastAdventureUpdate(io, partyId);
