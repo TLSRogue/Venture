@@ -53,18 +53,27 @@ function processLogForFeedback(logEntries) {
     logEntries.forEach(entry => {
         let match;
 
-        // Damage dealt TO a target (e.g., "...hits Goblin for 3 damage!")
-        match = entry.message.match(/It hits (.+?) for (\d+) damage!/);
+        // Player/Enemy Damage (e.g., "...hits Goblin for 3 damage!")
+        match = entry.message.match(/hits (.+?) for (\d+) damage/);
         if (match) {
             const targetName = match[1];
             const damage = match[2];
             UIAdventure.showCombatFeedback({ targetName, type: 'damage', text: `-${damage}` });
-            return; // Stop processing this log entry
+            return;
+        }
+
+        // Player Damage (e.g., "Player attacks Goblin... Hit! Dealt 2 ... damage")
+        match = entry.message.match(/attacks (.+?) with .* Hit! Dealt (\d+)/);
+        if (match) {
+            const targetName = match[1];
+            const damage = match[2];
+            UIAdventure.showCombatFeedback({ targetName, type: 'damage', text: `-${damage}` });
+            return;
         }
         
-        // Attack misses (e.g., "...attacks Farmer: Miss!")
-        match = entry.message.match(/attacks (.+?): Miss!/);
-        if (match) {
+        // Attack misses (e.g., "...attacks Farmer... Miss!")
+        match = entry.message.match(/attacks (.+?) with .* Miss!/);
+         if (match) {
             const targetName = match[1];
             UIAdventure.showCombatFeedback({ targetName, type: 'miss', text: 'Miss!' });
             return;
@@ -92,7 +101,7 @@ function processLogForFeedback(logEntries) {
         if(match) {
             const casterName = match[1];
             UIAdventure.showCombatFeedback({ targetName: casterName, type: 'success', text: 'Success!' });
-            // We also want to shake the resource node, but the log doesn't name it. This is a limitation.
+            // Future improvement: Shake the resource node itself.
             return;
         }
     });
@@ -208,7 +217,6 @@ function handlePartyAdventureStarted(serverAdventureState) {
     UIMain.setTabsDisabled(true);
     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
     
-    // This is the only line that needs changing in this file
     document.getElementById('adventure-tab').style.display = 'flex'; 
 
     document.getElementById('main-stats-display').style.display = 'none';
@@ -233,14 +241,14 @@ function handlePartyAdventureUpdate(serverAdventureState) {
         UIMain.hideModal();
     }
 
-    // --- MODIFIED: Process feedback BEFORE rendering ---
+    // Process feedback BEFORE rendering
     const logContainer = document.getElementById('adventure-log');
     const existingLogCount = logContainer.children.length;
     const newLogEntries = serverAdventureState.log.slice(existingLogCount);
 
     processLogForFeedback(newLogEntries);
-    // --- END MODIFICATION ---
 
+    // Update state and render UI
     gameState.zoneCards = serverAdventureState.zoneCards;
     gameState.partyMemberStates = serverAdventureState.partyMemberStates;
     gameState.groundLoot = serverAdventureState.groundLoot;
