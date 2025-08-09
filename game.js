@@ -42,19 +42,24 @@ function initGame() {
     UIParty.showCharacterSelectScreen();
 }
 
-// --- VISUAL FEEDBACK HELPER (UPDATED) ---
+// --- VISUAL FEEDBACK HELPER (WITH DIAGNOSTICS) ---
 /**
  * Parses new log entries to trigger visual feedback like popups and shakes.
  * This version is updated based on the actual combat logs provided.
  * @param {Array<object>} logEntries - An array of new log entry objects.
  */
 function processLogForFeedback(logEntries) {
+    if (logEntries.length > 0) {
+        console.log(`Checking ${logEntries.length} new log entries for feedback triggers...`);
+    }
+
     logEntries.forEach(entry => {
         let match;
 
         // PATTERN 1: Simple damage log (e.g., "Dealt 1 damage to Chicken.")
         match = entry.message.match(/Dealt (\d+) damage to (.+?)\./);
         if (match) {
+            console.log("SUCCESS: Matched 'Simple Damage' pattern.", entry.message);
             const damage = match[1];
             const targetName = match[2];
             UIAdventure.showCombatFeedback({ targetName, type: 'damage', text: `-${damage}` });
@@ -64,6 +69,7 @@ function processLogForFeedback(logEntries) {
         // PATTERN 2: Complex player attack with damage (e.g., "...attacks Pig... Hit! Dealt 3 Physical damage.")
         match = entry.message.match(/(.+) attacks (.+?) with .* Hit! Dealt (\d+)/);
         if (match) {
+            console.log("SUCCESS: Matched 'Complex Damage' pattern.", entry.message);
             const targetName = match[2];
             const damage = match[3];
             UIAdventure.showCombatFeedback({ targetName, type: 'damage', text: `-${damage}` });
@@ -73,8 +79,8 @@ function processLogForFeedback(logEntries) {
         // PATTERN 3: Simple spell success (e.g., "...casting Punch: ... Success!")
         match = entry.message.match(/(.+) casting .*:.* Success!/);
         if (match) {
+            console.log("SUCCESS: Matched 'Spell Success' pattern.", entry.message);
             const casterName = match[1];
-            // Show a simple success message over the caster
             UIAdventure.showCombatFeedback({ targetName: casterName, type: 'success', text: 'Success!' });
             return;
         }
@@ -82,6 +88,7 @@ function processLogForFeedback(logEntries) {
         // PATTERN 4: Spell fizzle / Critical Failure
         match = entry.message.match(/(.+?) (?:attacks|casting).*(?:Critical Failure|fizzles)!/);
         if (match) {
+            console.log("SUCCESS: Matched 'Fizzle/Fail' pattern.", entry.message);
             const casterName = match[1];
             UIAdventure.showCombatFeedback({ targetName: casterName, type: 'fail', text: 'Fail!' });
             return;
@@ -90,14 +97,12 @@ function processLogForFeedback(logEntries) {
         // PATTERN 5: Healing (e.g., "Healed Player for 5 HP.")
         match = entry.message.match(/Healed (.+?) for (\d+) HP/);
         if (match) {
+            console.log("SUCCESS: Matched 'Healing' pattern.", entry.message);
             const targetName = match[1];
             const amount = match[2];
             UIAdventure.showCombatFeedback({ targetName, type: 'heal', text: `+${amount}` });
             return;
         }
-
-        // Note: Miss logs like "Chicken misses its attack." from your logs don't specify a target,
-        // so we cannot create a popup on the card that was missed.
     });
 }
 
