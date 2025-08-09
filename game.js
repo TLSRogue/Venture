@@ -42,6 +42,63 @@ function initGame() {
     UIParty.showCharacterSelectScreen();
 }
 
+// --- NEW HELPER FOR VISUAL FEEDBACK ---
+/**
+ * Parses new log entries to trigger visual feedback like popups and shakes.
+ * Note: This relies on specific phrasing in the server's log messages. 
+ * If server logs change, these regular expressions may need to be updated.
+ * @param {Array<object>} logEntries - An array of new log entry objects.
+ */
+function processLogForFeedback(logEntries) {
+    logEntries.forEach(entry => {
+        let match;
+
+        // Damage dealt TO a target (e.g., "...hits Goblin for 3 damage!")
+        match = entry.message.match(/It hits (.+?) for (\d+) damage!/);
+        if (match) {
+            const targetName = match[1];
+            const damage = match[2];
+            UIAdventure.showCombatFeedback({ targetName, type: 'damage', text: `-${damage}` });
+            return; // Stop processing this log entry
+        }
+        
+        // Attack misses (e.g., "...attacks Farmer: Miss!")
+        match = entry.message.match(/attacks (.+?): Miss!/);
+        if (match) {
+            const targetName = match[1];
+            UIAdventure.showCombatFeedback({ targetName, type: 'miss', text: 'Miss!' });
+            return;
+        }
+
+        // Spell fizzles or critical failure
+        match = entry.message.match(/(.+?) (?:attacks|casting).*(Critical Failure|fizzles)!/);
+        if(match) {
+            const casterName = match[1];
+            UIAdventure.showCombatFeedback({ targetName: casterName, type: 'fail', text: 'Fail!' });
+            return;
+        }
+
+        // Healing (e.g., "Healed Player for 5 HP.")
+        match = entry.message.match(/Healed (.+?) for (\d+) HP/);
+        if (match) {
+            const targetName = match[1];
+            const amount = match[2];
+            UIAdventure.showCombatFeedback({ targetName, type: 'heal', text: `+${amount}` });
+            return;
+        }
+        
+        // Resource gathering success (e.g., "Player's gathering attempt... Success!")
+        match = entry.message.match(/(.+?)'s gathering attempt:.* Success!/);
+        if(match) {
+            const casterName = match[1];
+            UIAdventure.showCombatFeedback({ targetName: casterName, type: 'success', text: 'Success!' });
+            // We also want to shake the resource node, but the log doesn't name it. This is a limitation.
+            return;
+        }
+    });
+}
+
+
 // --- NETWORK HANDLERS ---
 function handleConnect(socketId) {
     console.log('Successfully connected to the server with ID:', socketId);
@@ -176,13 +233,18 @@ function handlePartyAdventureUpdate(serverAdventureState) {
         UIMain.hideModal();
     }
 
+    // --- MODIFIED: Process feedback BEFORE rendering ---
+    const logContainer = document.getElementById('adventure-log');
+    const existingLogCount = logContainer.children.length;
+    const newLogEntries = serverAdventureState.log.slice(existingLogCount);
+
+    processLogForFeedback(newLogEntries);
+    // --- END MODIFICATION ---
+
     gameState.zoneCards = serverAdventureState.zoneCards;
     gameState.partyMemberStates = serverAdventureState.partyMemberStates;
     gameState.groundLoot = serverAdventureState.groundLoot;
     
-    const logContainer = document.getElementById('adventure-log');
-    const existingLogCount = logContainer.children.length;
-    const newLogEntries = serverAdventureState.log.slice(existingLogCount);
     newLogEntries.reverse().forEach(entry => UIMain.addToLog(entry.message, entry.type));
     
     UIAdventure.renderAdventureScreen();
@@ -253,6 +315,10 @@ function handleDuelUpdate(duelState) {
     const logContainer = document.getElementById('adventure-log');
     const existingLogCount = logContainer.children.length;
     const newLogEntries = duelState.log.slice(existingLogCount);
+
+    // Also apply feedback to duels
+    processLogForFeedback(newLogEntries);
+
     newLogEntries.reverse().forEach(entry => UIMain.addToLog(entry.message, entry.type));
     
     UIAdventure.renderAdventureScreen();

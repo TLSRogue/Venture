@@ -1013,6 +1013,41 @@ hr {
     margin-bottom: 5px;
 }
 
+/* --- NEW: Combat Feedback Animations --- */
+.combat-feedback-popup {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2em;
+    font-weight: bold;
+    pointer-events: none;
+    text-shadow: 2px 2px 3px black;
+    animation: combat-popup 2s ease-out forwards;
+    z-index: 10;
+}
+
+.popup-damage { color: var(--danger-color); }
+.popup-heal { color: var(--success-color); }
+.popup-miss, .popup-fail { color: #95a5a6; }
+.popup-success { color: var(--accent-color); }
+.popup-resource { color: #27ae60; }
+
+.shake-effect {
+    animation: shake 0.5s ease-in-out;
+}
+
+
+@keyframes combat-popup {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -150%) scale(0.8);
+    }
+}
 
 @keyframes pulse {
     0% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7); }

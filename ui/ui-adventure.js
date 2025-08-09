@@ -63,6 +63,47 @@ function addActionTooltipListener(element, itemOrSpell) {
     element.addEventListener('mouseleave', hideTooltip);
 }
 
+// --- NEW: Function to trigger combat animations ---
+export function showCombatFeedback({ targetName, type, text }) {
+    const allCards = document.querySelectorAll('#adventure-board .card');
+    let targetCard = null;
+
+    for (const card of allCards) {
+        const titleEl = card.querySelector('.card-title');
+        if (titleEl && titleEl.textContent.trim() === targetName) {
+            targetCard = card;
+            break;
+        }
+    }
+
+    if (!targetCard) {
+        console.warn(`Could not find card for target: ${targetName}`);
+        return;
+    }
+
+    // 1. Create and animate the popup
+    const popup = document.createElement('div');
+    popup.className = `combat-feedback-popup popup-${type}`;
+    popup.textContent = text;
+    
+    // Append to the card so its position is relative to the card
+    targetCard.appendChild(popup);
+    
+    // Remove the element after the animation finishes
+    setTimeout(() => {
+        popup.remove();
+    }, 1900); // Animation is 2s, remove slightly before it ends
+
+    // 2. Trigger shake effect if needed
+    if (type === 'damage' || type === 'resource') {
+        targetCard.classList.add('shake-effect');
+        // Remove class after animation so it can be re-triggered
+        setTimeout(() => {
+            targetCard.classList.remove('shake-effect');
+        }, 500); // CSS animation-duration is 0.5s
+    }
+}
+
 // --- ADVENTURE SCREEN RENDERING ---
 
 export function renderAdventureScreen() {
