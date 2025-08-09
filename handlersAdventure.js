@@ -114,30 +114,24 @@ export const registerAdventureHandlers = (io, socket) => {
                 if (!opponentParty) return;
 
                 if (action.payload.allow) {
-                    opponentParty.sharedState.log.push({ message: `Your plea was accepted! You are allowed to flee.`, type: 'success' });
-                    // End the adventure for the fleeing party without a fight
-                    await state.processEndAdventure(io, players[opponentParty.leaderId], opponentParty);
-                    
-                    // Clean up the PvP state for the remaining party
-                    sharedState.log.push({ message: `You have shown mercy and allowed the enemy to flee.`, type: 'info' });
-                    sharedState.pvpEncounter = null;
-                    
-                    // --- FIX START ---
-                    // Dynamically find the local leader's team to correctly filter party states
-                    const localLeaderState = sharedState.partyMemberStates.find(p => p.name === party.leaderId);
-                    if (localLeaderState) {
-                        const localTeam = localLeaderState.team;
-                        sharedState.partyMemberStates = sharedState.partyMemberStates.filter(p => p.team === localTeam);
-                    }
-                    // --- FIX END ---
+                    // --- FIX START: Send BOTH parties home for a clean reset ---
+                    opponentParty.sharedState.log.push({ message: `Your plea was accepted! The encounter ends peacefully.`, type: 'success' });
+                    party.sharedState.log.push({ message: `You have shown mercy. The encounter ends peacefully.`, type: 'info' });
 
+                    // End the adventure for the fleeing party.
+                    await state.processEndAdventure(io, players[opponentParty.leaderId], opponentParty);
+                    // ALSO end the adventure for the party that granted mercy.
+                    await state.processEndAdventure(io, player, party);
+                    
+                    // No further action needed, both parties are now out of the adventure.
+                    return;
+                    // --- FIX END ---
                 } else {
                     sharedState.log.push({ message: `You have denied their request for mercy.`, type: 'damage' });
                     opponentParty.sharedState.log.push({ message: `Your plea for mercy was denied!`, type: 'damage' });
+                    broadcastAdventureUpdate(io, partyId);
+                    broadcastAdventureUpdate(io, opponentParty.id);
                 }
-
-                broadcastAdventureUpdate(io, partyId);
-                broadcastAdventureUpdate(io, opponentParty.id);
                 return;
             }
 
