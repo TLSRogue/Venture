@@ -63,8 +63,10 @@ function addActionTooltipListener(element, itemOrSpell) {
     element.addEventListener('mouseleave', hideTooltip);
 }
 
-// --- NEW: Function to trigger combat animations ---
+// --- Function to trigger combat animations (WITH DIAGNOSTICS) ---
 export function showCombatFeedback({ targetName, type, text }) {
+    console.log(`--- Trying to show feedback: Looking for card named '${targetName}' ---`);
+
     const allCards = document.querySelectorAll('#adventure-board .card');
     let targetCard = null;
 
@@ -75,9 +77,11 @@ export function showCombatFeedback({ targetName, type, text }) {
             break;
         }
     }
+    
+    console.log("Target card element found:", targetCard); // This will show the HTML element or 'null'
 
     if (!targetCard) {
-        console.warn(`Could not find card for target: ${targetName}`);
+        console.error(`Could not find card for target: ${targetName}`);
         return;
     }
 
