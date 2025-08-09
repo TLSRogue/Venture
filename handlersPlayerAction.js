@@ -7,7 +7,7 @@
 
 import { players, parties } from './serverState.js';
 import { gameData } from './game-data.js';
-import { addItemToInventoryServer, playerHasMaterials, consumeMaterials, checkAndRotateMerchantStock } from './utilsHelpers.js';
+import { addItemToInventoryServer, playerHasMaterials, consumeMaterials, checkAndRotateMerchantStock, getBonusStatsForPlayer } from './utilsHelpers.js';
 
 export const registerPlayerActionHandlers = (io, socket) => {
     socket.on('playerAction', (action) => {
@@ -182,6 +182,12 @@ export const registerPlayerActionHandlers = (io, socket) => {
                     const { index } = payload;
                     const item = character.inventory[index];
                     if (!item || item.type !== 'consumable') break;
+
+                    // --- FIX: Prevent use of combat consumables outside of combat ---
+                    if (item.cost > 0) {
+                        console.log(`Action blocked: Attempted to use combat item '${item.name}' at home.`);
+                        break; 
+                    }
 
                     if (item.heal) {
                         const bonuses = getBonusStatsForPlayer(character, null);
