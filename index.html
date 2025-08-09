@@ -218,8 +218,22 @@
         <div id="adventure-log" class="log"></div>
     </div>
 
-    <div id="modal" class="modal-overlay">
+    <div id="modal" class="modal-overlay hidden">
         <div id="modal-content" class="modal-content"></div>
+    </div>
+
+    <div id="loot-roll-container" class="loot-roll-container hidden">
+        <h3>Loot Roll</h3>
+        <div id="loot-item-display">
+            </div>
+        <p class="loot-timer">Time remaining: <span id="loot-timer-display">60</span>s</p>
+        <div id="loot-roll-list">
+            </div>
+        <div class="action-buttons">
+            <button id="loot-need-btn" class="btn btn-success" data-choice="need">Need</button>
+            <button id="loot-greed-btn" class="btn btn-primary" data-choice="greed">Greed</button>
+            <button id="loot-pass-btn" class="btn" data-choice="pass">Pass</button>
+        </div>
     </div>
 
     <script type="module" src="game.js"></script>

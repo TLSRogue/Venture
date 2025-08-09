@@ -65,12 +65,13 @@ export const registerAdventureHandlers = (io, socket) => {
                     weaponCooldowns: {},
                     spellCooldowns: {},
                     itemCooldowns: {},
-                    threat: 0, // Add this line to track threat
+                    threat: 0,
                     focus: 0,
                 };
             }),
             log: [{ message: `Party has entered the ${zoneName}!`, type: 'info' }],
-            pendingReaction: null
+            pendingReaction: null,
+            pendingLootRoll: null, // Initialize loot roll state
         };
         
         if (zoneName === 'arena') {
@@ -105,6 +106,38 @@ export const registerAdventureHandlers = (io, socket) => {
         if (!party) return;
 
         try {
+            // --- NEW: Handle Loot Roll Submission ---
+            if (action.type === 'submitLootRoll') {
+                const { sharedState } = party;
+                const rollData = sharedState.pendingLootRoll;
+
+                // Validations: ensure a roll is active and player hasn't already rolled
+                if (!rollData || rollData.rolls.some(r => r.playerName === name)) {
+                    return;
+                }
+                
+                const choice = action.payload.choice;
+                const rollValue = choice === 'pass' ? 0 : Math.floor(Math.random() * 100) + 1;
+
+                rollData.rolls.push({ playerName: name, choice, roll: rollValue });
+                
+                if (choice !== 'pass') {
+                    sharedState.log.push({ message: `${name} rolls ${rollValue} (${choice}) for [${rollData.item.name}].`, type: 'info' });
+                } else {
+                    sharedState.log.push({ message: `${name} passes on [${rollData.item.name}].`, type: 'info' });
+                }
+                
+                // Check if all living players have rolled
+                const livingPlayers = sharedState.partyMemberStates.filter(p => !p.isDead).length;
+                if (rollData.rolls.length >= livingPlayers) {
+                    // End roll early
+                    state.determineLootWinnerAndDistribute(io, partyId);
+                }
+                
+                broadcastAdventureUpdate(io, partyId); // This will update the UI for everyone
+                return;
+            }
+            
             if (action.type === 'resolveReaction') {
                 await state.handleResolveReaction(io, socket, action.payload);
                 return; 

@@ -5,7 +5,56 @@ import { gameData } from '../game-data.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer } from '../utilsHelpers.js';
 
-// --- HELPER FUNCTIONS (Moved here as they are tightly coupled to adventure state) ---
+// --- LOOT ROLL LOGIC ---
+/**
+ * Determines the winner of a loot roll and distributes the item.
+ * This is called by a timeout when the loot roll timer expires.
+ */
+export function determineLootWinnerAndDistribute(io, partyId) {
+    const party = parties[partyId];
+    if (!party || !party.sharedState || !party.sharedState.pendingLootRoll) {
+        return;
+    }
+
+    const rollData = party.sharedState.pendingLootRoll;
+    let winner = null;
+
+    // Separate rolls into need and greed lists
+    const needRolls = rollData.rolls.filter(r => r.choice === 'need');
+    const greedRolls = rollData.rolls.filter(r => r.choice === 'greed');
+
+    if (needRolls.length > 0) {
+        // Highest need roll wins
+        winner = needRolls.reduce((highest, current) => (current.roll > highest.roll ? current : highest), needRolls[0]);
+    } else if (greedRolls.length > 0) {
+        // If no one needs, highest greed roll wins
+        winner = greedRolls.reduce((highest, current) => (current.roll > highest.roll ? current : highest), greedRolls[0]);
+    }
+
+    if (winner) {
+        const winnerPlayer = players[winner.playerName];
+        if (winnerPlayer && addItemToInventoryServer(winnerPlayer.character, rollData.item, 1, party.sharedState.groundLoot)) {
+            party.sharedState.log.push({ message: `${winner.playerName} won ${rollData.item.name} with a roll of ${winner.roll} (${winner.choice}).`, type: 'success' });
+            io.to(winnerPlayer.id).emit('characterUpdate', winnerPlayer.character);
+        } else if (winnerPlayer) {
+            party.sharedState.log.push({ message: `${winner.playerName} won ${rollData.item.name}, but their inventory was full! The item was dropped on the ground.`, type: 'damage' });
+        }
+    } else {
+        party.sharedState.log.push({ message: `Nobody rolled for ${rollData.item.name}.`, type: 'info' });
+    }
+
+    // Clean up and notify clients
+    party.sharedState.pendingLootRoll = null;
+    party.members.forEach(memberName => {
+        const member = players[memberName];
+        if (member && member.id) {
+            io.to(member.id).emit('party:lootRollEnded');
+        }
+    });
+}
+
+
+// --- HELPER FUNCTIONS ---
 
 export async function checkAndEndTurnForPlayer(io, party, player) {
     const partyId = party.id;
@@ -26,25 +75,81 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     const { sharedState } = party;
     sharedState.log.push({ message: `${enemy.name} has been defeated!`, type: 'success' });
 
-    let rolledLootItems = [];
+    let lootToDistribute = [];
+
+    // --- Gather Rolled Loot ---
     if (enemy.lootTable && enemy.lootTable.length > 0) {
         const roll = Math.floor(Math.random() * 20) + 1;
         const lootDrop = enemy.lootTable.find(entry => roll >= entry.range[0] && roll <= entry.range[1]);
 
         if (lootDrop) {
             if (lootDrop.items && lootDrop.items.length > 0) {
-                rolledLootItems.push(...lootDrop.items);
+                lootDrop.items.forEach(itemName => {
+                    const itemData = gameData.allItems.find(i => i.name === itemName);
+                    if (itemData) lootToDistribute.push(itemData);
+                });
             }
             if (lootDrop.randomItems && lootDrop.randomItems.pool) {
                 for (let i = 0; i < lootDrop.randomItems.count; i++) {
                     const randomItemName = lootDrop.randomItems.pool[Math.floor(Math.random() * lootDrop.randomItems.pool.length)];
-                    rolledLootItems.push(randomItemName);
+                    const itemData = gameData.allItems.find(i => i.name === randomItemName);
+                    if (itemData) lootToDistribute.push(itemData);
                 }
             }
         }
     }
-    const rolledLootObjects = rolledLootItems.map(name => gameData.allItems.find(i => i.name === name)).filter(Boolean);
+    
+    // --- Gather Guaranteed Loot ---
+    if (enemy.guaranteedLoot && enemy.guaranteedLoot.items) {
+        enemy.guaranteedLoot.items.forEach(itemName => {
+            const itemData = gameData.allItems.find(i => i.name === itemName);
+            if (itemData) lootToDistribute.push(itemData);
+        });
+    }
 
+    // --- NEW: Process and Distribute Loot ---
+    lootToDistribute.forEach(itemData => {
+        if (itemData.rarity === 'uncommon' || itemData.rarity === 'rare') {
+            // If a roll is already happening, add to ground to simplify. A real implementation might queue rolls.
+            if (sharedState.pendingLootRoll) {
+                sharedState.groundLoot.push(itemData);
+                sharedState.log.push({ message: `Found ${itemData.name}, but a roll is in progress. Item dropped to the ground.`, type: 'info' });
+            } else {
+                // Trigger a new loot roll
+                sharedState.log.push({ message: `Party found: [${itemData.name}]! A roll will begin.`, type: 'success' });
+                sharedState.pendingLootRoll = {
+                    item: itemData,
+                    rolls: [],
+                    endTime: Date.now() + 60000, // 60 second timer
+                };
+                
+                party.members.forEach(memberName => {
+                    const member = players[memberName];
+                    if (member && member.id) {
+                        io.to(member.id).emit('party:lootRollStarted', sharedState.pendingLootRoll);
+                    }
+                });
+
+                // Set a timer to automatically determine the winner
+                setTimeout(() => {
+                    determineLootWinnerAndDistribute(io, party.id);
+                }, 60000);
+            }
+        } else {
+            // For common items, distribute to everyone
+            party.members.forEach(memberName => {
+                const member = players[memberName];
+                if (member && member.character) {
+                    if (!addItemToInventoryServer(member.character, itemData, 1, sharedState.groundLoot)) {
+                        sharedState.log.push({ message: `${itemData.name} dropped, but ${memberName}'s inventory is full! It was left on the ground.`, type: 'damage' });
+                    }
+                }
+            });
+            sharedState.log.push({ message: `${enemy.name} dropped: ${itemData.name}! (Distributed to all)`, type: 'success' });
+        }
+    });
+
+    // --- Process Quests and Gold (as before) ---
     party.members.forEach(memberName => {
         const member = players[memberName];
         if (!member || !member.character) return;
@@ -65,37 +170,12 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
             const goldPerPlayer = Math.floor(goldAmount / party.members.length);
             character.gold += goldPerPlayer;
         }
-
-        if (enemy.guaranteedLoot && enemy.guaranteedLoot.items) {
-            enemy.guaranteedLoot.items.forEach(itemName => {
-                 const itemData = gameData.allItems.find(i => i.name === itemName);
-                 if (itemData) {
-                    if (!addItemToInventoryServer(character, itemData, 1, sharedState.groundLoot)) {
-                        sharedState.log.push({ message: `${itemName} dropped, but your inventory is full! It was left on the ground.`, type: 'damage'});
-                    }
-                 }
-            });
-        }
         
-        if(rolledLootObjects.length > 0) {
-            rolledLootObjects.forEach(itemData => {
-                if (!addItemToInventoryServer(character, itemData, 1, sharedState.groundLoot)) {
-                     sharedState.log.push({ message: `${itemData.name} dropped, but your inventory is full! It was left on the ground.`, type: 'damage'});
-                }
-            });
-        }
-
         if (member.id) io.to(member.id).emit('characterUpdate', character);
     });
     
     if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
         sharedState.log.push({ message: `${enemy.name} dropped gold, which was split among the party.`, type: 'success'});
-    }
-     if (enemy.guaranteedLoot && enemy.guaranteedLoot.items) {
-        sharedState.log.push({ message: `${enemy.name} dropped: ${enemy.guaranteedLoot.items.join(', ')}!`, type: 'success'});
-    }
-    if (rolledLootItems.length > 0) {
-        sharedState.log.push({ message: `${enemy.name} also dropped: ${rolledLootItems.join(', ')}!`, type: 'success' });
     }
 
     sharedState.zoneCards[enemyIndex] = null;
