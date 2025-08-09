@@ -6,6 +6,35 @@
 
 export const gameData = {
     allItems: [
+        // --- NEW: High-Tier Materials for PvP Zone ---
+        {
+            name: "Obsidian Chunk",
+            price: 150,
+            type: "material",
+            description: "A shard of razor-sharp volcanic glass, pulsating with heat.",
+            icon: "🖤",
+            rarity: "rare",
+            canBeInMerchantWares: false,
+        },
+        {
+            name: "Ashenwood Log",
+            price: 120,
+            type: "material",
+            description: "A petrified, soot-blackened log from a tree that survived the wastes.",
+            icon: "🪵",
+            rarity: "rare",
+            canBeInMerchantWares: false,
+        },
+        {
+            name: "Drake Scale",
+            price: 200,
+            type: "material",
+            description: "An iridescent, incredibly durable scale from a drake.",
+            icon: "鱗",
+            rarity: "rare",
+            canBeInMerchantWares: false,
+        },
+
         // --- Consumables ---
         {
             name: "Healing Potion",
@@ -1056,6 +1085,52 @@ export const gameData = {
                     { range: [11, 20], items: ["Magna Clavis"] }
                 ]
             }, count: 1},
+        ],
+        
+        // --- NEW: PvP Zone Card Pool ---
+        blighted_wastes: [
+            { card: { 
+                name: "Wary Scout", 
+                type: "npc", 
+                description: "'Be careful out there. This land is cursed, and its guardians aren't the only thing you have to worry about.'", 
+                icon: "🤠",
+            }, count: 1 },
+            { card: { 
+                name: "Doomsayer", 
+                type: "npc", 
+                description: "'They come seeking treasure, but all they find is their own greed... and the end of their journey.'", 
+                icon: "🔮",
+            }, count: 1 },
+            { card: { 
+                name: "Ashfang Stalker", type: "enemy", health: 18, maxHealth: 18, description: "A shadowy beast that moves through the ash.", icon: "🐺",
+                attackTable: [
+                    { range: [1, 5], action: 'miss', message: "Misses!" },
+                    { range: [6, 15], action: 'attack', damage: 4, damageType: 'Physical', message: "Claw! Deals 4 Physical Damage!" },
+                    { range: [16, 20], action: 'attack', damage: 3, damageType: 'Physical', debuff: { type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' }, message: "Hamstring! Deals 3 Physical Damage and applies a heavy Bleed!" }
+                ],
+                lootTable: [ { range: [1, 20], randomItems: { pool: ['Drake Scale', 'Obsidian Chunk'], count: 1 } } ]
+            }, count: 6 },
+            { card: { 
+                name: "Cinderhulk", type: "enemy", health: 25, maxHealth: 25, description: "A hulking elemental of magma and rock.", icon: "👹",
+                attackTable: [
+                    { range: [1, 5], action: 'miss', message: "Misses!" },
+                    { range: [6, 15], action: 'attack', damage: 5, damageType: 'Physical', message: "Slam! Deals 5 Physical Damage!" },
+                    { range: [16, 20], action: 'attack', damage: 4, damageType: 'Fire', debuff: { type: 'burn', duration: 2, damage: 2, damageType: 'Fire' }, message: "Immolate! Deals 4 Fire Damage and applies Burn!" }
+                ],
+                lootTable: [ { range: [1, 20], items: ["Obsidian Chunk", "Obsidian Chunk"] } ]
+            }, count: 4 },
+             { card: { 
+                name: "Lava Drake", type: "enemy", health: 22, maxHealth: 22, description: "A lesser drake that breathes searing flames.", icon: "🐲",
+                attackTable: [
+                    { range: [1, 5], action: 'miss', message: "Misses!" },
+                    { range: [6, 15], action: 'attack', damage: 6, damageType: 'Fire', message: "Fire Breath! Deals 6 Fire Damage!" },
+                    { range: [16, 20], action: 'special', message: "Tail Swipe! Hits all party members for 3 damage!" }
+                ],
+                lootTable: [ { range: [1, 20], items: ["Drake Scale", "Drake Scale"] } ]
+            }, count: 2 },
+            { card: { name: "Obsidian Vein", type: "resource", skill: "mining", description: "Requires Mining Pickaxe (T2)", loot: {name: "Obsidian Chunk"}, tool: "Steel Pickaxe (T2)", icon: "💎" }, count: 5 },
+            { card: { name: "Ashenwood Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Axe (T2)", loot: {name: "Ashenwood Log"}, tool: "Steel Axe (T2)", icon: "🌳" }, count: 5 },
+            { card: { name: "Rare Treasure", type: "treasure", description: "A heavily locked chest.", icon: "👑" }, count: 2 },
         ],
     },
 

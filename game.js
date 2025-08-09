@@ -38,6 +38,8 @@ function initGame() {
         // Loot Roll Listeners
         onPartyLootRollStarted: handleLootRollStarted,
         onPartyLootRollEnded: handleLootRollEnded,
+        // PvP Flee Listener
+        onPartyPvpFleeRequest: handlePvpFleeRequest,
         // Duel Listeners
         onDuelReceiveChallenge: handleDuelReceiveChallenge,
         onDuelStart: handleDuelStart,
@@ -183,7 +185,7 @@ function handlePartyAdventureStarted(serverAdventureState) {
 
     document.getElementById('main-stats-display').style.display = 'none';
     document.getElementById('adventure-hud').style.display = 'flex';
-    document.getElementById('player-action-bar').style.display = 'flex';
+    document.getElementById('player-action-bar').style.display = 'block';
     document.getElementById('adventure-log-container').style.display = 'block';
 
     UIAdventure.renderAdventureScreen();
@@ -230,7 +232,7 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     }
 }
 
-// --- DUEL & LOOT ROLL HANDLERS ---
+// --- DUEL, LOOT, & PVP HANDLERS ---
 function handleDuelReceiveChallenge({ challengerName, challengerId }) {
     UIMain.showConfirmationModal(`${challengerName} has challenged you to a duel! Accept?`, () => {
         Network.emitDuelAccept(challengerId);
@@ -298,6 +300,22 @@ function handleLootRollEnded() {
     document.getElementById('loot-roll-container').classList.add('hidden');
 }
 
+function handlePvpFleeRequest({ fleeingPartyName }) {
+    const message = `The opposing party has requested to flee the battle. Do you let them go?`;
+    
+    const onYes = () => {
+        Network.emitPartyAction({ type: 'resolvePvpFlee', payload: { allow: true } });
+        UIMain.hideModal();
+    };
+
+    const onNo = () => {
+        Network.emitPartyAction({ type: 'resolvePvpFlee', payload: { allow: false } });
+        UIMain.hideModal();
+    };
+
+    UIMain.showDecisionModal(message, onYes, onNo);
+}
+
 function updateLootRollUI(lootData) {
     const container = document.getElementById('loot-roll-container');
     if (!lootData) {
@@ -321,6 +339,7 @@ function updateLootRollUI(lootData) {
         }
     });
 }
+
 
 // --- CHARACTER MANAGEMENT ---
 function loadCharacterFromServer(slotIndex) {
@@ -424,12 +443,7 @@ function addEventListeners() {
             return Merchant.buyItem(identifier, isPermanent);
         }
 
-        if (target.closest('#ground-loot-btn')) return UIAdventure.showGroundLootModal();
-        if (target.closest('#backpack-btn')) return UIAdventure.showBackpack();
-        if (target.closest('#character-sheet-btn')) return UIAdventure.showCharacterSheet();
-        if (target.closest('#end-turn-btn')) return gameState.inDuel ? Network.emitDuelAction({ type: 'endTurn' }) : Combat.endTurn();
-        if (target.closest('#return-home-arrow')) return Player.returnToHome();
-        if (target.closest('#venture-deeper-arrow')) return ventureDeeper();
+        // Zone Selection Click Handler (UPDATED)
         if (target.closest('.zone-card')) {
             const zoneName = target.closest('.zone-card').dataset.zone;
             const startAdventure = () => {
@@ -438,9 +452,16 @@ function addEventListeners() {
                 }
                 Network.emitPartyEnterZone(zoneName);
             };
+
             if (zoneName === 'arena') {
                 if (gameState.gold < 100) return UIMain.showInfoModal("You don't have enough gold to enter the Arena! (Requires 100G)");
                 UIMain.showConfirmationModal("Pay 100G to enter the Arena?", () => {
+                    UIMain.hideModal();
+                    startAdventure();
+                });
+            } else if (zoneName === 'blighted_wastes') {
+                const warningMessage = "You are about to enter The Blighted Wastes, a lawless PvP zone. If you are defeated by another player, you will lose ALL items in your inventory and everything you have equipped. Are you sure you wish to enter?";
+                UIMain.showConfirmationModal(warningMessage, () => {
                     UIMain.hideModal();
                     startAdventure();
                 });
@@ -449,6 +470,7 @@ function addEventListeners() {
             }
             return;
         }
+
         if (target.closest('#zone-cards .card')) return Interactions.interactWithCard(parseInt(target.closest('.card').dataset.index, 10));
         if (target.closest('[data-action="lootPlayer"]')) {
             const playerIndex = parseInt(target.closest('.card').dataset.index.substring(1), 10);
@@ -494,6 +516,9 @@ function addEventListeners() {
             }
 
             if (button.id === 'info-ok-btn') return UIMain.hideModal();
+            if (button.id === 'end-turn-btn') return gameState.inDuel ? Network.emitDuelAction({ type: 'endTurn' }) : Combat.endTurn();
+            if (button.id === 'return-home-arrow') return Player.returnToHome();
+            if (button.id === 'venture-deeper-arrow') return ventureDeeper();
             
             if (button.dataset.action === 'takeGroundLoot') return Player.takeGroundLoot(parseInt(button.dataset.index, 10));
 

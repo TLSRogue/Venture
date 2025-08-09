@@ -18,8 +18,13 @@ export function showModal(content) {
 
 export function hideModal() {
     const modal = document.getElementById('modal');
-    modal.classList.add('hidden');
-    modal.querySelector('.modal-content').classList.remove('modal-wide');
+    if (modal) {
+        modal.classList.add('hidden');
+        const content = modal.querySelector('.modal-content');
+        if (content) {
+            content.classList.remove('modal-wide');
+        }
+    }
 }
 
 export function showInfoModal(message) {
@@ -55,6 +60,40 @@ export function showConfirmationModal(message, onConfirmCallback) {
 
     showModal(fragment);
 }
+
+/**
+ * NEW: A modal for decisions where both Yes and No have a consequence.
+ * @param {string} message The text to display in the modal.
+ * @param {function} onYesCallback The function to call when "Yes" is clicked.
+ * @param {function} onNoCallback The function to call when "No" is clicked.
+ */
+export function showDecisionModal(message, onYesCallback, onNoCallback) {
+    const fragment = document.createDocumentFragment();
+
+    const messageEl = document.createElement('p');
+    messageEl.textContent = message;
+    fragment.appendChild(messageEl);
+
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'action-buttons';
+
+    const yesButton = document.createElement('button');
+    yesButton.className = 'btn btn-success';
+    yesButton.textContent = 'Yes';
+    yesButton.onclick = onYesCallback;
+
+    const noButton = document.createElement('button');
+    noButton.className = 'btn btn-danger';
+    noButton.textContent = 'No';
+    noButton.onclick = onNoCallback;
+
+    buttonContainer.appendChild(yesButton);
+    buttonContainer.appendChild(noButton);
+    fragment.appendChild(buttonContainer);
+
+    showModal(fragment);
+}
+
 
 export function showTooltip(content) {
     if (tooltipTimeout) { clearTimeout(tooltipTimeout); tooltipTimeout = null; }

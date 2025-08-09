@@ -30,8 +30,14 @@ export function initSocketListeners(handlers) {
     socket.on('party:showDialogue', handlers.onShowDialogue);
     socket.on('party:hideDialogue', handlers.onHideDialogue);
     socket.on('party:adventureEnded', handlers.onPartyAdventureEnded);
-    // --- NEWLY ADDED FOR REACTION FIX ---
     socket.on('party:requestReaction', handlers.onPartyRequestReaction);
+
+    // Loot Roll Listeners
+    socket.on('party:lootRollStarted', handlers.onPartyLootRollStarted);
+    socket.on('party:lootRollEnded', handlers.onPartyLootRollEnded);
+    
+    // NEW: PvP Flee Request Listener
+    socket.on('party:pvpFleeRequest', handlers.onPartyPvpFleeRequest);
 
     // Duel Listeners
     socket.on('duel:receiveChallenge', handlers.onDuelReceiveChallenge);

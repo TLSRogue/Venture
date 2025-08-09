@@ -51,13 +51,10 @@ try {
         }
     }
     
-    // --- THIS IS THE FIX ---
-    // If we migrated any data, write the changes back to the file immediately.
     if (dataWasMigrated) {
         fs.writeFileSync('players.json', JSON.stringify(players, null, 2));
         console.log('Successfully saved migrated player data to players.json.');
     }
-    // --- END OF FIX ---
 
     console.log('Player data loaded successfully from players.json');
 } catch (err) {
@@ -68,3 +65,4 @@ try {
 export { players };
 export let parties = {}; // Keyed by partyId
 export let duels = {};   // Keyed by duelId
+export let pvpZoneQueues = {}; // Keyed by zoneName, Value: Array of { partyId, timerId }

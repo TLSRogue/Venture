@@ -1,9 +1,84 @@
 // adventure/adventure-state.js
 
-import { players, parties } from '../serverState.js';
+import { players, parties, pvpZoneQueues } from '../serverState.js';
 import { gameData } from '../game-data.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer } from '../utilsHelpers.js';
+
+const PVP_ZONES = ['blighted_wastes'];
+
+// --- NEW PVP HELPER FUNCTIONS ---
+
+/**
+ * Handles the severe death penalty for a player defeated in a PvP encounter.
+ * Unequips all gear and moves it, plus inventory, to the ground loot.
+ */
+function handlePvpPlayerDeath(io, defeatedPlayer, party) {
+    const { sharedState } = party;
+    const character = defeatedPlayer.character;
+
+    // Create a single pile of all the player's belongings
+    const allLoot = [...character.inventory.filter(Boolean)];
+    for (const slot in character.equipment) {
+        if (character.equipment[slot]) {
+            // Avoid duplicating 2-handed items
+            if (slot === 'offHand' && character.equipment[slot] === character.equipment.mainHand) {
+                continue;
+            }
+            allLoot.push(character.equipment[slot]);
+        }
+    }
+
+    // Add everything to the ground loot
+    sharedState.groundLoot.push(...allLoot);
+
+    // Clear the player's inventory and equipment
+    character.inventory = Array(24).fill(null);
+    character.equipment = { mainHand: null, offHand: null, helmet: null, armor: null, boots: null, accessory: null, ammo: null };
+    
+    io.to(defeatedPlayer.id).emit('characterUpdate', character);
+    sharedState.log.push({ message: `${character.characterName} has been slain and dropped all of their items!`, type: 'damage' });
+}
+
+
+/**
+ * Initiates a PvP encounter between two parties.
+ */
+function startPvpEncounter(io, partyA, partyB) {
+    const combinedStates = [];
+
+    // Get members of Party A, assign to team 'A'
+    partyA.members.forEach(name => {
+        const playerState = partyA.sharedState.partyMemberStates.find(p => p.name === name);
+        if (playerState) combinedStates.push({ ...playerState, team: 'A' });
+    });
+
+    // Get members of Party B, assign to team 'B'
+    partyB.members.forEach(name => {
+        const playerState = partyB.sharedState.partyMemberStates.find(p => p.name === name);
+        if (playerState) combinedStates.push({ ...playerState, team: 'B' });
+    });
+
+    const encounterState = {
+        opponentPartyId: partyB.id,
+        activeTeam: 'A', // Party A goes first
+    };
+
+    // Update both parties' shared state to reflect the combined encounter
+    partyA.sharedState.partyMemberStates = combinedStates;
+    partyA.sharedState.pvpEncounter = encounterState;
+    partyA.sharedState.log.push({ message: `You have encountered an opposing party! Battle begins!`, type: 'damage' });
+    
+    // Party B's state is a mirror, but pointing to Party A
+    partyB.sharedState.partyMemberStates = combinedStates;
+    partyB.sharedState.pvpEncounter = { ...encounterState, opponentPartyId: partyA.id };
+    partyB.sharedState.log.push({ message: `You have encountered an opposing party! Battle begins!`, type: 'damage' });
+    
+    // Notify all players in both parties
+    broadcastAdventureUpdate(io, partyA.id);
+    broadcastAdventureUpdate(io, partyB.id);
+}
+
 
 // --- LOOT ROLL LOGIC ---
 /**
@@ -107,20 +182,18 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         });
     }
 
-    // --- NEW: Process and Distribute Loot ---
+    // --- Process and Distribute Loot ---
     lootToDistribute.forEach(itemData => {
         if (itemData.rarity === 'uncommon' || itemData.rarity === 'rare') {
-            // If a roll is already happening, add to ground to simplify. A real implementation might queue rolls.
             if (sharedState.pendingLootRoll) {
                 sharedState.groundLoot.push(itemData);
                 sharedState.log.push({ message: `Found ${itemData.name}, but a roll is in progress. Item dropped to the ground.`, type: 'info' });
             } else {
-                // Trigger a new loot roll
                 sharedState.log.push({ message: `Party found: [${itemData.name}]! A roll will begin.`, type: 'success' });
                 sharedState.pendingLootRoll = {
                     item: itemData,
                     rolls: [],
-                    endTime: Date.now() + 60000, // 60 second timer
+                    endTime: Date.now() + 60000,
                 };
                 
                 party.members.forEach(memberName => {
@@ -130,13 +203,11 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
                     }
                 });
 
-                // Set a timer to automatically determine the winner
                 setTimeout(() => {
                     determineLootWinnerAndDistribute(io, party.id);
                 }, 60000);
             }
         } else {
-            // For common items, distribute to everyone
             party.members.forEach(memberName => {
                 const member = players[memberName];
                 if (member && member.character) {
@@ -149,7 +220,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         }
     });
 
-    // --- Process Quests and Gold (as before) ---
+    // --- Process Quests and Gold ---
     party.members.forEach(memberName => {
         const member = players[memberName];
         if (!member || !member.character) return;
@@ -192,6 +263,27 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
 export async function processEndAdventure(io, player, party) {
     const { sharedState } = party;
     if (!sharedState) return;
+
+    // --- NEW: Handle Flee/Mercy requests during PvP ---
+    if (sharedState.pvpEncounter) {
+        const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
+        if (actingPlayerState && !actingPlayerState.turnEnded) {
+            actingPlayerState.turnEnded = true; // Forfeit turn
+            sharedState.log.push({ message: `${player.character.characterName} forfeits their turn to request mercy...`, type: 'reaction' });
+            
+            const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
+            if (opponentParty) {
+                const opponentLeader = players[opponentParty.leaderId];
+                if (opponentLeader && opponentLeader.id) {
+                    io.to(opponentLeader.id).emit('party:pvpFleeRequest', { fleeingPartyName: party.id });
+                    sharedState.log.push({ message: `A plea for mercy has been sent to the opposing party leader.`, type: 'info' });
+                }
+            }
+            broadcastAdventureUpdate(io, party.id);
+        }
+        return; // Do not proceed with the normal flee logic
+    }
+    // --- END NEW PVP LOGIC ---
 
     const endTheAdventure = () => {
         party.members.forEach(memberName => {
@@ -243,17 +335,19 @@ export async function processEndAdventure(io, player, party) {
 
 export async function processVentureDeeper(io, player, party) {
     if (player.character.characterName !== party.leaderId || !party.sharedState) return;
-
     const { sharedState } = party;
-    
+    const zoneName = sharedState.currentZone;
+
     const proceedToNextArea = () => {
         sharedState.zoneCards = [];
         sharedState.groundLoot = [];
         drawCardsForServer(sharedState, 3);
 
         sharedState.partyMemberStates.forEach(p => {
-            p.actionPoints = 3;
-            p.turnEnded = false;
+            if (!p.isDead) {
+                p.actionPoints = 3;
+                p.turnEnded = false;
+            }
             p.weaponCooldowns = {};
             p.spellCooldowns = {};
             p.itemCooldowns = {};
@@ -262,6 +356,43 @@ export async function processVentureDeeper(io, player, party) {
         sharedState.turnNumber = 0;
         sharedState.isPlayerTurn = true;
     };
+
+    // --- NEW: Handle PvP Matchmaking ---
+    if (PVP_ZONES.includes(zoneName)) {
+        if (!pvpZoneQueues[zoneName]) {
+            pvpZoneQueues[zoneName] = [];
+        }
+
+        const opponentQueueEntry = pvpZoneQueues[zoneName].shift(); // Try to find an opponent
+
+        if (opponentQueueEntry) {
+            // MATCH FOUND!
+            clearTimeout(opponentQueueEntry.timerId); // Cancel their wait timer
+            const opponentParty = parties[opponentQueueEntry.partyId];
+            if (opponentParty) {
+                 startPvpEncounter(io, party, opponentParty);
+            }
+        } else {
+            // NO MATCH, enter the queue and wait 5 seconds
+            sharedState.log.push({ message: "You venture deeper, wary of your surroundings...", type: 'info' });
+            broadcastAdventureUpdate(io, party.id);
+
+            const timerId = setTimeout(() => {
+                // Timer expired, no one showed up. Proceed with PvE.
+                const myEntryIndex = pvpZoneQueues[zoneName].findIndex(entry => entry.partyId === party.id);
+                if (myEntryIndex !== -1) {
+                    pvpZoneQueues[zoneName].splice(myEntryIndex, 1);
+                    sharedState.log.push({ message: "The path ahead is clear... for now.", type: 'info' });
+                    proceedToNextArea();
+                    broadcastAdventureUpdate(io, party.id);
+                }
+            }, 5000); // 5 second wait
+
+            pvpZoneQueues[zoneName].push({ partyId: party.id, timerId });
+        }
+        return; // Stop execution here for PvP zones
+    }
+    // --- END NEW PVP LOGIC ---
     
     const inCombat = sharedState.zoneCards.some(c => c && c.type === 'enemy');
     if (inCombat) {
@@ -330,8 +461,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
 
             const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);
             if (alivePlayers.length === 0) continue;
-
-            // --- THREAT-BASED TARGETING WITH RANDOMNESS ON TIES ---
+            
             let targetPlayerState;
             if (alivePlayers.length > 0) {
                 const maxThreat = Math.max(...alivePlayers.map(p => p.threat));
@@ -340,7 +470,6 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             } else {
                 continue;
             }
-            // --- END OF NEW TARGETING LOGIC ---
             
             const targetPlayerObject = players[targetPlayerState.name];
             if (!targetPlayerObject) continue;
@@ -459,11 +588,17 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             if (targetPlayerState.health <= 0) {
                 targetPlayerState.health = 0;
                 targetPlayerState.isDead = true;
-                if (targetPlayerObject.character) {
-                    targetPlayerState.lootableInventory = [...targetPlayerObject.character.inventory.filter(Boolean)];
-                    targetPlayerObject.character.inventory = Array(24).fill(null);
-                    if(targetPlayerObject.id) io.to(targetPlayerObject.id).emit('characterUpdate', targetPlayerObject.character);
+                
+                if (party.sharedState.pvpEncounter) {
+                    handlePvpPlayerDeath(io, targetPlayerObject, party);
+                } else {
+                    if (targetPlayerObject.character) {
+                        targetPlayerState.lootableInventory = [...targetPlayerObject.character.inventory.filter(Boolean)];
+                        targetPlayerObject.character.inventory = Array(24).fill(null);
+                        if(targetPlayerObject.id) io.to(targetPlayerObject.id).emit('characterUpdate', targetPlayerObject.character);
+                    }
                 }
+
                 sharedState.log.push({ message: `${targetPlayerState.name} has been defeated!`, type: 'damage' });
             }
             
@@ -606,11 +741,17 @@ export async function handleResolveReaction(io, socket, payload) {
     if (reactingPlayerState.health <= 0) {
         reactingPlayerState.health = 0;
         reactingPlayerState.isDead = true;
-        if (reactingPlayer.character) {
-            reactingPlayerState.lootableInventory = [...reactingPlayer.character.inventory.filter(Boolean)];
-            reactingPlayer.character.inventory = Array(24).fill(null);
-            if(reactingPlayer.id) io.to(reactingPlayer.id).emit('characterUpdate', reactingPlayer.character);
+
+        if (party.sharedState.pvpEncounter) {
+            handlePvpPlayerDeath(io, reactingPlayer, party);
+        } else {
+            if (reactingPlayer.character) {
+                reactingPlayerState.lootableInventory = [...reactingPlayer.character.inventory.filter(Boolean)];
+                reactingPlayer.character.inventory = Array(24).fill(null);
+                if(reactingPlayer.id) io.to(reactingPlayer.id).emit('characterUpdate', reactingPlayer.character);
+            }
         }
+        
         sharedState.log.push({ message: `${name} has been defeated!`, type: 'damage' });
     }
 

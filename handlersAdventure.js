@@ -71,7 +71,7 @@ export const registerAdventureHandlers = (io, socket) => {
             }),
             log: [{ message: `Party has entered the ${zoneName}!`, type: 'info' }],
             pendingReaction: null,
-            pendingLootRoll: null, // Initialize loot roll state
+            pendingLootRoll: null,
         };
         
         if (zoneName === 'arena') {
@@ -88,12 +88,10 @@ export const registerAdventureHandlers = (io, socket) => {
             drawCardsForServer(party.sharedState, 3);
         }
         
-        console.log(`[SERVER LOG] Emitting 'party:adventureStarted' to ${party.members.length} member(s).`);
         party.members.forEach(memberName => {
             const member = players[memberName];
             if(member && member.id) io.to(member.id).emit('party:adventureStarted', party.sharedState);
         });
-        console.log(`Party ${partyId} is entering zone ${zoneName}.`);
     });
   
     socket.on('party:playerAction', async (action) => {
@@ -106,12 +104,39 @@ export const registerAdventureHandlers = (io, socket) => {
         if (!party) return;
 
         try {
-            // --- NEW: Handle Loot Roll Submission ---
+            if (action.type === 'resolvePvpFlee') {
+                const { sharedState } = party;
+                if (!sharedState.pvpEncounter || party.leaderId !== name) {
+                    return; // Only the party leader can make this choice
+                }
+
+                const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
+                if (!opponentParty) return;
+
+                if (action.payload.allow) {
+                    opponentParty.sharedState.log.push({ message: `Your plea was accepted! You are allowed to flee.`, type: 'success' });
+                    // End the adventure for the fleeing party without a fight
+                    await state.processEndAdventure(io, players[opponentParty.leaderId], opponentParty);
+                    
+                    // Clean up the PvP state for the remaining party
+                    sharedState.log.push({ message: `You have shown mercy and allowed the enemy to flee.`, type: 'info' });
+                    sharedState.pvpEncounter = null;
+                    // Remove opponent players from the member states
+                    sharedState.partyMemberStates = sharedState.partyMemberStates.filter(p => p.team === 'A'); // Assuming the merciful party is always team A for now
+                } else {
+                    sharedState.log.push({ message: `You have denied their request for mercy.`, type: 'damage' });
+                    opponentParty.sharedState.log.push({ message: `Your plea for mercy was denied!`, type: 'damage' });
+                }
+
+                broadcastAdventureUpdate(io, partyId);
+                broadcastAdventureUpdate(io, opponentParty.id);
+                return;
+            }
+
             if (action.type === 'submitLootRoll') {
                 const { sharedState } = party;
                 const rollData = sharedState.pendingLootRoll;
 
-                // Validations: ensure a roll is active and player hasn't already rolled
                 if (!rollData || rollData.rolls.some(r => r.playerName === name)) {
                     return;
                 }
@@ -127,14 +152,12 @@ export const registerAdventureHandlers = (io, socket) => {
                     sharedState.log.push({ message: `${name} passes on [${rollData.item.name}].`, type: 'info' });
                 }
                 
-                // Check if all living players have rolled
                 const livingPlayers = sharedState.partyMemberStates.filter(p => !p.isDead).length;
                 if (rollData.rolls.length >= livingPlayers) {
-                    // End roll early
                     state.determineLootWinnerAndDistribute(io, partyId);
                 }
                 
-                broadcastAdventureUpdate(io, partyId); // This will update the UI for everyone
+                broadcastAdventureUpdate(io, partyId);
                 return;
             }
             
@@ -188,7 +211,7 @@ export const registerAdventureHandlers = (io, socket) => {
                     interactions.processDialogueChoice(io, player, party, action.payload);
                     break; 
                 case 'lootPlayer':
-                    interactions.processLootPlayer(io, party, player, action.payload);
+                    interactions.processLootPlayer(io, player, party, action.payload);
                     break;
                 case 'endTurn':
                     actingPlayerState.turnEnded = true;
