@@ -5,7 +5,6 @@ import { socket } from '../network.js';
 import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js';
 import { getBonusStats } from '../player.js';
 
-// --- NEW: Centralized map for all status effect icons ---
 const effectIcons = {
     'bleed': '🩸',
     'burn': '🔥',
@@ -24,7 +23,6 @@ const effectIcons = {
     'Magic Barrier': '💠'
 };
 
-// --- HELPER FUNCTION FOR DETAILED TOOLTIPS ---
 function addActionTooltipListener(element, itemOrSpell) {
     element.addEventListener('mousemove', (e) => {
         if (e.altKey) {
@@ -63,17 +61,14 @@ function addActionTooltipListener(element, itemOrSpell) {
     element.addEventListener('mouseleave', hideTooltip);
 }
 
-// --- NEW: Function to play a queue of effects ---
 export function playEffectQueue(effects) {
     effects.forEach((effect, index) => {
-        // Stagger each effect slightly so they don't all pop up at once
         setTimeout(() => {
             showCombatFeedback(effect);
-        }, index * 250); // 250ms delay between each effect
+        }, index * 250);
     });
 }
 
-// --- Function to trigger combat animations ---
 export function showCombatFeedback({ targetName, type, text }) {
     const allCards = document.querySelectorAll('#adventure-board .card');
     let targetCard = null;
@@ -87,10 +82,9 @@ export function showCombatFeedback({ targetName, type, text }) {
     }
 
     if (!targetCard) {
-        return; // Don't show an error if the card isn't on screen (e.g. defeated)
+        return;
     }
 
-    // 1. Create and animate the popup
     const popup = document.createElement('div');
     popup.className = `combat-feedback-popup popup-${type}`;
     popup.textContent = text;
@@ -101,7 +95,6 @@ export function showCombatFeedback({ targetName, type, text }) {
         popup.remove();
     }, 1900);
 
-    // 2. Trigger shake effect if needed
     if (type === 'damage' || type === 'resource') {
         targetCard.classList.add('shake-effect');
         setTimeout(() => {
@@ -110,11 +103,7 @@ export function showCombatFeedback({ targetName, type, text }) {
     }
 }
 
-// --- ADVENTURE SCREEN RENDERING ---
 
-// --- MODIFICATION START: The logic here is now simpler. ---
-// The `renderPartyScreen` function can now handle both PvE and PvP,
-// so we no longer need a special check for `gameState.pvpEncounter`.
 export function renderAdventureScreen() {
     const ventureArrow = document.getElementById('venture-deeper-arrow');
     const homeArrow = document.getElementById('return-home-arrow');
@@ -125,14 +114,11 @@ export function renderAdventureScreen() {
     if (gameState.inDuel) {
         renderDuelScreen();
     } else if (gameState.partyId && gameState.partyMemberStates) {
-        // This single function call now renders the screen correctly
-        // for both normal party adventures AND PvP encounters.
         renderPartyScreen();
     }
     renderGroundLootButton();
     updateActionUI();
 }
-// --- MODIFICATION END ---
 
 function renderPartyScreen() {
     const partyContainer = document.getElementById('party-cards-container');
@@ -159,7 +145,6 @@ function renderPartyScreen() {
                 gameState.maxHealth = playerState.maxHealth;
             }
 
-            // In PvP, the active team is highlighted. In PvE, the specific player's turn is.
             if (gameState.pvpEncounter) {
                  if (gameState.pvpEncounter.activeTeam === playerState.team) {
                     cardEl.classList.add('active-turn');
@@ -183,11 +168,6 @@ function renderPartyScreen() {
     });
     renderZoneCards(gameState.zoneCards);
 }
-
-// --- MODIFICATION START: This entire function is now redundant and has been removed. ---
-// The `renderPartyScreen` function now handles PvP rendering.
-// --- FUNCTION `renderPvpScreen` DELETED ---
-// --- MODIFICATION END ---
 
 function renderDuelScreen() {
     const zoneContainer = document.getElementById('zone-cards');
@@ -242,6 +222,7 @@ function renderDuelScreen() {
     zoneContainer.appendChild(opponentCardEl);
 }
 
+// --- MODIFICATION START: This function now knows how to render defeated player opponents. ---
 function renderZoneCards(cards) {
     const zoneContainer = document.getElementById('zone-cards');
     zoneContainer.innerHTML = '';
@@ -253,9 +234,20 @@ function renderZoneCards(cards) {
             return;
         };
 
-        // In PvP, the "enemy" card is also a "player" card.
         cardEl.className = card.playerId ? `card player ${card.type}` : `card ${card.type}`;
         cardEl.dataset.index = index;
+
+        // This new block checks if the card is a defeated player and renders them correctly.
+        if (card.isDead) {
+            cardEl.classList.add('dead');
+            cardEl.innerHTML = `
+                <div class="card-icon">💀</div>
+                <div class="card-title">${card.name}</div>
+                <div>DEFEATED</div>
+            `;
+            zoneContainer.appendChild(cardEl);
+            return; // Skip the rest of the rendering logic for this card.
+        }
         
         if(card.type === 'enemy' || card.type === 'treasure' || card.type === 'npc') {
             let tooltipContent = `<strong>${card.name}</strong><br>${card.description || ''}`;
@@ -298,6 +290,7 @@ function renderZoneCards(cards) {
         zoneContainer.appendChild(cardEl);
     });
 }
+// --- MODIFICATION END ---
 
 function getEffectsHtml(playerState) {
     let effectsHtml = '<div class="player-card-effects">';
@@ -645,7 +638,6 @@ export function showGroundLootModal() {
     const storageGrid = document.createElement('div');
     storageGrid.className = 'storage-grid';
 
-    // --- Ground Loot Side ---
     const groundLootSide = document.createElement('div');
     groundLootSide.innerHTML = '<h3>On The Ground</h3>';
     const groundGrid = document.createElement('div');
@@ -668,7 +660,6 @@ export function showGroundLootModal() {
     }
     groundLootSide.appendChild(groundGrid);
 
-    // --- Inventory Side ---
     const inventorySide = document.createElement('div');
     inventorySide.innerHTML = '<h3>Your Inventory</h3>';
     const inventoryGrid = document.createElement('div');
