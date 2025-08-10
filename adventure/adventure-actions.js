@@ -38,15 +38,20 @@ export async function processWeaponAttack(io, party, player, payload) {
         logMessage += ` Critical Failure! They miss!`;
         sharedState.log.push({ message: logMessage, type: 'damage' });
     } else if (total >= hitTarget) {
-        target.health -= weapon.weaponDamage;
+        // --- MODIFICATION START: Apply damage using the player state reference. ---
+        const realTarget = target._playerStateRef || target;
+        realTarget.health -= weapon.weaponDamage;
+        target.health = realTarget.health; // Sync the card's health view.
+        // --- MODIFICATION END ---
+
         logMessage += ` Hit! Dealt ${weapon.weaponDamage} ${weapon.damageType} damage.`;
 
         if (roll === 20 && weapon.onCrit && weapon.onCrit.debuff) {
-            target.debuffs.push({ ...weapon.onCrit.debuff });
+            realTarget.debuffs.push({ ...weapon.onCrit.debuff });
             logMessage += ` CRITICAL HIT! ${target.name} is now ${weapon.onCrit.debuff.type}!`;
         }
         if (weapon.onHit && weapon.onHit.debuff) {
-            target.debuffs.push({ ...weapon.onHit.debuff });
+            realTarget.debuffs.push({ ...weapon.onHit.debuff });
             logMessage += ` ${target.name} is now ${weapon.onHit.debuff.type}!`;
         }
 
@@ -98,7 +103,6 @@ export async function processCastSpell(io, party, player, payload) {
     actingPlayerState.threat += cost;
     actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
 
-    // --- NEW: Handle bonus threat for spells that have it ---
     if (spell.bonusThreat) {
         actingPlayerState.threat += spell.bonusThreat;
         sharedState.log.push({ message: `${character.characterName} generates ${spell.bonusThreat} bonus threat!`, type: 'reaction' });
@@ -122,7 +126,6 @@ export async function processCastSpell(io, party, player, payload) {
     let statValue = 0;
     let rollDescription = "";
 
-    // --- NEW: Handle special roll for Warrior's Might ---
     if (spell.name === "Warrior's Might") {
         const strength = (character.strength || 0) + (bonuses.strength || 0);
         const defense = (character.defense || 0) + (bonuses.defense || 0);
@@ -199,7 +202,11 @@ export async function processCastSpell(io, party, player, payload) {
             target.health = Math.min(target.maxHealth, target.health + effectValue);
             sharedState.log.push({ message: `Healed ${target.name} for ${effectValue} HP.`, type: 'heal' });
         } else if (enemyTarget) {
-            enemyTarget.health -= effectValue;
+            // --- MODIFICATION START: Apply damage using the player state reference. ---
+            const realTarget = enemyTarget._playerStateRef || enemyTarget;
+            realTarget.health -= effectValue;
+            enemyTarget.health = realTarget.health;
+            // --- MODIFICATION END ---
             sharedState.log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${enemyTarget.name}.`, type: 'damage' });
             if (enemyTarget.health <= 0) {
                 defeatEnemyInParty(io, party, enemyTarget, parseInt(targetIndex));
@@ -236,15 +243,20 @@ export async function processCastSpell(io, party, player, payload) {
                     damage = character.equipment.mainHand.weaponDamage + (spell.damageBonus || 0);
                 }
 
-                aoeTarget.health -= damage;
+                // --- MODIFICATION START: Apply damage using the player state reference. ---
+                const realTarget = aoeTarget._playerStateRef || aoeTarget;
+                realTarget.health -= damage;
+                aoeTarget.health = realTarget.health;
+                // --- MODIFICATION END ---
+                
                 let hitDescription = `Dealt ${damage} damage to ${aoeTarget.name}.`;
 
                 if (spell.debuff) {
-                    aoeTarget.debuffs.push({ ...spell.debuff });
+                    realTarget.debuffs.push({ ...spell.debuff });
                     hitDescription += ` ${aoeTarget.name} is now ${spell.debuff.type}!`;
                 }
                 if (spell.onHit && total >= (spell.onHit.threshold || hitTarget) && spell.onHit.debuff) {
-                    aoeTarget.debuffs.push({ ...spell.onHit.debuff });
+                    realTarget.debuffs.push({ ...spell.onHit.debuff });
                     hitDescription += ` ${aoeTarget.name} is now ${spell.onHit.debuff.type}!`;
                 }
                 sharedState.log.push({ message: hitDescription, type: 'damage' });

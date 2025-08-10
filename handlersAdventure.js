@@ -5,11 +5,9 @@ import { gameData } from './game-data.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from './utilsBroadcast.js';
 import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer } from './utilsHelpers.js';
 
-// --- MODIFICATION START: We now import the specific function we need. ---
 import * as actions from './adventure/adventure-actions.js';
 import * as interactions from './adventure/adventure-interactions.js';
 import * as state from './adventure/adventure-state.js';
-// --- MODIFICATION END ---
 
 export const registerAdventureHandlers = (io, socket) => {
     socket.on('party:enterZone', (zoneName) => {
@@ -115,23 +113,18 @@ export const registerAdventureHandlers = (io, socket) => {
                 if (!opponentParty) return;
 
                 if (action.payload.allow) {
-                    // --- NEW, ROBUST FIX START ---
-                    // This new logic handles sending both parties home safely without race conditions.
                     
                     party.sharedState.log.push({ message: `You have shown mercy. The encounter ends peacefully, and both parties return home.`, type: 'info' });
                     opponentParty.sharedState.log.push({ message: `Your plea was accepted! The encounter ends peacefully, and both parties return home.`, type: 'success' });
 
-                    // Broadcast the final log messages before ending the adventure.
                     broadcastAdventureUpdate(io, party.id);
                     broadcastAdventureUpdate(io, opponentParty.id);
 
-                    // 1. Combine all players from both parties into a single list.
                     const allPlayersInvolved = [
                         ...party.members.map(name => players[name]),
                         ...opponentParty.members.map(name => players[name])
                     ];
 
-                    // 2. Notify all players and reset their server-side character health.
                     allPlayersInvolved.forEach(playerInstance => {
                         if (playerInstance && playerInstance.character) {
                             const char = playerInstance.character;
@@ -145,7 +138,6 @@ export const registerAdventureHandlers = (io, socket) => {
                         }
                     });
 
-                    // 3. Clean up the server state for both parties.
                     const cleanupPartyState = (p) => {
                         if (!p) return;
                         if (p.isSoloParty) {
@@ -162,7 +154,6 @@ export const registerAdventureHandlers = (io, socket) => {
                     cleanupPartyState(party);
                     cleanupPartyState(opponentParty);
 
-                    // 4. Update party UI for non-solo parties that are returning to the lobby.
                     if (party && parties[party.id] && !party.isSoloParty) {
                         broadcastPartyUpdate(io, party.id);
                     }
@@ -170,11 +161,9 @@ export const registerAdventureHandlers = (io, socket) => {
                         broadcastPartyUpdate(io, opponentParty.id);
                     }
                     
-                    return; // End of new logic block.
-                    // --- NEW, ROBUST FIX END ---
+                    return;
 
                 } else {
-                    // This is the logic for denying the flee request.
                     sharedState.log.push({ message: `You have denied their request for mercy.`, type: 'damage' });
                     opponentParty.sharedState.log.push({ message: `Your plea for mercy was denied!`, type: 'damage' });
                     broadcastAdventureUpdate(io, partyId);
@@ -228,7 +217,7 @@ export const registerAdventureHandlers = (io, socket) => {
     
             const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.name === name);
             if (!actingPlayerState || actingPlayerState.isDead) return;
-            if (!party.sharedState.isPlayerTurn) return;
+            if (party.sharedState.pvpEncounter && party.sharedState.pvpEncounter.activeTeam !== actingPlayerState.team) return;
             if (actingPlayerState.turnEnded && action.type !== 'dialogueChoice') return;
             if (action.type === 'dialogueChoice' && name !== party.leaderId) return;
     
@@ -264,31 +253,25 @@ export const registerAdventureHandlers = (io, socket) => {
                     interactions.processLootPlayer(io, player, party, action.payload);
                     break;
                 case 'endTurn':
-                    // --- MODIFICATION START: This block now calls the correct function. ---
-                    actingPlayerState.turnEnded = true;
-                    party.sharedState.log.push({ message: `${player.character.characterName} has ended their turn.`, type: 'info' });
-
-                    const { sharedState } = party;
-                    const activeTeam = sharedState.pvpEncounter ? sharedState.pvpEncounter.activeTeam : null;
-                    const teamMembers = activeTeam ? sharedState.partyMemberStates.filter(p => p.team === activeTeam) : sharedState.partyMemberStates;
-                    const allTurnsEnded = teamMembers.every(p => p.turnEnded || p.isDead);
-
-                    if (allTurnsEnded) {
-                        if (sharedState.pvpEncounter) {
-                            // In PvP, we directly call the function to pass the turn to the next team.
-                            state.startNextPvpTeamTurn(io, party);
-                        } else {
-                            // In PvE, we run the enemy phase.
-                            await state.runEnemyPhaseForParty(io, partyId);
-                        }
-                    }
-                    // --- MODIFICATION END ---
+                    await state.checkAndEndTurnForPlayer(io, party, player);
                     break;
             }
     
+            // --- MODIFICATION START: This block now broadcasts to both parties in a PvP fight. ---
             if (party.sharedState) {
+                // Always broadcast to the acting player's party
                 broadcastAdventureUpdate(io, partyId);
+
+                // If in a PvP encounter, also broadcast the state to the opponent's party
+                if (party.sharedState.pvpEncounter) {
+                    const opponentParty = parties[party.sharedState.pvpEncounter.opponentPartyId];
+                    if (opponentParty) {
+                        broadcastAdventureUpdate(io, opponentParty.id);
+                    }
+                }
             }
+            // --- MODIFICATION END ---
+            
         } catch (error) {
             console.error(`!!! PLAYER ACTION ERROR !!! A server crash was prevented. Action:`, action);
             console.error(error);

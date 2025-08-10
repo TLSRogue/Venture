@@ -7,8 +7,6 @@ import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer } 
 
 const PVP_ZONES = ['blighted_wastes'];
 
-// --- PVP HELPER FUNCTIONS ---
-
 export function handlePvpPlayerDeath(io, defeatedPlayer, party) {
     const { sharedState } = party;
     const character = defeatedPlayer.character;
@@ -49,6 +47,7 @@ function startPvpEncounter(io, partyA, partyB) {
         partyBStates.forEach(p => p.actionPoints = 1);
     }
 
+    // --- MODIFICATION START: Create a direct reference to the player state. ---
     const createPlayerCard = (playerState) => ({
         type: 'enemy',
         playerId: playerState.playerId,
@@ -58,7 +57,10 @@ function startPvpEncounter(io, partyA, partyB) {
         health: playerState.health,
         maxHealth: playerState.maxHealth,
         debuffs: playerState.debuffs,
+        // This new property is a direct link to the original player state object.
+        _playerStateRef: playerState, 
     });
+    // --- MODIFICATION END ---
 
     // Setup Party A's state
     partyA.sharedState.pvpEncounter = { opponentPartyId: partyB.id, activeTeam: startingTeam };
@@ -71,16 +73,8 @@ function startPvpEncounter(io, partyA, partyB) {
     partyB.sharedState.log.push({ message: `You have encountered an opposing party! Battle begins!`, type: 'damage' });
     partyB.sharedState.log.push({ message: firstTurnLogMessage, type: 'info' });
     partyB.sharedState.zoneCards = partyAStates.map(createPlayerCard);
-
-    partyA.sharedState.zoneCards.forEach((card, index) => {
-        card.health = partyBStates[index].health;
-        card.debuffs = partyBStates[index].debuffs;
-    });
-    partyB.sharedState.zoneCards.forEach((card, index) => {
-        card.health = partyAStates[index].health;
-        card.debuffs = partyAStates[index].debuffs;
-    });
     
+    // Notify all players
     partyA.members.forEach(memberName => {
         const member = players[memberName];
         if(member && member.id) io.to(member.id).emit('party:adventureStarted', partyA.sharedState);
@@ -92,9 +86,7 @@ function startPvpEncounter(io, partyA, partyB) {
 }
 
 
-// --- MODIFICATION START: Added the 'export' keyword here. ---
 export function startNextPvpTeamTurn(io, currentParty) {
-// --- MODIFICATION END ---
     const { sharedState } = currentParty;
     const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
     if (!opponentParty) return;
@@ -199,18 +191,9 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     const { sharedState } = party;
 
     if (enemy.playerId) {
-        const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
-        if (opponentParty) {
-            const defeatedPlayerState = opponentParty.sharedState.partyMemberStates.find(p => p.playerId === enemy.playerId);
-            if (defeatedPlayerState && !defeatedPlayerState.isDead) {
-                defeatedPlayerState.isDead = true;
-                const defeatedPlayerObject = players[defeatedPlayerState.name];
-                if (defeatedPlayerObject) {
-                    handlePvpPlayerDeath(io, defeatedPlayerObject, opponentParty);
-                }
-            }
-        }
-        const allOpponentsDead = sharedState.zoneCards.every(card => card.health <= 0);
+        // With the new reference system, the underlying player state is already updated.
+        // We just need to check victory conditions.
+        const allOpponentsDead = sharedState.zoneCards.every(card => card._playerStateRef.isDead);
         if (allOpponentsDead) {
             sharedState.log.push({ message: "All opponents have been defeated! You are victorious!", type: 'success' });
         }
