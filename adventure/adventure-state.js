@@ -1,10 +1,10 @@
 // adventure/adventure-state.js
 
 // MODIFICATION: Corrected import paths from ../ to ./
-import { players, parties, pvpZoneQueues } from './serverState.js';
-import { gameData } from './game-data.js';
-import { broadcastAdventureUpdate, broadcastPartyUpdate } from './utilsBroadcast.js';
-import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from './utilsHelpers.js';
+import { players, parties, pvpZoneQueues } from '../serverState.js';
+import { gameData } from '../game-data.js';
+import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
+import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js';
 
 const PVP_ZONES = ['blighted_wastes'];
 
