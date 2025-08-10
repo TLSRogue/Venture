@@ -1,13 +1,16 @@
 // adventure/adventure-state.js
 
-import { players, parties, pvpZoneQueues } from '../serverState.js';
-import { gameData } from '../game-data.js';
-import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
-import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js'; // MODIFIED: Import the helper
+// MODIFICATION: Corrected import paths from ../ to ./
+import { players, parties, pvpZoneQueues } from './serverState.js';
+import { gameData } from './game-data.js';
+import { broadcastAdventureUpdate, broadcastPartyUpdate } from './utilsBroadcast.js';
+import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from './utilsHelpers.js';
 
 const PVP_ZONES = ['blighted_wastes'];
 
-// MODIFIED: The createStateForClient helper function has been moved to utilsHelpers.js
+// HELPER FUNCTION: Removes properties that cannot be sent to the client
+// NOTE: This function was moved to utilsHelpers.js to prevent circular dependencies.
+// It is imported from there.
 
 // --- PVP HELPER FUNCTIONS ---
 
