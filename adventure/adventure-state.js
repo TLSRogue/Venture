@@ -47,7 +47,6 @@ function startPvpEncounter(io, partyA, partyB) {
         partyBStates.forEach(p => p.actionPoints = 1);
     }
 
-    // --- MODIFICATION START: Create a direct reference to the player state. ---
     const createPlayerCard = (playerState) => ({
         type: 'enemy',
         playerId: playerState.playerId,
@@ -57,24 +56,19 @@ function startPvpEncounter(io, partyA, partyB) {
         health: playerState.health,
         maxHealth: playerState.maxHealth,
         debuffs: playerState.debuffs,
-        // This new property is a direct link to the original player state object.
         _playerStateRef: playerState, 
     });
-    // --- MODIFICATION END ---
 
-    // Setup Party A's state
     partyA.sharedState.pvpEncounter = { opponentPartyId: partyB.id, activeTeam: startingTeam };
     partyA.sharedState.log.push({ message: `You have encountered an opposing party! Battle begins!`, type: 'damage' });
     partyA.sharedState.log.push({ message: firstTurnLogMessage, type: 'info' });
     partyA.sharedState.zoneCards = partyBStates.map(createPlayerCard);
     
-    // Setup Party B's state
     partyB.sharedState.pvpEncounter = { opponentPartyId: partyA.id, activeTeam: startingTeam };
     partyB.sharedState.log.push({ message: `You have encountered an opposing party! Battle begins!`, type: 'damage' });
     partyB.sharedState.log.push({ message: firstTurnLogMessage, type: 'info' });
     partyB.sharedState.zoneCards = partyAStates.map(createPlayerCard);
     
-    // Notify all players
     partyA.members.forEach(memberName => {
         const member = players[memberName];
         if(member && member.id) io.to(member.id).emit('party:adventureStarted', partyA.sharedState);
@@ -190,15 +184,27 @@ export async function checkAndEndTurnForPlayer(io, party, player) {
 export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     const { sharedState } = party;
 
+    // --- MODIFICATION START: Add a line to mark the card itself as dead. ---
     if (enemy.playerId) {
-        // With the new reference system, the underlying player state is already updated.
-        // We just need to check victory conditions.
+        const defeatedPlayerState = enemy._playerStateRef;
+        if (defeatedPlayerState && !defeatedPlayerState.isDead) {
+            defeatedPlayerState.isDead = true;
+            enemy.isDead = true; // This ensures the attacker's client can see the dead state.
+            const defeatedPlayerObject = players[defeatedPlayerState.name];
+            if (defeatedPlayerObject) {
+                // We call death logic in the context of the DEFEATED player's party.
+                const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
+                handlePvpPlayerDeath(io, defeatedPlayerObject, opponentParty);
+            }
+        }
+        
         const allOpponentsDead = sharedState.zoneCards.every(card => card._playerStateRef.isDead);
         if (allOpponentsDead) {
             sharedState.log.push({ message: "All opponents have been defeated! You are victorious!", type: 'success' });
         }
         return;
     }
+    // --- MODIFICATION END ---
 
     sharedState.log.push({ message: `${enemy.name} has been defeated!`, type: 'success' });
 
