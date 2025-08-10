@@ -9,21 +9,12 @@ import { gameData } from './game-data.js';
  * inventory, and the current zone's status.
  */
 
-// The main gameState object. It is initialized as empty and will be populated
-// either by creating a new character or loading one from the server.
 export let gameState = {};
 
-// This function is used to completely replace the current game state.
-// It's useful for loading a character or after receiving a full update from the server.
 export function setGameState(newState) {
     gameState = newState;
 }
 
-/**
- * Returns a fresh, default state object for a new character.
- * This is the template for any new player starting their adventure.
- * @returns {object} The initial game state for a new character.
- */
 export function getInitialGameState() {
     return {
         characterName: null,
@@ -52,7 +43,7 @@ export function getInitialGameState() {
         inventory: Array(24).fill(null),
         bank: [],
         buffs: [],
-        playerDebuffs: [],
+        debuffs: [], // MODIFIED: Was 'playerDebuffs'
         equippedSpells: [
             gameData.allSpells.find(s => s.name === 'Punch'),
             gameData.allSpells.find(s => s.name === 'Kick'),

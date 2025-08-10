@@ -313,8 +313,11 @@ function getEffectsHtml(playerState) {
             effectsHtml += `<span class="player-card-effect buff" onmouseover="showTooltip('<strong>${buff.type}</strong><br>Turns Remaining: ${buff.duration -1}')" onmouseout="hideTooltip()">${icon}</span>`;
         });
     }
-    const debuffs = playerState.playerDebuffs || playerState.debuffs || [];
+
+    // MODIFICATION START: Simplified to only use 'debuffs'
+    const debuffs = playerState.debuffs || [];
     if (debuffs) {
+    // MODIFICATION END
         debuffs.forEach(debuff => {
             const icon = effectIcons[debuff.type] || '❓';
             effectsHtml += `<span class="player-card-effect debuff" onmouseover="showTooltip('<strong>${debuff.type}</strong><br>Turns Remaining: ${debuff.duration}')" onmouseout="hideTooltip()">${icon}</span>`;
