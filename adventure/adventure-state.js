@@ -7,26 +7,26 @@ import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer } 
 
 const PVP_ZONES = ['blighted_wastes'];
 
-// --- BUG FIX START: New helper function to remove circular references for the client ---
+// --- HELPER FUNCTION: Removes properties that cannot be sent to the client ---
 function createStateForClient(sharedState) {
     if (!sharedState) return null;
     
-    // Create a shallow copy of the main state object.
-    const clientState = { ...sharedState };
+    // Use object destructuring to pull out and omit problematic, server-only properties.
+    const { turnTimerId, reactionTimeout, ...restOfState } = sharedState;
+    
+    const clientState = { ...restOfState };
 
-    // Deep copy zoneCards and remove the circular reference (_playerStateRef).
+    // Also remove the circular reference from the opponent cards.
     clientState.zoneCards = sharedState.zoneCards.map(card => {
         if (card && card._playerStateRef) {
-            // Use object destructuring to create a new card object omitting the ref.
             const { _playerStateRef, ...safeCard } = card; 
             return safeCard;
         }
-        return card; // Return non-player cards as-is.
+        return card;
     });
 
     return clientState;
 }
-// --- BUG FIX END ---
 
 
 // --- PVP HELPER FUNCTIONS ---
@@ -145,7 +145,7 @@ function startPvpEncounter(io, partyA, partyB) {
     partyB.sharedState.log.push({ message: firstTurnLogMessage, type: 'info' });
     partyB.sharedState.zoneCards = partyAStates.map(createPlayerCard);
     
-    /*const duration = 60000;
+    const duration = 60000;
     const timerEndsAt = Date.now() + duration;
 
     const timerId = setTimeout(() => {
@@ -167,9 +167,8 @@ function startPvpEncounter(io, partyA, partyB) {
     partyA.sharedState.turnTimerId = timerId;
     partyB.sharedState.turnTimerEndsAt = timerEndsAt;
     partyB.sharedState.turnTimerDuration = duration;
-    partyB.sharedState.turnTimerId = timerId;*/
+    partyB.sharedState.turnTimerId = timerId;
 
-    // --- BUG FIX START: Use the helper function to send a clean state to each party ---
     const stateForPartyA = createStateForClient(partyA.sharedState);
     const stateForPartyB = createStateForClient(partyB.sharedState);
 
@@ -181,7 +180,6 @@ function startPvpEncounter(io, partyA, partyB) {
         const member = players[memberName];
         if(member && member.id) io.to(member.id).emit('party:adventureStarted', stateForPartyB);
     });
-    // --- BUG FIX END ---
 }
 
 
@@ -230,7 +228,7 @@ export function startNextPvpTeamTurn(io, currentParty) {
     applyTurnStart(currentParty.sharedState, nextTeam);
     applyTurnStart(opponentParty.sharedState, nextTeam);
 
-    /*const duration = 60000;
+    const duration = 60000;
     const timerEndsAt = Date.now() + duration;
 
     const timerId = setTimeout(() => {
@@ -252,7 +250,7 @@ export function startNextPvpTeamTurn(io, currentParty) {
     currentParty.sharedState.turnTimerId = timerId;
     opponentParty.sharedState.turnTimerEndsAt = timerEndsAt;
     opponentParty.sharedState.turnTimerDuration = duration;
-    opponentParty.sharedState.turnTimerId = timerId;*/
+    opponentParty.sharedState.turnTimerId = timerId;
 
     broadcastAdventureUpdate(io, currentParty.id);
     broadcastAdventureUpdate(io, opponentParty.id);
