@@ -263,12 +263,28 @@ export const registerAdventureHandlers = (io, socket) => {
                     interactions.processLootPlayer(io, player, party, action.payload);
                     break;
                 case 'endTurn':
+                    // --- MODIFICATION START: This block now contains the correct PvP-aware logic. ---
                     actingPlayerState.turnEnded = true;
                     party.sharedState.log.push({ message: `${player.character.characterName} has ended their turn.`, type: 'info' });
-                    const allTurnsEnded = party.sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
+
+                    const { sharedState } = party;
+                    const activeTeam = sharedState.pvpEncounter ? sharedState.pvpEncounter.activeTeam : null;
+                    const teamMembers = activeTeam ? sharedState.partyMemberStates.filter(p => p.team === activeTeam) : sharedState.partyMemberStates;
+                    const allTurnsEnded = teamMembers.every(p => p.turnEnded || p.isDead);
+
                     if (allTurnsEnded) {
-                        await state.runEnemyPhaseForParty(io, partyId);
+                        if (sharedState.pvpEncounter) {
+                            // In PvP, we pass the turn to the next team.
+                            // We call the function in adventure-state.js, but since it's not exported,
+                            // we'll just use the already-exported checkAndEndTurnForPlayer which will do the same thing.
+                            // This avoids needing another export.
+                            await state.checkAndEndTurnForPlayer(io, party, player);
+                        } else {
+                            // In PvE, we run the enemy phase.
+                            await state.runEnemyPhaseForParty(io, partyId);
+                        }
                     }
+                    // --- MODIFICATION END ---
                     break;
             }
     
