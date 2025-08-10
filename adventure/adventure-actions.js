@@ -1,10 +1,10 @@
 // adventure/adventure-actions.js
 
-import { players } from '../serverState.js';
+import { players, parties } from '../serverState.js';
 import { gameData } from '../game-data.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
 
-import { checkAndEndTurnForPlayer, defeatEnemyInParty } from './adventure-state.js';
+import { checkAndEndTurnForPlayer, defeatEnemyInParty, handleResolveReaction } from './adventure-state.js';
 
 export async function processWeaponAttack(io, party, player, payload) {
     const { weaponSlot, targetIndex } = payload;
@@ -14,12 +14,76 @@ export async function processWeaponAttack(io, party, player, payload) {
     const weapon = character.equipment[weaponSlot];
     const target = sharedState.zoneCards[targetIndex];
 
-    if (!weapon || weapon.type !== 'weapon' || !target || target.type !== 'enemy' || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weapon.name] || 0) > 0) {
+    if (!weapon || weapon.type !== 'weapon' || !target || (target.type !== 'enemy' && target.type !== 'player') || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weapon.name] || 0) > 0) {
         return;
     }
 
+    if (target._playerStateRef) {
+        const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
+        const defendingPlayerState = target._playerStateRef;
+        const defendingPlayerObject = players[defendingPlayerState.name];
+        const defendingCharacter = defendingPlayerObject.character;
+        
+        const availableReactions = [];
+        const dodgeSpell = defendingCharacter.equippedSpells.find(s => s.name === "Dodge");
+        if (dodgeSpell && (defendingPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
+            let isWearingHeavy = Object.values(defendingCharacter.equipment).some(item => item && item.traits && item.traits.includes('Heavy'));
+            if (!isWearingHeavy) {
+                availableReactions.push({ name: 'Dodge' });
+            }
+        }
+        const shield = defendingCharacter.equipment.offHand;
+        if (shield && shield.type === 'shield' && shield.reaction && (defendingPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
+            availableReactions.push({ name: 'Block' });
+        }
+
+        if (availableReactions.length > 0) {
+            const timeRemaining = sharedState.turnTimerEndsAt - Date.now();
+            clearTimeout(sharedState.turnTimerId);
+            sharedState.turnTimeRemaining = timeRemaining;
+            opponentParty.sharedState.turnTimeRemaining = timeRemaining;
+
+            const pendingReaction = {
+                attackerName: character.characterName,
+                attackerPartyId: party.id,
+                targetName: defendingPlayerState.name,
+                damage: weapon.weaponDamage,
+                damageType: weapon.damageType,
+                message: `attacks with ${weapon.name}.`,
+                debuff: null, 
+                isFleeing: false
+            };
+            sharedState.pendingReaction = pendingReaction;
+            opponentParty.sharedState.pendingReaction = pendingReaction;
+
+            const reactionPayload = {
+                damage: weapon.weaponDamage,
+                attacker: character.characterName,
+                availableReactions: availableReactions,
+                timer: 10000
+            };
+
+            io.to(defendingPlayerState.playerId).emit('party:requestReaction', reactionPayload);
+
+            const reactionTimeout = setTimeout(() => {
+                const playerSocket = io.sockets.sockets.get(defendingPlayerState.playerId);
+                if (playerSocket) {
+                    handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
+                }
+            }, 10000);
+            
+            party.reactionTimeout = reactionTimeout;
+            opponentParty.reactionTimeout = reactionTimeout;
+            
+            actingPlayerState.actionPoints -= weapon.cost;
+            actingPlayerState.threat += weapon.cost;
+            actingPlayerState.weaponCooldowns[weapon.name] = weapon.cooldown;
+            return; 
+        }
+    }
+
     actingPlayerState.actionPoints -= weapon.cost;
-    actingPlayerState.threat += weapon.cost; // Add threat equal to AP cost
+    actingPlayerState.threat += weapon.cost;
     actingPlayerState.weaponCooldowns[weapon.name] = weapon.cooldown;
 
     const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
@@ -38,11 +102,9 @@ export async function processWeaponAttack(io, party, player, payload) {
         logMessage += ` Critical Failure! They miss!`;
         sharedState.log.push({ message: logMessage, type: 'damage' });
     } else if (total >= hitTarget) {
-        // --- MODIFICATION START: Apply damage using the player state reference. ---
         const realTarget = target._playerStateRef || target;
         realTarget.health -= weapon.weaponDamage;
-        target.health = realTarget.health; // Sync the card's health view.
-        // --- MODIFICATION END ---
+        target.health = realTarget.health; 
 
         logMessage += ` Hit! Dealt ${weapon.weaponDamage} ${weapon.damageType} damage.`;
 
@@ -99,27 +161,25 @@ export async function processCastSpell(io, party, player, payload) {
         }
     }
 
-    actingPlayerState.actionPoints -= cost;
-    actingPlayerState.threat += cost;
-    actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
+    let isSelfTarget = false;
+    let friendlyTarget = null;
+    let enemyTarget = null;
+    let targetIsPlayer = false;
 
-    if (spell.bonusThreat) {
-        actingPlayerState.threat += spell.bonusThreat;
-        sharedState.log.push({ message: `${character.characterName} generates ${spell.bonusThreat} bonus threat!`, type: 'reaction' });
-    }
-
-    if (spell.name === "Monk's Training") {
-        const focusAmount = actingPlayerState.focus || 0;
-        if (focusAmount > 0) {
-            actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + focusAmount);
-            actingPlayerState.buffs.push({ type: 'Focus', duration: 2, bonus: { rollBonus: focusAmount } });
-            sharedState.log.push({ message: `${character.characterName} spends ${focusAmount} Focus to heal for ${focusAmount} and gain +${focusAmount} to rolls this turn.`, type: 'heal' });
-            actingPlayerState.focus = 0;
-        } else {
-            sharedState.log.push({ message: `${character.characterName} has no Focus to spend!`, type: 'info' });
+    if (targetIndex === 'player' || (String(targetIndex).startsWith('p') && sharedState.partyMemberStates[parseInt(targetIndex.slice(1))].playerId === player.id)) {
+        isSelfTarget = true;
+        friendlyTarget = actingPlayerState;
+    } else if (String(targetIndex).startsWith('p')) {
+        const playerIdx = parseInt(targetIndex.substring(1));
+        if (!isNaN(playerIdx) && sharedState.partyMemberStates[playerIdx]) {
+            friendlyTarget = sharedState.partyMemberStates[playerIdx];
         }
-        await checkAndEndTurnForPlayer(io, party, player);
-        return;
+    } else {
+        const enemyIdx = parseInt(targetIndex);
+        if (!isNaN(enemyIdx) && sharedState.zoneCards[enemyIdx]) {
+            enemyTarget = sharedState.zoneCards[enemyIdx];
+            if(enemyTarget._playerStateRef) targetIsPlayer = true;
+        }
     }
 
     const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
@@ -147,40 +207,103 @@ export async function processCastSpell(io, party, player, payload) {
     const hitTarget = spell.hit || 15;
     let description = `${character.characterName} casting ${spell.name}: ${roll}(d20) + ${statValue}${rollDescription}${dazeModifier !== 0 ? dazeModifier : ''}${focusModifier > 0 ? `+${focusModifier}` : ''} = ${total}. (Target: ${hitTarget}+)`;
 
-    if (roll === 1) {
-        description += ` Critical Failure! The spell fizzles!`;
+    actingPlayerState.actionPoints -= cost;
+    actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
+
+    if (roll === 1 || total < hitTarget) {
+        description += (roll === 1) ? ` Critical Failure! The spell fizzles!` : ` The spell fizzles!`;
         sharedState.log.push({ message: description, type: 'damage' });
         await checkAndEndTurnForPlayer(io, party, player);
         return;
     }
-
-    if (total < hitTarget) {
-        description += ` The spell fizzles!`;
-        sharedState.log.push({ message: description, type: 'info' });
-        await checkAndEndTurnForPlayer(io, party, player);
-        return;
-    }
-
+    
     description += ` Success!`;
     sharedState.log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' ? 'heal' : 'damage' });
 
-    let isSelfTarget = false;
-    let friendlyTarget = null;
-    let enemyTarget = null;
+    if ((spell.type === 'attack' || spell.type === 'versatile' || spell.type === 'aoe') && enemyTarget && targetIsPlayer) {
+        const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
+        const defendingPlayerState = enemyTarget._playerStateRef;
+        const defendingPlayerObject = players[defendingPlayerState.name];
+        const defendingCharacter = defendingPlayerObject.character;
 
-    if (targetIndex === 'player' || (String(targetIndex).startsWith('p') && sharedState.partyMemberStates[parseInt(targetIndex.slice(1))].playerId === player.id)) {
-        isSelfTarget = true;
-        friendlyTarget = actingPlayerState;
-    } else if (String(targetIndex).startsWith('p')) {
-        const playerIdx = parseInt(targetIndex.substring(1));
-        if (!isNaN(playerIdx) && sharedState.partyMemberStates[playerIdx]) {
-            friendlyTarget = sharedState.partyMemberStates[playerIdx];
+        const availableReactions = [];
+        const dodgeSpell = defendingCharacter.equippedSpells.find(s => s.name === "Dodge");
+        if (dodgeSpell && (defendingPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
+            let isWearingHeavy = Object.values(defendingCharacter.equipment).some(item => item && item.traits && item.traits.includes('Heavy'));
+            if (!isWearingHeavy) {
+                availableReactions.push({ name: 'Dodge' });
+            }
         }
-    } else {
-        const enemyIdx = parseInt(targetIndex);
-        if (!isNaN(enemyIdx) && sharedState.zoneCards[enemyIdx] && sharedState.zoneCards[enemyIdx].type === 'enemy') {
-            enemyTarget = sharedState.zoneCards[enemyIdx];
+        const shield = defendingCharacter.equipment.offHand;
+        if (shield && shield.type === 'shield' && shield.reaction && (defendingPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
+            availableReactions.push({ name: 'Block' });
         }
+        
+        if (availableReactions.length > 0) {
+            const timeRemaining = sharedState.turnTimerEndsAt - Date.now();
+            clearTimeout(sharedState.turnTimerId);
+            sharedState.turnTimeRemaining = timeRemaining;
+            opponentParty.sharedState.turnTimeRemaining = timeRemaining;
+
+            let damage = spell.damage || 0;
+            if (spell.type === 'versatile') {
+                damage = spell.baseEffect + statValue;
+            }
+
+            const pendingReaction = {
+                attackerName: character.characterName,
+                attackerPartyId: party.id,
+                targetName: defendingPlayerState.name,
+                damage: damage,
+                damageType: spell.damageType || 'Physical',
+                message: `casts ${spell.name}.`,
+                debuff: spell.debuff || null,
+                isFleeing: false
+            };
+            sharedState.pendingReaction = pendingReaction;
+            opponentParty.sharedState.pendingReaction = pendingReaction;
+
+            const reactionPayload = {
+                damage: damage,
+                attacker: character.characterName,
+                availableReactions: availableReactions,
+                timer: 10000 
+            };
+            io.to(defendingPlayerState.playerId).emit('party:requestReaction', reactionPayload);
+
+            const reactionTimeout = setTimeout(() => {
+                const playerSocket = io.sockets.sockets.get(defendingPlayerState.playerId);
+                if (playerSocket) {
+                    handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
+                }
+            }, 10000);
+
+            party.reactionTimeout = reactionTimeout;
+            opponentParty.reactionTimeout = reactionTimeout;
+            
+            actingPlayerState.threat += cost;
+            return;
+        }
+    }
+
+    actingPlayerState.threat += cost;
+    if (spell.bonusThreat) {
+        actingPlayerState.threat += spell.bonusThreat;
+        sharedState.log.push({ message: `${character.characterName} generates ${spell.bonusThreat} bonus threat!`, type: 'reaction' });
+    }
+
+    if (spell.name === "Monk's Training") {
+        const focusAmount = actingPlayerState.focus || 0;
+        if (focusAmount > 0) {
+            actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + focusAmount);
+            actingPlayerState.buffs.push({ type: 'Focus', duration: 2, bonus: { rollBonus: focusAmount } });
+            sharedState.log.push({ message: `${character.characterName} spends ${focusAmount} Focus to heal for ${focusAmount} and gain +${focusAmount} to rolls this turn.`, type: 'heal' });
+            actingPlayerState.focus = 0;
+        } else {
+            sharedState.log.push({ message: `${character.characterName} has no Focus to spend!`, type: 'info' });
+        }
+        await checkAndEndTurnForPlayer(io, party, player);
+        return;
     }
 
     if (spell.type === 'heal' || spell.type === 'buff') {
@@ -202,11 +325,9 @@ export async function processCastSpell(io, party, player, payload) {
             target.health = Math.min(target.maxHealth, target.health + effectValue);
             sharedState.log.push({ message: `Healed ${target.name} for ${effectValue} HP.`, type: 'heal' });
         } else if (enemyTarget) {
-            // --- MODIFICATION START: Apply damage using the player state reference. ---
             const realTarget = enemyTarget._playerStateRef || enemyTarget;
             realTarget.health -= effectValue;
             enemyTarget.health = realTarget.health;
-            // --- MODIFICATION END ---
             sharedState.log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${enemyTarget.name}.`, type: 'damage' });
             if (enemyTarget.health <= 0) {
                 defeatEnemyInParty(io, party, enemyTarget, parseInt(targetIndex));
@@ -243,11 +364,9 @@ export async function processCastSpell(io, party, player, payload) {
                     damage = character.equipment.mainHand.weaponDamage + (spell.damageBonus || 0);
                 }
 
-                // --- MODIFICATION START: Apply damage using the player state reference. ---
                 const realTarget = aoeTarget._playerStateRef || aoeTarget;
                 realTarget.health -= damage;
                 aoeTarget.health = realTarget.health;
-                // --- MODIFICATION END ---
                 
                 let hitDescription = `Dealt ${damage} damage to ${aoeTarget.name}.`;
 
@@ -292,7 +411,7 @@ export async function processEquipItem(io, party, player, payload) {
         const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.playerId === player.id);
         if (actingPlayerState.actionPoints < 1) return;
         actingPlayerState.actionPoints--;
-        actingPlayerState.threat += 1; // Add threat equal to AP cost
+        actingPlayerState.threat += 1;
         party.sharedState.log.push({ message: `${character.characterName} spends 1 AP to change equipment.`, type: 'info' });
     }
 
@@ -357,7 +476,7 @@ export async function processUseItemAbility(io, party, player, payload) {
     
     const ability = item.activatedAbility;
     actingPlayerState.actionPoints -= ability.cost;
-    actingPlayerState.threat += ability.cost; // Add threat equal to AP cost
+    actingPlayerState.threat += ability.cost;
     actingPlayerState.itemCooldowns[item.name] = ability.cooldown;
     
     if (ability.buff) {
@@ -394,7 +513,7 @@ export async function processUseConsumable(io, party, player, payload) {
     }
 
     actingPlayerState.actionPoints -= cost;
-    actingPlayerState.threat += cost; // Add threat equal to AP cost
+    actingPlayerState.threat += cost;
     
     if (item.heal) {
         actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + item.heal);

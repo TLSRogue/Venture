@@ -777,6 +777,40 @@ hr {
 .party-member-list { list-style: none; padding: 0; margin: 10px 0; }
 .party-member-list li { background: rgba(0,0,0,0.2); padding: 8px; border-radius: 5px; margin-bottom: 5px; }
 
+.pvp-turn-timer-container {
+    font-size: 1.2em;
+    font-weight: bold;
+    background: rgba(0,0,0,0.5);
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 2px solid #fff;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.pvp-turn-timer-container.urgent {
+    color: var(--danger-color);
+    border-color: var(--danger-color);
+    animation: pulse-red 1s infinite;
+}
+
+.reaction-timer {
+    font-size: 2em;
+    font-weight: bold;
+    color: var(--accent-color);
+    margin: 10px 0;
+}
+
+.waiting-banner {
+    text-align: center;
+    padding: 10px;
+    background: rgba(241, 196, 15, 0.8);
+    color: var(--secondary-color);
+    font-weight: bold;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
 /* --- Combat Feedback Animations --- */
 .combat-feedback-popup {
     position: absolute;
@@ -881,6 +915,11 @@ hr {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-red {
+    0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+    70% { box-shadow: 0 0 5px 8px rgba(231, 76, 60, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
 }
 
 @media (max-width: 900px) {

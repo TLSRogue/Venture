@@ -5,6 +5,8 @@ import { socket } from '../network.js';
 import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js';
 import { getBonusStats } from '../player.js';
 
+let reactionTimerInterval = null;
+
 const effectIcons = {
     'bleed': '🩸',
     'burn': '🔥',
@@ -81,6 +83,17 @@ export function showCombatFeedback({ targetName, type, text }) {
         }
     }
 
+    if (!targetCard) {
+        const partyCards = document.querySelectorAll('#party-cards-container .card');
+        for (const card of partyCards) {
+            const titleEl = card.querySelector('.card-title');
+            if (titleEl && titleEl.textContent.trim() === targetName) {
+                targetCard = card;
+                break;
+            }
+        }
+    }
+    
     if (!targetCard) {
         return;
     }
@@ -222,7 +235,6 @@ function renderDuelScreen() {
     zoneContainer.appendChild(opponentCardEl);
 }
 
-// --- MODIFICATION START: This function now knows how to render defeated player opponents. ---
 function renderZoneCards(cards) {
     const zoneContainer = document.getElementById('zone-cards');
     zoneContainer.innerHTML = '';
@@ -237,7 +249,6 @@ function renderZoneCards(cards) {
         cardEl.className = card.playerId ? `card player ${card.type}` : `card ${card.type}`;
         cardEl.dataset.index = index;
 
-        // This new block checks if the card is a defeated player and renders them correctly.
         if (card.isDead) {
             cardEl.classList.add('dead');
             cardEl.innerHTML = `
@@ -246,7 +257,7 @@ function renderZoneCards(cards) {
                 <div>DEFEATED</div>
             `;
             zoneContainer.appendChild(cardEl);
-            return; // Skip the rest of the rendering logic for this card.
+            return;
         }
         
         if(card.type === 'enemy' || card.type === 'treasure' || card.type === 'npc') {
@@ -290,7 +301,6 @@ function renderZoneCards(cards) {
         zoneContainer.appendChild(cardEl);
     });
 }
-// --- MODIFICATION END ---
 
 function getEffectsHtml(playerState) {
     let effectsHtml = '<div class="player-card-effects">';
@@ -493,14 +503,22 @@ export function updateActionUI() {
     }
 }
 
-export function showReactionModal({ damage, attacker, availableReactions }) {
+export function showReactionModal({ damage, attacker, availableReactions, timer }) {
+    if (reactionTimerInterval) clearInterval(reactionTimerInterval);
+
     let buttons = '';
     availableReactions.forEach(reaction => {
         buttons += `<button class="btn btn-primary" data-reaction="${reaction.name}">Use ${reaction.name}</button>`;
     });
 
+    let timerHtml = '';
+    if (timer) {
+        timerHtml = `<div class="reaction-timer"><span id="reaction-timer-countdown">${timer / 1000}</span>s</div>`;
+    }
+
     const modalContent = `
         <h2>Reaction!</h2>
+        ${timerHtml}
         <p>${attacker} is about to deal ${damage} damage to you!</p>
         <div class="action-buttons" id="reaction-buttons">
             ${buttons}
@@ -508,6 +526,20 @@ export function showReactionModal({ damage, attacker, availableReactions }) {
         </div>
     `;
     showModal(modalContent);
+
+    if (timer) {
+        const countdownEl = document.getElementById('reaction-timer-countdown');
+        let secondsLeft = timer / 1000;
+        reactionTimerInterval = setInterval(() => {
+            secondsLeft--;
+            if (countdownEl) {
+                countdownEl.textContent = Math.max(0, secondsLeft);
+            }
+            if (secondsLeft <= 0) {
+                clearInterval(reactionTimerInterval);
+            }
+        }, 1000);
+    }
 }
 
 export function showBackpack() {

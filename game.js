@@ -17,6 +17,7 @@ import * as UITown from './ui/ui-town.js';
 // --- STATE VARIABLES ---
 let activeSlotIndex = null;
 let lootRollInterval = null;
+let pvpTurnTimerInterval = null;
 
 // --- INITIALIZATION ---
 function initGame() {
@@ -219,9 +220,51 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     }
     
     updateLootRollUI(gameState.pendingLootRoll);
+    updatePvpTurnTimerUI();
+    updateWaitingBannerUI();
 
     if (document.getElementById('ground-loot-modal') && !document.getElementById('ground-loot-modal').closest('.modal-overlay').classList.contains('hidden')) {
         UIAdventure.showGroundLootModal();
+    }
+}
+
+function updatePvpTurnTimerUI() {
+    if (pvpTurnTimerInterval) clearInterval(pvpTurnTimerInterval);
+    const timerContainer = document.getElementById('pvp-turn-timer-container');
+    const timerText = document.getElementById('pvp-turn-timer-text');
+
+    if (gameState.pvpEncounter && gameState.turnTimerEndsAt) {
+        timerContainer.style.display = 'block';
+
+        const update = () => {
+            const remaining = Math.round((gameState.turnTimerEndsAt - Date.now()) / 1000);
+            if (remaining > 0) {
+                const activeTeam = gameState.pvpEncounter.activeTeam;
+                timerText.textContent = `Team ${activeTeam}'s Turn: ${remaining}s`;
+                if (remaining <= 10) {
+                    timerContainer.classList.add('urgent');
+                } else {
+                    timerContainer.classList.remove('urgent');
+                }
+            } else {
+                timerText.textContent = `Team ${gameState.pvpEncounter.activeTeam}'s Turn: 0s`;
+                clearInterval(pvpTurnTimerInterval);
+            }
+        };
+        update();
+        pvpTurnTimerInterval = setInterval(update, 1000);
+    } else {
+        timerContainer.style.display = 'none';
+    }
+}
+
+function updateWaitingBannerUI() {
+    const banner = document.getElementById('waiting-for-reaction-banner');
+    if (gameState.pendingReaction && gameState.pendingReaction.targetName !== gameState.characterName) {
+        banner.textContent = `Waiting for ${gameState.pendingReaction.targetName} to react...`;
+        banner.style.display = 'block';
+    } else {
+        banner.style.display = 'none';
     }
 }
 
@@ -475,9 +518,7 @@ function addEventListeners() {
 
         const button = target.closest('button');
         if(button) {
-            // --- MODIFICATION START: Added the missing event listener for the ground loot button. ---
             if (button.id === 'ground-loot-btn') return UIAdventure.showGroundLootModal();
-            // --- MODIFICATION END ---
             if (button.id === 'consolidate-btn') return Network.emitPlayerAction('consolidateBank');
             if (button.id === 'create-party-btn') return Network.emitCreateParty();
             if (button.id === 'join-party-btn') {
