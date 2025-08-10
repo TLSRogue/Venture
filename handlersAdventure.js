@@ -253,16 +253,32 @@ export const registerAdventureHandlers = (io, socket) => {
                     interactions.processLootPlayer(io, player, party, action.payload);
                     break;
                 case 'endTurn':
-                    await state.checkAndEndTurnForPlayer(io, party, player);
+                    // --- MODIFICATION START: This is the correct, final logic for the manual End Turn button. ---
+                    actingPlayerState.turnEnded = true;
+                    party.sharedState.log.push({ message: `${player.character.characterName} has ended their turn.`, type: 'info' });
+
+                    const { sharedState } = party;
+                    const activeTeam = sharedState.pvpEncounter ? sharedState.pvpEncounter.activeTeam : null;
+                    // In PvP, we check only the active team's members. In PvE, we check all members.
+                    const membersToCheck = activeTeam ? sharedState.partyMemberStates.filter(p => p.team === activeTeam) : sharedState.partyMemberStates;
+                    const allTurnsEnded = membersToCheck.every(p => p.turnEnded || p.isDead);
+
+                    if (allTurnsEnded) {
+                        if (sharedState.pvpEncounter) {
+                            // In PvP, we pass the turn to the next team.
+                            state.startNextPvpTeamTurn(io, party);
+                        } else {
+                            // In PvE, we run the enemy phase.
+                            await state.runEnemyPhaseForParty(io, partyId);
+                        }
+                    }
+                    // --- MODIFICATION END ---
                     break;
             }
     
-            // --- MODIFICATION START: This block now broadcasts to both parties in a PvP fight. ---
             if (party.sharedState) {
-                // Always broadcast to the acting player's party
                 broadcastAdventureUpdate(io, partyId);
 
-                // If in a PvP encounter, also broadcast the state to the opponent's party
                 if (party.sharedState.pvpEncounter) {
                     const opponentParty = parties[party.sharedState.pvpEncounter.opponentPartyId];
                     if (opponentParty) {
@@ -270,7 +286,6 @@ export const registerAdventureHandlers = (io, socket) => {
                     }
                 }
             }
-            // --- MODIFICATION END ---
             
         } catch (error) {
             console.error(`!!! PLAYER ACTION ERROR !!! A server crash was prevented. Action:`, action);
