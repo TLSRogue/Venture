@@ -71,6 +71,11 @@ function endPvpEncounter(io, winningParty, losingParty) {
 
 
 function startPvpEncounter(io, partyA, partyB) {
+    if (!partyA.sharedState || !partyB.sharedState) {
+        console.error("Attempted to start PvP encounter with a party that is missing a sharedState.");
+        return;
+    }
+
     const partyAStates = partyA.sharedState.partyMemberStates;
     const partyBStates = partyB.sharedState.partyMemberStates;
 
@@ -116,8 +121,11 @@ function startPvpEncounter(io, partyA, partyB) {
     const timerEndsAt = Date.now() + duration;
 
     const timerId = setTimeout(() => {
-        const activeParty = startingTeam === 'A' ? partyA : partyB;
-        if (activeParty && activeParty.sharedState) {
+        const currentPartyA = parties[partyA.id];
+        const currentPartyB = parties[partyB.id];
+
+        if (currentPartyA && currentPartyB && currentPartyA.sharedState && currentPartyA.sharedState.pvpEncounter) {
+            const activeParty = startingTeam === 'A' ? currentPartyA : currentPartyB;
             activeParty.sharedState.log.push({ message: `Team ${startingTeam}'s time expired! Turn ends.`, type: 'damage' });
             activeParty.sharedState.partyMemberStates.forEach(p => {
                 if (p.team === startingTeam && !p.isDead) p.turnEnded = true;
@@ -145,11 +153,10 @@ function startPvpEncounter(io, partyA, partyB) {
 
 
 export function startNextPvpTeamTurn(io, currentParty) {
-    const { sharedState } = currentParty;
-    if (!sharedState.pvpEncounter) return; 
+    if (!currentParty || !currentParty.sharedState || !currentParty.sharedState.pvpEncounter) return; 
     
-    const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
-    if (!opponentParty) return;
+    const opponentParty = parties[currentParty.sharedState.pvpEncounter.opponentPartyId];
+    if (!opponentParty || !opponentParty.sharedState) return;
 
     if (currentParty.sharedState.turnTimerId) {
         clearTimeout(currentParty.sharedState.turnTimerId);
@@ -160,7 +167,7 @@ export function startNextPvpTeamTurn(io, currentParty) {
         opponentParty.sharedState.turnTimerId = null;
     }
 
-    const currentTeam = sharedState.pvpEncounter.activeTeam;
+    const currentTeam = currentParty.sharedState.pvpEncounter.activeTeam;
     const nextTeam = currentTeam === 'A' ? 'B' : 'A';
 
     const applyTurnStart = (state, newActiveTeam) => {
@@ -191,8 +198,11 @@ export function startNextPvpTeamTurn(io, currentParty) {
     const timerEndsAt = Date.now() + duration;
 
     const timerId = setTimeout(() => {
-        const activeParty = (currentParty.sharedState.partyMemberStates[0].team === nextTeam) ? currentParty : opponentParty;
-        if (activeParty && activeParty.sharedState) {
+        const partyForTimer = parties[currentParty.id];
+        const opponentForTimer = parties[opponentParty.id];
+
+        if (partyForTimer && opponentForTimer && partyForTimer.sharedState && partyForTimer.sharedState.pvpEncounter) {
+            const activeParty = (partyForTimer.sharedState.partyMemberStates[0].team === nextTeam) ? partyForTimer : opponentForTimer;
             activeParty.sharedState.log.push({ message: `Team ${nextTeam}'s time expired! Turn ends.`, type: 'damage' });
             activeParty.sharedState.partyMemberStates.forEach(p => {
                 if (p.team === nextTeam && !p.isDead) p.turnEnded = true;
@@ -920,14 +930,14 @@ export async function handleResolveReaction(io, socket, payload) {
         if (duration > 0) {
             const timerEndsAt = Date.now() + duration;
             const timerId = setTimeout(() => {
-                const activeTeam = attackerParty.sharedState.pvpEncounter.activeTeam;
-                
-                if (attackerParty && attackerParty.sharedState) {
-                    attackerParty.sharedState.log.push({ message: `Team ${activeTeam}'s time expired! Turn ends.`, type: 'damage' });
-                    attackerParty.sharedState.partyMemberStates.forEach(p => {
+                const currentAttackerParty = parties[attackerParty.id];
+                if (currentAttackerParty && currentAttackerParty.sharedState && currentAttackerParty.sharedState.pvpEncounter) {
+                    const activeTeam = currentAttackerParty.sharedState.pvpEncounter.activeTeam;
+                    currentAttackerParty.sharedState.log.push({ message: `Team ${activeTeam}'s time expired! Turn ends.`, type: 'damage' });
+                    currentAttackerParty.sharedState.partyMemberStates.forEach(p => {
                         if (p.team === activeTeam && !p.isDead) p.turnEnded = true;
                     });
-                    startNextPvpTeamTurn(io, attackerParty);
+                    startNextPvpTeamTurn(io, currentAttackerParty);
                 }
             }, duration);
 
