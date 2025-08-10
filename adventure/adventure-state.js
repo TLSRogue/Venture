@@ -7,6 +7,28 @@ import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer } 
 
 const PVP_ZONES = ['blighted_wastes'];
 
+// --- BUG FIX START: New helper function to remove circular references for the client ---
+function createStateForClient(sharedState) {
+    if (!sharedState) return null;
+    
+    // Create a shallow copy of the main state object.
+    const clientState = { ...sharedState };
+
+    // Deep copy zoneCards and remove the circular reference (_playerStateRef).
+    clientState.zoneCards = sharedState.zoneCards.map(card => {
+        if (card && card._playerStateRef) {
+            // Use object destructuring to create a new card object omitting the ref.
+            const { _playerStateRef, ...safeCard } = card; 
+            return safeCard;
+        }
+        return card; // Return non-player cards as-is.
+    });
+
+    return clientState;
+}
+// --- BUG FIX END ---
+
+
 // --- PVP HELPER FUNCTIONS ---
 
 export function handlePvpPlayerDeath(io, defeatedPlayer, party) {
@@ -76,13 +98,11 @@ function startPvpEncounter(io, partyA, partyB) {
         return;
     }
 
-    // --- BUG FIX START: Defensively ensure buffs/debuffs arrays exist on all player states ---
     const allPlayerStates = [...partyA.sharedState.partyMemberStates, ...partyB.sharedState.partyMemberStates];
     for (const playerState of allPlayerStates) {
         if (!playerState.buffs) playerState.buffs = [];
         if (!playerState.debuffs) playerState.debuffs = [];
     }
-    // --- BUG FIX END ---
 
     const partyAStates = partyA.sharedState.partyMemberStates;
     const partyBStates = partyB.sharedState.partyMemberStates;
@@ -149,14 +169,19 @@ function startPvpEncounter(io, partyA, partyB) {
     partyB.sharedState.turnTimerDuration = duration;
     partyB.sharedState.turnTimerId = timerId;
 
+    // --- BUG FIX START: Use the helper function to send a clean state to each party ---
+    const stateForPartyA = createStateForClient(partyA.sharedState);
+    const stateForPartyB = createStateForClient(partyB.sharedState);
+
     partyA.members.forEach(memberName => {
         const member = players[memberName];
-        if(member && member.id) io.to(member.id).emit('party:adventureStarted', partyA.sharedState);
+        if(member && member.id) io.to(member.id).emit('party:adventureStarted', stateForPartyA);
     });
     partyB.members.forEach(memberName => {
         const member = players[memberName];
-        if(member && member.id) io.to(member.id).emit('party:adventureStarted', partyB.sharedState);
+        if(member && member.id) io.to(member.id).emit('party:adventureStarted', stateForPartyB);
     });
+    // --- BUG FIX END ---
 }
 
 
