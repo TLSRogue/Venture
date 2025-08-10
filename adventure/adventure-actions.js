@@ -4,7 +4,7 @@ import { players } from '../serverState.js';
 import { gameData } from '../game-data.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
 
-import { checkAndEndTurnForPlayer, defeatEnemyInParty, handlePvpPlayerDeath } from './adventure-state.js';
+import { checkAndEndTurnForPlayer, defeatEnemyInParty } from './adventure-state.js';
 
 export async function processWeaponAttack(io, party, player, payload) {
     const { weaponSlot, targetIndex } = payload;
@@ -12,27 +12,11 @@ export async function processWeaponAttack(io, party, player, payload) {
     const { sharedState } = party;
     const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
     const weapon = character.equipment[weaponSlot];
+    const target = sharedState.zoneCards[targetIndex];
 
-    let target;
-    if (sharedState.pvpEncounter) {
-        // In PvP, the target is another player from the combined party list.
-        target = sharedState.partyMemberStates[targetIndex];
-    } else {
-        // In PvE, the target is an enemy card from the zone cards.
-        target = sharedState.zoneCards[targetIndex];
-    }
-
-    // --- MODIFICATION START ---
-    // This validation is now PvP-aware. It allows targets that are either PvE enemies
-    // OR player opponents in a PvP encounter.
-    const isInvalidTargetInPVE = !sharedState.pvpEncounter && (!target || target.type !== 'enemy');
-    const isInvalidTargetInPVP = sharedState.pvpEncounter && (!target || target.team === actingPlayerState.team);
-
-    if (!weapon || weapon.type !== 'weapon' || isInvalidTargetInPVE || isInvalidTargetInPVP || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weapon.name] || 0) > 0) {
+    if (!weapon || weapon.type !== 'weapon' || !target || target.type !== 'enemy' || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weapon.name] || 0) > 0) {
         return;
     }
-    // --- MODIFICATION END ---
-
 
     actingPlayerState.actionPoints -= weapon.cost;
     actingPlayerState.threat += weapon.cost; // Add threat equal to AP cost
@@ -57,31 +41,20 @@ export async function processWeaponAttack(io, party, player, payload) {
         target.health -= weapon.weaponDamage;
         logMessage += ` Hit! Dealt ${weapon.weaponDamage} ${weapon.damageType} damage.`;
 
-        // Debuffs in PvP need to go into the correct debuffs array
-        const debuffsArray = target.debuffs || target.playerDebuffs;
-
         if (roll === 20 && weapon.onCrit && weapon.onCrit.debuff) {
-            debuffsArray.push({ ...weapon.onCrit.debuff });
+            target.debuffs.push({ ...weapon.onCrit.debuff });
             logMessage += ` CRITICAL HIT! ${target.name} is now ${weapon.onCrit.debuff.type}!`;
         }
         if (weapon.onHit && weapon.onHit.debuff) {
-            debuffsArray.push({ ...weapon.onHit.debuff });
+            target.debuffs.push({ ...weapon.onHit.debuff });
             logMessage += ` ${target.name} is now ${weapon.onHit.debuff.type}!`;
         }
 
         sharedState.log.push({ message: logMessage, type: 'damage' });
 
         if (target.health <= 0) {
-            if (sharedState.pvpEncounter) {
-                target.health = 0;
-                target.isDead = true;
-                const defeatedPlayerObject = players[target.name];
-                handlePvpPlayerDeath(io, defeatedPlayerObject, party);
-            } else {
-                defeatEnemyInParty(io, party, target, targetIndex);
-            }
+            defeatEnemyInParty(io, party, target, targetIndex);
         }
-
     } else {
         logMessage += ` Miss!`;
         sharedState.log.push({ message: logMessage, type: 'info' });
@@ -125,6 +98,7 @@ export async function processCastSpell(io, party, player, payload) {
     actingPlayerState.threat += cost;
     actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
 
+    // --- NEW: Handle bonus threat for spells that have it ---
     if (spell.bonusThreat) {
         actingPlayerState.threat += spell.bonusThreat;
         sharedState.log.push({ message: `${character.characterName} generates ${spell.bonusThreat} bonus threat!`, type: 'reaction' });
@@ -148,6 +122,7 @@ export async function processCastSpell(io, party, player, payload) {
     let statValue = 0;
     let rollDescription = "";
 
+    // --- NEW: Handle special roll for Warrior's Might ---
     if (spell.name === "Warrior's Might") {
         const strength = (character.strength || 0) + (bonuses.strength || 0);
         const defense = (character.defense || 0) + (bonuses.defense || 0);
@@ -199,18 +174,9 @@ export async function processCastSpell(io, party, player, payload) {
             friendlyTarget = sharedState.partyMemberStates[playerIdx];
         }
     } else {
-        const idx = parseInt(targetIndex);
-        if (!isNaN(idx)) {
-            if (sharedState.pvpEncounter) {
-                const potentialTarget = sharedState.partyMemberStates[idx];
-                if (potentialTarget && potentialTarget.team !== actingPlayerState.team) {
-                    enemyTarget = potentialTarget;
-                }
-            } else {
-                if (sharedState.zoneCards[idx] && sharedState.zoneCards[idx].type === 'enemy') {
-                    enemyTarget = sharedState.zoneCards[idx];
-                }
-            }
+        const enemyIdx = parseInt(targetIndex);
+        if (!isNaN(enemyIdx) && sharedState.zoneCards[enemyIdx] && sharedState.zoneCards[enemyIdx].type === 'enemy') {
+            enemyTarget = sharedState.zoneCards[enemyIdx];
         }
     }
 
@@ -235,44 +201,26 @@ export async function processCastSpell(io, party, player, payload) {
         } else if (enemyTarget) {
             enemyTarget.health -= effectValue;
             sharedState.log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${enemyTarget.name}.`, type: 'damage' });
-            
             if (enemyTarget.health <= 0) {
-                 if (sharedState.pvpEncounter) {
-                    enemyTarget.health = 0;
-                    enemyTarget.isDead = true;
-                    const defeatedPlayerObject = players[enemyTarget.name];
-                    handlePvpPlayerDeath(io, defeatedPlayerObject, party);
-                } else {
-                    defeatEnemyInParty(io, party, enemyTarget, parseInt(targetIndex));
-                }
+                defeatEnemyInParty(io, party, enemyTarget, parseInt(targetIndex));
             }
         }
     } else if (spell.type === 'attack' || spell.type === 'aoe') {
         let targets = [];
-        if (sharedState.pvpEncounter) {
-            if (spell.aoeTargeting === 'all') {
-                sharedState.partyMemberStates.forEach((p, idx) => {
-                    if (p.team !== actingPlayerState.team && !p.isDead) targets.push({ card: p, index: idx });
-                });
-            } else {
-                if (enemyTarget) targets.push({ card: enemyTarget, index: parseInt(targetIndex) });
-            }
+        if (spell.aoeTargeting === 'all') {
+            sharedState.zoneCards.forEach((card, idx) => {
+                if (card && card.type === 'enemy') targets.push({ card, index: idx });
+            });
+        } else if (spell.type === 'aoe') {
+            const enemyIdx = parseInt(targetIndex);
+            if (enemyTarget) targets.push({ card: enemyTarget, index: enemyIdx });
+            if (enemyIdx > 0 && sharedState.zoneCards[enemyIdx - 1]?.type === 'enemy') targets.push({ card: sharedState.zoneCards[enemyIdx - 1], index: enemyIdx - 1 });
+            if (enemyIdx < sharedState.zoneCards.length - 1 && sharedState.zoneCards[enemyIdx + 1]?.type === 'enemy') targets.push({ card: sharedState.zoneCards[enemyIdx + 1], index: enemyIdx + 1 });
         } else {
-            if (spell.aoeTargeting === 'all') {
-                sharedState.zoneCards.forEach((card, idx) => {
-                    if (card && card.type === 'enemy') targets.push({ card, index: idx });
-                });
-            } else if (spell.type === 'aoe') {
-                const enemyIdx = parseInt(targetIndex);
-                if (enemyTarget) targets.push({ card: enemyTarget, index: enemyIdx });
-                if (enemyIdx > 0 && sharedState.zoneCards[enemyIdx - 1]?.type === 'enemy') targets.push({ card: sharedState.zoneCards[enemyIdx - 1], index: enemyIdx - 1 });
-                if (enemyIdx < sharedState.zoneCards.length - 1 && sharedState.zoneCards[enemyIdx + 1]?.type === 'enemy') targets.push({ card: sharedState.zoneCards[enemyIdx + 1], index: enemyIdx + 1 });
-            } else {
-                if (enemyTarget) targets.push({ card: enemyTarget, index: parseInt(targetIndex) });
-            }
+            if (enemyTarget) targets.push({ card: enemyTarget, index: parseInt(targetIndex) });
         }
 
-        const uniqueTargets = [...new Map(targets.map(item => [item.card.id || item.card.name, item])).values()];
+        const uniqueTargets = [...new Map(targets.map(item => [item.card.id, item])).values()];
         
         uniqueTargets.forEach(({ card: aoeTarget, index: aoeIndex }) => {
             if (aoeTarget && aoeTarget.health > 0) {
@@ -291,14 +239,12 @@ export async function processCastSpell(io, party, player, payload) {
                 aoeTarget.health -= damage;
                 let hitDescription = `Dealt ${damage} damage to ${aoeTarget.name}.`;
 
-                const debuffsArray = aoeTarget.debuffs || aoeTarget.playerDebuffs;
-
                 if (spell.debuff) {
-                    debuffsArray.push({ ...spell.debuff });
+                    aoeTarget.debuffs.push({ ...spell.debuff });
                     hitDescription += ` ${aoeTarget.name} is now ${spell.debuff.type}!`;
                 }
                 if (spell.onHit && total >= (spell.onHit.threshold || hitTarget) && spell.onHit.debuff) {
-                    debuffsArray.push({ ...spell.onHit.debuff });
+                    aoeTarget.debuffs.push({ ...spell.onHit.debuff });
                     hitDescription += ` ${aoeTarget.name} is now ${spell.onHit.debuff.type}!`;
                 }
                 sharedState.log.push({ message: hitDescription, type: 'damage' });
@@ -311,14 +257,7 @@ export async function processCastSpell(io, party, player, payload) {
                 }
 
                 if (aoeTarget.health <= 0) {
-                    if (sharedState.pvpEncounter) {
-                        aoeTarget.health = 0;
-                        aoeTarget.isDead = true;
-                        const defeatedPlayerObject = players[aoeTarget.name];
-                        handlePvpPlayerDeath(io, defeatedPlayerObject, party);
-                    } else {
-                        defeatEnemyInParty(io, party, aoeTarget, aoeIndex);
-                    }
+                    defeatEnemyInParty(io, party, aoeTarget, aoeIndex);
                 }
             }
         });

@@ -112,6 +112,9 @@ export function showCombatFeedback({ targetName, type, text }) {
 
 // --- ADVENTURE SCREEN RENDERING ---
 
+// --- MODIFICATION START: The logic here is now simpler. ---
+// The `renderPartyScreen` function can now handle both PvE and PvP,
+// so we no longer need a special check for `gameState.pvpEncounter`.
 export function renderAdventureScreen() {
     const ventureArrow = document.getElementById('venture-deeper-arrow');
     const homeArrow = document.getElementById('return-home-arrow');
@@ -121,14 +124,15 @@ export function renderAdventureScreen() {
 
     if (gameState.inDuel) {
         renderDuelScreen();
-    } else if (gameState.partyMemberStates && gameState.pvpEncounter) { // <-- FIX: Check for PvP encounter
-        renderPvpScreen();
     } else if (gameState.partyId && gameState.partyMemberStates) {
+        // This single function call now renders the screen correctly
+        // for both normal party adventures AND PvP encounters.
         renderPartyScreen();
     }
     renderGroundLootButton();
     updateActionUI();
 }
+// --- MODIFICATION END ---
 
 function renderPartyScreen() {
     const partyContainer = document.getElementById('party-cards-container');
@@ -154,7 +158,13 @@ function renderPartyScreen() {
                 gameState.health = playerState.health; 
                 gameState.maxHealth = playerState.maxHealth;
             }
-            if (playerState.turnEnded) {
+
+            // In PvP, the active team is highlighted. In PvE, the specific player's turn is.
+            if (gameState.pvpEncounter) {
+                 if (gameState.pvpEncounter.activeTeam === playerState.team) {
+                    cardEl.classList.add('active-turn');
+                }
+            } else if (playerState.turnEnded) {
                 cardEl.style.opacity = '0.6';
             }
             
@@ -174,58 +184,10 @@ function renderPartyScreen() {
     renderZoneCards(gameState.zoneCards);
 }
 
-// --- NEW FUNCTION TO RENDER PVP ENCOUNTERS ---
-function renderPvpScreen() {
-    const partyContainer = document.getElementById('party-cards-container');
-    const zoneContainer = document.getElementById('zone-cards');
-    partyContainer.innerHTML = '';
-    zoneContainer.innerHTML = ''; // Clear PvE cards
-
-    const localPlayerState = gameState.partyMemberStates.find(p => p.playerId === socket.id);
-    if (!localPlayerState) return;
-    const localPlayerTeam = localPlayerState.team;
-
-    gameState.partyMemberStates.forEach((playerState, index) => {
-        const isFriendly = playerState.team === localPlayerTeam;
-        const container = isFriendly ? partyContainer : zoneContainer;
-        
-        const cardEl = document.createElement('div');
-        cardEl.className = 'card player';
-        if (!isFriendly) {
-            cardEl.classList.add('enemy'); // Make them targetable
-        }
-
-        if (playerState.isDead) {
-            cardEl.classList.add('dead');
-            cardEl.innerHTML = `
-                <div class="card-icon">💀</div>
-                <div class="card-title">${playerState.name}</div>
-                <div>DEFEATED</div>
-            `;
-        } else {
-            if (playerState.playerId === socket.id) {
-                cardEl.classList.add('is-local-player');
-                gameState.health = playerState.health;
-                gameState.maxHealth = playerState.maxHealth;
-            }
-            // Highlight active turn for the entire active team
-            if (gameState.pvpEncounter.activeTeam === playerState.team) {
-                cardEl.classList.add('active-turn');
-            }
-            
-            let effectsHtml = getEffectsHtml(playerState);
-            cardEl.innerHTML = `
-                <div class="card-icon">${playerState.icon}</div>
-                <div class="card-title">${playerState.name}</div>
-                <div>❤️ ${playerState.health}/${playerState.maxHealth}</div>
-                ${effectsHtml}
-            `;
-        }
-
-        cardEl.dataset.index = isFriendly ? `p${index}` : index;
-        container.appendChild(cardEl);
-    });
-}
+// --- MODIFICATION START: This entire function is now redundant and has been removed. ---
+// The `renderPartyScreen` function now handles PvP rendering.
+// --- FUNCTION `renderPvpScreen` DELETED ---
+// --- MODIFICATION END ---
 
 function renderDuelScreen() {
     const zoneContainer = document.getElementById('zone-cards');
@@ -291,11 +253,12 @@ function renderZoneCards(cards) {
             return;
         };
 
-        cardEl.className = `card ${card.type}`;
+        // In PvP, the "enemy" card is also a "player" card.
+        cardEl.className = card.playerId ? `card player ${card.type}` : `card ${card.type}`;
         cardEl.dataset.index = index;
         
         if(card.type === 'enemy' || card.type === 'treasure' || card.type === 'npc') {
-            let tooltipContent = `<strong>${card.name}</strong><br>${card.description}`;
+            let tooltipContent = `<strong>${card.name}</strong><br>${card.description || ''}`;
             if (card.attackTable) {
                 tooltipContent += `<hr style="margin: 5px 0;"><strong>Attacks:</strong>`;
                 card.attackTable.forEach(attack => {
@@ -309,7 +272,7 @@ function renderZoneCards(cards) {
         }
         
         let healthDisplay = '';
-        let effectsDisplay = ''; // For buffs/debuffs
+        let effectsDisplay = '';
 
         if (card.type === 'enemy') {
             healthDisplay = `<div>❤️ ${card.health}/${card.maxHealth}</div>`;
@@ -380,7 +343,6 @@ export function renderPlayerActionBars() {
             spellCooldowns = localPlayerState.spellCooldowns;
             itemCooldowns = localPlayerState.itemCooldowns;
 
-            // --- FIX: In PvP, your turn is only active if it's your TEAM's turn ---
             if (gameState.pvpEncounter) {
                 localPlayerTurnEnded = gameState.pvpEncounter.activeTeam !== localPlayerState.team;
             }
