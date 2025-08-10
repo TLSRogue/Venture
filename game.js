@@ -112,7 +112,6 @@ function handleCharacterUpdate(serverState) {
         partyMemberStates: gameState.partyMemberStates,
         groundLoot: gameState.groundLoot,
         isPartyLeader: gameState.isPartyLeader,
-        // --- FIX: Also preserve pvpEncounter during character updates ---
         pvpEncounter: gameState.pvpEncounter 
     };
 
@@ -174,7 +173,6 @@ function handleReceivePartyInvite({ inviterName, partyId }) {
 }
 
 function handlePartyAdventureStarted(serverAdventureState) {
-    // --- FIX: Copy the ENTIRE state object from the server ---
     Object.assign(gameState, serverAdventureState);
 
     Player.resetPlayerCombatState();
@@ -208,7 +206,6 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     const newLogEntries = serverAdventureState.log.slice(existingLogCount);
     const effectsToPlay = getEffectsFromLog(newLogEntries);
 
-    // --- FIX: Copy the ENTIRE state object from the server to ensure pvpEncounter is synced ---
     Object.assign(gameState, serverAdventureState);
     
     newLogEntries.reverse().forEach(entry => UIMain.addToLog(entry.message, entry.type));
@@ -383,7 +380,6 @@ function addEventListeners() {
     document.body.addEventListener('click', (e) => {
         const target = e.target;
         
-        // Loot Roll Button Clicks
         const lootButton = target.closest('#loot-roll-container button[data-choice]');
         if (lootButton) {
             const choice = lootButton.dataset.choice;
@@ -439,7 +435,6 @@ function addEventListeners() {
             return Merchant.buyItem(identifier, isPermanent);
         }
 
-        // Zone Selection Click Handler (UPDATED)
         if (target.closest('.zone-card')) {
             const zoneName = target.closest('.zone-card').dataset.zone;
             const startAdventure = () => {
@@ -480,6 +475,9 @@ function addEventListeners() {
 
         const button = target.closest('button');
         if(button) {
+            // --- MODIFICATION START: Added the missing event listener for the ground loot button. ---
+            if (button.id === 'ground-loot-btn') return UIAdventure.showGroundLootModal();
+            // --- MODIFICATION END ---
             if (button.id === 'consolidate-btn') return Network.emitPlayerAction('consolidateBank');
             if (button.id === 'create-party-btn') return Network.emitCreateParty();
             if (button.id === 'join-party-btn') {
