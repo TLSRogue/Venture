@@ -3,31 +3,11 @@
 import { players, parties, pvpZoneQueues } from '../serverState.js';
 import { gameData } from '../game-data.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
-import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer } from '../utilsHelpers.js';
+import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js'; // MODIFIED: Import the helper
 
 const PVP_ZONES = ['blighted_wastes'];
 
-// --- HELPER FUNCTION: Removes properties that cannot be sent to the client ---
-function createStateForClient(sharedState) {
-    if (!sharedState) return null;
-    
-    // Use object destructuring to pull out and omit problematic, server-only properties.
-    const { turnTimerId, reactionTimeout, ...restOfState } = sharedState;
-    
-    const clientState = { ...restOfState };
-
-    // Also remove the circular reference from the opponent cards.
-    clientState.zoneCards = sharedState.zoneCards.map(card => {
-        if (card && card._playerStateRef) {
-            const { _playerStateRef, ...safeCard } = card; 
-            return safeCard;
-        }
-        return card;
-    });
-
-    return clientState;
-}
-
+// MODIFIED: The createStateForClient helper function has been moved to utilsHelpers.js
 
 // --- PVP HELPER FUNCTIONS ---
 

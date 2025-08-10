@@ -7,6 +7,31 @@
 
 import { gameData } from './game-data.js';
 
+// --- MODIFICATION START: Added client state cleaning utility ---
+export function createStateForClient(sharedState) {
+    if (!sharedState) return null;
+    
+    // Use object destructuring to pull out and omit problematic, server-only properties.
+    const { turnTimerId, reactionTimeout, ...restOfState } = sharedState;
+    
+    const clientState = { ...restOfState };
+
+    // Also remove the circular reference from the opponent cards.
+    if (clientState.zoneCards) {
+        clientState.zoneCards = sharedState.zoneCards.map(card => {
+            if (card && card._playerStateRef) {
+                const { _playerStateRef, ...safeCard } = card; 
+                return safeCard;
+            }
+            return card;
+        });
+    }
+
+    return clientState;
+}
+// --- MODIFICATION END ---
+
+
 // --- MERCHANT LOGIC (UPDATED) ---
 
 /**
@@ -136,7 +161,6 @@ export function addItemToInventoryServer(character, itemData, quantity = 1, grou
     let remainingQuantity = quantity;
     let addedToInventory = false;
 
-    // First, try to stack with existing items in inventory
     if (baseItem.stackable) {
         for (const invItem of character.inventory) {
             if (invItem && invItem.name === itemData.name && invItem.quantity < baseItem.stackable) {
@@ -150,11 +174,10 @@ export function addItemToInventoryServer(character, itemData, quantity = 1, grou
         }
     }
 
-    // Then, try to add remaining items to new slots
     while (remainingQuantity > 0) {
         const emptySlotIndex = character.inventory.findIndex(slot => !slot);
         if (emptySlotIndex === -1) {
-            break; // Inventory is full
+            break;
         }
         
         const amountToAdd = baseItem.stackable ? Math.min(remainingQuantity, baseItem.stackable) : 1;
@@ -164,12 +187,11 @@ export function addItemToInventoryServer(character, itemData, quantity = 1, grou
         if (!baseItem.stackable && remainingQuantity > 0) continue;
     }
     
-    // If items still remain and a groundLoot array is provided, add them there
     if (remainingQuantity > 0 && groundLoot !== null) {
         for (let i = 0; i < remainingQuantity; i++) {
             groundLoot.push({ ...baseItem, quantity: 1 });
         }
-        return true; // Return true because the loot was handled (put on the ground)
+        return true;
     }
 
     return addedToInventory;

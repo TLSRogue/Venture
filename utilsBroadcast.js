@@ -5,7 +5,8 @@
  * It imports the server state to get the necessary data for sending updates.
  */
 
-import { players, parties, duels } from './serverState.js';
+import { players, parties, duels } from '../serverState.js';
+import { createStateForClient } from './utilsHelpers.js'; // MODIFIED: Import the helper
 
 export function broadcastOnlinePlayers(io) {
     const onlinePlayers = Object.values(players)
@@ -52,11 +53,15 @@ export function broadcastPartyUpdate(io, partyId) {
 export function broadcastAdventureUpdate(io, partyId) {
     const party = parties[partyId];
     if (party && party.sharedState) {
+        // MODIFICATION START: Clean the state before sending it to clients
+        const clientState = createStateForClient(party.sharedState);
+        // MODIFICATION END
+
         party.members.forEach(memberName => {
             const player = players[memberName];
             const socket = player && player.id ? io.sockets.sockets.get(player.id) : null;
             if (socket) {
-                socket.emit('party:adventureUpdate', party.sharedState);
+                socket.emit('party:adventureUpdate', clientState); // MODIFIED: Send the clean state
             }
         });
     }
