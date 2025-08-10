@@ -145,7 +145,7 @@ function startPvpEncounter(io, partyA, partyB) {
     partyB.sharedState.log.push({ message: firstTurnLogMessage, type: 'info' });
     partyB.sharedState.zoneCards = partyAStates.map(createPlayerCard);
     
-    const duration = 60000;
+    /*const duration = 60000;
     const timerEndsAt = Date.now() + duration;
 
     const timerId = setTimeout(() => {
@@ -167,7 +167,7 @@ function startPvpEncounter(io, partyA, partyB) {
     partyA.sharedState.turnTimerId = timerId;
     partyB.sharedState.turnTimerEndsAt = timerEndsAt;
     partyB.sharedState.turnTimerDuration = duration;
-    partyB.sharedState.turnTimerId = timerId;
+    partyB.sharedState.turnTimerId = timerId;*/
 
     // --- BUG FIX START: Use the helper function to send a clean state to each party ---
     const stateForPartyA = createStateForClient(partyA.sharedState);
@@ -230,7 +230,7 @@ export function startNextPvpTeamTurn(io, currentParty) {
     applyTurnStart(currentParty.sharedState, nextTeam);
     applyTurnStart(opponentParty.sharedState, nextTeam);
 
-    const duration = 60000;
+    /*const duration = 60000;
     const timerEndsAt = Date.now() + duration;
 
     const timerId = setTimeout(() => {
@@ -252,7 +252,7 @@ export function startNextPvpTeamTurn(io, currentParty) {
     currentParty.sharedState.turnTimerId = timerId;
     opponentParty.sharedState.turnTimerEndsAt = timerEndsAt;
     opponentParty.sharedState.turnTimerDuration = duration;
-    opponentParty.sharedState.turnTimerId = timerId;
+    opponentParty.sharedState.turnTimerId = timerId;*/
 
     broadcastAdventureUpdate(io, currentParty.id);
     broadcastAdventureUpdate(io, opponentParty.id);
