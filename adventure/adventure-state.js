@@ -7,6 +7,8 @@ import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer } 
 
 const PVP_ZONES = ['blighted_wastes'];
 
+// --- PVP HELPER FUNCTIONS ---
+
 export function handlePvpPlayerDeath(io, defeatedPlayer, party) {
     const { sharedState } = party;
     const character = defeatedPlayer.character;
@@ -30,94 +32,40 @@ export function handlePvpPlayerDeath(io, defeatedPlayer, party) {
     sharedState.log.push({ message: `${character.characterName} has been slain and dropped all of their items!`, type: 'damage' });
 }
 
-// --- NEW, CENTRALIZED ATTACK RESOLUTION FUNCTION ---
-export function resolveAttack(io, party, attacker, target, attackDetails, isFleeing = false) {
-    const { sharedState } = party;
-    const targetPlayerState = target._playerStateRef || target;
-    const targetPlayerObject = players[targetPlayerState.name];
-    if (!targetPlayerObject) return;
-
-    const targetCharacter = targetPlayerObject.character;
-    let damageToDeal = attackDetails.damage;
-
-    // Calculate resistances if applicable
-    if (attackDetails.damageType === 'Physical') {
-        const bonuses = getBonusStatsForPlayer(targetCharacter, targetPlayerState);
-        const resistance = bonuses.physicalResistance || 0;
-        damageToDeal = Math.max(0, attackDetails.damage - resistance);
-    }
-
-    const availableReactions = [];
-
-    // Check for Dodge
-    const dodgeSpell = targetCharacter.equippedSpells.find(s => s.name === "Dodge");
-    if (dodgeSpell && (targetPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
-        let isWearingHeavy = Object.values(targetCharacter.equipment).some(item => item && item.traits && item.traits.includes('Heavy'));
-        if (isWearingHeavy) {
-            sharedState.log.push({ message: `${targetPlayerState.name} could have Dodged, but their heavy gear prevented it!`, type: 'info' });
-        } else {
-            availableReactions.push({ name: 'Dodge' });
+// --- NEW FUNCTION: Handles the end of a PvP encounter ---
+function endPvpEncounter(io, winningParty, losingParty) {
+    // 1. Send the losing party members home.
+    losingParty.members.forEach(memberName => {
+        const memberPlayer = players[memberName];
+        if (memberPlayer && memberPlayer.id) {
+            io.to(memberPlayer.id).emit('party:adventureEnded');
         }
-    }
+    });
 
-    // Check for Block
-    const shield = targetCharacter.equipment.offHand;
-    if (shield && shield.type === 'shield' && shield.reaction && (targetPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
-        availableReactions.push({ name: 'Block' });
-    }
-
-    if (availableReactions.length > 0 && !isFleeing) {
-        // Reactions are available, so we wait for the player's choice.
-        sharedState.pendingReaction = {
-            attackerName: attacker.name,
-            attackerIndex: attackDetails.attackerIndex, // Can be a player or monster index
-            targetName: targetPlayerState.name,
-            damage: attackDetails.damage,
-            damageType: attackDetails.damageType,
-            debuff: attackDetails.debuff || null,
-            message: attackDetails.message,
-            isFleeing: isFleeing
-        };
-        
-        io.to(targetPlayerState.playerId).emit('party:requestReaction', {
-            damage: attackDetails.damage,
-            attacker: attacker.name,
-            availableReactions
-        });
-        
-        party.reactionTimeout = setTimeout(() => {
-            const playerSocket = io.sockets.sockets.get(targetPlayerState.playerId);
-            if (playerSocket) {
-                handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
-            }
-        }, 15000);
-
+    // 2. Clean up the losing party's server state.
+    if (losingParty.isSoloParty) {
+        delete parties[losingParty.id];
     } else {
-        // No reactions available, so the attack lands immediately.
-        targetPlayerState.health -= damageToDeal;
-        let attackMessage = `${attacker.name} ${attackDetails.message} It hits ${targetPlayerState.name} for ${damageToDeal} damage!`;
-        if (damageToDeal < attackDetails.damage) {
-            attackMessage += ` (${attackDetails.damage - damageToDeal} resisted)`;
-        }
-        if (attackDetails.debuff) {
-            targetPlayerState.debuffs.push({ ...attackDetails.debuff });
-            attackMessage += ` ${targetPlayerState.name} is now ${attackDetails.debuff.type}!`;
-        }
-        sharedState.log.push({ message: attackMessage, type: 'damage'});
-
-        if (targetPlayerState.health <= 0) {
-            targetPlayerState.health = 0;
-            targetPlayerState.isDead = true;
-            if (sharedState.pvpEncounter) {
-                handlePvpPlayerDeath(io, targetPlayerObject, party);
-                 // Also mark the card for the attacker's view as dead
-                const opponentCard = parties[sharedState.pvpEncounter.opponentPartyId].sharedState.zoneCards.find(c => c.playerId === targetPlayerState.playerId);
-                if (opponentCard) opponentCard.isDead = true;
-            } else {
-                // Handle PvE death if needed (though this is primarily for players)
-            }
-        }
+        losingParty.sharedState = null;
+        broadcastPartyUpdate(io, losingParty.id);
     }
+
+    // 3. Reset the winning party's state to be out of combat.
+    const { sharedState } = winningParty;
+    sharedState.pvpEncounter = null;
+    sharedState.zoneCards = []; // Clear the defeated player cards
+    sharedState.log.push({ message: "Combat has ended! You may now loot the spoils of victory.", type: 'success' });
+    
+    // 4. Restore AP and reset turns for the winning party.
+    sharedState.partyMemberStates.forEach(p => {
+        if (!p.isDead) {
+            p.actionPoints = 3;
+            p.turnEnded = false;
+        }
+    });
+
+    // 5. Send the final update to the winning party.
+    broadcastAdventureUpdate(io, winningParty.id);
 }
 
 
@@ -149,9 +97,11 @@ function startPvpEncounter(io, partyA, partyB) {
         _playerStateRef: playerState, 
     });
     
+    // --- MODIFICATION START: Create a single groundLoot array to be shared by both parties. ---
     const sharedLoot = [];
     partyA.sharedState.groundLoot = sharedLoot;
     partyB.sharedState.groundLoot = sharedLoot;
+    // --- MODIFICATION END ---
 
     partyA.sharedState.pvpEncounter = { opponentPartyId: partyB.id, activeTeam: startingTeam };
     partyA.sharedState.log.push({ message: `You have encountered an opposing party! Battle begins!`, type: 'damage' });
@@ -278,6 +228,7 @@ export async function checkAndEndTurnForPlayer(io, party, player) {
 export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     const { sharedState } = party;
 
+    // --- MODIFICATION START: The victory check now calls the new endPvpEncounter function. ---
     if (enemy.playerId) {
         const defeatedPlayerState = enemy._playerStateRef;
         if (defeatedPlayerState && !defeatedPlayerState.isDead) {
@@ -295,10 +246,12 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
 
         if (allOpponentsDead) {
             sharedState.log.push({ message: "All opponents have been defeated! You are victorious!", type: 'success' });
+            // Call the new function to properly end the encounter.
             endPvpEncounter(io, party, opponentParty);
         }
         return;
     }
+    // --- MODIFICATION END ---
 
     sharedState.log.push({ message: `${enemy.name} has been defeated!`, type: 'success' });
 
@@ -553,8 +506,6 @@ export async function processVentureDeeper(io, player, party) {
     broadcastAdventureUpdate(io, party.id);
 }
 
-// --- MODIFICATION START: This function is now much simpler. ---
-// It finds a target and calls the new resolveAttack function.
 export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex = 0) {
     const party = parties[partyId];
     if (!party || !party.sharedState || party.sharedState.pendingReaction) return;
@@ -577,22 +528,22 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
         try {
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // DoT damage
+            let tookDotDamage = false;
             const burnDebuff = enemy.debuffs.find(d => d.type === 'burn');
             if (burnDebuff) {
                 enemy.health -= burnDebuff.damage;
                 sharedState.log.push({ message: `${enemy.name} takes ${burnDebuff.damage} damage from Burn.`, type: 'damage' });
                 burnDebuff.duration--;
-                if (enemy.health <= 0) {
-                    defeatEnemyInParty(io, party, enemy, enemyIndex);
-                    broadcastAdventureUpdate(io, partyId);
-                    continue;
-                }
-                enemy.debuffs = enemy.debuffs.filter(d => d.duration > 0);
-                broadcastAdventureUpdate(io, partyId);
+                tookDotDamage = true;
             }
+            if (enemy.health <= 0) {
+                defeatEnemyInParty(io, party, enemy, enemyIndex);
+                broadcastAdventureUpdate(io, partyId);
+                continue;
+            }
+            enemy.debuffs = enemy.debuffs.filter(d => d.duration > 0);
+            if(tookDotDamage) broadcastAdventureUpdate(io, partyId);
 
-            // Stun check
             if (enemy.debuffs.some(d => d.type === 'stun')) {
                 sharedState.log.push({ message: `${enemy.name} is stunned and cannot act!`, type: 'reaction' });
                 enemy.debuffs = enemy.debuffs.filter(d => d.type !== 'stun');
@@ -600,33 +551,107 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 continue;
             }
 
-            // Target selection
             const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);
             if (alivePlayers.length === 0) continue;
-            const maxThreat = Math.max(...alivePlayers.map(p => p.threat));
-            const topThreatPlayers = alivePlayers.filter(p => p.threat === maxThreat);
-            let targetPlayerState = topThreatPlayers[Math.floor(Math.random() * topThreatPlayers.length)];
             
-            // Perform action
+            let targetPlayerState;
+            if (alivePlayers.length > 0) {
+                const maxThreat = Math.max(...alivePlayers.map(p => p.threat));
+                const topThreatPlayers = alivePlayers.filter(p => p.threat === maxThreat);
+                targetPlayerState = topThreatPlayers[Math.floor(Math.random() * topThreatPlayers.length)];
+            } else {
+                continue;
+            }
+            
+            const targetPlayerObject = players[targetPlayerState.name];
+            if (!targetPlayerObject) continue;
+            
             const roll = Math.floor(Math.random() * 20) + 1;
             const attack = enemy.attackTable ? enemy.attackTable.find(a => roll >= a.range[0] && roll <= a.range[1]) : null;
 
             if (attack && attack.action === 'attack') {
-                // Instead of resolving the attack here, we call the new centralized function.
-                resolveAttack(io, party, enemy, targetPlayerState, {
-                    attackerIndex: enemyIndex,
-                    damage: attack.damage,
-                    damageType: attack.damageType,
-                    debuff: attack.debuff,
-                    message: attack.message
-                }, isFleeing);
-                // If a reaction is pending, resolveAttack will handle it. We need to stop the enemy phase.
-                if (sharedState.pendingReaction) return;
+                const targetCharacter = targetPlayerObject.character;
+                let damageToDeal = attack.damage;
+                if (attack.damageType === 'Physical') {
+                    const bonuses = getBonusStatsForPlayer(targetCharacter, targetPlayerState);
+                    const resistance = bonuses.physicalResistance || 0;
+                    damageToDeal = Math.max(0, attack.damage - resistance);
+                }
+
+                const availableReactions = [];
+
+                if (targetCharacter.equippedSpells && Array.isArray(targetCharacter.equippedSpells)) {
+                    const dodgeSpell = targetCharacter.equippedSpells.find(s => s.name === "Dodge");
+                    if (dodgeSpell && (targetPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
+                        let isWearingHeavy = false;
+                        if (targetCharacter.equipment) {
+                            for (const slot in targetCharacter.equipment) {
+                                const item = targetCharacter.equipment[slot];
+                                if (item && item.traits && item.traits.includes('Heavy')) {
+                                    isWearingHeavy = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (isWearingHeavy) {
+                            sharedState.log.push({ message: `${targetPlayerState.name} could have Dodged, but their heavy gear prevented it!`, type: 'info' });
+                        } else {
+                            availableReactions.push({ name: 'Dodge' });
+                        }
+                    }
+                }
+
+                if (targetCharacter.equipment) {
+                    const shield = targetCharacter.equipment.offHand;
+                    if (shield && shield.type === 'shield' && shield.reaction && (targetPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
+                        availableReactions.push({ name: 'Block' });
+                    }
+                }
+                
+                if (availableReactions.length > 0 && !isFleeing) {
+                    sharedState.pendingReaction = {
+                        attackerName: enemy.name,
+                        attackerIndex: enemyIndex,
+                        targetName: targetPlayerState.name,
+                        damage: attack.damage,
+                        damageType: attack.damageType,
+                        debuff: attack.debuff || null,
+                        message: attack.message,
+                        isFleeing: isFleeing
+                    };
+                    
+                    const reactionPayload = {
+                        damage: attack.damage,
+                        attacker: enemy.name,
+                        availableReactions: availableReactions.map(r => ({ name: r.name }))
+                    };
+
+                    io.to(targetPlayerState.playerId).emit('party:requestReaction', reactionPayload);
+                    
+                    party.reactionTimeout = setTimeout(() => {
+                        const playerSocket = io.sockets.sockets.get(targetPlayerState.playerId);
+                        if (playerSocket) {
+                            handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
+                        }
+                    }, 15000);
+
+                    return;
+                } else {
+                    targetPlayerState.health -= damageToDeal;
+                    let attackMessage = `${enemy.name} ${attack.message} It hits ${targetPlayerState.name} for ${damageToDeal} damage!`;
+                    if (damageToDeal < attack.damage) {
+                        attackMessage += ` (${attack.damage - damageToDeal} resisted)`;
+                    }
+                    if (attack.debuff) {
+                        targetPlayerState.debuffs.push({ ...attack.debuff });
+                        attackMessage += ` ${targetPlayerState.name} is now ${attack.debuff.type}!`;
+                    }
+                    sharedState.log.push({ message: attackMessage, type: 'damage'});
+                }
 
             } else if (attack && attack.action === 'special') {
-                // Handle special abilities as before
                 sharedState.log.push({ message: `${enemy.name} uses a special ability: ${attack.message}`, type: 'reaction' });
-                 if (enemy.name === 'Loot Goblin' && attack.message.includes('escapes')) {
+                if (enemy.name === 'Loot Goblin' && attack.message.includes('escapes')) {
                     sharedState.log.push({ message: `The Loot Goblin escaped with its treasure!`, type: 'damage' });
                     sharedState.zoneCards[enemyIndex] = null;
                 }
@@ -652,6 +677,23 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 sharedState.log.push({ message: `${enemy.name} misses its attack.`, type: 'info' });
             }
             
+            if (targetPlayerState.health <= 0) {
+                targetPlayerState.health = 0;
+                targetPlayerState.isDead = true;
+                
+                if (party.sharedState.pvpEncounter) {
+                    handlePvpPlayerDeath(io, targetPlayerObject, party);
+                } else {
+                    if (targetPlayerObject.character) {
+                        targetPlayerState.lootableInventory = [...targetPlayerObject.character.inventory.filter(Boolean)];
+                        targetPlayerObject.character.inventory = Array(24).fill(null);
+                        if(targetPlayerObject.id) io.to(targetPlayerObject.id).emit('characterUpdate', targetPlayerObject.character);
+                    }
+                }
+
+                sharedState.log.push({ message: `${targetPlayerState.name} has been defeated!`, type: 'damage' });
+            }
+            
             broadcastAdventureUpdate(io, partyId);
 
         } catch (error) {
@@ -664,8 +706,6 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
         startNextPlayerTurn(io, partyId);
     }
 }
-// --- MODIFICATION END ---
-
 
 export function startNextPlayerTurn(io, partyId) {
     const party = parties[partyId];
@@ -695,7 +735,6 @@ export function startNextPlayerTurn(io, partyId) {
     broadcastAdventureUpdate(io, partyId);
 }
 
-// --- MODIFICATION START: This function is now simpler, as death logic is more centralized. ---
 export async function handleResolveReaction(io, socket, payload) {
     const name = socket.characterName;
     const player = players[name];
@@ -798,8 +837,13 @@ export async function handleResolveReaction(io, socket, payload) {
         if (party.sharedState.pvpEncounter) {
             handlePvpPlayerDeath(io, reactingPlayer, party);
         } else {
-            // PvE death is handled when loot is dropped, no separate function call needed here.
+            if (reactingPlayer.character) {
+                reactingPlayerState.lootableInventory = [...reactingPlayer.character.inventory.filter(Boolean)];
+                reactingPlayer.character.inventory = Array(24).fill(null);
+                if(reactingPlayer.id) io.to(reactingPlayer.id).emit('characterUpdate', reactingPlayer.character);
+            }
         }
+        
         sharedState.log.push({ message: `${name} has been defeated!`, type: 'damage' });
     }
 
@@ -812,4 +856,3 @@ export async function handleResolveReaction(io, socket, payload) {
     
     await runEnemyPhaseForParty(io, partyId, wasFleeing, lastEnemyListIndex + 1);
 }
-// --- MODIFICATION END ---
