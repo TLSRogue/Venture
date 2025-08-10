@@ -4,10 +4,7 @@ import { players } from '../serverState.js';
 import { gameData } from '../game-data.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
 
-// --- MODIFICATION START ---
-// Import handlePvpPlayerDeath, as we now need to handle player deaths directly from this file.
 import { checkAndEndTurnForPlayer, defeatEnemyInParty, handlePvpPlayerDeath } from './adventure-state.js';
-// --- MODIFICATION END ---
 
 export async function processWeaponAttack(io, party, player, payload) {
     const { weaponSlot, targetIndex } = payload;
@@ -16,8 +13,6 @@ export async function processWeaponAttack(io, party, player, payload) {
     const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
     const weapon = character.equipment[weaponSlot];
 
-    // --- MODIFICATION START ---
-    // Make the target selection PvP-aware.
     let target;
     if (sharedState.pvpEncounter) {
         // In PvP, the target is another player from the combined party list.
@@ -26,11 +21,18 @@ export async function processWeaponAttack(io, party, player, payload) {
         // In PvE, the target is an enemy card from the zone cards.
         target = sharedState.zoneCards[targetIndex];
     }
-    // --- MODIFICATION END ---
 
-    if (!weapon || weapon.type !== 'weapon' || !target || (target.type && target.type !== 'enemy') || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weapon.name] || 0) > 0) {
+    // --- MODIFICATION START ---
+    // This validation is now PvP-aware. It allows targets that are either PvE enemies
+    // OR player opponents in a PvP encounter.
+    const isInvalidTargetInPVE = !sharedState.pvpEncounter && (!target || target.type !== 'enemy');
+    const isInvalidTargetInPVP = sharedState.pvpEncounter && (!target || target.team === actingPlayerState.team);
+
+    if (!weapon || weapon.type !== 'weapon' || isInvalidTargetInPVE || isInvalidTargetInPVP || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weapon.name] || 0) > 0) {
         return;
     }
+    // --- MODIFICATION END ---
+
 
     actingPlayerState.actionPoints -= weapon.cost;
     actingPlayerState.threat += weapon.cost; // Add threat equal to AP cost
@@ -69,8 +71,6 @@ export async function processWeaponAttack(io, party, player, payload) {
 
         sharedState.log.push({ message: logMessage, type: 'damage' });
 
-        // --- MODIFICATION START ---
-        // Make the defeat logic PvP-aware.
         if (target.health <= 0) {
             if (sharedState.pvpEncounter) {
                 target.health = 0;
@@ -81,7 +81,6 @@ export async function processWeaponAttack(io, party, player, payload) {
                 defeatEnemyInParty(io, party, target, targetIndex);
             }
         }
-        // --- MODIFICATION END ---
 
     } else {
         logMessage += ` Miss!`;
@@ -200,8 +199,6 @@ export async function processCastSpell(io, party, player, payload) {
             friendlyTarget = sharedState.partyMemberStates[playerIdx];
         }
     } else {
-        // --- MODIFICATION START ---
-        // Make enemy target selection PvP-aware.
         const idx = parseInt(targetIndex);
         if (!isNaN(idx)) {
             if (sharedState.pvpEncounter) {
@@ -215,7 +212,6 @@ export async function processCastSpell(io, party, player, payload) {
                 }
             }
         }
-        // --- MODIFICATION END ---
     }
 
     if (spell.type === 'heal' || spell.type === 'buff') {
@@ -240,8 +236,6 @@ export async function processCastSpell(io, party, player, payload) {
             enemyTarget.health -= effectValue;
             sharedState.log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${enemyTarget.name}.`, type: 'damage' });
             
-            // --- MODIFICATION START ---
-            // PvP-aware defeat logic for versatile spells.
             if (enemyTarget.health <= 0) {
                  if (sharedState.pvpEncounter) {
                     enemyTarget.health = 0;
@@ -252,12 +246,9 @@ export async function processCastSpell(io, party, player, payload) {
                     defeatEnemyInParty(io, party, enemyTarget, parseInt(targetIndex));
                 }
             }
-            // --- MODIFICATION END ---
         }
     } else if (spell.type === 'attack' || spell.type === 'aoe') {
         let targets = [];
-        // --- MODIFICATION START ---
-        // Make AOE targeting PvP-aware.
         if (sharedState.pvpEncounter) {
             if (spell.aoeTargeting === 'all') {
                 sharedState.partyMemberStates.forEach((p, idx) => {
@@ -267,7 +258,6 @@ export async function processCastSpell(io, party, player, payload) {
                 if (enemyTarget) targets.push({ card: enemyTarget, index: parseInt(targetIndex) });
             }
         } else {
-        // --- End of new PvP block, original PvE logic follows ---
             if (spell.aoeTargeting === 'all') {
                 sharedState.zoneCards.forEach((card, idx) => {
                     if (card && card.type === 'enemy') targets.push({ card, index: idx });
@@ -320,8 +310,6 @@ export async function processCastSpell(io, party, player, payload) {
                     }
                 }
 
-                // --- MODIFICATION START ---
-                // PvP-aware defeat logic for AOE spells.
                 if (aoeTarget.health <= 0) {
                     if (sharedState.pvpEncounter) {
                         aoeTarget.health = 0;
@@ -332,7 +320,6 @@ export async function processCastSpell(io, party, player, payload) {
                         defeatEnemyInParty(io, party, aoeTarget, aoeIndex);
                     }
                 }
-                // --- MODIFICATION END ---
             }
         });
     }
