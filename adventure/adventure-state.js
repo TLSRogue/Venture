@@ -13,7 +13,10 @@ const PVP_ZONES = ['blighted_wastes'];
  * Handles the severe death penalty for a player defeated in a PvP encounter.
  * Unequips all gear and moves it, plus inventory, to the ground loot.
  */
-function handlePvpPlayerDeath(io, defeatedPlayer, party) {
+// --- MODIFICATION START ---
+// Added the 'export' keyword so other files, like adventure-actions.js, can use this function.
+export function handlePvpPlayerDeath(io, defeatedPlayer, party) {
+// --- MODIFICATION END ---
     const { sharedState } = party;
     const character = defeatedPlayer.character;
 
