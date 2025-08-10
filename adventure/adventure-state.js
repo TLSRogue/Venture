@@ -33,24 +33,16 @@ export function handlePvpPlayerDeath(io, defeatedPlayer, party) {
 }
 
 
-// --- MODIFICATION START: This function is updated with the new turn-start rules. ---
-/**
- * Initiates a PvP encounter by creating two mirrored shared states.
- * This now includes randomizing the starting team and balancing the first turn AP.
- */
 function startPvpEncounter(io, partyA, partyB) {
     const partyAStates = partyA.sharedState.partyMemberStates;
     const partyBStates = partyB.sharedState.partyMemberStates;
 
-    // --- CHANGE 1: Assign 'team' property to every player. This fixes the grayed-out buttons. ---
     partyAStates.forEach(p => p.team = 'A');
     partyBStates.forEach(p => p.team = 'B');
 
-    // --- CHANGE 2: Randomly determine which team goes first. ---
     const startingTeam = Math.random() < 0.5 ? 'A' : 'B';
     const firstTurnLogMessage = `Team ${startingTeam} will go first, but with only 1 AP!`;
 
-    // --- CHANGE 3: The team that goes first only gets 1 AP. ---
     if (startingTeam === 'A') {
         partyAStates.forEach(p => p.actionPoints = 1);
     } else {
@@ -80,7 +72,6 @@ function startPvpEncounter(io, partyA, partyB) {
     partyB.sharedState.log.push({ message: firstTurnLogMessage, type: 'info' });
     partyB.sharedState.zoneCards = partyAStates.map(createPlayerCard);
 
-    // Link card health/debuffs back to the original player states
     partyA.sharedState.zoneCards.forEach((card, index) => {
         card.health = partyBStates[index].health;
         card.debuffs = partyBStates[index].debuffs;
@@ -90,7 +81,6 @@ function startPvpEncounter(io, partyA, partyB) {
         card.debuffs = partyAStates[index].debuffs;
     });
     
-    // Notify all players
     partyA.members.forEach(memberName => {
         const member = players[memberName];
         if(member && member.id) io.to(member.id).emit('party:adventureStarted', partyA.sharedState);
@@ -100,10 +90,11 @@ function startPvpEncounter(io, partyA, partyB) {
         if(member && member.id) io.to(member.id).emit('party:adventureStarted', partyB.sharedState);
     });
 }
+
+
+// --- MODIFICATION START: Added the 'export' keyword here. ---
+export function startNextPvpTeamTurn(io, currentParty) {
 // --- MODIFICATION END ---
-
-
-function startNextPvpTeamTurn(io, currentParty) {
     const { sharedState } = currentParty;
     const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
     if (!opponentParty) return;

@@ -5,10 +5,11 @@ import { gameData } from './game-data.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from './utilsBroadcast.js';
 import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer } from './utilsHelpers.js';
 
-// Import all the functions from our new, separated modules
+// --- MODIFICATION START: We now import the specific function we need. ---
 import * as actions from './adventure/adventure-actions.js';
 import * as interactions from './adventure/adventure-interactions.js';
 import * as state from './adventure/adventure-state.js';
+// --- MODIFICATION END ---
 
 export const registerAdventureHandlers = (io, socket) => {
     socket.on('party:enterZone', (zoneName) => {
@@ -263,7 +264,7 @@ export const registerAdventureHandlers = (io, socket) => {
                     interactions.processLootPlayer(io, player, party, action.payload);
                     break;
                 case 'endTurn':
-                    // --- MODIFICATION START: This block now contains the correct PvP-aware logic. ---
+                    // --- MODIFICATION START: This block now calls the correct function. ---
                     actingPlayerState.turnEnded = true;
                     party.sharedState.log.push({ message: `${player.character.characterName} has ended their turn.`, type: 'info' });
 
@@ -274,11 +275,8 @@ export const registerAdventureHandlers = (io, socket) => {
 
                     if (allTurnsEnded) {
                         if (sharedState.pvpEncounter) {
-                            // In PvP, we pass the turn to the next team.
-                            // We call the function in adventure-state.js, but since it's not exported,
-                            // we'll just use the already-exported checkAndEndTurnForPlayer which will do the same thing.
-                            // This avoids needing another export.
-                            await state.checkAndEndTurnForPlayer(io, party, player);
+                            // In PvP, we directly call the function to pass the turn to the next team.
+                            state.startNextPvpTeamTurn(io, party);
                         } else {
                             // In PvE, we run the enemy phase.
                             await state.runEnemyPhaseForParty(io, partyId);
