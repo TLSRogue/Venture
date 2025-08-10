@@ -26,7 +26,8 @@ export function getBonusStats() {
             }
         }
     });
-    gameState.buffs.forEach(buff => {
+    // Defensively check for buffs array
+    (gameState.buffs || []).forEach(buff => {
         if (buff.bonus) {
             for (const stat in buff.bonus) {
                 bonuses[stat] = (bonuses[stat] || 0) + buff.bonus[stat];
@@ -103,7 +104,7 @@ export function resetToHomeState() {
     gameState.spellCooldowns = {};
     gameState.weaponCooldowns = {};
     gameState.buffs = [];
-    gameState.debuffs = []; // MODIFIED: Was 'playerDebuffs'
+    gameState.debuffs = [];
     gameState.turnState.isPlayerTurn = true;
     gameState.inDuel = false;
     gameState.duelState = null;
@@ -133,16 +134,22 @@ export function resetPlayerCombatState() {
     gameState.itemCooldowns = {};
     
     const persistentBuffs = ['Well Fed (Agi)', 'Well Fed (Str)', 'Light Source'];
-    const expiredBuffs = gameState.buffs.filter(b => !persistentBuffs.includes(b.type));
+    
+    // --- BUG FIX START: Defensively check for buffs and debuffs before accessing them ---
+    const currentBuffs = gameState.buffs || [];
+    const expiredBuffs = currentBuffs.filter(b => !persistentBuffs.includes(b.type));
+    
     if (expiredBuffs.length > 0) {
         UIMain.addToLog(`Combat buffs worn off: ${expiredBuffs.map(b => b.type).join(', ')}.`, 'info');
     }
-    gameState.buffs = gameState.buffs.filter(b => persistentBuffs.includes(b.type));
+    gameState.buffs = currentBuffs.filter(b => persistentBuffs.includes(b.type));
     
-    if (gameState.debuffs.length > 0) { // MODIFIED: Was 'playerDebuffs'
+    const currentDebuffs = gameState.debuffs || [];
+    if (currentDebuffs.length > 0) {
         UIMain.addToLog("All debuffs have been cleared.", 'heal');
-        gameState.debuffs = []; // MODIFIED: Was 'playerDebuffs'
+        gameState.debuffs = [];
     }
+    // --- BUG FIX END ---
     
     gameState.shield = 0;
     gameState.focus = 0;

@@ -22,14 +22,25 @@ try {
         if (savedPlayers.hasOwnProperty(characterName)) {
             const character = savedPlayers[characterName].character;
             
-            // --- MODIFICATION START: One-Time Data Migration for debuffs property ---
             if (character.hasOwnProperty('playerDebuffs')) {
                 character.debuffs = character.playerDebuffs;
                 delete character.playerDebuffs;
                 console.log(`Migrated 'playerDebuffs' to 'debuffs' for ${characterName}.`);
                 dataWasMigrated = true;
             }
-            // --- MODIFICATION END ---
+
+            // --- BUG FIX START: Ensure buffs/debuffs arrays exist on all loaded characters ---
+            if (!character.hasOwnProperty('buffs') || !Array.isArray(character.buffs)) {
+                character.buffs = [];
+                console.log(`Initialized missing 'buffs' array for ${characterName}.`);
+                dataWasMigrated = true;
+            }
+            if (!character.hasOwnProperty('debuffs') || !Array.isArray(character.debuffs)) {
+                character.debuffs = [];
+                console.log(`Initialized missing 'debuffs' array for ${characterName}.`);
+                dataWasMigrated = true;
+            }
+            // --- BUG FIX END ---
 
             if (newWarriorsMight) {
                 const equippedIndex = character.equippedSpells.findIndex(s => s && s.name === "Warrior's Might" && s.bonusThreat === undefined);
@@ -90,7 +101,7 @@ function createInitialCharacter(characterName, characterIcon) {
         inventory: Array(24).fill(null),
         bank: [],
         buffs: [],
-        debuffs: [], // MODIFIED: Was 'playerDebuffs'
+        debuffs: [],
         equippedSpells: [
             gameData.allSpells.find(s => s.name === 'Punch'),
             gameData.allSpells.find(s => s.name === 'Kick'),
