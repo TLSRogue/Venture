@@ -7,6 +7,8 @@ import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer } 
 
 const PVP_ZONES = ['blighted_wastes'];
 
+// --- PVP HELPER FUNCTIONS ---
+
 export function handlePvpPlayerDeath(io, defeatedPlayer, party) {
     const { sharedState } = party;
     const character = defeatedPlayer.character;
@@ -28,6 +30,42 @@ export function handlePvpPlayerDeath(io, defeatedPlayer, party) {
     
     io.to(defeatedPlayer.id).emit('characterUpdate', character);
     sharedState.log.push({ message: `${character.characterName} has been slain and dropped all of their items!`, type: 'damage' });
+}
+
+// --- NEW FUNCTION: Handles the end of a PvP encounter ---
+function endPvpEncounter(io, winningParty, losingParty) {
+    // 1. Send the losing party members home.
+    losingParty.members.forEach(memberName => {
+        const memberPlayer = players[memberName];
+        if (memberPlayer && memberPlayer.id) {
+            io.to(memberPlayer.id).emit('party:adventureEnded');
+        }
+    });
+
+    // 2. Clean up the losing party's server state.
+    if (losingParty.isSoloParty) {
+        delete parties[losingParty.id];
+    } else {
+        losingParty.sharedState = null;
+        broadcastPartyUpdate(io, losingParty.id);
+    }
+
+    // 3. Reset the winning party's state to be out of combat.
+    const { sharedState } = winningParty;
+    sharedState.pvpEncounter = null;
+    sharedState.zoneCards = []; // Clear the defeated player cards
+    sharedState.log.push({ message: "Combat has ended! You may now loot the spoils of victory.", type: 'success' });
+    
+    // 4. Restore AP and reset turns for the winning party.
+    sharedState.partyMemberStates.forEach(p => {
+        if (!p.isDead) {
+            p.actionPoints = 3;
+            p.turnEnded = false;
+        }
+    });
+
+    // 5. Send the final update to the winning party.
+    broadcastAdventureUpdate(io, winningParty.id);
 }
 
 
@@ -58,6 +96,12 @@ function startPvpEncounter(io, partyA, partyB) {
         debuffs: playerState.debuffs,
         _playerStateRef: playerState, 
     });
+    
+    // --- MODIFICATION START: Create a single groundLoot array to be shared by both parties. ---
+    const sharedLoot = [];
+    partyA.sharedState.groundLoot = sharedLoot;
+    partyB.sharedState.groundLoot = sharedLoot;
+    // --- MODIFICATION END ---
 
     partyA.sharedState.pvpEncounter = { opponentPartyId: partyB.id, activeTeam: startingTeam };
     partyA.sharedState.log.push({ message: `You have encountered an opposing party! Battle begins!`, type: 'damage' });
@@ -184,23 +228,26 @@ export async function checkAndEndTurnForPlayer(io, party, player) {
 export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     const { sharedState } = party;
 
-    // --- MODIFICATION START: Add a line to mark the card itself as dead. ---
+    // --- MODIFICATION START: The victory check now calls the new endPvpEncounter function. ---
     if (enemy.playerId) {
         const defeatedPlayerState = enemy._playerStateRef;
         if (defeatedPlayerState && !defeatedPlayerState.isDead) {
             defeatedPlayerState.isDead = true;
-            enemy.isDead = true; // This ensures the attacker's client can see the dead state.
+            enemy.isDead = true; 
             const defeatedPlayerObject = players[defeatedPlayerState.name];
             if (defeatedPlayerObject) {
-                // We call death logic in the context of the DEFEATED player's party.
                 const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
                 handlePvpPlayerDeath(io, defeatedPlayerObject, opponentParty);
             }
         }
         
-        const allOpponentsDead = sharedState.zoneCards.every(card => card._playerStateRef.isDead);
+        const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
+        const allOpponentsDead = opponentParty.sharedState.partyMemberStates.every(p => p.isDead);
+
         if (allOpponentsDead) {
             sharedState.log.push({ message: "All opponents have been defeated! You are victorious!", type: 'success' });
+            // Call the new function to properly end the encounter.
+            endPvpEncounter(io, party, opponentParty);
         }
         return;
     }
