@@ -4,7 +4,9 @@ import { players } from '../serverState.js';
 import { gameData } from '../game-data.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
 
-import { checkAndEndTurnForPlayer, defeatEnemyInParty } from './adventure-state.js';
+// --- MODIFICATION START: We now import resolveAttack and no longer need defeatEnemyInParty directly. ---
+import { checkAndEndTurnForPlayer, resolveAttack } from './adventure-state.js';
+// --- MODIFICATION END ---
 
 export async function processWeaponAttack(io, party, player, payload) {
     const { weaponSlot, targetIndex } = payload;
@@ -38,34 +40,31 @@ export async function processWeaponAttack(io, party, player, payload) {
         logMessage += ` Critical Failure! They miss!`;
         sharedState.log.push({ message: logMessage, type: 'damage' });
     } else if (total >= hitTarget) {
-        // --- MODIFICATION START: Apply damage using the player state reference. ---
-        const realTarget = target._playerStateRef || target;
-        realTarget.health -= weapon.weaponDamage;
-        target.health = realTarget.health; // Sync the card's health view.
-        // --- MODIFICATION END ---
-
-        logMessage += ` Hit! Dealt ${weapon.weaponDamage} ${weapon.damageType} damage.`;
-
-        if (roll === 20 && weapon.onCrit && weapon.onCrit.debuff) {
-            realTarget.debuffs.push({ ...weapon.onCrit.debuff });
-            logMessage += ` CRITICAL HIT! ${target.name} is now ${weapon.onCrit.debuff.type}!`;
-        }
-        if (weapon.onHit && weapon.onHit.debuff) {
-            realTarget.debuffs.push({ ...weapon.onHit.debuff });
-            logMessage += ` ${target.name} is now ${weapon.onHit.debuff.type}!`;
-        }
-
+        // --- MODIFICATION START: Instead of applying damage, we call resolveAttack ---
+        logMessage += ` Hit!`; // Log the hit, the rest is handled by resolveAttack
         sharedState.log.push({ message: logMessage, type: 'damage' });
 
-        if (target.health <= 0) {
-            defeatEnemyInParty(io, party, target, targetIndex);
+        let debuffOnHit = weapon.onHit ? weapon.onHit.debuff : null;
+        if (roll === 20 && weapon.onCrit && weapon.onCrit.debuff) {
+            debuffOnHit = weapon.onCrit.debuff; // Critical debuff overrides normal one
         }
+
+        resolveAttack(io, party, actingPlayerState, target, {
+            damage: weapon.weaponDamage,
+            damageType: weapon.damageType,
+            debuff: debuffOnHit,
+            message: `is hit by ${weapon.name}!` // Simple message for reaction context
+        });
+        // --- MODIFICATION END ---
     } else {
         logMessage += ` Miss!`;
         sharedState.log.push({ message: logMessage, type: 'info' });
     }
 
-    await checkAndEndTurnForPlayer(io, party, player);
+    // If no reaction is pending from the attack, the turn may end.
+    if (!sharedState.pendingReaction) {
+        await checkAndEndTurnForPlayer(io, party, player);
+    }
 }
 
 export async function processCastSpell(io, party, player, payload) {
@@ -202,15 +201,13 @@ export async function processCastSpell(io, party, player, payload) {
             target.health = Math.min(target.maxHealth, target.health + effectValue);
             sharedState.log.push({ message: `Healed ${target.name} for ${effectValue} HP.`, type: 'heal' });
         } else if (enemyTarget) {
-            // --- MODIFICATION START: Apply damage using the player state reference. ---
-            const realTarget = enemyTarget._playerStateRef || enemyTarget;
-            realTarget.health -= effectValue;
-            enemyTarget.health = realTarget.health;
+            // --- MODIFICATION START: Call resolveAttack for versatile damage part. ---
+            resolveAttack(io, party, actingPlayerState, enemyTarget, {
+                damage: effectValue,
+                damageType: spell.damageType,
+                message: `is hit by ${spell.name}!`
+            });
             // --- MODIFICATION END ---
-            sharedState.log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${enemyTarget.name}.`, type: 'damage' });
-            if (enemyTarget.health <= 0) {
-                defeatEnemyInParty(io, party, enemyTarget, parseInt(targetIndex));
-            }
         }
     } else if (spell.type === 'attack' || spell.type === 'aoe') {
         let targets = [];
@@ -229,7 +226,7 @@ export async function processCastSpell(io, party, player, payload) {
 
         const uniqueTargets = [...new Map(targets.map(item => [item.card.id, item])).values()];
         
-        uniqueTargets.forEach(({ card: aoeTarget, index: aoeIndex }) => {
+        uniqueTargets.forEach(({ card: aoeTarget }) => {
             if (aoeTarget && aoeTarget.health > 0) {
                 let damage = spell.damage || 0;
                 if (spell.name === 'Split Shot') {
@@ -243,40 +240,37 @@ export async function processCastSpell(io, party, player, payload) {
                     damage = character.equipment.mainHand.weaponDamage + (spell.damageBonus || 0);
                 }
 
-                // --- MODIFICATION START: Apply damage using the player state reference. ---
-                const realTarget = aoeTarget._playerStateRef || aoeTarget;
-                realTarget.health -= damage;
-                aoeTarget.health = realTarget.health;
-                // --- MODIFICATION END ---
-                
-                let hitDescription = `Dealt ${damage} damage to ${aoeTarget.name}.`;
-
-                if (spell.debuff) {
-                    realTarget.debuffs.push({ ...spell.debuff });
-                    hitDescription += ` ${aoeTarget.name} is now ${spell.debuff.type}!`;
-                }
-                if (spell.onHit && total >= (spell.onHit.threshold || hitTarget) && spell.onHit.debuff) {
-                    realTarget.debuffs.push({ ...spell.onHit.debuff });
-                    hitDescription += ` ${aoeTarget.name} is now ${spell.onHit.debuff.type}!`;
-                }
-                sharedState.log.push({ message: hitDescription, type: 'damage' });
-
+                // Monk focus gain happens outside of attack resolution
                 if ((spell.name === 'Punch' || spell.name === 'Kick') && character.equippedSpells.some(s => s.name === "Monk's Training") && !character.equipment.mainHand && !character.equipment.offHand) {
                     if ((actingPlayerState.focus || 0) < 3) {
                         actingPlayerState.focus = (actingPlayerState.focus || 0) + 1;
                         sharedState.log.push({ message: `${character.characterName} gains 1 Focus.`, type: 'heal' });
                     }
                 }
-
-                if (aoeTarget.health <= 0) {
-                    defeatEnemyInParty(io, party, aoeTarget, aoeIndex);
+                
+                // --- MODIFICATION START: Call resolveAttack for each target in an AOE. ---
+                let debuffOnHit = spell.debuff || null;
+                if (spell.onHit && total >= (spell.onHit.threshold || hitTarget) && spell.onHit.debuff) {
+                    debuffOnHit = { ...debuffOnHit, ...spell.onHit.debuff };
                 }
+
+                resolveAttack(io, party, actingPlayerState, aoeTarget, {
+                    damage: damage,
+                    damageType: spell.damageType,
+                    debuff: debuffOnHit,
+                    message: `is hit by ${spell.name}!`
+                });
+                // --- MODIFICATION END ---
             }
         });
     }
 
-    await checkAndEndTurnForPlayer(io, party, player);
+    if (!sharedState.pendingReaction) {
+        await checkAndEndTurnForPlayer(io, party, player);
+    }
 }
+
+// ... the rest of the file (processEquipItem, etc.) remains unchanged ...
 
 export async function processEquipItem(io, party, player, payload) {
     const { inventoryIndex } = payload;
