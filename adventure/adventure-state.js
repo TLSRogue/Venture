@@ -76,6 +76,14 @@ function startPvpEncounter(io, partyA, partyB) {
         return;
     }
 
+    // --- BUG FIX START: Defensively ensure buffs/debuffs arrays exist on all player states ---
+    const allPlayerStates = [...partyA.sharedState.partyMemberStates, ...partyB.sharedState.partyMemberStates];
+    for (const playerState of allPlayerStates) {
+        if (!playerState.buffs) playerState.buffs = [];
+        if (!playerState.debuffs) playerState.debuffs = [];
+    }
+    // --- BUG FIX END ---
+
     const partyAStates = partyA.sharedState.partyMemberStates;
     const partyBStates = partyB.sharedState.partyMemberStates;
 
@@ -175,6 +183,9 @@ export function startNextPvpTeamTurn(io, currentParty) {
         state.log.push({ message: `--- Team ${newActiveTeam}'s Turn ---`, type: 'info' });
         
         state.partyMemberStates.forEach(p => {
+            if (!p.buffs) p.buffs = [];
+            if (!p.debuffs) p.debuffs = [];
+
             if (p.team === newActiveTeam) {
                  if (!p.isDead) {
                     p.actionPoints = 3;
@@ -924,7 +935,7 @@ export async function handleResolveReaction(io, socket, payload) {
     if (opponentParty) opponentParty.sharedState.pendingReaction = null;
     
     if (isPvp) {
-        const attackerParty = reaction.attackerPartyId === party.id ? party : opponentParty;
+        const attackerParty = parties[reaction.attackerPartyId];
         
         const duration = attackerParty.sharedState.turnTimeRemaining;
         if (duration > 0) {
