@@ -33,46 +33,54 @@ export function handlePvpPlayerDeath(io, defeatedPlayer, party) {
 }
 
 
-// --- MODIFICATION START: This function is completely rewritten for the new strategy. ---
+// --- MODIFICATION START: This function is updated with the new turn-start rules. ---
 /**
  * Initiates a PvP encounter by creating two mirrored shared states.
- * For each party, the opposing players are converted into 'enemy' card objects
- * and placed in the zoneCards array.
+ * This now includes randomizing the starting team and balancing the first turn AP.
  */
 function startPvpEncounter(io, partyA, partyB) {
-    // 1. Get the authoritative player state objects for both parties first.
     const partyAStates = partyA.sharedState.partyMemberStates;
     const partyBStates = partyB.sharedState.partyMemberStates;
 
-    // Helper to create a card-like object from a player state.
+    // --- CHANGE 1: Assign 'team' property to every player. This fixes the grayed-out buttons. ---
+    partyAStates.forEach(p => p.team = 'A');
+    partyBStates.forEach(p => p.team = 'B');
+
+    // --- CHANGE 2: Randomly determine which team goes first. ---
+    const startingTeam = Math.random() < 0.5 ? 'A' : 'B';
+    const firstTurnLogMessage = `Team ${startingTeam} will go first, but with only 1 AP!`;
+
+    // --- CHANGE 3: The team that goes first only gets 1 AP. ---
+    if (startingTeam === 'A') {
+        partyAStates.forEach(p => p.actionPoints = 1);
+    } else {
+        partyBStates.forEach(p => p.actionPoints = 1);
+    }
+
     const createPlayerCard = (playerState) => ({
-        // This 'type' property is CRITICAL for the simplified combat logic to work.
         type: 'enemy',
-        playerId: playerState.playerId, // Link back to the real player
-        id: playerState.playerId, // Unique ID for targeting
+        playerId: playerState.playerId,
+        id: playerState.playerId,
         name: playerState.name,
         icon: playerState.icon,
-        // The card's health and debuffs are direct references to the real player's state.
-        // Damaging the card will now correctly damage the player.
         health: playerState.health,
         maxHealth: playerState.maxHealth,
         debuffs: playerState.debuffs,
     });
 
-    // 2. Setup Party A's state for the encounter.
-    partyA.sharedState.pvpEncounter = { opponentPartyId: partyB.id, activeTeam: 'A' };
+    // Setup Party A's state
+    partyA.sharedState.pvpEncounter = { opponentPartyId: partyB.id, activeTeam: startingTeam };
     partyA.sharedState.log.push({ message: `You have encountered an opposing party! Battle begins!`, type: 'damage' });
-    // Party B's players become Party A's 'zoneCards'.
+    partyA.sharedState.log.push({ message: firstTurnLogMessage, type: 'info' });
     partyA.sharedState.zoneCards = partyBStates.map(createPlayerCard);
     
-    // 3. Setup Party B's state for the encounter.
-    partyB.sharedState.pvpEncounter = { opponentPartyId: partyA.id, activeTeam: 'A' };
+    // Setup Party B's state
+    partyB.sharedState.pvpEncounter = { opponentPartyId: partyA.id, activeTeam: startingTeam };
     partyB.sharedState.log.push({ message: `You have encountered an opposing party! Battle begins!`, type: 'damage' });
-    // Party A's players become Party B's 'zoneCards'.
+    partyB.sharedState.log.push({ message: firstTurnLogMessage, type: 'info' });
     partyB.sharedState.zoneCards = partyAStates.map(createPlayerCard);
 
-    // 4. Link the health and debuffs of the generated cards back to the original player states.
-    // This ensures that when a card takes damage, the underlying player state is updated for everyone.
+    // Link card health/debuffs back to the original player states
     partyA.sharedState.zoneCards.forEach((card, index) => {
         card.health = partyBStates[index].health;
         card.debuffs = partyBStates[index].debuffs;
@@ -82,7 +90,7 @@ function startPvpEncounter(io, partyA, partyB) {
         card.debuffs = partyAStates[index].debuffs;
     });
     
-    // 5. Notify all players in both parties of their new, unique states.
+    // Notify all players
     partyA.members.forEach(memberName => {
         const member = players[memberName];
         if(member && member.id) io.to(member.id).emit('party:adventureStarted', partyA.sharedState);
@@ -95,16 +103,14 @@ function startPvpEncounter(io, partyA, partyB) {
 // --- MODIFICATION END ---
 
 
-// --- NEW FUNCTION: Manages switching turns between teams in PvP ---
 function startNextPvpTeamTurn(io, currentParty) {
     const { sharedState } = currentParty;
     const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
-    if (!opponentParty) return; // Opponent may have disconnected
+    if (!opponentParty) return;
 
     const currentTeam = sharedState.pvpEncounter.activeTeam;
     const nextTeam = currentTeam === 'A' ? 'B' : 'A';
 
-    // This function will apply turn-start effects to a single party's shared state
     const applyTurnStart = (state, newActiveTeam) => {
         state.pvpEncounter.activeTeam = newActiveTeam;
         state.log.push({ message: `--- Team ${newActiveTeam}'s Turn ---`, type: 'info' });
@@ -116,7 +122,6 @@ function startNextPvpTeamTurn(io, currentParty) {
                     p.turnEnded = false;
                 }
             }
-            // Tick cooldowns and effects for everyone regardless of team
             p.buffs.forEach(b => b.duration--);
             p.debuffs.forEach(d => d.duration--);
             p.buffs = p.buffs.filter(b => b.duration > 0);
@@ -127,11 +132,9 @@ function startNextPvpTeamTurn(io, currentParty) {
         });
     };
 
-    // Apply the turn start logic to both parties' states
     applyTurnStart(currentParty.sharedState, nextTeam);
     applyTurnStart(opponentParty.sharedState, nextTeam);
 
-    // Broadcast the updated states to both parties
     broadcastAdventureUpdate(io, currentParty.id);
     broadcastAdventureUpdate(io, opponentParty.id);
 }
@@ -177,7 +180,6 @@ export function determineLootWinnerAndDistribute(io, partyId) {
 }
 
 
-// --- MODIFICATION START: checkAndEndTurnForPlayer now handles PvP turn switching. ---
 export async function checkAndEndTurnForPlayer(io, party, player) {
     const partyId = party.id;
     const { sharedState } = party;
@@ -187,30 +189,24 @@ export async function checkAndEndTurnForPlayer(io, party, player) {
         actingPlayerState.turnEnded = true;
         sharedState.log.push({ message: `${player.character.characterName} is out of Action Points and their turn ends.`, type: 'info' });
         
-        // Determine if all players on the active team have ended their turn
         const activeTeam = sharedState.pvpEncounter ? sharedState.pvpEncounter.activeTeam : null;
         const teamMembers = activeTeam ? sharedState.partyMemberStates.filter(p => p.team === activeTeam) : sharedState.partyMemberStates;
         const allTurnsEnded = teamMembers.every(p => p.turnEnded || p.isDead);
 
         if (allTurnsEnded) {
             if (sharedState.pvpEncounter) {
-                // If in PvP, switch to the other team's turn
                 startNextPvpTeamTurn(io, party);
             } else {
-                // Otherwise, run the PvE enemy phase
                 await runEnemyPhaseForParty(io, partyId);
             }
         }
     }
 }
-// --- MODIFICATION END ---
 
 
-// --- MODIFICATION START: defeatEnemyInParty now handles PvP "card" deaths. ---
 export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     const { sharedState } = party;
 
-    // If the defeated 'enemy' is actually a player card, handle their death and stop.
     if (enemy.playerId) {
         const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
         if (opponentParty) {
@@ -223,15 +219,12 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
                 }
             }
         }
-        // Check for victory condition
         const allOpponentsDead = sharedState.zoneCards.every(card => card.health <= 0);
         if (allOpponentsDead) {
-            // Placeholder for victory logic
             sharedState.log.push({ message: "All opponents have been defeated! You are victorious!", type: 'success' });
         }
         return;
     }
-    // --- End of new PvP logic, original PvE logic follows ---
 
     sharedState.log.push({ message: `${enemy.name} has been defeated!`, type: 'success' });
 
@@ -337,7 +330,6 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = 3; });
     }
 }
-// --- MODIFICATION END ---
 
 
 export async function processEndAdventure(io, player, party) {
