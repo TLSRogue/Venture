@@ -6,7 +6,7 @@
  */
 
 import { players, parties } from './serverState.js';
-import { gameData } from './game-data.js';
+import { gameData } from './data/index.js';
 import { addItemToInventoryServer, playerHasMaterials, consumeMaterials, checkAndRotateMerchantStock, getBonusStatsForPlayer } from './utilsHelpers.js';
 
 export const registerPlayerActionHandlers = (io, socket) => {
