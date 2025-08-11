@@ -1,7 +1,7 @@
 // handlersAdventure.js
 
 import { players, parties, duels } from './serverState.js';
-import { gameData } from './game-data.js';
+import { gameData } from './data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from './utilsBroadcast.js';
 import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer } from './utilsHelpers.js';
 

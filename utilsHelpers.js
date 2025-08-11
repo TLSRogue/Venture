@@ -5,7 +5,7 @@
  * such as deck building, inventory management, and calculating player stats.
  */
 
-import { gameData } from './game-data.js';
+import { gameData } from './data/index.js';
 
 // --- MODIFICATION START: Added client state cleaning utility ---
 export function createStateForClient(sharedState) {

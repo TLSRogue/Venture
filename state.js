@@ -1,6 +1,6 @@
 'use strict';
 
-import { gameData } from './game-data.js';
+import { gameData } from './data/index.js';
 
 /**
  * @file state.js

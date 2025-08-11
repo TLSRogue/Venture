@@ -7,7 +7,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { gameData } from './game-data.js';
+import { gameData } from './data/index.js';
 
 let players = {};
 let dataWasMigrated = false;

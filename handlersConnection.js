@@ -7,7 +7,7 @@
  */
 
 import { players, parties, duels } from './serverState.js';
-import { gameData } from './game-data.js';
+import { gameData } from './data/index.js';
 import { broadcastOnlinePlayers, broadcastPartyUpdate, broadcastDuelUpdate } from './utilsBroadcast.js';
 import { endDuel } from './handlersDuel.js';
 import fs from 'fs';
