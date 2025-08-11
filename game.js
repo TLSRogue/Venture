@@ -1,6 +1,6 @@
 'use strict';
 
-import { gameData } from './game-data.js';
+import { gameData } from './data/index.js';
 import { gameState, setGameState, getInitialGameState } from './state.js';
 import * as Network from './network.js';
 import * as Combat from './combat.js';
