@@ -12,6 +12,7 @@ import * as UIAdventure from './ui/ui-adventure.js';
 import * as UIParty from './ui/ui-party.js';
 import * as UIPlayer from './ui/ui-player.js';
 import * as UITown from './ui/ui-town.js';
+import { ARENA_ENTRY_FEE } from './constants.js';
 
 
 // --- STATE VARIABLES ---
@@ -488,8 +489,8 @@ function addEventListeners() {
             };
 
             if (zoneName === 'arena') {
-                if (gameState.gold < 100) return UIMain.showInfoModal("You don't have enough gold to enter the Arena! (Requires 100G)");
-                UIMain.showConfirmationModal("Pay 100G to enter the Arena?", () => {
+                if (gameState.gold < ARENA_ENTRY_FEE) return UIMain.showInfoModal(`You don't have enough gold to enter the Arena! (Requires ${ARENA_ENTRY_FEE}G)`);
+                UIMain.showConfirmationModal(`Pay ${ARENA_ENTRY_FEE}G to enter the Arena?`, () => {
                     UIMain.hideModal();
                     startAdventure();
                 });

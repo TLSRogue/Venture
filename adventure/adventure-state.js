@@ -5,6 +5,7 @@ import { players, parties, pvpZoneQueues } from '../serverState.js';
 import { gameData } from '../game-data.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js';
+import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS } from '../constants.js';
 
 const PVP_ZONES = ['blighted_wastes'];
 
@@ -128,7 +129,7 @@ function startPvpEncounter(io, partyA, partyB) {
     partyB.sharedState.log.push({ message: firstTurnLogMessage, type: 'info' });
     partyB.sharedState.zoneCards = partyAStates.map(createPlayerCard);
     
-    const duration = 60000;
+    const duration = PVP_TURN_DURATION_MS;
     const timerEndsAt = Date.now() + duration;
 
     const timerId = setTimeout(() => {
@@ -211,7 +212,7 @@ export function startNextPvpTeamTurn(io, currentParty) {
     applyTurnStart(currentParty.sharedState, nextTeam);
     applyTurnStart(opponentParty.sharedState, nextTeam);
 
-    const duration = 60000;
+    const duration = PVP_TURN_DURATION_MS;
     const timerEndsAt = Date.now() + duration;
 
     const timerId = setTimeout(() => {
@@ -371,7 +372,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
                 sharedState.pendingLootRoll = {
                     item: itemData,
                     rolls: [],
-                    endTime: Date.now() + 60000,
+                    endTime: Date.now() + LOOT_ROLL_DURATION_MS,
                 };
                 
                 party.members.forEach(memberName => {
@@ -383,7 +384,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
 
                 setTimeout(() => {
                     determineLootWinnerAndDistribute(io, party.id);
-                }, 60000);
+                }, LOOT_ROLL_DURATION_MS);
             }
         } else {
             party.members.forEach(memberName => {
@@ -555,7 +556,7 @@ export async function processVentureDeeper(io, player, party) {
                     proceedToNextArea();
                     broadcastAdventureUpdate(io, party.id);
                 }
-            }, 5000);
+            }, PVP_QUEUE_TIMEOUT_MS);
 
             pvpZoneQueues[zoneName].push({ partyId: party.id, timerId });
         }
@@ -700,7 +701,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         damage: attack.damage,
                         attacker: enemy.name,
                         availableReactions: availableReactions.map(r => ({ name: r.name })),
-                        timer: 15000
+                        timer: REACTION_TIMER_MS
                     };
 
                     io.to(targetPlayerState.playerId).emit('party:requestReaction', reactionPayload);
@@ -710,7 +711,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         if (playerSocket) {
                             handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
                         }
-                    }, 15000);
+                    }, REACTION_TIMER_MS);
 
                     return;
                 } else {

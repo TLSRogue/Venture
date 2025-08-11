@@ -11,6 +11,7 @@ import { gameData } from './game-data.js';
 import { broadcastOnlinePlayers, broadcastPartyUpdate, broadcastDuelUpdate } from './utilsBroadcast.js';
 import { endDuel } from './handlersDuel.js';
 import fs from 'fs';
+import { DUEL_DISCONNECT_MS } from './constants.js';
 
 function createInitialCharacter(characterName, characterIcon) {
     return {
@@ -175,7 +176,7 @@ export const registerConnectionHandlers = (io, socket) => {
                     if(duels[duelId] && !duels[duelId].ended) {
                        endDuel(io, duelId, opponent.name, name);
                     }
-                }, 20000);
+                }, DUEL_DISCONNECT_MS);
             }
 
             // --- SAVE PROGRESS TO FILE ---
