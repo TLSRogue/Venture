@@ -1,7 +1,7 @@
 // adventure/adventure-interactions.js
 
 import { players, parties } from '../serverState.js';
-import { gameData } from '../game-data.js';
+import { gameData } from '../data/index.js';
 import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, addItemToInventoryServer, consumeMaterials } from '../utilsHelpers.js';
 
 // Note: We will create the adventure-state.js file in the next step.

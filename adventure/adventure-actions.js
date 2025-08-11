@@ -1,7 +1,7 @@
 // adventure/adventure-actions.js
 
 import { players, parties } from '../serverState.js';
-import { gameData } from '../game-data.js';
+import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
 
 import { checkAndEndTurnForPlayer, defeatEnemyInParty, handleResolveReaction } from './adventure-state.js';
