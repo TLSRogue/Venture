@@ -198,14 +198,15 @@ export function startNextPvpTeamTurn(io, currentParty) {
                     p.actionPoints = 3;
                     p.turnEnded = false;
                 }
+                // --- BUG FIX: Cooldowns now only reduce at the start of the player's own team's turn ---
+                p.buffs.forEach(b => b.duration--);
+                p.debuffs.forEach(d => d.duration--);
+                p.buffs = p.buffs.filter(b => b.duration > 0);
+                p.debuffs = p.debuffs.filter(d => d.duration > 0);
+                Object.keys(p.weaponCooldowns).forEach(k => { if (p.weaponCooldowns[k] > 0) p.weaponCooldowns[k]--; });
+                Object.keys(p.spellCooldowns).forEach(k => { if (p.spellCooldowns[k] > 0) p.spellCooldowns[k]--; });
+                Object.keys(p.itemCooldowns).forEach(k => { if (p.itemCooldowns[k] > 0) p.itemCooldowns[k]--; });
             }
-            p.buffs.forEach(b => b.duration--);
-            p.debuffs.forEach(d => d.duration--);
-            p.buffs = p.buffs.filter(b => b.duration > 0);
-            p.debuffs = p.debuffs.filter(d => d.duration > 0);
-            Object.keys(p.weaponCooldowns).forEach(k => { if (p.weaponCooldowns[k] > 0) p.weaponCooldowns[k]--; });
-            Object.keys(p.spellCooldowns).forEach(k => { if (p.spellCooldowns[k] > 0) p.spellCooldowns[k]--; });
-            Object.keys(p.itemCooldowns).forEach(k => { if (p.itemCooldowns[k] > 0) p.itemCooldowns[k]--; });
         });
     };
 
@@ -906,6 +907,15 @@ export async function handleResolveReaction(io, socket, payload) {
         }
 
         reactingPlayerState.health -= damageToDeal;
+
+        // --- BUG FIX: Sync the attacker's view of the defender's health ---
+        if (opponentParty) {
+            const opponentCard = opponentParty.sharedState.zoneCards.find(c => c.playerId === reactingPlayerState.playerId);
+            if (opponentCard) {
+                opponentCard.health = reactingPlayerState.health;
+            }
+        }
+
         let damageMessage = `${reaction.attackerName} ${reaction.message} It hits ${name} for ${damageToDeal} damage!`;
         if (damageToDeal < finalDamage) {
             damageMessage += ` (${finalDamage - damageToDeal} resisted)`;
@@ -921,6 +931,14 @@ export async function handleResolveReaction(io, socket, payload) {
     if (reactingPlayerState.health <= 0) {
         reactingPlayerState.health = 0;
         reactingPlayerState.isDead = true;
+
+        // --- BUG FIX: Sync the attacker's view of the defender's death state ---
+        if (opponentParty) {
+            const opponentCard = opponentParty.sharedState.zoneCards.find(c => c.playerId === reactingPlayerState.playerId);
+            if (opponentCard) {
+                opponentCard.isDead = true;
+            }
+        }
 
         if (party.sharedState.pvpEncounter) {
             handlePvpPlayerDeath(io, reactingPlayer, party);
