@@ -498,6 +498,17 @@ export async function processUseConsumable(io, party, player, payload) {
     if (item.heal) {
         actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + item.heal);
         sharedState.log.push({ message: `${character.characterName} used ${item.name}, healing for ${item.heal} HP.`, type: 'heal' });
+
+        // --- BUG FIX: Sync the opponent's view of the player's health ---
+        if (party.sharedState.pvpEncounter) {
+            const opponentParty = parties[party.sharedState.pvpEncounter.opponentPartyId];
+            if (opponentParty) {
+                const playerCardOnOpponentSide = opponentParty.sharedState.zoneCards.find(c => c.playerId === player.id);
+                if (playerCardOnOpponentSide) {
+                    playerCardOnOpponentSide.health = actingPlayerState.health;
+                }
+            }
+        }
     }
     if (item.buff) {
         actingPlayerState.buffs.push({ ...item.buff });
