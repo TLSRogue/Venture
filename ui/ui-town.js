@@ -1,6 +1,6 @@
 'use strict';
 
-import { gameData } from '../game-data.js';
+import { gameData } from '../data/index.js';
 import { gameState } from '../state.js';
 import * as Network from '../network.js';
 import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js'; // BUG FIX: Added hideTooltip
