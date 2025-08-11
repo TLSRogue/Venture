@@ -45,7 +45,7 @@ function addActionTooltipListener(element, itemOrSpell) {
                     breakdown += `<br>On Crit (20): Apply ${itemOrSpell.onCrit.debuff.type}.`;
                 }
             }
-            if (itemOrSpell.school) { // It's a spell
+             if (itemOrSpell.school) { // It's a spell
                  breakdown += `<hr style="margin: 5px 0;">`;
                  breakdown += `<strong>Type:</strong> ${itemOrSpell.type.charAt(0).toUpperCase() + itemOrSpell.type.slice(1)}<br>`;
                  breakdown += `<strong>School:</strong> ${itemOrSpell.school}<br>`;
@@ -71,21 +71,18 @@ export function playEffectQueue(effects) {
     });
 }
 
-export function showCombatFeedback({ targetName, type, text }) {
-    const allCards = document.querySelectorAll('#adventure-board .card');
+export function showCombatFeedback({ targetName, targetId, type, text }) {
     let targetCard = null;
 
-    for (const card of allCards) {
-        const titleEl = card.querySelector('.card-title');
-        if (titleEl && titleEl.textContent.trim() === targetName) {
-            targetCard = card;
-            break;
-        }
-    }
-
-    if (!targetCard) {
-        const partyCards = document.querySelectorAll('#party-cards-container .card');
-        for (const card of partyCards) {
+    if (targetId) {
+        // Prioritize finding by unique ID for enemies
+        targetCard = document.querySelector(`#adventure-board .card[data-id='${targetId}']`);
+    } 
+    
+    // Fallback for players or if ID is not present
+    if (!targetCard && targetName) {
+        const allCards = document.querySelectorAll('#adventure-board .card, #party-cards-container .card');
+        for (const card of allCards) {
             const titleEl = card.querySelector('.card-title');
             if (titleEl && titleEl.textContent.trim() === targetName) {
                 targetCard = card;
@@ -166,14 +163,21 @@ function renderPartyScreen() {
                 cardEl.style.opacity = '0.6';
             }
             
-            let effectsHtml = getEffectsHtml(playerState);
+            const iconDiv = document.createElement('div');
+            iconDiv.className = 'card-icon';
+            iconDiv.textContent = playerState.icon;
+            cardEl.appendChild(iconDiv);
 
-            cardEl.innerHTML = `
-                <div class="card-icon">${playerState.icon}</div>
-                <div class="card-title">${playerState.name}</div>
-                <div>❤️ ${playerState.health}/${playerState.maxHealth}</div>
-                ${effectsHtml}
-            `;
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'card-title';
+            titleDiv.textContent = playerState.name;
+            cardEl.appendChild(titleDiv);
+
+            const healthDiv = document.createElement('div');
+            healthDiv.textContent = `❤️ ${playerState.health}/${playerState.maxHealth}`;
+            cardEl.appendChild(healthDiv);
+            
+            cardEl.appendChild(createEffectsContainer(playerState));
         }
 
         cardEl.dataset.index = `p${index}`;
@@ -195,21 +199,22 @@ function renderDuelScreen() {
 
     const localPlayer = gameState.duelState.player1.id === socket.id ? gameState.duelState.player1 : gameState.duelState.player2;
     const opponent = gameState.duelState.player1.id === socket.id ? gameState.duelState.player2 : gameState.duelState.player1;
-
+    
+    // --- Render Player Card ---
     const playerCardEl = document.createElement('div');
     playerCardEl.className = 'card player is-local-player';
     if (gameState.duelState.activePlayerId === localPlayer.id && !gameState.duelState.ended) {
         playerCardEl.classList.add('active-turn');
     }
     playerCardEl.dataset.target = 'player';
-    playerCardEl.innerHTML = `
-        <div class="card-icon">${localPlayer.icon}</div>
-        <div class="card-title">${localPlayer.name}</div>
-        <div>❤️ ${localPlayer.health}/${localPlayer.maxHealth}</div>
-        ${getEffectsHtml(localPlayer)}
-    `;
+    
+    const pIcon = document.createElement('div'); pIcon.className = 'card-icon'; pIcon.textContent = localPlayer.icon;
+    const pTitle = document.createElement('div'); pTitle.className = 'card-title'; pTitle.textContent = localPlayer.name;
+    const pHealth = document.createElement('div'); pHealth.textContent = `❤️ ${localPlayer.health}/${localPlayer.maxHealth}`;
+    playerCardEl.append(pIcon, pTitle, pHealth, createEffectsContainer(localPlayer));
     partyContainer.appendChild(playerCardEl);
 
+    // --- Render Opponent Card ---
     const opponentCardEl = document.createElement('div');
     opponentCardEl.className = 'card player enemy';
     if (gameState.duelState.activePlayerId === opponent.id && !gameState.duelState.ended) {
@@ -225,12 +230,10 @@ function renderDuelScreen() {
             <div>DEFEATED</div>
         `;
     } else {
-        opponentCardEl.innerHTML = `
-            <div class="card-icon">${opponent.icon}</div>
-            <div class="card-title">${opponent.name}</div>
-            <div>❤️ ${opponent.health}/${opponent.maxHealth}</div>
-            ${getEffectsHtml(opponent)}
-        `;
+        const oIcon = document.createElement('div'); oIcon.className = 'card-icon'; oIcon.textContent = opponent.icon;
+        const oTitle = document.createElement('div'); oTitle.className = 'card-title'; oTitle.textContent = opponent.name;
+        const oHealth = document.createElement('div'); oHealth.textContent = `❤️ ${opponent.health}/${opponent.maxHealth}`;
+        opponentCardEl.append(oIcon, oTitle, oHealth, createEffectsContainer(opponent));
     }
     zoneContainer.appendChild(opponentCardEl);
 }
@@ -248,6 +251,7 @@ function renderZoneCards(cards) {
 
         cardEl.className = card.playerId ? `card player ${card.type}` : `card ${card.type}`;
         cardEl.dataset.index = index;
+        if(card.id) cardEl.dataset.id = card.id;
 
         if (card.isDead) {
             cardEl.classList.add('dead');
@@ -270,61 +274,70 @@ function renderZoneCards(cards) {
             } else if(card.attackDesc) {
                 tooltipContent += `<hr style="margin: 5px 0;">${card.attackDesc}`;
             }
-            cardEl.onmouseover = () => showTooltip(tooltipContent);
-            cardEl.onmouseout = () => hideTooltip();
+            cardEl.addEventListener('mouseover', () => showTooltip(tooltipContent));
+            cardEl.addEventListener('mouseout', () => hideTooltip());
         }
         
-        let healthDisplay = '';
-        let effectsDisplay = '';
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'card-icon';
+        iconDiv.textContent = card.icon || '❓';
+        cardEl.appendChild(iconDiv);
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'card-title';
+        titleDiv.textContent = card.name;
+        cardEl.appendChild(titleDiv);
 
         if (card.type === 'enemy') {
-            healthDisplay = `<div>❤️ ${card.health}/${card.maxHealth}</div>`;
-            if (card.debuffs && card.debuffs.length > 0) {
-                effectsDisplay = '<div class="player-card-effects">';
-                card.debuffs.forEach(debuff => {
-                    const icon = effectIcons[debuff.type] || '❓';
-                    effectsDisplay += `<span class="player-card-effect debuff" onmouseover="showTooltip('<strong>${debuff.type}</strong><br>Turns Remaining: ${debuff.duration}')" onmouseout="hideTooltip()">${icon} ${debuff.type}</span>`;
-                });
-                effectsDisplay += '</div>';
-            }
+            const healthDiv = document.createElement('div');
+            healthDiv.textContent = `❤️ ${card.health}/${card.maxHealth}`;
+            cardEl.appendChild(healthDiv);
+            cardEl.appendChild(createEffectsContainer(card));
         } else if (card.type === 'resource') {
-            healthDisplay = `<div>Charges: ${card.charges}</div>`;
+            const chargesDiv = document.createElement('div');
+            chargesDiv.textContent = `Charges: ${card.charges}`;
+            cardEl.appendChild(chargesDiv);
         }
-        
-        cardEl.innerHTML = `
-            <div class="card-icon">${card.icon || '❓'}</div>
-            <div class="card-title">${card.name}</div>
-            ${healthDisplay}
-            ${effectsDisplay}
-        `;
         
         zoneContainer.appendChild(cardEl);
     });
 }
 
-function getEffectsHtml(playerState) {
-    let effectsHtml = '<div class="player-card-effects">';
-    
-    effectsHtml += `<span>🎯 Threat: ${playerState.threat || 0}</span>`;
-    
-    if (playerState.buffs) {
-        playerState.buffs.forEach(buff => {
+function createEffectsContainer(stateObject) {
+    const effectsContainer = document.createElement('div');
+    effectsContainer.className = 'player-card-effects';
+
+    if (stateObject.threat !== undefined) {
+        const threatSpan = document.createElement('span');
+        threatSpan.textContent = `🎯 Threat: ${stateObject.threat || 0}`;
+        effectsContainer.appendChild(threatSpan);
+    }
+
+    if (stateObject.buffs) {
+        stateObject.buffs.forEach(buff => {
+            const buffSpan = document.createElement('span');
             const icon = effectIcons[buff.type] || '✨';
-            effectsHtml += `<span class="player-card-effect buff" onmouseover="showTooltip('<strong>${buff.type}</strong><br>Turns Remaining: ${buff.duration -1}')" onmouseout="hideTooltip()">${icon}</span>`;
+            buffSpan.className = 'player-card-effect buff';
+            buffSpan.textContent = icon;
+            buffSpan.addEventListener('mouseover', () => showTooltip(`<strong>${buff.type}</strong><br>Turns Remaining: ${buff.duration - 1}`));
+            buffSpan.addEventListener('mouseout', () => hideTooltip());
+            effectsContainer.appendChild(buffSpan);
         });
     }
 
-    // MODIFICATION START: Simplified to only use 'debuffs'
-    const debuffs = playerState.debuffs || [];
-    if (debuffs) {
-    // MODIFICATION END
-        debuffs.forEach(debuff => {
+    if (stateObject.debuffs) {
+        stateObject.debuffs.forEach(debuff => {
+            const debuffSpan = document.createElement('span');
             const icon = effectIcons[debuff.type] || '❓';
-            effectsHtml += `<span class="player-card-effect debuff" onmouseover="showTooltip('<strong>${debuff.type}</strong><br>Turns Remaining: ${debuff.duration}')" onmouseout="hideTooltip()">${icon}</span>`;
+            debuffSpan.className = 'player-card-effect debuff';
+            debuffSpan.textContent = icon;
+            debuffSpan.addEventListener('mouseover', () => showTooltip(`<strong>${debuff.type}</strong><br>Turns Remaining: ${debuff.duration}`));
+            debuffSpan.addEventListener('mouseout', () => hideTooltip());
+            effectsContainer.appendChild(debuffSpan);
         });
     }
-    effectsHtml += '</div>';
-    return effectsHtml;
+
+    return effectsContainer;
 }
 
 export function renderPlayerActionBars() {

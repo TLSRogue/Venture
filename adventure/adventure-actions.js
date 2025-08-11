@@ -129,7 +129,7 @@ export async function processWeaponAttack(io, party, player, payload) {
         realTarget.health -= weapon.weaponDamage;
         target.health = realTarget.health; 
 
-        logMessage += ` Hit! Dealt ${weapon.weaponDamage} ${weapon.damageType} damage.`;
+        logMessage += ` Hit! Dealt ${weapon.weaponDamage} ${weapon.damageType} damage to ${target.name} [id:${target.id}].`;
 
         if (roll === 20 && weapon.onCrit && weapon.onCrit.debuff) {
             realTarget.debuffs.push({ ...weapon.onCrit.debuff });
@@ -308,7 +308,7 @@ export async function processCastSpell(io, party, player, payload) {
             const realTarget = enemyTarget._playerStateRef || enemyTarget;
             realTarget.health -= effectValue;
             enemyTarget.health = realTarget.health;
-            sharedState.log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${enemyTarget.name}.`, type: 'damage' });
+            sharedState.log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${enemyTarget.name} [id:${enemyTarget.id}].`, type: 'damage' });
             if (enemyTarget.health <= 0) {
                 defeatEnemyInParty(io, party, enemyTarget, parseInt(targetIndex));
             }
@@ -348,7 +348,7 @@ export async function processCastSpell(io, party, player, payload) {
                 realTarget.health -= damage;
                 aoeTarget.health = realTarget.health;
                 
-                let hitDescription = `Dealt ${damage} damage to ${aoeTarget.name}.`;
+                let hitDescription = `Dealt ${damage} damage to ${aoeTarget.name} [id:${aoeTarget.id}].`;
 
                 if (spell.debuff) {
                     realTarget.debuffs.push({ ...spell.debuff });

@@ -56,21 +56,21 @@ function getEffectsFromLog(logEntries) {
     logEntries.forEach(entry => {
         let match;
 
-        // PATTERN 1: Simple damage log (e.g., "Dealt 1 damage to Chicken.")
-        match = entry.message.match(/Dealt (\d+) damage to (.+?)\./);
+        // PATTERN 1: Damage with unique ID (e.g., "Dealt 2 damage to Pig [id:12345].")
+        match = entry.message.match(/Dealt (\d+) damage to (.+?) \[id:(.+?)\]/);
         if (match) {
-            effects.push({ targetName: match[2], type: 'damage', text: `-${match[1]}` });
+            effects.push({ targetId: match[3], type: 'damage', text: `-${match[1]}` });
             return;
         }
 
-        // PATTERN 2: Complex player attack with damage (e.g., "...attacks Pig... Hit! Dealt 3 Physical damage.")
-        match = entry.message.match(/(.+) attacks (.+?) with .* Hit! Dealt (\d+)/);
+        // PATTERN 2: Complex player attack with damage and ID (e.g., "... Hit! Dealt 3 Physical damage to Goblin [id:12345].")
+        match = entry.message.match(/dealt (\d+).*damage to .* \[id:(.+?)\]/i);
         if (match) {
-            effects.push({ targetName: match[2], type: 'damage', text: `-${match[3]}` });
+            effects.push({ targetId: match[2], type: 'damage', text: `-${match[1]}` });
             return;
         }
 
-        // PATTERN 3: Simple spell success (e.g., "...casting Punch: ... Success!")
+        // PATTERN 3: Simple spell success
         match = entry.message.match(/(.+) casting .*:.* Success!/);
         if (match) {
             effects.push({ targetName: match[1], type: 'success', text: 'Success!' });
@@ -84,7 +84,7 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-        // PATTERN 5: Healing (e.g., "Healed Player for 5 HP.")
+        // PATTERN 5: Healing
         match = entry.message.match(/Healed (.+?) for (\d+) HP/);
         if (match) {
             effects.push({ targetName: match[1], type: 'heal', text: `+${match[2]}` });
