@@ -1,6 +1,6 @@
 'use strict';
 
-import { gameData } from '../data/index.js';
+import { gameData } from '../data/index.js'; // Corrected Path
 import { gameState } from '../state.js';
 import * as Network from '../network.js';
 import { getBonusStats } from '../player.js';
@@ -55,11 +55,14 @@ export function showTab(tabName) {
     
     TownUI.updateRestockTimer(); // Clears or updates the timer interval
     
-    // BUG FIX: Added the missing call to render the party tab UI
-    if (tabName === 'party') UIParty.renderPartyManagement(null);
+    // --- BUG FIX: Add a loading state for the merchant to prevent race condition ---
     if (tabName === 'merchant') { 
+        document.getElementById('merchant-tab').innerHTML = '<h2>Contacting merchant...</h2>';
         Network.emitPlayerAction('viewMerchant');
     }
+    // --- END OF BUG FIX ---
+
+    if (tabName === 'party') UIParty.renderPartyManagement(null);
     if (tabName === 'bank') TownUI.renderBankInterface();
     if (tabName === 'crafting') TownUI.renderCrafting();
     if (tabName === 'trainer') TownUI.renderTrainer();
