@@ -212,8 +212,11 @@ export const registerDuelHandlers = (io, socket) => {
                     actingPlayerState.actionPoints -= ability.cost;
                     actingPlayerState.itemCooldowns[item.name] = ability.cooldown;
                     if (ability.buff) {
-                        actingPlayerState.buffs.push({ ...ability.buff });
-                        duel.log.push({ message: `${playerName} used ${ability.name} and gained ${ability.buff.type}!`, type: 'heal' });
+                        const buff = ability.buff;
+                        const existingIndex = actingPlayerState.buffs.findIndex(b => b.type === buff.type);
+                        if(existingIndex !== -1) actingPlayerState.buffs.splice(existingIndex, 1);
+                        actingPlayerState.buffs.push({ ...buff });
+                        duel.log.push({ message: `${playerName} used ${ability.name} and gained ${buff.type}!`, type: 'heal' });
                     }
                     actionTaken = true;
                 }

@@ -132,12 +132,18 @@ export async function processWeaponAttack(io, party, player, payload) {
         logMessage += ` Hit! Dealt ${weapon.weaponDamage} ${weapon.damageType} damage to ${target.name} [id:${target.id}].`;
 
         if (roll === 20 && weapon.onCrit && weapon.onCrit.debuff) {
-            realTarget.debuffs.push({ ...weapon.onCrit.debuff });
-            logMessage += ` CRITICAL HIT! ${target.name} is now ${weapon.onCrit.debuff.type}!`;
+            const debuff = weapon.onCrit.debuff;
+            const existingIndex = realTarget.debuffs.findIndex(d => d.type === debuff.type);
+            if (existingIndex !== -1) realTarget.debuffs.splice(existingIndex, 1);
+            realTarget.debuffs.push({ ...debuff });
+            logMessage += ` CRITICAL HIT! ${target.name} is now ${debuff.type}!`;
         }
         if (weapon.onHit && weapon.onHit.debuff) {
-            realTarget.debuffs.push({ ...weapon.onHit.debuff });
-            logMessage += ` ${target.name} is now ${weapon.onHit.debuff.type}!`;
+            const debuff = weapon.onHit.debuff;
+            const existingIndex = realTarget.debuffs.findIndex(d => d.type === debuff.type);
+            if (existingIndex !== -1) realTarget.debuffs.splice(existingIndex, 1);
+            realTarget.debuffs.push({ ...debuff });
+            logMessage += ` ${target.name} is now ${debuff.type}!`;
         }
 
         sharedState.log.push({ message: logMessage, type: 'damage' });
@@ -276,7 +282,10 @@ export async function processCastSpell(io, party, player, payload) {
         const focusAmount = actingPlayerState.focus || 0;
         if (focusAmount > 0) {
             actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + focusAmount);
-            actingPlayerState.buffs.push({ type: 'Focus', duration: 2, bonus: { rollBonus: focusAmount } });
+            const buff = { type: 'Focus', duration: 2, bonus: { rollBonus: focusAmount } };
+            const existingIndex = actingPlayerState.buffs.findIndex(b => b.type === buff.type);
+            if (existingIndex !== -1) actingPlayerState.buffs.splice(existingIndex, 1);
+            actingPlayerState.buffs.push(buff);
             sharedState.log.push({ message: `${character.characterName} spends ${focusAmount} Focus to heal for ${focusAmount} and gain +${focusAmount} to rolls this turn.`, type: 'heal' });
             actingPlayerState.focus = 0;
         } else {
@@ -294,8 +303,11 @@ export async function processCastSpell(io, party, player, payload) {
                 sharedState.log.push({ message: `Healed ${target.name} for ${spell.heal} HP.`, type: 'heal' });
             }
             if (spell.buff) {
-                target.buffs.push({ ...spell.buff });
-                sharedState.log.push({ message: `${target.name} gains ${spell.buff.type}!`, type: 'heal' });
+                const buff = spell.buff;
+                const existingIndex = target.buffs.findIndex(b => b.type === buff.type);
+                if (existingIndex !== -1) target.buffs.splice(existingIndex, 1);
+                target.buffs.push({ ...buff });
+                sharedState.log.push({ message: `${target.name} gains ${buff.type}!`, type: 'heal' });
             }
         }
     } else if (spell.type === 'versatile') {
@@ -351,12 +363,18 @@ export async function processCastSpell(io, party, player, payload) {
                 let hitDescription = `Dealt ${damage} damage to ${aoeTarget.name} [id:${aoeTarget.id}].`;
 
                 if (spell.debuff) {
-                    realTarget.debuffs.push({ ...spell.debuff });
-                    hitDescription += ` ${aoeTarget.name} is now ${spell.debuff.type}!`;
+                    const debuff = spell.debuff;
+                    const existingIndex = realTarget.debuffs.findIndex(d => d.type === debuff.type);
+                    if (existingIndex !== -1) realTarget.debuffs.splice(existingIndex, 1);
+                    realTarget.debuffs.push({ ...debuff });
+                    hitDescription += ` ${aoeTarget.name} is now ${debuff.type}!`;
                 }
                 if (spell.onHit && total >= (spell.onHit.threshold || hitTarget) && spell.onHit.debuff) {
-                    realTarget.debuffs.push({ ...spell.onHit.debuff });
-                    hitDescription += ` ${aoeTarget.name} is now ${spell.onHit.debuff.type}!`;
+                    const debuff = spell.onHit.debuff;
+                    const existingIndex = realTarget.debuffs.findIndex(d => d.type === debuff.type);
+                    if (existingIndex !== -1) realTarget.debuffs.splice(existingIndex, 1);
+                    realTarget.debuffs.push({ ...debuff });
+                    hitDescription += ` ${aoeTarget.name} is now ${debuff.type}!`;
                 }
                 sharedState.log.push({ message: hitDescription, type: 'damage' });
 
@@ -460,8 +478,11 @@ export async function processUseItemAbility(io, party, player, payload) {
     actingPlayerState.itemCooldowns[item.name] = ability.cooldown;
     
     if (ability.buff) {
-        actingPlayerState.buffs.push({ ...ability.buff });
-        sharedState.log.push({ message: `${character.characterName} used ${ability.name} and gained the ${ability.buff.type} buff!`, type: 'heal' });
+        const buff = ability.buff;
+        const existingIndex = actingPlayerState.buffs.findIndex(b => b.type === buff.type);
+        if (existingIndex !== -1) actingPlayerState.buffs.splice(existingIndex, 1);
+        actingPlayerState.buffs.push({ ...buff });
+        sharedState.log.push({ message: `${character.characterName} used ${ability.name} and gained the ${buff.type} buff!`, type: 'heal' });
     }
     if (ability.effect === 'cleanse') {
         const bleedIndex = actingPlayerState.debuffs.findIndex(d => d.type === 'bleed');
@@ -511,7 +532,10 @@ export async function processUseConsumable(io, party, player, payload) {
         }
     }
     if (item.buff) {
-        actingPlayerState.buffs.push({ ...item.buff });
+        const buff = item.buff;
+        const existingIndex = actingPlayerState.buffs.findIndex(b => b.type === buff.type);
+        if (existingIndex !== -1) actingPlayerState.buffs.splice(existingIndex, 1);
+        actingPlayerState.buffs.push({ ...buff });
         sharedState.log.push({ message: `${character.characterName} feels the effects of ${item.name}.`, type: 'heal' });
     }
 

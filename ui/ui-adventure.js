@@ -130,6 +130,37 @@ export function renderAdventureScreen() {
     updateActionUI();
 }
 
+function buildPlayerInspectTooltip(playerData) {
+    let tooltip = `<strong>${playerData.name}</strong>`;
+
+    if (playerData.equipment) {
+        tooltip += '<hr style="margin: 5px 0;"><strong>Equipment:</strong>';
+        let hasEquipment = false;
+        for (const slot in playerData.equipment) {
+            const item = playerData.equipment[slot];
+            if (item) {
+                if(slot === 'offHand' && playerData.equipment.mainHand?.hands === 2) continue;
+                hasEquipment = true;
+                tooltip += `<br>${item.icon} ${item.name}`;
+            }
+        }
+        if (!hasEquipment) tooltip += '<br>None';
+    }
+
+    if (playerData.equippedSpells) {
+        tooltip += '<hr style="margin: 5px 0;"><strong>Spells:</strong>';
+        if (playerData.equippedSpells.length > 0) {
+            playerData.equippedSpells.forEach(spell => {
+                if(spell) tooltip += `<br>${spell.icon} ${spell.name}`;
+            });
+        } else {
+            tooltip += '<br>None';
+        }
+    }
+    
+    return tooltip;
+}
+
 function renderPartyScreen() {
     const partyContainer = document.getElementById('party-cards-container');
     partyContainer.innerHTML = '';
@@ -149,6 +180,11 @@ function renderPartyScreen() {
                 }
             `;
         } else {
+            cardEl.addEventListener('mousemove', (e) => {
+                if (e.altKey) showTooltip(buildPlayerInspectTooltip(playerState));
+            });
+            cardEl.addEventListener('mouseleave', hideTooltip);
+
              if (playerState.playerId === socket.id) {
                 cardEl.classList.add('is-local-player');
                 gameState.health = playerState.health; 
@@ -264,6 +300,14 @@ function renderZoneCards(cards) {
             return;
         }
         
+        // Add ALT-key inspection for opponent player cards
+        if (card.playerId) {
+            cardEl.addEventListener('mousemove', (e) => {
+                if (e.altKey) showTooltip(buildPlayerInspectTooltip(card));
+            });
+            cardEl.addEventListener('mouseleave', hideTooltip);
+        }
+
         if(card.type === 'enemy' || card.type === 'treasure' || card.type === 'npc') {
             let tooltipContent = `<strong>${card.name}</strong><br>${card.description || ''}`;
             if (card.attackTable) {
@@ -274,7 +318,9 @@ function renderZoneCards(cards) {
             } else if(card.attackDesc) {
                 tooltipContent += `<hr style="margin: 5px 0;">${card.attackDesc}`;
             }
-            cardEl.addEventListener('mouseover', () => showTooltip(tooltipContent));
+            cardEl.addEventListener('mouseover', (e) => {
+                if (!e.altKey) showTooltip(tooltipContent);
+            });
             cardEl.addEventListener('mouseout', () => hideTooltip());
         }
         
@@ -638,23 +684,52 @@ export function showCharacterSheet() {
         harvesting: gameState.harvesting + bonuses.harvesting,
     };
 
+    const slotNames = { mainHand: 'Main Hand', offHand: 'Off Hand', helmet: 'Helmet', armor: 'Armor', boots: 'Boots', accessory: 'Accessory', ammo: 'Ammo' };
+    let equipmentHTML = '<h3>Equipment</h3><div class="char-sheet-equipment">';
+    
+    for (const slotKey in slotNames) {
+        const item = gameState.equipment[slotKey];
+        if (item) {
+            if (slotKey === 'offHand' && gameState.equipment.mainHand?.hands === 2) continue;
+            equipmentHTML += `
+                <div class="equipped-item-row">
+                    <span>${item.icon || '❓'} <strong>${slotNames[slotKey]}:</strong> ${item.name}</span>
+                    <button class="btn btn-danger btn-sm" data-equipment-action="unequip" data-slot="${slotKey}">Unequip</button>
+                </div>
+            `;
+        }
+    }
+    equipmentHTML += '</div>';
+
     const modalContent = `
         <h2>Character Sheet</h2>
-        <div style="text-align: left; margin-top: 20px;">
-            <h3>Attributes</h3>
-            <p>💪 Strength: ${calculatedStats.strength}</p>
-            <p>🏃 Agility: ${calculatedStats.agility}</p>
-            <p>🧠 Wisdom: ${calculatedStats.wisdom}</p>
-            <p>🛡️ Defense: ${calculatedStats.defense}</p>
-            <p>🍀 Luck: ${calculatedStats.luck}</p>
-            <hr>
-            <h3>Resistances</h3>
-            <p>💎 Physical Resistance: ${calculatedStats.physicalResistance}</p>
-            <hr>
-            <h3>Professions</h3>
-            <p>⛏️ Mining: ${calculatedStats.mining}</p>
-            <p>🌲 Woodcutting: ${calculatedStats.woodcutting}</p>
-            <p>🎣 Fishing: ${calculatedStats.fishing}</p>
+        <style>
+            .char-sheet-grid { display: flex; gap: 30px; text-align: left; }
+            .char-sheet-grid > div { flex: 1; }
+            .char-sheet-equipment { display: flex; flex-direction: column; gap: 8px; }
+            .equipped-item-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 5px 8px; border-radius: 4px;}
+            .equipped-item-row span { display: flex; align-items: center; gap: 8px; }
+        </style>
+        <div class="char-sheet-grid">
+            <div>
+                <h3>Attributes</h3>
+                <p>💪 Strength: ${calculatedStats.strength}</p>
+                <p>🏃 Agility: ${calculatedStats.agility}</p>
+                <p>🧠 Wisdom: ${calculatedStats.wisdom}</p>
+                <p>🛡️ Defense: ${calculatedStats.defense}</p>
+                <p>🍀 Luck: ${calculatedStats.luck}</p>
+                <hr>
+                <h3>Resistances</h3>
+                <p>💎 Physical Resistance: ${calculatedStats.physicalResistance}</p>
+            </div>
+            <div>
+                ${equipmentHTML}
+                <hr>
+                <h3>Professions</h3>
+                <p>⛏️ Mining: ${calculatedStats.mining}</p>
+                <p>🌲 Woodcutting: ${calculatedStats.woodcutting}</p>
+                <p>🎣 Fishing: ${calculatedStats.fishing}</p>
+            </div>
         </div>
         <button class="btn btn-primary" style="margin-top: 20px;" onclick="this.closest('.modal-overlay').classList.add('hidden')">Close</button>
     `;

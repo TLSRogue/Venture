@@ -66,6 +66,8 @@ export const registerAdventureHandlers = (io, socket) => {
                     itemCooldowns: {},
                     threat: 0,
                     focus: 0,
+                    equipment: memberCharacter.equipment,
+                    equippedSpells: memberCharacter.equippedSpells,
                 };
             }),
             log: [{ message: `Party has entered the ${zoneName}!`, type: 'info' }],

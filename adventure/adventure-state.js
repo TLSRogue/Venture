@@ -112,6 +112,8 @@ function startPvpEncounter(io, partyA, partyB) {
         health: playerState.health,
         maxHealth: playerState.maxHealth,
         debuffs: playerState.debuffs,
+        equipment: playerState.equipment,
+        equippedSpells: playerState.equippedSpells,
         _playerStateRef: playerState, 
     });
     
@@ -722,8 +724,11 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         attackMessage += ` (${attack.damage - damageToDeal} resisted)`;
                     }
                     if (attack.debuff) {
-                        targetPlayerState.debuffs.push({ ...attack.debuff });
-                        attackMessage += ` ${targetPlayerState.name} is now ${attack.debuff.type}!`;
+                        const debuff = attack.debuff;
+                        const existingIndex = targetPlayerState.debuffs.findIndex(d => d.type === debuff.type);
+                        if(existingIndex !== -1) targetPlayerState.debuffs.splice(existingIndex, 1);
+                        targetPlayerState.debuffs.push({ ...debuff });
+                        attackMessage += ` ${targetPlayerState.name} is now ${debuff.type}!`;
                     }
                     sharedState.log.push({ message: attackMessage, type: 'damage'});
                 }
@@ -748,7 +753,10 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 }
                 if (enemy.name === 'Raging Bull' && attack.message.includes('Thick Hide')) {
                     if (!enemy.buffs) enemy.buffs = [];
-                    enemy.buffs.push({ type: 'Thick Hide', duration: 2, bonus: { physicalResistance: 1 }});
+                    const buff = { type: 'Thick Hide', duration: 2, bonus: { physicalResistance: 1 }};
+                    const existingIndex = enemy.buffs.findIndex(b => b.type === buff.type);
+                    if(existingIndex !== -1) enemy.buffs.splice(existingIndex, 1);
+                    enemy.buffs.push(buff);
                     i--; 
                     continue;
                 }
@@ -921,8 +929,11 @@ export async function handleResolveReaction(io, socket, payload) {
             damageMessage += ` (${finalDamage - damageToDeal} resisted)`;
         }
         if (reaction.debuff && !dodged) {
-            reactingPlayerState.debuffs.push({ ...reaction.debuff });
-            damageMessage += ` ${name} is now ${reaction.debuff.type}!`;
+            const debuff = reaction.debuff;
+            const existingIndex = reactingPlayerState.debuffs.findIndex(d => d.type === debuff.type);
+            if(existingIndex !== -1) reactingPlayerState.debuffs.splice(existingIndex, 1);
+            reactingPlayerState.debuffs.push({ ...debuff });
+            damageMessage += ` ${name} is now ${debuff.type}!`;
         }
         party.sharedState.log.push({ message: damageMessage, type: 'damage' });
         if(opponentParty) opponentParty.sharedState.log.push({ message: damageMessage, type: 'damage' });
