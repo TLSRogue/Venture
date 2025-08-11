@@ -6,6 +6,73 @@ import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelper
 
 import { checkAndEndTurnForPlayer, defeatEnemyInParty, handleResolveReaction } from './adventure-state.js';
 
+/**
+ * Helper function to handle the logic for checking and initiating a PvP reaction.
+ * @returns {boolean} - True if a reaction was initiated, false otherwise.
+ */
+function handlePvpReactionCheck(io, party, actingPlayerState, attackerCharacter, defendingPlayerState, actionDetails) {
+    const opponentParty = parties[party.sharedState.pvpEncounter.opponentPartyId];
+    const defendingPlayerObject = players[defendingPlayerState.name];
+    const defendingCharacter = defendingPlayerObject.character;
+    
+    const availableReactions = [];
+    const dodgeSpell = defendingCharacter.equippedSpells.find(s => s.name === "Dodge");
+    if (dodgeSpell && (defendingPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
+        let isWearingHeavy = Object.values(defendingCharacter.equipment).some(item => item && item.traits && item.traits.includes('Heavy'));
+        if (!isWearingHeavy) {
+            availableReactions.push({ name: 'Dodge' });
+        }
+    }
+    const shield = defendingCharacter.equipment.offHand;
+    if (shield && shield.type === 'shield' && shield.reaction && (defendingPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
+        availableReactions.push({ name: 'Block' });
+    }
+
+    if (availableReactions.length > 0) {
+        const timeRemaining = party.sharedState.turnTimerEndsAt - Date.now();
+        clearTimeout(party.sharedState.turnTimerId);
+        party.sharedState.turnTimeRemaining = timeRemaining;
+        opponentParty.sharedState.turnTimeRemaining = timeRemaining;
+
+        const pendingReaction = {
+            attackerName: attackerCharacter.characterName,
+            attackerPartyId: party.id,
+            targetName: defendingPlayerState.name,
+            damage: actionDetails.damage,
+            damageType: actionDetails.damageType,
+            message: actionDetails.message,
+            debuff: actionDetails.debuff || null, 
+            isFleeing: false
+        };
+        party.sharedState.pendingReaction = pendingReaction;
+        opponentParty.sharedState.pendingReaction = pendingReaction;
+
+        const reactionPayload = {
+            damage: actionDetails.damage,
+            attacker: attackerCharacter.characterName,
+            availableReactions: availableReactions,
+            timer: 10000
+        };
+
+        io.to(defendingPlayerState.playerId).emit('party:requestReaction', reactionPayload);
+
+        const reactionTimeout = setTimeout(() => {
+            const playerSocket = io.sockets.sockets.get(defendingPlayerState.playerId);
+            if (playerSocket) {
+                handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
+            }
+        }, 10000);
+        
+        party.reactionTimeout = reactionTimeout;
+        opponentParty.reactionTimeout = reactionTimeout;
+        
+        return true; // Reaction was initiated
+    }
+    
+    return false; // No reaction available
+}
+
+
 export async function processWeaponAttack(io, party, player, payload) {
     const { weaponSlot, targetIndex } = payload;
     const character = player.character;
@@ -18,67 +85,23 @@ export async function processWeaponAttack(io, party, player, payload) {
         return;
     }
 
+    // --- REFACTORED PVP REACTION LOGIC ---
     if (target._playerStateRef) {
-        const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
         const defendingPlayerState = target._playerStateRef;
-        const defendingPlayerObject = players[defendingPlayerState.name];
-        const defendingCharacter = defendingPlayerObject.character;
+        const actionDetails = {
+            damage: weapon.weaponDamage,
+            damageType: weapon.damageType,
+            message: `attacks with ${weapon.name}.`,
+            debuff: null,
+        };
         
-        const availableReactions = [];
-        const dodgeSpell = defendingCharacter.equippedSpells.find(s => s.name === "Dodge");
-        if (dodgeSpell && (defendingPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
-            let isWearingHeavy = Object.values(defendingCharacter.equipment).some(item => item && item.traits && item.traits.includes('Heavy'));
-            if (!isWearingHeavy) {
-                availableReactions.push({ name: 'Dodge' });
-            }
-        }
-        const shield = defendingCharacter.equipment.offHand;
-        if (shield && shield.type === 'shield' && shield.reaction && (defendingPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
-            availableReactions.push({ name: 'Block' });
-        }
+        const reactionInitiated = handlePvpReactionCheck(io, party, actingPlayerState, character, defendingPlayerState, actionDetails);
 
-        if (availableReactions.length > 0) {
-            const timeRemaining = sharedState.turnTimerEndsAt - Date.now();
-            clearTimeout(sharedState.turnTimerId);
-            sharedState.turnTimeRemaining = timeRemaining;
-            opponentParty.sharedState.turnTimeRemaining = timeRemaining;
-
-            const pendingReaction = {
-                attackerName: character.characterName,
-                attackerPartyId: party.id,
-                targetName: defendingPlayerState.name,
-                damage: weapon.weaponDamage,
-                damageType: weapon.damageType,
-                message: `attacks with ${weapon.name}.`,
-                debuff: null, 
-                isFleeing: false
-            };
-            sharedState.pendingReaction = pendingReaction;
-            opponentParty.sharedState.pendingReaction = pendingReaction;
-
-            const reactionPayload = {
-                damage: weapon.weaponDamage,
-                attacker: character.characterName,
-                availableReactions: availableReactions,
-                timer: 10000
-            };
-
-            io.to(defendingPlayerState.playerId).emit('party:requestReaction', reactionPayload);
-
-            const reactionTimeout = setTimeout(() => {
-                const playerSocket = io.sockets.sockets.get(defendingPlayerState.playerId);
-                if (playerSocket) {
-                    handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
-                }
-            }, 10000);
-            
-            party.reactionTimeout = reactionTimeout;
-            opponentParty.reactionTimeout = reactionTimeout;
-            
+        if (reactionInitiated) {
             actingPlayerState.actionPoints -= weapon.cost;
             actingPlayerState.threat += weapon.cost;
             actingPlayerState.weaponCooldowns[weapon.name] = weapon.cooldown;
-            return; 
+            return;
         }
     }
 
@@ -220,67 +243,24 @@ export async function processCastSpell(io, party, player, payload) {
     description += ` Success!`;
     sharedState.log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' ? 'heal' : 'damage' });
 
+    // --- REFACTORED PVP REACTION LOGIC ---
     if ((spell.type === 'attack' || spell.type === 'versatile' || spell.type === 'aoe') && enemyTarget && targetIsPlayer) {
-        const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
         const defendingPlayerState = enemyTarget._playerStateRef;
-        const defendingPlayerObject = players[defendingPlayerState.name];
-        const defendingCharacter = defendingPlayerObject.character;
+        let damage = spell.damage || 0;
+        if (spell.type === 'versatile') {
+            damage = spell.baseEffect + statValue;
+        }
 
-        const availableReactions = [];
-        const dodgeSpell = defendingCharacter.equippedSpells.find(s => s.name === "Dodge");
-        if (dodgeSpell && (defendingPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
-            let isWearingHeavy = Object.values(defendingCharacter.equipment).some(item => item && item.traits && item.traits.includes('Heavy'));
-            if (!isWearingHeavy) {
-                availableReactions.push({ name: 'Dodge' });
-            }
-        }
-        const shield = defendingCharacter.equipment.offHand;
-        if (shield && shield.type === 'shield' && shield.reaction && (defendingPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
-            availableReactions.push({ name: 'Block' });
-        }
+        const actionDetails = {
+            damage: damage,
+            damageType: spell.damageType || 'Physical',
+            message: `casts ${spell.name}.`,
+            debuff: spell.debuff || null
+        };
         
-        if (availableReactions.length > 0) {
-            const timeRemaining = sharedState.turnTimerEndsAt - Date.now();
-            clearTimeout(sharedState.turnTimerId);
-            sharedState.turnTimeRemaining = timeRemaining;
-            opponentParty.sharedState.turnTimeRemaining = timeRemaining;
-
-            let damage = spell.damage || 0;
-            if (spell.type === 'versatile') {
-                damage = spell.baseEffect + statValue;
-            }
-
-            const pendingReaction = {
-                attackerName: character.characterName,
-                attackerPartyId: party.id,
-                targetName: defendingPlayerState.name,
-                damage: damage,
-                damageType: spell.damageType || 'Physical',
-                message: `casts ${spell.name}.`,
-                debuff: spell.debuff || null,
-                isFleeing: false
-            };
-            sharedState.pendingReaction = pendingReaction;
-            opponentParty.sharedState.pendingReaction = pendingReaction;
-
-            const reactionPayload = {
-                damage: damage,
-                attacker: character.characterName,
-                availableReactions: availableReactions,
-                timer: 10000 
-            };
-            io.to(defendingPlayerState.playerId).emit('party:requestReaction', reactionPayload);
-
-            const reactionTimeout = setTimeout(() => {
-                const playerSocket = io.sockets.sockets.get(defendingPlayerState.playerId);
-                if (playerSocket) {
-                    handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
-                }
-            }, 10000);
-
-            party.reactionTimeout = reactionTimeout;
-            opponentParty.reactionTimeout = reactionTimeout;
-            
+        const reactionInitiated = handlePvpReactionCheck(io, party, actingPlayerState, character, defendingPlayerState, actionDetails);
+        
+        if (reactionInitiated) {
             actingPlayerState.threat += cost;
             return;
         }
