@@ -8,6 +8,7 @@ export const cardPools = {
             maxHealth: 15, 
             description: "An enraged bull, kicking up dust.",
             icon: "🐂",
+            imageUrl: '/assets/raging-bull.png', // <<< Add this line
             attackTable: [
                 { range: [1, 3], action: 'miss', message: "The bull snorts and misses!" },
                 { range: [4, 12], action: 'attack', damage: 3, damageType: 'Physical', message: "Charge! Deals 3 Physical Damage!" },

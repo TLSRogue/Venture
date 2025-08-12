@@ -359,10 +359,22 @@ function renderZoneCards(cards) {
             cardEl.addEventListener('mouseout', () => hideTooltip());
         }
         
+        // --- MODIFICATION START ---
+        let visualHTML;
+        // Check if the card has a specific image URL
+        if (card.imageUrl) {
+            // If it does, create an img tag
+            visualHTML = `<img src="${card.imageUrl}" class="card-image" alt="${card.name}">`;
+        } else {
+            // Otherwise, fall back to the emoji icon
+            visualHTML = `<div class="card-icon">${card.icon || '❓'}</div>`;
+        }
+        
         cardEl.innerHTML = `
-            <div class="card-icon">${card.icon || '❓'}</div>
+            ${visualHTML}
             <div class="card-title">${card.name}</div>
         `;
+        // --- MODIFICATION END ---
 
         if (card.type === 'enemy') {
             const healthDiv = document.createElement('div');

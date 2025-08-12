@@ -261,6 +261,7 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    align-items: center; /* Ensures content is centered */
 }
 
 .card.empty {
@@ -934,4 +935,12 @@ hr {
         width: 100%;
         margin-top: 10px;
     }
+}
+
+/* Added for custom card images */
+.card-image {
+    width: 60px;
+    height: 60px;
+    object-fit: contain; /* Ensures the image fits without being distorted */
+    margin-bottom: 10px;
 }
