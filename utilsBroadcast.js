@@ -6,7 +6,7 @@
  */
 
 // MODIFICATION: Corrected import paths from ../ to ./
-import { players, parties, duels } from './serverState.js';
+import { players, parties, duels, pvpEncounters } from './serverState.js';
 import { createStateForClient } from './utilsHelpers.js';
 
 export function broadcastOnlinePlayers(io) {
@@ -51,16 +51,37 @@ export function broadcastPartyUpdate(io, partyId) {
     }
 }
 
-export function broadcastAdventureUpdate(io, partyId) {
-    const party = parties[partyId];
-    if (party && party.sharedState) {
-        const clientState = createStateForClient(party.sharedState);
+export function broadcastAdventureUpdate(io, party) {
+    if (!party || !party.sharedState) return;
 
+    // --- NEW: Handle PvP broadcasting differently ---
+    if (party.sharedState.pvpEncounterId) {
+        const encounter = pvpEncounters[party.sharedState.pvpEncounterId];
+        if (!encounter) return;
+
+        const partyA = parties[encounter.partyAId];
+        const partyB = parties[encounter.partyBId];
+        if (!partyA || !partyB) return;
+
+        // Combine all players from both parties into one list
+        const allPlayersInEncounter = [...partyA.members, ...partyB.members];
+        
+        // Create one state payload for everyone
+        const clientState = createStateForClient(party.sharedState, encounter);
+
+        allPlayersInEncounter.forEach(memberName => {
+            const player = players[memberName];
+            if (player && player.id) {
+                io.to(player.id).emit('party:adventureUpdate', clientState);
+            }
+        });
+    } else {
+        // --- Original PvE Broadcasting Logic ---
+        const clientState = createStateForClient(party.sharedState);
         party.members.forEach(memberName => {
             const player = players[memberName];
-            const socket = player && player.id ? io.sockets.sockets.get(player.id) : null;
-            if (socket) {
-                socket.emit('party:adventureUpdate', clientState);
+            if (player && player.id) {
+                io.to(player.id).emit('party:adventureUpdate', clientState);
             }
         });
     }

@@ -75,8 +75,8 @@ export function showCombatFeedback({ targetName, targetId, type, text }) {
     let targetCard = null;
 
     if (targetId) {
-        // Prioritize finding by unique ID for enemies
-        targetCard = document.querySelector(`#adventure-board .card[data-id='${targetId}']`);
+        // Prioritize finding by unique ID for enemies or players
+        targetCard = document.querySelector(`.card[data-id='${targetId}'], .card[data-player-id='${targetId}']`);
     } 
     
     // Fallback for players or if ID is not present
@@ -123,6 +123,8 @@ export function renderAdventureScreen() {
 
     if (gameState.inDuel) {
         renderDuelScreen();
+    } else if (gameState.pvpEncounter) {
+        renderPvpScreen();
     } else if (gameState.partyId && gameState.partyMemberStates) {
         renderPartyScreen();
     }
@@ -132,14 +134,17 @@ export function renderAdventureScreen() {
 
 function buildPlayerInspectTooltip(playerData) {
     let tooltip = `<strong>${playerData.name}</strong>`;
+    
+    // During PvP, equipment/spells are on the player state, not the card.
+    const source = playerData.equipment ? playerData : gameState;
 
-    if (playerData.equipment) {
+    if (source.equipment) {
         tooltip += '<hr style="margin: 5px 0;"><strong>Equipment:</strong>';
         let hasEquipment = false;
-        for (const slot in playerData.equipment) {
-            const item = playerData.equipment[slot];
+        for (const slot in source.equipment) {
+            const item = source.equipment[slot];
             if (item) {
-                if(slot === 'offHand' && playerData.equipment.mainHand?.hands === 2) continue;
+                if(slot === 'offHand' && source.equipment.mainHand?.hands === 2) continue;
                 hasEquipment = true;
                 tooltip += `<br>${item.icon} ${item.name}`;
             }
@@ -147,10 +152,10 @@ function buildPlayerInspectTooltip(playerData) {
         if (!hasEquipment) tooltip += '<br>None';
     }
 
-    if (playerData.equippedSpells) {
+    if (source.equippedSpells) {
         tooltip += '<hr style="margin: 5px 0;"><strong>Spells:</strong>';
-        if (playerData.equippedSpells.length > 0) {
-            playerData.equippedSpells.forEach(spell => {
+        if (source.equippedSpells.length > 0) {
+            source.equippedSpells.forEach(spell => {
                 if(spell) tooltip += `<br>${spell.icon} ${spell.name}`;
             });
         } else {
@@ -159,6 +164,57 @@ function buildPlayerInspectTooltip(playerData) {
     }
     
     return tooltip;
+}
+
+// NEW: Renders the screen using the single shared PvP encounter state
+function renderPvpScreen() {
+    const partyContainer = document.getElementById('party-cards-container');
+    const zoneContainer = document.getElementById('zone-cards');
+    partyContainer.innerHTML = '';
+    zoneContainer.innerHTML = '';
+
+    const localPlayerState = gameState.pvpEncounter.playerStates.find(p => p.playerId === socket.id);
+    if (!localPlayerState) return;
+    const localPlayerTeam = localPlayerState.team;
+
+    gameState.pvpEncounter.playerStates.forEach(playerState => {
+        const isAlly = playerState.team === localPlayerTeam;
+        const container = isAlly ? partyContainer : zoneContainer;
+        
+        const cardEl = document.createElement('div');
+        cardEl.className = isAlly ? 'card player' : 'card player enemy';
+        cardEl.dataset.playerId = playerState.playerId; // Use playerId for targeting
+        
+        if (playerState.isDead) {
+            cardEl.classList.add('dead');
+            cardEl.innerHTML = `
+                <div class="card-icon">💀</div>
+                <div class="card-title">${playerState.name}</div>
+                <div>DEFEATED</div>
+            `;
+        } else {
+            cardEl.addEventListener('mousemove', (e) => {
+                 if (e.altKey) showTooltip(buildPlayerInspectTooltip(playerState));
+            });
+            cardEl.addEventListener('mouseleave', hideTooltip);
+
+            if (playerState.playerId === socket.id) {
+                cardEl.classList.add('is-local-player');
+            }
+
+            if (gameState.pvpEncounter.activeTeam === playerState.team) {
+                cardEl.classList.add('active-turn');
+            }
+            
+            cardEl.innerHTML = `
+                <div class="card-icon">${playerState.icon}</div>
+                <div class="card-title">${playerState.name}</div>
+                <div>❤️ ${playerState.health}/${playerState.maxHealth}</div>
+            `;
+            cardEl.appendChild(createEffectsContainer(playerState));
+        }
+        container.appendChild(cardEl);
+    });
 }
 
 function renderPartyScreen() {
@@ -191,28 +247,15 @@ function renderPartyScreen() {
                 gameState.maxHealth = playerState.maxHealth;
             }
 
-            if (gameState.pvpEncounter) {
-                 if (gameState.pvpEncounter.activeTeam === playerState.team) {
-                    cardEl.classList.add('active-turn');
-                }
-            } else if (playerState.turnEnded) {
+            if (playerState.turnEnded) {
                 cardEl.style.opacity = '0.6';
             }
             
-            const iconDiv = document.createElement('div');
-            iconDiv.className = 'card-icon';
-            iconDiv.textContent = playerState.icon;
-            cardEl.appendChild(iconDiv);
-
-            const titleDiv = document.createElement('div');
-            titleDiv.className = 'card-title';
-            titleDiv.textContent = playerState.name;
-            cardEl.appendChild(titleDiv);
-
-            const healthDiv = document.createElement('div');
-            healthDiv.textContent = `❤️ ${playerState.health}/${playerState.maxHealth}`;
-            cardEl.appendChild(healthDiv);
-            
+            cardEl.innerHTML = `
+                <div class="card-icon">${playerState.icon}</div>
+                <div class="card-title">${playerState.name}</div>
+                <div>❤️ ${playerState.health}/${playerState.maxHealth}</div>
+            `;
             cardEl.appendChild(createEffectsContainer(playerState));
         }
 
@@ -285,7 +328,7 @@ function renderZoneCards(cards) {
             return;
         };
 
-        cardEl.className = card.playerId ? `card player ${card.type}` : `card ${card.type}`;
+        cardEl.className = `card ${card.type}`;
         cardEl.dataset.index = index;
         if(card.id) cardEl.dataset.id = card.id;
 
@@ -300,14 +343,6 @@ function renderZoneCards(cards) {
             return;
         }
         
-        // Add ALT-key inspection for opponent player cards
-        if (card.playerId) {
-            cardEl.addEventListener('mousemove', (e) => {
-                if (e.altKey) showTooltip(buildPlayerInspectTooltip(card));
-            });
-            cardEl.addEventListener('mouseleave', hideTooltip);
-        }
-
         if(card.type === 'enemy' || card.type === 'treasure' || card.type === 'npc') {
             let tooltipContent = `<strong>${card.name}</strong><br>${card.description || ''}`;
             if (card.attackTable) {
@@ -324,15 +359,10 @@ function renderZoneCards(cards) {
             cardEl.addEventListener('mouseout', () => hideTooltip());
         }
         
-        const iconDiv = document.createElement('div');
-        iconDiv.className = 'card-icon';
-        iconDiv.textContent = card.icon || '❓';
-        cardEl.appendChild(iconDiv);
-
-        const titleDiv = document.createElement('div');
-        titleDiv.className = 'card-title';
-        titleDiv.textContent = card.name;
-        cardEl.appendChild(titleDiv);
+        cardEl.innerHTML = `
+            <div class="card-icon">${card.icon || '❓'}</div>
+            <div class="card-title">${card.name}</div>
+        `;
 
         if (card.type === 'enemy') {
             const healthDiv = document.createElement('div');
@@ -392,34 +422,24 @@ export function renderPlayerActionBars() {
     equipmentContainer.innerHTML = '';
     spellContainer.innerHTML = '';
 
-    let localPlayerAP = gameState.actionPoints;
-    let localPlayerTurnEnded = false;
-    
-    let weaponCooldowns = gameState.weaponCooldowns;
-    let spellCooldowns = gameState.spellCooldowns;
-    let itemCooldowns = gameState.itemCooldowns;
-    
-    if (gameState.partyId && gameState.partyMemberStates) {
-        const localPlayerState = gameState.partyMemberStates.find(p => p.playerId === socket.id);
-        if (localPlayerState) {
-            localPlayerAP = localPlayerState.actionPoints;
-            localPlayerTurnEnded = localPlayerState.turnEnded;
-            weaponCooldowns = localPlayerState.weaponCooldowns;
-            spellCooldowns = localPlayerState.spellCooldowns;
-            itemCooldowns = localPlayerState.itemCooldowns;
-
-            if (gameState.pvpEncounter) {
-                localPlayerTurnEnded = gameState.pvpEncounter.activeTeam !== localPlayerState.team;
-            }
-        }
+    let localPlayerState;
+    // NEW: Get the local player state from the correct source (PvP or PvE)
+    if (gameState.pvpEncounter) {
+        localPlayerState = gameState.pvpEncounter.playerStates.find(p => p.playerId === socket.id);
+    } else if (gameState.partyId && gameState.partyMemberStates) {
+        localPlayerState = gameState.partyMemberStates.find(p => p.playerId === socket.id);
     } else if (gameState.inDuel && gameState.duelState) {
-        const localPlayerState = gameState.duelState.player1.id === socket.id ? gameState.duelState.player1 : gameState.duelState.player2;
-        localPlayerAP = localPlayerState.actionPoints;
-        localPlayerTurnEnded = gameState.duelState.activePlayerId !== socket.id;
-        weaponCooldowns = localPlayerState.weaponCooldowns;
-        spellCooldowns = localPlayerState.spellCooldowns;
-        itemCooldowns = localPlayerState.itemCooldowns;
+        localPlayerState = gameState.duelState.player1.id === socket.id ? gameState.duelState.player1 : gameState.duelState.player2;
     }
+    
+    if (!localPlayerState) { // Fallback or if not in adventure
+        document.getElementById('end-turn-btn').disabled = true;
+        return;
+    }
+    
+    const localPlayerAP = localPlayerState.actionPoints;
+    const localPlayerTurnEnded = gameState.pvpEncounter ? gameState.pvpEncounter.activeTeam !== localPlayerState.team : localPlayerState.turnEnded;
+    const { weaponCooldowns, spellCooldowns, itemCooldowns } = localPlayerState;
 
     document.getElementById('end-turn-btn').disabled = localPlayerTurnEnded;
 
@@ -553,14 +573,9 @@ export function updateActionUI() {
             });
         }
         if (action.type === 'heal' || action.type === 'buff' || action.type === 'versatile') {
-            document.querySelectorAll('#party-cards-container .card.player:not(.dead)').forEach(playerCard => {
+            document.querySelectorAll('#party-cards-container .card.player:not(.dead), #zone-cards .card.player:not(.dead)').forEach(playerCard => {
                 playerCard.classList.add('targetable');
             });
-            if(gameState.inDuel) {
-                 document.querySelectorAll('#zone-cards .card.player').forEach(playerCard => {
-                    playerCard.classList.add('targetable');
-                });
-            }
         }
     }
 }
@@ -740,14 +755,16 @@ function renderGroundLootButton() {
     const container = document.getElementById('ground-loot-container');
     if (!container) return;
     container.innerHTML = '';
+    
+    const groundLoot = gameState.pvpEncounter ? gameState.pvpEncounter.groundLoot : gameState.groundLoot;
 
-    if (gameState.groundLoot && gameState.groundLoot.length > 0 && gameState.currentZone) {
+    if (groundLoot && groundLoot.length > 0 && (gameState.currentZone || gameState.pvpEncounter)) {
         const button = document.createElement('button');
         button.id = 'ground-loot-btn';
-        button.title = `View items on the ground (${gameState.groundLoot.length})`;
+        button.title = `View items on the ground (${groundLoot.length})`;
         button.innerHTML = `
             <div class="ground-loot-icon">💰</div>
-            <div class="ground-loot-text">GROUND LOOT (${gameState.groundLoot.length})</div>
+            <div class="ground-loot-text">GROUND LOOT (${groundLoot.length})</div>
         `;
         container.appendChild(button);
     }
@@ -766,8 +783,10 @@ export function showGroundLootModal() {
     const groundGrid = document.createElement('div');
     groundGrid.className = 'inventory-grid';
     
-    if (gameState.groundLoot && gameState.groundLoot.length > 0) {
-        gameState.groundLoot.forEach((item, index) => {
+    const groundLoot = gameState.pvpEncounter ? gameState.pvpEncounter.groundLoot : gameState.groundLoot;
+
+    if (groundLoot && groundLoot.length > 0) {
+        groundLoot.forEach((item, index) => {
             const itemEl = document.createElement('div');
             itemEl.className = 'inventory-item';
             let itemText = `<strong>${item.name}</strong>`;

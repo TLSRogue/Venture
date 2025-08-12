@@ -114,7 +114,8 @@ function handleCharacterUpdate(serverState) {
         partyMemberStates: gameState.partyMemberStates,
         groundLoot: gameState.groundLoot,
         isPartyLeader: gameState.isPartyLeader,
-        pvpEncounter: gameState.pvpEncounter 
+        pvpEncounter: gameState.pvpEncounter,
+        pvpEncounterState: gameState.pvpEncounterState
     };
 
     Object.assign(gameState, serverState);
@@ -132,12 +133,13 @@ function handleCharacterUpdate(serverState) {
         gameState.zoneCards = [];
         gameState.groundLoot = [];
         gameState.pvpEncounter = null;
+        gameState.pvpEncounterState = null;
     }
 
     if (activeSlotIndex !== null) {
         const characterSlots = JSON.parse(localStorage.getItem('ventureCharacterSlots') || '[null, null, null]');
         const stateToSave = { ...gameState };
-        ['isPartyLeader', 'turnState', 'partyMemberStates', 'zoneCards', 'groundLoot', 'pvpEncounter'].forEach(key => delete stateToSave[key]);
+        ['isPartyLeader', 'turnState', 'partyMemberStates', 'zoneCards', 'groundLoot', 'pvpEncounter', 'pvpEncounterState'].forEach(key => delete stateToSave[key]);
         characterSlots[activeSlotIndex] = stateToSave;
         localStorage.setItem('ventureCharacterSlots', JSON.stringify(characterSlots));
     }
@@ -175,7 +177,14 @@ function handleReceivePartyInvite({ inviterName, partyId }) {
 }
 
 function handlePartyAdventureStarted(serverAdventureState) {
-    Object.assign(gameState, serverAdventureState);
+    // NEW: Handle the initial state, which could be a PvP encounter
+    if (serverAdventureState.pvpEncounterState) {
+        gameState.pvpEncounter = serverAdventureState.pvpEncounterState;
+        gameState.log = serverAdventureState.pvpEncounterState.log;
+        gameState.groundLoot = serverAdventureState.pvpEncounterState.groundLoot;
+    } else {
+        Object.assign(gameState, serverAdventureState);
+    }
 
     Player.resetPlayerCombatState();
 
@@ -190,14 +199,29 @@ function handlePartyAdventureStarted(serverAdventureState) {
 
     UIAdventure.renderAdventureScreen();
     document.getElementById('adventure-log').innerHTML = '';
-    serverAdventureState.log.forEach(entry => UIMain.addToLog(entry.message, entry.type));
+    const logSource = gameState.pvpEncounter ? gameState.pvpEncounter.log : serverAdventureState.log;
+    logSource.forEach(entry => UIMain.addToLog(entry.message, entry.type));
     UIPlayer.updateDisplay();
     UIAdventure.renderPlayerActionBars();
 }
 
 function handlePartyAdventureUpdate(serverAdventureState) {
+    // NEW: Check for and assign the unified PvP encounter state
+    if (serverAdventureState.pvpEncounterState) {
+        gameState.pvpEncounter = serverAdventureState.pvpEncounterState;
+        // Ensure top-level state items are also synced from the encounter state
+        gameState.log = serverAdventureState.pvpEncounterState.log;
+        gameState.groundLoot = serverAdventureState.pvpEncounterState.groundLoot;
+        gameState.pendingReaction = serverAdventureState.pvpEncounterState.pendingReaction;
+    } else {
+        // Fallback for PvE
+        Object.assign(gameState, serverAdventureState);
+        gameState.pvpEncounter = null; 
+    }
+
     const reactionModalIsOpen = document.getElementById('reaction-buttons');
-    const isReactionPendingForMe = serverAdventureState.pendingReaction && serverAdventureState.pendingReaction.targetName === gameState.characterName;
+    const pendingReaction = gameState.pvpEncounter ? gameState.pvpEncounter.pendingReaction : gameState.pendingReaction;
+    const isReactionPendingForMe = pendingReaction && pendingReaction.targetName === gameState.characterName;
 
     if (reactionModalIsOpen && !isReactionPendingForMe) {
         UIMain.hideModal();
@@ -205,10 +229,9 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     
     const logContainer = document.getElementById('adventure-log');
     const existingLogCount = logContainer.children.length;
-    const newLogEntries = serverAdventureState.log.slice(existingLogCount);
+    const logSource = gameState.pvpEncounter ? gameState.pvpEncounter.log : serverAdventureState.log;
+    const newLogEntries = logSource.slice(existingLogCount);
     const effectsToPlay = getEffectsFromLog(newLogEntries);
-
-    Object.assign(gameState, serverAdventureState);
     
     newLogEntries.reverse().forEach(entry => UIMain.addToLog(entry.message, entry.type));
     
@@ -234,11 +257,11 @@ function updatePvpTurnTimerUI() {
     const timerContainer = document.getElementById('pvp-turn-timer-container');
     const timerText = document.getElementById('pvp-turn-timer-text');
 
-    if (gameState.pvpEncounter && gameState.turnTimerEndsAt) {
+    if (gameState.pvpEncounter && gameState.pvpEncounter.turnTimerEndsAt) {
         timerContainer.style.display = 'block';
 
         const update = () => {
-            const remaining = Math.round((gameState.turnTimerEndsAt - Date.now()) / 1000);
+            const remaining = Math.round((gameState.pvpEncounter.turnTimerEndsAt - Date.now()) / 1000);
             if (remaining > 0) {
                 const activeTeam = gameState.pvpEncounter.activeTeam;
                 timerText.textContent = `Team ${activeTeam}'s Turn: ${remaining}s`;
@@ -261,8 +284,9 @@ function updatePvpTurnTimerUI() {
 
 function updateWaitingBannerUI() {
     const banner = document.getElementById('waiting-for-reaction-banner');
-    if (gameState.pendingReaction && gameState.pendingReaction.targetName !== gameState.characterName) {
-        banner.textContent = `Waiting for ${gameState.pendingReaction.targetName} to react...`;
+    const pendingReaction = gameState.pvpEncounter ? gameState.pvpEncounter.pendingReaction : gameState.pendingReaction;
+    if (pendingReaction && pendingReaction.targetName !== gameState.characterName) {
+        banner.textContent = `Waiting for ${pendingReaction.targetName} to react...`;
         banner.style.display = 'block';
     } else {
         banner.style.display = 'none';
@@ -506,7 +530,18 @@ function addEventListeners() {
             return;
         }
 
-        if (target.closest('#zone-cards .card')) return Interactions.interactWithCard(parseInt(target.closest('.card').dataset.index, 10));
+        // --- MODIFIED: Handle PvP targeting ---
+        const zoneCard = target.closest('#zone-cards .card');
+        if (zoneCard) {
+            if (gameState.pvpEncounter) {
+                // In PvP, the target is identified by playerId
+                return Interactions.interactWithCard(zoneCard.dataset.playerId);
+            }
+            // In PvE, the target is identified by its index
+            return Interactions.interactWithCard(parseInt(zoneCard.dataset.index, 10));
+        }
+        // --- End of Modification ---
+
         if (target.closest('[data-action="lootPlayer"]')) {
             const playerIndex = parseInt(target.closest('.card').dataset.index.substring(1), 10);
             return Interactions.lootPlayer(playerIndex);
@@ -514,7 +549,9 @@ function addEventListeners() {
         if (target.closest('#party-cards-container .card')) {
             const cardElement = target.closest('.card');
             if (cardElement.classList.contains('is-local-player')) return Interactions.interactWithPlayerCard();
-            return Interactions.interactWithCard(cardElement.dataset.index);
+            
+            const targetIdentifier = gameState.pvpEncounter ? cardElement.dataset.playerId : cardElement.dataset.index;
+            return Interactions.interactWithCard(targetIdentifier);
         }
 
         const button = target.closest('button');

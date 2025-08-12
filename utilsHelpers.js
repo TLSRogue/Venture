@@ -7,18 +7,21 @@
 
 import { gameData } from './data/index.js';
 
-// --- MODIFICATION START: Added client state cleaning utility ---
-export function createStateForClient(sharedState) {
+export function createStateForClient(sharedState, encounterState = null) {
     if (!sharedState) return null;
-    
-    // Use object destructuring to pull out and omit problematic, server-only properties.
-    const { turnTimerId, reactionTimeout, ...restOfState } = sharedState;
-    
-    const clientState = { ...restOfState };
 
-    // Also remove the circular reference from the opponent cards.
-    if (clientState.zoneCards) {
-        clientState.zoneCards = sharedState.zoneCards.map(card => {
+    // Create a base client state from the party's shared state, removing server-only timer IDs.
+    const { turnTimerId, reactionTimeout, ...safeSharedState } = sharedState;
+
+    const finalState = { ...safeSharedState };
+
+    // If there is a PvP encounter, sanitize it and attach it to the payload.
+    if (encounterState) {
+        const { turnTimerId, reactionTimeout, ...safeEncounterState } = encounterState;
+        finalState.pvpEncounterState = safeEncounterState;
+    } else if (finalState.zoneCards) {
+        // For PvE, we still need to remove the (now unused in PvP) _playerStateRef just in case.
+        finalState.zoneCards = finalState.zoneCards.map(card => {
             if (card && card._playerStateRef) {
                 const { _playerStateRef, ...safeCard } = card; 
                 return safeCard;
@@ -27,9 +30,8 @@ export function createStateForClient(sharedState) {
         });
     }
 
-    return clientState;
+    return finalState;
 }
-// --- MODIFICATION END ---
 
 
 // --- MERCHANT LOGIC (UPDATED) ---

@@ -1,7 +1,7 @@
 // adventure/adventure-state.js
 
 // MODIFICATION: Corrected import paths from ../ to ./
-import { players, parties, pvpZoneQueues } from '../serverState.js';
+import { players, parties, pvpZoneQueues, pvpEncounters } from '../serverState.js';
 import { gameData } from '../data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js';
@@ -15,8 +15,7 @@ const PVP_ZONES = ['blighted_wastes'];
 
 // --- PVP HELPER FUNCTIONS ---
 
-export function handlePvpPlayerDeath(io, defeatedPlayer, party) {
-    const { sharedState } = party;
+export function handlePvpPlayerDeath(io, defeatedPlayer, encounter) {
     const character = defeatedPlayer.character;
 
     const allLoot = [...character.inventory.filter(Boolean)];
@@ -29,21 +28,26 @@ export function handlePvpPlayerDeath(io, defeatedPlayer, party) {
         }
     }
 
-    sharedState.groundLoot.push(...allLoot);
+    encounter.groundLoot.push(...allLoot);
 
     character.inventory = Array(24).fill(null);
     character.equipment = { mainHand: null, offHand: null, helmet: null, armor: null, boots: null, accessory: null, ammo: null };
     
     io.to(defeatedPlayer.id).emit('characterUpdate', character);
-    sharedState.log.push({ message: `${character.characterName} has been slain and dropped all of their items!`, type: 'damage' });
+    encounter.log.push({ message: `${character.characterName} has been slain and dropped all of their items!`, type: 'damage' });
 }
 
 function endPvpEncounter(io, winningParty, losingParty) {
-    if (winningParty.sharedState && winningParty.sharedState.turnTimerId) {
-        clearTimeout(winningParty.sharedState.turnTimerId);
+    const encounterId = winningParty.sharedState.pvpEncounterId;
+    const encounter = pvpEncounters[encounterId];
+
+    if (encounter && encounter.turnTimerId) {
+        clearTimeout(encounter.turnTimerId);
     }
-    if (losingParty.sharedState && losingParty.sharedState.turnTimerId) {
-        clearTimeout(losingParty.sharedState.turnTimerId);
+    
+    // Clean up the global encounter object
+    if (encounterId) {
+        delete pvpEncounters[encounterId];
     }
 
     losingParty.members.forEach(memberName => {
@@ -61,10 +65,12 @@ function endPvpEncounter(io, winningParty, losingParty) {
     }
 
     const { sharedState } = winningParty;
-    sharedState.pvpEncounter = null;
-    sharedState.zoneCards = [];
+    sharedState.pvpEncounter = null; // Legacy property, kept for compatibility, can be removed later
+    sharedState.pvpEncounterId = null;
+    sharedState.zoneCards = []; // Clear opponent cards
     sharedState.log.push({ message: "Combat has ended! You may now loot the spoils of victory.", type: 'success' });
     
+    // Reset players in the winning party to a post-combat state
     sharedState.partyMemberStates.forEach(p => {
         if (!p.isDead) {
             p.actionPoints = 3;
@@ -82,165 +88,126 @@ function startPvpEncounter(io, partyA, partyB) {
         return;
     }
 
-    const allPlayerStates = [...partyA.sharedState.partyMemberStates, ...partyB.sharedState.partyMemberStates];
-    for (const playerState of allPlayerStates) {
-        if (!playerState.buffs) playerState.buffs = [];
-        if (!playerState.debuffs) playerState.debuffs = [];
-    }
-
-    const partyAStates = partyA.sharedState.partyMemberStates;
-    const partyBStates = partyB.sharedState.partyMemberStates;
-
-    partyAStates.forEach(p => p.team = 'A');
-    partyBStates.forEach(p => p.team = 'B');
-
+    const encounterId = `PVP-${Date.now()}`;
     const startingTeam = Math.random() < 0.5 ? 'A' : 'B';
-    const firstTurnLogMessage = `Team ${startingTeam} will go first, but with only 1 AP!`;
 
-    if (startingTeam === 'A') {
-        partyAStates.forEach(p => p.actionPoints = 1);
-    } else {
-        partyBStates.forEach(p => p.actionPoints = 1);
-    }
+    const createPlayerStatesForTeam = (party, team) => {
+        return party.sharedState.partyMemberStates.map(p => ({
+            ...p,
+            team,
+            actionPoints: (p.team === startingTeam) ? 1 : 3 // Starting team gets 1 AP
+        }));
+    };
 
-    const createPlayerCard = (playerState) => ({
-        type: 'enemy',
-        playerId: playerState.playerId,
-        id: playerState.playerId,
-        name: playerState.name,
-        icon: playerState.icon,
-        health: playerState.health,
-        maxHealth: playerState.maxHealth,
-        debuffs: playerState.debuffs,
-        equipment: playerState.equipment,
-        equippedSpells: playerState.equippedSpells,
-        _playerStateRef: playerState, 
-    });
-    
-    const sharedLoot = [];
-    partyA.sharedState.groundLoot = sharedLoot;
-    partyB.sharedState.groundLoot = sharedLoot;
+    const playerStatesA = createPlayerStatesForTeam(partyA, 'A');
+    const playerStatesB = createPlayerStatesForTeam(partyB, 'B');
 
-    partyA.sharedState.pvpEncounter = { opponentPartyId: partyB.id, activeTeam: startingTeam };
-    partyA.sharedState.log.push({ message: `You have encountered an opposing party! Battle begins!`, type: 'damage' });
-    partyA.sharedState.log.push({ message: firstTurnLogMessage, type: 'info' });
-    partyA.sharedState.zoneCards = partyBStates.map(createPlayerCard);
-    
-    partyB.sharedState.pvpEncounter = { opponentPartyId: partyA.id, activeTeam: startingTeam };
-    partyB.sharedState.log.push({ message: `You have encountered an opposing party! Battle begins!`, type: 'damage' });
-    partyB.sharedState.log.push({ message: firstTurnLogMessage, type: 'info' });
-    partyB.sharedState.zoneCards = partyAStates.map(createPlayerCard);
-    
     const duration = PVP_TURN_DURATION_MS;
     const timerEndsAt = Date.now() + duration;
 
     const timerId = setTimeout(() => {
-        const currentPartyA = parties[partyA.id];
-        const currentPartyB = parties[partyB.id];
-
-        if (currentPartyA && currentPartyB && currentPartyA.sharedState && currentPartyA.sharedState.pvpEncounter) {
-            const activeParty = startingTeam === 'A' ? currentPartyA : currentPartyB;
-            activeParty.sharedState.log.push({ message: `Team ${startingTeam}'s time expired! Turn ends.`, type: 'damage' });
-            activeParty.sharedState.partyMemberStates.forEach(p => {
-                if (p.team === startingTeam && !p.isDead) p.turnEnded = true;
+        const currentEncounter = pvpEncounters[encounterId];
+        if (currentEncounter) {
+            currentEncounter.log.push({ message: `Team ${currentEncounter.activeTeam}'s time expired! Turn ends.`, type: 'damage' });
+            currentEncounter.playerStates.forEach(p => {
+                if (p.team === currentEncounter.activeTeam && !p.isDead) p.turnEnded = true;
             });
-            startNextPvpTeamTurn(io, activeParty);
+            startNextPvpTeamTurn(io, encounterId);
         }
     }, duration);
 
-    partyA.sharedState.turnTimerEndsAt = timerEndsAt;
-    partyA.sharedState.turnTimerDuration = duration;
-    partyA.sharedState.turnTimerId = timerId;
-    partyB.sharedState.turnTimerEndsAt = timerEndsAt;
-    partyB.sharedState.turnTimerDuration = duration;
-    partyB.sharedState.turnTimerId = timerId;
+    const encounterState = {
+        id: encounterId,
+        partyAId: partyA.id,
+        partyBId: partyB.id,
+        playerStates: [...playerStatesA, ...playerStatesB],
+        activeTeam: startingTeam,
+        groundLoot: [],
+        log: [
+            { message: `You have encountered an opposing party! Battle begins!`, type: 'damage' },
+            { message: `Team ${startingTeam} will go first, but with only 1 AP!`, type: 'info' }
+        ],
+        turnTimerEndsAt: timerEndsAt,
+        turnTimerDuration: duration,
+        turnTimerId: timerId,
+        pendingReaction: null
+    };
 
-    const stateForPartyA = createStateForClient(partyA.sharedState);
-    const stateForPartyB = createStateForClient(partyB.sharedState);
+    pvpEncounters[encounterId] = encounterState;
+
+    // Point both parties to this single encounter state
+    partyA.sharedState.pvpEncounterId = encounterId;
+    partyB.sharedState.pvpEncounterId = encounterId;
+    
+    // Clear legacy/conflicting properties from party states
+    partyA.sharedState.zoneCards = [];
+    partyB.sharedState.zoneCards = [];
+    partyA.sharedState.groundLoot = encounterState.groundLoot;
+    partyB.sharedState.groundLoot = encounterState.groundLoot;
+    partyA.sharedState.log = encounterState.log;
+    partyB.sharedState.log = encounterState.log;
+
+    const stateForClients = createStateForClient(partyA.sharedState, encounterState);
 
     partyA.members.forEach(memberName => {
         const member = players[memberName];
-        if(member && member.id) io.to(member.id).emit('party:adventureStarted', stateForPartyA);
+        if(member && member.id) io.to(member.id).emit('party:adventureStarted', stateForClients);
     });
     partyB.members.forEach(memberName => {
         const member = players[memberName];
-        if(member && member.id) io.to(member.id).emit('party:adventureStarted', stateForPartyB);
+        if(member && member.id) io.to(member.id).emit('party:adventureStarted', stateForClients);
     });
 }
 
 
-export function startNextPvpTeamTurn(io, currentParty) {
-    if (!currentParty || !currentParty.sharedState || !currentParty.sharedState.pvpEncounter) return; 
-    
-    const opponentParty = parties[currentParty.sharedState.pvpEncounter.opponentPartyId];
-    if (!opponentParty || !opponentParty.sharedState) return;
+export function startNextPvpTeamTurn(io, encounterId) {
+    const encounter = pvpEncounters[encounterId];
+    if (!encounter) return;
 
-    if (currentParty.sharedState.turnTimerId) {
-        clearTimeout(currentParty.sharedState.turnTimerId);
-        currentParty.sharedState.turnTimerId = null;
-    }
-    if (opponentParty.sharedState.turnTimerId) {
-        clearTimeout(opponentParty.sharedState.turnTimerId);
-        opponentParty.sharedState.turnTimerId = null;
+    if (encounter.turnTimerId) {
+        clearTimeout(encounter.turnTimerId);
+        encounter.turnTimerId = null;
     }
 
-    const currentTeam = currentParty.sharedState.pvpEncounter.activeTeam;
-    const nextTeam = currentTeam === 'A' ? 'B' : 'A';
+    const nextTeam = encounter.activeTeam === 'A' ? 'B' : 'A';
+    encounter.activeTeam = nextTeam;
+    encounter.log.push({ message: `--- Team ${nextTeam}'s Turn ---`, type: 'info' });
 
-    const applyTurnStart = (state, newActiveTeam) => {
-        state.pvpEncounter.activeTeam = newActiveTeam;
-        state.log.push({ message: `--- Team ${newActiveTeam}'s Turn ---`, type: 'info' });
-        
-        state.partyMemberStates.forEach(p => {
-            if (!p.buffs) p.buffs = [];
-            if (!p.debuffs) p.debuffs = [];
-
-            if (p.team === newActiveTeam) {
-                 if (!p.isDead) {
-                    p.actionPoints = 3;
-                    p.turnEnded = false;
-                }
-                // --- BUG FIX: Cooldowns now only reduce at the start of the player's own team's turn ---
-                p.buffs.forEach(b => b.duration--);
-                p.debuffs.forEach(d => d.duration--);
-                p.buffs = p.buffs.filter(b => b.duration > 0);
-                p.debuffs = p.debuffs.filter(d => d.duration > 0);
-                Object.keys(p.weaponCooldowns).forEach(k => { if (p.weaponCooldowns[k] > 0) p.weaponCooldowns[k]--; });
-                Object.keys(p.spellCooldowns).forEach(k => { if (p.spellCooldowns[k] > 0) p.spellCooldowns[k]--; });
-                Object.keys(p.itemCooldowns).forEach(k => { if (p.itemCooldowns[k] > 0) p.itemCooldowns[k]--; });
+    encounter.playerStates.forEach(p => {
+        if (p.team === nextTeam) {
+            if (!p.isDead) {
+                p.actionPoints = 3;
+                p.turnEnded = false;
             }
-        });
-    };
-
-    applyTurnStart(currentParty.sharedState, nextTeam);
-    applyTurnStart(opponentParty.sharedState, nextTeam);
+            // Cooldowns now only reduce at the start of the player's own team's turn
+            p.buffs.forEach(b => b.duration--);
+            p.debuffs.forEach(d => d.duration--);
+            p.buffs = p.buffs.filter(b => b.duration > 0);
+            p.debuffs = p.debuffs.filter(d => d.duration > 0);
+            Object.keys(p.weaponCooldowns).forEach(k => { if (p.weaponCooldowns[k] > 0) p.weaponCooldowns[k]--; });
+            Object.keys(p.spellCooldowns).forEach(k => { if (p.spellCooldowns[k] > 0) p.spellCooldowns[k]--; });
+            Object.keys(p.itemCooldowns).forEach(k => { if (p.itemCooldowns[k] > 0) p.itemCooldowns[k]--; });
+        }
+    });
 
     const duration = PVP_TURN_DURATION_MS;
     const timerEndsAt = Date.now() + duration;
 
-    const timerId = setTimeout(() => {
-        const partyForTimer = parties[currentParty.id];
-        const opponentForTimer = parties[opponentParty.id];
-
-        if (partyForTimer && opponentForTimer && partyForTimer.sharedState && partyForTimer.sharedState.pvpEncounter) {
-            const activeParty = (partyForTimer.sharedState.partyMemberStates[0].team === nextTeam) ? partyForTimer : opponentForTimer;
-            activeParty.sharedState.log.push({ message: `Team ${nextTeam}'s time expired! Turn ends.`, type: 'damage' });
-            activeParty.sharedState.partyMemberStates.forEach(p => {
+    encounter.turnTimerId = setTimeout(() => {
+        const currentEncounter = pvpEncounters[encounterId];
+        if (currentEncounter) {
+            currentEncounter.log.push({ message: `Team ${nextTeam}'s time expired! Turn ends.`, type: 'damage' });
+            currentEncounter.playerStates.forEach(p => {
                 if (p.team === nextTeam && !p.isDead) p.turnEnded = true;
             });
-            startNextPvpTeamTurn(io, activeParty);
+            startNextPvpTeamTurn(io, encounterId);
         }
     }, duration);
 
-    currentParty.sharedState.turnTimerEndsAt = timerEndsAt;
-    currentParty.sharedState.turnTimerDuration = duration;
-    currentParty.sharedState.turnTimerId = timerId;
-    opponentParty.sharedState.turnTimerEndsAt = timerEndsAt;
-    opponentParty.sharedState.turnTimerDuration = duration;
-    opponentParty.sharedState.turnTimerId = timerId;
+    encounter.turnTimerEndsAt = timerEndsAt;
+    encounter.turnTimerDuration = duration;
 
-    broadcastAdventureUpdate(io, currentParty.id);
-    broadcastAdventureUpdate(io, opponentParty.id);
+    broadcastAdventureUpdate(io, parties[encounter.partyAId]);
 }
 
 
@@ -287,22 +254,37 @@ export function determineLootWinnerAndDistribute(io, partyId) {
 export async function checkAndEndTurnForPlayer(io, party, player) {
     const partyId = party.id;
     const { sharedState } = party;
-    const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
+    
+    // Handle PvP Turn End
+    if (sharedState.pvpEncounterId) {
+        const encounter = pvpEncounters[sharedState.pvpEncounterId];
+        if (!encounter) return;
+        
+        const actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
+        if (actingPlayerState && actingPlayerState.actionPoints <= 0 && !actingPlayerState.turnEnded) {
+            actingPlayerState.turnEnded = true;
+            encounter.log.push({ message: `${player.character.characterName} is out of Action Points and their turn ends.`, type: 'info' });
 
+            const teamMembers = encounter.playerStates.filter(p => p.team === encounter.activeTeam);
+            const allTurnsEnded = teamMembers.every(p => p.turnEnded || p.isDead);
+
+            if (allTurnsEnded) {
+                startNextPvpTeamTurn(io, encounter.id);
+            }
+        }
+        return;
+    }
+
+    // Handle PvE Turn End
+    const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
     if (actingPlayerState && actingPlayerState.actionPoints <= 0 && !actingPlayerState.turnEnded) {
         actingPlayerState.turnEnded = true;
         sharedState.log.push({ message: `${player.character.characterName} is out of Action Points and their turn ends.`, type: 'info' });
         
-        const activeTeam = sharedState.pvpEncounter ? sharedState.pvpEncounter.activeTeam : null;
-        const teamMembers = activeTeam ? sharedState.partyMemberStates.filter(p => p.team === activeTeam) : sharedState.partyMemberStates;
-        const allTurnsEnded = teamMembers.every(p => p.turnEnded || p.isDead);
+        const allTurnsEnded = sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
 
         if (allTurnsEnded) {
-            if (sharedState.pvpEncounter) {
-                startNextPvpTeamTurn(io, party);
-            } else {
-                await runEnemyPhaseForParty(io, partyId);
-            }
+            await runEnemyPhaseForParty(io, partyId);
         }
     }
 }
@@ -311,28 +293,34 @@ export async function checkAndEndTurnForPlayer(io, party, player) {
 export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     const { sharedState } = party;
 
-    if (enemy.playerId) {
-        const defeatedPlayerState = enemy._playerStateRef;
+    // Handle Player Defeat in PvP
+    if (sharedState.pvpEncounterId) {
+        const encounter = pvpEncounters[sharedState.pvpEncounterId];
+        if (!encounter) return;
+        
+        const defeatedPlayerState = encounter.playerStates.find(p => p.playerId === enemy.playerId);
         if (defeatedPlayerState && !defeatedPlayerState.isDead) {
             defeatedPlayerState.isDead = true;
-            enemy.isDead = true; 
             const defeatedPlayerObject = players[defeatedPlayerState.name];
             if (defeatedPlayerObject) {
-                const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
-                handlePvpPlayerDeath(io, defeatedPlayerObject, opponentParty);
+                handlePvpPlayerDeath(io, defeatedPlayerObject, encounter);
             }
         }
-        
-        const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
-        const allOpponentsDead = opponentParty.sharedState.partyMemberStates.every(p => p.isDead);
+
+        const opponentTeam = defeatedPlayerState.team === 'A' ? 'B' : 'A';
+        const opponents = encounter.playerStates.filter(p => p.team === defeatedPlayerState.team);
+        const allOpponentsDead = opponents.every(p => p.isDead);
 
         if (allOpponentsDead) {
-            sharedState.log.push({ message: "All opponents have been defeated! You are victorious!", type: 'success' });
-            endPvpEncounter(io, party, opponentParty);
+            encounter.log.push({ message: "All opponents have been defeated! You are victorious!", type: 'success' });
+            const winningParty = (opponentTeam === 'A') ? parties[encounter.partyAId] : parties[encounter.partyBId];
+            const losingParty = (opponentTeam === 'A') ? parties[encounter.partyBId] : parties[encounter.partyAId];
+            endPvpEncounter(io, winningParty, losingParty);
         }
         return;
     }
 
+    // Handle PvE Enemy Defeat
     sharedState.log.push({ message: `${enemy.name} has been defeated!`, type: 'success' });
 
     let lootToDistribute = [];
@@ -443,21 +431,26 @@ export async function processEndAdventure(io, player, party) {
     const { sharedState } = party;
     if (!sharedState) return;
 
-    if (sharedState.pvpEncounter) {
-        const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
+    if (sharedState.pvpEncounterId) {
+        const encounter = pvpEncounters[sharedState.pvpEncounterId];
+        if (!encounter) return;
+        
+        const actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
         if (actingPlayerState && !actingPlayerState.turnEnded) {
             actingPlayerState.turnEnded = true; // Forfeit turn
-            sharedState.log.push({ message: `${player.character.characterName} forfeits their turn to request mercy...`, type: 'reaction' });
+            encounter.log.push({ message: `${player.character.characterName} forfeits their turn to request mercy...`, type: 'reaction' });
             
-            const opponentParty = parties[sharedState.pvpEncounter.opponentPartyId];
+            const opponentPartyId = (party.id === encounter.partyAId) ? encounter.partyBId : encounter.partyAId;
+            const opponentParty = parties[opponentPartyId];
+
             if (opponentParty) {
                 const opponentLeader = players[opponentParty.leaderId];
                 if (opponentLeader && opponentLeader.id) {
                     io.to(opponentLeader.id).emit('party:pvpFleeRequest', { fleeingPartyName: party.id });
-                    sharedState.log.push({ message: `A plea for mercy has been sent to the opposing party leader.`, type: 'info' });
+                    encounter.log.push({ message: `A plea for mercy has been sent to the opposing party leader.`, type: 'info' });
                 }
             }
-            broadcastAdventureUpdate(io, party.id);
+            broadcastAdventureUpdate(io, party);
         }
         return;
     }
@@ -829,25 +822,25 @@ export async function handleResolveReaction(io, socket, payload) {
 
     let partyId = player.character.partyId;
     let party = parties[partyId];
-    if (!party || !party.sharedState || !party.sharedState.pendingReaction) return;
-    
-    const reaction = party.sharedState.pendingReaction;
+    if (!party || !party.sharedState) return;
 
+    const isPvp = !!party.sharedState.pvpEncounterId;
+    const encounter = isPvp ? pvpEncounters[party.sharedState.pvpEncounterId] : null;
+
+    // Determine the authoritative state object to check for the reaction
+    const stateObject = isPvp ? encounter : party.sharedState;
+    if (!stateObject || !stateObject.pendingReaction) return;
+
+    const reaction = stateObject.pendingReaction;
     if (reaction.targetName !== name) return;
-
-    const isPvp = !!party.sharedState.pvpEncounter;
-    let opponentParty;
-    if (isPvp) {
-        opponentParty = parties[party.sharedState.pvpEncounter.opponentPartyId];
-    }
     
-    clearTimeout(party.reactionTimeout);
-    party.reactionTimeout = null;
-    if(opponentParty) opponentParty.reactionTimeout = null;
-
+    if (stateObject.reactionTimeout) {
+        clearTimeout(stateObject.reactionTimeout);
+        stateObject.reactionTimeout = null;
+    }
 
     const { reactionType } = payload;
-    const reactingPlayerState = party.sharedState.partyMemberStates.find(p => p.name === name);
+    const reactingPlayerState = isPvp ? encounter.playerStates.find(p => p.name === name) : party.sharedState.partyMemberStates.find(p => p.name === name);
     const reactingPlayer = players[name];
     
     let finalDamage = reaction.damage;
@@ -902,9 +895,7 @@ export async function handleResolveReaction(io, socket, payload) {
         logMessage = `${name} braces for the attack!`;
     }
     
-    party.sharedState.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
-    if(opponentParty) opponentParty.sharedState.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
-
+    stateObject.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
 
     if (finalDamage > 0) {
         let damageToDeal = finalDamage;
@@ -915,15 +906,7 @@ export async function handleResolveReaction(io, socket, payload) {
         }
 
         reactingPlayerState.health -= damageToDeal;
-
-        // --- BUG FIX: Sync the attacker's view of the defender's health ---
-        if (opponentParty) {
-            const opponentCard = opponentParty.sharedState.zoneCards.find(c => c.playerId === reactingPlayerState.playerId);
-            if (opponentCard) {
-                opponentCard.health = reactingPlayerState.health;
-            }
-        }
-
+        
         let damageMessage = `${reaction.attackerName} ${reaction.message} It hits ${name} for ${damageToDeal} damage!`;
         if (damageToDeal < finalDamage) {
             damageMessage += ` (${finalDamage - damageToDeal} resisted)`;
@@ -935,24 +918,15 @@ export async function handleResolveReaction(io, socket, payload) {
             reactingPlayerState.debuffs.push({ ...debuff });
             damageMessage += ` ${name} is now ${debuff.type}!`;
         }
-        party.sharedState.log.push({ message: damageMessage, type: 'damage' });
-        if(opponentParty) opponentParty.sharedState.log.push({ message: damageMessage, type: 'damage' });
+        stateObject.log.push({ message: damageMessage, type: 'damage' });
     }
 
     if (reactingPlayerState.health <= 0) {
         reactingPlayerState.health = 0;
         reactingPlayerState.isDead = true;
-
-        // --- BUG FIX: Sync the attacker's view of the defender's death state ---
-        if (opponentParty) {
-            const opponentCard = opponentParty.sharedState.zoneCards.find(c => c.playerId === reactingPlayerState.playerId);
-            if (opponentCard) {
-                opponentCard.isDead = true;
-            }
-        }
-
-        if (party.sharedState.pvpEncounter) {
-            handlePvpPlayerDeath(io, reactingPlayer, party);
+        
+        if (isPvp) {
+            handlePvpPlayerDeath(io, reactingPlayer, encounter);
         } else {
             if (reactingPlayer.character) {
                 reactingPlayerState.lootableInventory = [...reactingPlayer.character.inventory.filter(Boolean)];
@@ -960,45 +934,43 @@ export async function handleResolveReaction(io, socket, payload) {
                 if(reactingPlayer.id) io.to(reactingPlayer.id).emit('characterUpdate', reactingPlayer.character);
             }
         }
-        
-        party.sharedState.log.push({ message: `${name} has been defeated!`, type: 'damage' });
-        if(opponentParty) opponentParty.sharedState.log.push({ message: `${name} has been defeated!`, type: 'damage' });
+        stateObject.log.push({ message: `${name} has been defeated!`, type: 'damage' });
     }
 
     const wasFleeing = reaction.isFleeing || false;
-
-    party.sharedState.pendingReaction = null;
-    if (opponentParty) opponentParty.sharedState.pendingReaction = null;
+    stateObject.pendingReaction = null;
     
     if (isPvp) {
-        const attackerParty = parties[reaction.attackerPartyId];
-        
-        const duration = attackerParty.sharedState.turnTimeRemaining;
+        const duration = encounter.turnTimeRemaining;
         if (duration > 0) {
             const timerEndsAt = Date.now() + duration;
-            const timerId = setTimeout(() => {
-                const currentAttackerParty = parties[attackerParty.id];
-                if (currentAttackerParty && currentAttackerParty.sharedState && currentAttackerParty.sharedState.pvpEncounter) {
-                    const activeTeam = currentAttackerParty.sharedState.pvpEncounter.activeTeam;
-                    currentAttackerParty.sharedState.log.push({ message: `Team ${activeTeam}'s time expired! Turn ends.`, type: 'damage' });
-                    currentAttackerParty.sharedState.partyMemberStates.forEach(p => {
-                        if (p.team === activeTeam && !p.isDead) p.turnEnded = true;
+            encounter.turnTimerId = setTimeout(() => {
+                const currentEncounter = pvpEncounters[encounter.id];
+                if (currentEncounter) {
+                    currentEncounter.log.push({ message: `Team ${currentEncounter.activeTeam}'s time expired! Turn ends.`, type: 'damage' });
+                    currentEncounter.playerStates.forEach(p => {
+                        if (p.team === currentEncounter.activeTeam && !p.isDead) p.turnEnded = true;
                     });
-                    startNextPvpTeamTurn(io, currentAttackerParty);
+                    startNextPvpTeamTurn(io, currentEncounter.id);
                 }
             }, duration);
-
-            party.sharedState.turnTimerEndsAt = timerEndsAt;
-            party.sharedState.turnTimerId = timerId;
-            opponentParty.sharedState.turnTimerEndsAt = timerEndsAt;
-            opponentParty.sharedState.turnTimerId = timerId;
+            encounter.turnTimerEndsAt = timerEndsAt;
         }
-
-        broadcastAdventureUpdate(io, party.id);
-        broadcastAdventureUpdate(io, opponentParty.id);
+        // Victory check after reaction
+        const defendingTeam = reactingPlayerState.team;
+        const allDefendersDead = encounter.playerStates.filter(p=> p.team === defendingTeam).every(p => p.isDead);
+        if (allDefendersDead) {
+            const winningTeam = defendingTeam === 'A' ? 'B' : 'A';
+            const winningParty = (winningTeam === 'A') ? parties[encounter.partyAId] : parties[encounter.partyBId];
+            const losingParty = (winningTeam === 'A') ? parties[encounter.partyBId] : parties[encounter.partyAId];
+            endPvpEncounter(io, winningParty, losingParty);
+        } else {
+            broadcastAdventureUpdate(io, party);
+        }
         return;
     }
     
+    // Resume PvE enemy phase
     const lastAttackerIndex = reaction.attackerIndex;
     const enemies = party.sharedState.zoneCards.map((c, i) => ({card: c, index: i})).filter(e => e.card && e.card.type === 'enemy');
     const lastEnemyListIndex = enemies.findIndex(e => e.index === lastAttackerIndex);
