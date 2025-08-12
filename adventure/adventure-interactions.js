@@ -3,9 +3,8 @@
 import { players, parties } from '../serverState.js';
 import { gameData } from '../data/index.js';
 import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, addItemToInventoryServer, consumeMaterials } from '../utilsHelpers.js';
-
-// Note: We will create the adventure-state.js file in the next step.
 import { checkAndEndTurnForPlayer } from './adventure-state.js';
+import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 
 
 export function processDropItem(io, party, player, payload) {
@@ -16,9 +15,12 @@ export function processDropItem(io, party, player, payload) {
 
     if (itemToDrop) {
         character.inventory[inventoryIndex] = null;
+        // This will correctly reference the encounter's groundLoot in PvP
         sharedState.groundLoot.push(itemToDrop);
         sharedState.log.push({ message: `${character.characterName} dropped ${itemToDrop.name} to the ground.`, type: 'info' });
         io.to(player.id).emit('characterUpdate', character);
+        // BUG FIX: Broadcast the state change to all players
+        broadcastAdventureUpdate(io, party);
     }
 }
 
@@ -33,8 +35,11 @@ export function processTakeGroundLoot(io, party, player, payload) {
             sharedState.groundLoot.splice(groundLootIndex, 1);
             sharedState.log.push({ message: `${character.characterName} picked up ${itemToTake.name}.`, type: 'success' });
             io.to(player.id).emit('characterUpdate', character);
+             // BUG FIX: Broadcast the state change to all players
+            broadcastAdventureUpdate(io, party);
         } else {
             sharedState.log.push({ message: `${character.characterName} tried to pick up ${itemToTake.name}, but their inventory is full.`, type: 'damage' });
+            broadcastAdventureUpdate(io, party);
         }
     }
 }
@@ -316,7 +321,9 @@ export function processLootPlayer(io, player, party, payload) {
         sharedState.log.push({ message: `${lootingCharacter.characterName} looted ${itemToLoot.name} from ${deadPlayerState.name}'s bag.`, type: 'info' });
         
         io.to(player.id).emit('characterUpdate', lootingCharacter);
+        broadcastAdventureUpdate(io, party);
     } else {
         sharedState.log.push({ message: `${lootingCharacter.characterName} tried to loot, but their inventory is full. The item was left on the ground.`, type: 'damage' });
+        broadcastAdventureUpdate(io, party);
     }
 }

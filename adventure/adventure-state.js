@@ -1,6 +1,5 @@
 // adventure/adventure-state.js
 
-// MODIFICATION: Corrected import paths from ../ to ./
 import { players, parties, pvpZoneQueues, pvpEncounters } from '../serverState.js';
 import { gameData } from '../data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
@@ -8,12 +7,6 @@ import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, c
 import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS } from '../constants.js';
 
 const PVP_ZONES = ['blighted_wastes'];
-
-// HELPER FUNCTION: Removes properties that cannot be sent to the client
-// NOTE: This function was moved to utilsHelpers.js to prevent circular dependencies.
-// It is imported from there.
-
-// --- PVP HELPER FUNCTIONS ---
 
 export function handlePvpPlayerDeath(io, defeatedPlayer, encounter) {
     const character = defeatedPlayer.character;
@@ -45,7 +38,6 @@ function endPvpEncounter(io, winningParty, losingParty) {
         clearTimeout(encounter.turnTimerId);
     }
     
-    // Clean up the global encounter object
     if (encounterId) {
         delete pvpEncounters[encounterId];
     }
@@ -65,12 +57,10 @@ function endPvpEncounter(io, winningParty, losingParty) {
     }
 
     const { sharedState } = winningParty;
-    sharedState.pvpEncounter = null; // Legacy property, kept for compatibility, can be removed later
     sharedState.pvpEncounterId = null;
-    sharedState.zoneCards = []; // Clear opponent cards
+    sharedState.zoneCards = [];
     sharedState.log.push({ message: "Combat has ended! You may now loot the spoils of victory.", type: 'success' });
     
-    // Reset players in the winning party to a post-combat state
     sharedState.partyMemberStates.forEach(p => {
         if (!p.isDead) {
             p.actionPoints = 3;
@@ -78,9 +68,8 @@ function endPvpEncounter(io, winningParty, losingParty) {
         }
     });
 
-    broadcastAdventureUpdate(io, winningParty.id);
+    broadcastAdventureUpdate(io, winningParty);
 }
-
 
 function startPvpEncounter(io, partyA, partyB) {
     if (!partyA.sharedState || !partyB.sharedState) {
@@ -95,7 +84,7 @@ function startPvpEncounter(io, partyA, partyB) {
         return party.sharedState.partyMemberStates.map(p => ({
             ...p,
             team,
-            actionPoints: (p.team === startingTeam) ? 1 : 3 // Starting team gets 1 AP
+            actionPoints: (team === startingTeam) ? 1 : 3
         }));
     };
 
@@ -135,11 +124,9 @@ function startPvpEncounter(io, partyA, partyB) {
 
     pvpEncounters[encounterId] = encounterState;
 
-    // Point both parties to this single encounter state
     partyA.sharedState.pvpEncounterId = encounterId;
     partyB.sharedState.pvpEncounterId = encounterId;
     
-    // Clear legacy/conflicting properties from party states
     partyA.sharedState.zoneCards = [];
     partyB.sharedState.zoneCards = [];
     partyA.sharedState.groundLoot = encounterState.groundLoot;
@@ -158,7 +145,6 @@ function startPvpEncounter(io, partyA, partyB) {
         if(member && member.id) io.to(member.id).emit('party:adventureStarted', stateForClients);
     });
 }
-
 
 export function startNextPvpTeamTurn(io, encounterId) {
     const encounter = pvpEncounters[encounterId];
@@ -179,7 +165,6 @@ export function startNextPvpTeamTurn(io, encounterId) {
                 p.actionPoints = 3;
                 p.turnEnded = false;
             }
-            // Cooldowns now only reduce at the start of the player's own team's turn
             p.buffs.forEach(b => b.duration--);
             p.debuffs.forEach(d => d.duration--);
             p.buffs = p.buffs.filter(b => b.duration > 0);
@@ -210,25 +195,20 @@ export function startNextPvpTeamTurn(io, encounterId) {
     broadcastAdventureUpdate(io, parties[encounter.partyAId]);
 }
 
-
 export function determineLootWinnerAndDistribute(io, partyId) {
     const party = parties[partyId];
     if (!party || !party.sharedState || !party.sharedState.pendingLootRoll) {
         return;
     }
-
     const rollData = party.sharedState.pendingLootRoll;
     let winner = null;
-
     const needRolls = rollData.rolls.filter(r => r.choice === 'need');
     const greedRolls = rollData.rolls.filter(r => r.choice === 'greed');
-
     if (needRolls.length > 0) {
         winner = needRolls.reduce((highest, current) => (current.roll > highest.roll ? current : highest), needRolls[0]);
     } else if (greedRolls.length > 0) {
         winner = greedRolls.reduce((highest, current) => (current.roll > highest.roll ? current : highest), greedRolls[0]);
     }
-
     if (winner) {
         const winnerPlayer = players[winner.playerName];
         if (winnerPlayer && addItemToInventoryServer(winnerPlayer.character, rollData.item, 1, party.sharedState.groundLoot)) {
@@ -240,7 +220,6 @@ export function determineLootWinnerAndDistribute(io, partyId) {
     } else {
         party.sharedState.log.push({ message: `Nobody rolled for ${rollData.item.name}.`, type: 'info' });
     }
-
     party.sharedState.pendingLootRoll = null;
     party.members.forEach(memberName => {
         const member = players[memberName];
@@ -250,54 +229,39 @@ export function determineLootWinnerAndDistribute(io, partyId) {
     });
 }
 
-
 export async function checkAndEndTurnForPlayer(io, party, player) {
-    const partyId = party.id;
     const { sharedState } = party;
-    
-    // Handle PvP Turn End
     if (sharedState.pvpEncounterId) {
         const encounter = pvpEncounters[sharedState.pvpEncounterId];
         if (!encounter) return;
-        
         const actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
         if (actingPlayerState && actingPlayerState.actionPoints <= 0 && !actingPlayerState.turnEnded) {
             actingPlayerState.turnEnded = true;
             encounter.log.push({ message: `${player.character.characterName} is out of Action Points and their turn ends.`, type: 'info' });
-
             const teamMembers = encounter.playerStates.filter(p => p.team === encounter.activeTeam);
             const allTurnsEnded = teamMembers.every(p => p.turnEnded || p.isDead);
-
             if (allTurnsEnded) {
                 startNextPvpTeamTurn(io, encounter.id);
             }
         }
         return;
     }
-
-    // Handle PvE Turn End
     const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
     if (actingPlayerState && actingPlayerState.actionPoints <= 0 && !actingPlayerState.turnEnded) {
         actingPlayerState.turnEnded = true;
         sharedState.log.push({ message: `${player.character.characterName} is out of Action Points and their turn ends.`, type: 'info' });
-        
         const allTurnsEnded = sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
-
         if (allTurnsEnded) {
-            await runEnemyPhaseForParty(io, partyId);
+            await runEnemyPhaseForParty(io, party.id);
         }
     }
 }
 
-
 export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     const { sharedState } = party;
-
-    // Handle Player Defeat in PvP
     if (sharedState.pvpEncounterId) {
         const encounter = pvpEncounters[sharedState.pvpEncounterId];
         if (!encounter) return;
-        
         const defeatedPlayerState = encounter.playerStates.find(p => p.playerId === enemy.playerId);
         if (defeatedPlayerState && !defeatedPlayerState.isDead) {
             defeatedPlayerState.isDead = true;
@@ -306,11 +270,9 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
                 handlePvpPlayerDeath(io, defeatedPlayerObject, encounter);
             }
         }
-
         const opponentTeam = defeatedPlayerState.team === 'A' ? 'B' : 'A';
         const opponents = encounter.playerStates.filter(p => p.team === defeatedPlayerState.team);
         const allOpponentsDead = opponents.every(p => p.isDead);
-
         if (allOpponentsDead) {
             encounter.log.push({ message: "All opponents have been defeated! You are victorious!", type: 'success' });
             const winningParty = (opponentTeam === 'A') ? parties[encounter.partyAId] : parties[encounter.partyBId];
@@ -319,16 +281,11 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         }
         return;
     }
-
-    // Handle PvE Enemy Defeat
     sharedState.log.push({ message: `${enemy.name} has been defeated!`, type: 'success' });
-
     let lootToDistribute = [];
-
     if (enemy.lootTable && enemy.lootTable.length > 0) {
         const roll = Math.floor(Math.random() * 20) + 1;
         const lootDrop = enemy.lootTable.find(entry => roll >= entry.range[0] && roll <= entry.range[1]);
-
         if (lootDrop) {
             if (lootDrop.items && lootDrop.items.length > 0) {
                 lootDrop.items.forEach(itemName => {
@@ -345,14 +302,12 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
             }
         }
     }
-    
     if (enemy.guaranteedLoot && enemy.guaranteedLoot.items) {
         enemy.guaranteedLoot.items.forEach(itemName => {
             const itemData = gameData.allItems.find(i => i.name === itemName);
             if (itemData) lootToDistribute.push(itemData);
         });
     }
-
     lootToDistribute.forEach(itemData => {
         if (itemData.rarity === 'uncommon' || itemData.rarity === 'rare') {
             if (sharedState.pendingLootRoll) {
@@ -365,14 +320,12 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
                     rolls: [],
                     endTime: Date.now() + LOOT_ROLL_DURATION_MS,
                 };
-                
                 party.members.forEach(memberName => {
                     const member = players[memberName];
                     if (member && member.id) {
                         io.to(member.id).emit('party:lootRollStarted', sharedState.pendingLootRoll);
                     }
                 });
-
                 setTimeout(() => {
                     determineLootWinnerAndDistribute(io, party.id);
                 }, LOOT_ROLL_DURATION_MS);
@@ -389,12 +342,10 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
             sharedState.log.push({ message: `${enemy.name} dropped: ${itemData.name}! (Distributed to all)`, type: 'success' });
         }
     });
-
     party.members.forEach(memberName => {
         const member = players[memberName];
         if (!member || !member.character) return;
         const character = member.character;
-
         character.quests.forEach(quest => {
             if (quest.status === 'active' && (quest.details.target === enemy.name || (quest.details.target === 'Goblin' && enemy.name.includes('Goblin')))) {
                 quest.progress++;
@@ -404,45 +355,35 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
                 }
             }
         });
-
         if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
             const goldAmount = (Math.floor(Math.random() * 20) + 1) + (Math.floor(Math.random() * 20) + 1);
             const goldPerPlayer = Math.floor(goldAmount / party.members.length);
             character.gold += goldPerPlayer;
         }
-        
         if (member.id) io.to(member.id).emit('characterUpdate', character);
     });
-    
     if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
         sharedState.log.push({ message: `${enemy.name} dropped gold, which was split among the party.`, type: 'success'});
     }
-
     sharedState.zoneCards[enemyIndex] = null;
-
     if (!sharedState.zoneCards.some(c => c && c.type === 'enemy')) {
         sharedState.log.push({ message: "Combat has ended! Action Points restored.", type: "success" });
         sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = 3; });
     }
 }
 
-
 export async function processEndAdventure(io, player, party) {
     const { sharedState } = party;
     if (!sharedState) return;
-
     if (sharedState.pvpEncounterId) {
         const encounter = pvpEncounters[sharedState.pvpEncounterId];
         if (!encounter) return;
-        
         const actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
         if (actingPlayerState && !actingPlayerState.turnEnded) {
-            actingPlayerState.turnEnded = true; // Forfeit turn
+            actingPlayerState.turnEnded = true;
             encounter.log.push({ message: `${player.character.characterName} forfeits their turn to request mercy...`, type: 'reaction' });
-            
             const opponentPartyId = (party.id === encounter.partyAId) ? encounter.partyBId : encounter.partyAId;
             const opponentParty = parties[opponentPartyId];
-
             if (opponentParty) {
                 const opponentLeader = players[opponentParty.leaderId];
                 if (opponentLeader && opponentLeader.id) {
@@ -454,7 +395,6 @@ export async function processEndAdventure(io, player, party) {
         }
         return;
     }
-
     const endTheAdventure = () => {
         party.members.forEach(memberName => {
             const memberPlayer = players[memberName];
@@ -470,7 +410,6 @@ export async function processEndAdventure(io, player, party) {
                 }
             }
         });
-
         if (party.isSoloParty) {
             if (player && player.character) {
                 player.character.partyId = null;
@@ -482,13 +421,11 @@ export async function processEndAdventure(io, player, party) {
            broadcastPartyUpdate(io, party.id);
         }
     };
-
     const inCombat = sharedState.zoneCards.some(c => c && c.type === 'enemy');
     if (inCombat) {
         sharedState.log.push({ message: "The party tries to flee combat to return home. Enemies get a final attack!", type: 'reaction' });
-        broadcastAdventureUpdate(io, party.id);
+        broadcastAdventureUpdate(io, party);
         await runEnemyPhaseForParty(io, party.id, true);
-
         const alivePlayers = sharedState.partyMemberStates.filter(p => p.health > 0);
         if (alivePlayers.length > 0) {
             sharedState.log.push({ message: "They escaped and returned home safely!", type: 'success' });
@@ -507,12 +444,10 @@ export async function processVentureDeeper(io, player, party) {
     if (player.character.characterName !== party.leaderId || !party.sharedState) return;
     const { sharedState } = party;
     const zoneName = sharedState.currentZone;
-
     const proceedToNextArea = () => {
         sharedState.zoneCards = [];
         sharedState.groundLoot = [];
         drawCardsForServer(sharedState, 3);
-
         sharedState.partyMemberStates.forEach(p => {
             if (!p.isDead) {
                 p.actionPoints = 3;
@@ -526,14 +461,11 @@ export async function processVentureDeeper(io, player, party) {
         sharedState.turnNumber = 0;
         sharedState.isPlayerTurn = true;
     };
-
     if (PVP_ZONES.includes(zoneName)) {
         if (!pvpZoneQueues[zoneName]) {
             pvpZoneQueues[zoneName] = [];
         }
-
         const opponentQueueEntry = pvpZoneQueues[zoneName].shift();
-
         if (opponentQueueEntry) {
             clearTimeout(opponentQueueEntry.timerId);
             const opponentParty = parties[opponentQueueEntry.partyId];
@@ -542,29 +474,25 @@ export async function processVentureDeeper(io, player, party) {
             }
         } else {
             sharedState.log.push({ message: "You venture deeper, wary of your surroundings...", type: 'info' });
-            broadcastAdventureUpdate(io, party.id);
-
+            broadcastAdventureUpdate(io, party);
             const timerId = setTimeout(() => {
                 const myEntryIndex = pvpZoneQueues[zoneName].findIndex(entry => entry.partyId === party.id);
                 if (myEntryIndex !== -1) {
                     pvpZoneQueues[zoneName].splice(myEntryIndex, 1);
                     sharedState.log.push({ message: "The path ahead is clear... for now.", type: 'info' });
                     proceedToNextArea();
-                    broadcastAdventureUpdate(io, party.id);
+                    broadcastAdventureUpdate(io, party);
                 }
             }, PVP_QUEUE_TIMEOUT_MS);
-
             pvpZoneQueues[zoneName].push({ partyId: party.id, timerId });
         }
         return;
     }
-    
     const inCombat = sharedState.zoneCards.some(c => c && c.type === 'enemy');
     if (inCombat) {
         sharedState.log.push({ message: "The party attempts to flee, but the enemies get one last attack!", type: 'reaction' });
-        broadcastAdventureUpdate(io, party.id);
+        broadcastAdventureUpdate(io, party);
         await runEnemyPhaseForParty(io, party.id, true); 
-
         const alivePlayers = sharedState.partyMemberStates.filter(p => p.health > 0);
         if (alivePlayers.length > 0) {
             sharedState.log.push({ message: "They successfully escaped to a new area!", type: 'success' });
@@ -576,31 +504,26 @@ export async function processVentureDeeper(io, player, party) {
         sharedState.log.push({ message: "The party ventures deeper into the zone!", type: 'info' });
         proceedToNextArea();
     }
-    broadcastAdventureUpdate(io, party.id);
+    broadcastAdventureUpdate(io, party);
 }
 
 export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex = 0) {
     const party = parties[partyId];
     if (!party || !party.sharedState || party.sharedState.pendingReaction) return;
-
     const { sharedState } = party;
     if (startIndex === 0) {
         sharedState.isPlayerTurn = false;
         if (!isFleeing) {
             sharedState.log.push({ message: "--- Zone's Turn ---", type: 'info' });
         }
-        broadcastAdventureUpdate(io, partyId);
+        broadcastAdventureUpdate(io, party);
     }
-
     const enemies = sharedState.zoneCards.map((card, index) => ({ card, index })).filter(e => e.card && e.card.type === 'enemy');
-
     for (let i = startIndex; i < enemies.length; i++) {
         const { card: enemy, index: enemyIndex } = enemies[i];
         if (!enemy || enemy.health <= 0) continue;
-        
         try {
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
             let tookDotDamage = false;
             const burnDebuff = enemy.debuffs.find(d => d.type === 'burn');
             if (burnDebuff) {
@@ -611,22 +534,19 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             }
             if (enemy.health <= 0) {
                 defeatEnemyInParty(io, party, enemy, enemyIndex);
-                broadcastAdventureUpdate(io, partyId);
+                broadcastAdventureUpdate(io, party);
                 continue;
             }
             enemy.debuffs = enemy.debuffs.filter(d => d.duration > 0);
-            if(tookDotDamage) broadcastAdventureUpdate(io, partyId);
-
+            if(tookDotDamage) broadcastAdventureUpdate(io, party);
             if (enemy.debuffs.some(d => d.type === 'stun')) {
                 sharedState.log.push({ message: `${enemy.name} is stunned and cannot act!`, type: 'reaction' });
                 enemy.debuffs = enemy.debuffs.filter(d => d.type !== 'stun');
-                broadcastAdventureUpdate(io, partyId);
+                broadcastAdventureUpdate(io, party);
                 continue;
             }
-
             const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);
             if (alivePlayers.length === 0) continue;
-            
             let targetPlayerState;
             if (alivePlayers.length > 0) {
                 const maxThreat = Math.max(...alivePlayers.map(p => p.threat));
@@ -635,13 +555,10 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             } else {
                 continue;
             }
-            
             const targetPlayerObject = players[targetPlayerState.name];
             if (!targetPlayerObject) continue;
-            
             const roll = Math.floor(Math.random() * 20) + 1;
             const attack = enemy.attackTable ? enemy.attackTable.find(a => roll >= a.range[0] && roll <= a.range[1]) : null;
-
             if (attack && attack.action === 'attack') {
                 const targetCharacter = targetPlayerObject.character;
                 let damageToDeal = attack.damage;
@@ -650,9 +567,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     const resistance = bonuses.physicalResistance || 0;
                     damageToDeal = Math.max(0, attack.damage - resistance);
                 }
-
                 const availableReactions = [];
-
                 if (targetCharacter.equippedSpells && Array.isArray(targetCharacter.equippedSpells)) {
                     const dodgeSpell = targetCharacter.equippedSpells.find(s => s.name === "Dodge");
                     if (dodgeSpell && (targetPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
@@ -673,14 +588,12 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         }
                     }
                 }
-
                 if (targetCharacter.equipment) {
                     const shield = targetCharacter.equipment.offHand;
                     if (shield && shield.type === 'shield' && shield.reaction && (targetPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
                         availableReactions.push({ name: 'Block' });
                     }
                 }
-                
                 if (availableReactions.length > 0 && !isFleeing) {
                     sharedState.pendingReaction = {
                         attackerName: enemy.name,
@@ -692,23 +605,19 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         message: attack.message,
                         isFleeing: isFleeing
                     };
-                    
                     const reactionPayload = {
                         damage: attack.damage,
                         attacker: enemy.name,
                         availableReactions: availableReactions.map(r => ({ name: r.name })),
                         timer: REACTION_TIMER_MS
                     };
-
                     io.to(targetPlayerState.playerId).emit('party:requestReaction', reactionPayload);
-                    
                     party.reactionTimeout = setTimeout(() => {
                         const playerSocket = io.sockets.sockets.get(targetPlayerState.playerId);
                         if (playerSocket) {
                             handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
                         }
                     }, REACTION_TIMER_MS);
-
                     return;
                 } else {
                     targetPlayerState.health -= damageToDeal;
@@ -725,7 +634,6 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     }
                     sharedState.log.push({ message: attackMessage, type: 'damage'});
                 }
-
             } else if (attack && attack.action === 'special') {
                 sharedState.log.push({ message: `${enemy.name} uses a special ability: ${attack.message}`, type: 'reaction' });
                 if (enemy.name === 'Loot Goblin' && attack.message.includes('escapes')) {
@@ -756,11 +664,9 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             } else {
                 sharedState.log.push({ message: `${enemy.name} misses its attack.`, type: 'info' });
             }
-            
             if (targetPlayerState.health <= 0) {
                 targetPlayerState.health = 0;
                 targetPlayerState.isDead = true;
-                
                 if (party.sharedState.pvpEncounter) {
                     handlePvpPlayerDeath(io, targetPlayerObject, party);
                 } else {
@@ -770,31 +676,25 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         if(targetPlayerObject.id) io.to(targetPlayerObject.id).emit('characterUpdate', targetPlayerObject.character);
                     }
                 }
-
                 sharedState.log.push({ message: `${targetPlayerState.name} has been defeated!`, type: 'damage' });
             }
-            
-            broadcastAdventureUpdate(io, partyId);
-
+            broadcastAdventureUpdate(io, party);
         } catch (error) {
             console.error(`Error processing turn for enemy ${enemy.name}:`, error);
         }
     }
-    
     if (!isFleeing) {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        startNextPlayerTurn(io, partyId);
+        startNextPlayerTurn(io, party.id);
     }
 }
 
 export function startNextPlayerTurn(io, partyId) {
     const party = parties[partyId];
     if (!party || !party.sharedState) return;
-    
     const { sharedState } = party;
     sharedState.turnNumber++;
     sharedState.isPlayerTurn = true;
-    
     sharedState.log.push({ message: "--- Players' Turn ---", type: 'info' });
     sharedState.partyMemberStates.forEach(p => {
         if (p.isDead) {
@@ -807,47 +707,36 @@ export function startNextPlayerTurn(io, partyId) {
         p.debuffs.forEach(d => d.duration--);
         p.buffs = p.buffs.filter(b => b.duration > 0);
         p.debuffs = p.debuffs.filter(d => d.duration > 0);
-
         Object.keys(p.weaponCooldowns).forEach(k => { if (p.weaponCooldowns[k] > 0) p.weaponCooldowns[k]--; });
         Object.keys(p.spellCooldowns).forEach(k => { if (p.spellCooldowns[k] > 0) p.spellCooldowns[k]--; });
         Object.keys(p.itemCooldowns).forEach(k => { if (p.itemCooldowns[k] > 0) p.itemCooldowns[k]--; });
     });
-    broadcastAdventureUpdate(io, partyId);
+    broadcastAdventureUpdate(io, party);
 }
 
 export async function handleResolveReaction(io, socket, payload) {
     const name = socket.characterName;
     const player = players[name];
     if (!player) return;
-
-    let partyId = player.character.partyId;
-    let party = parties[partyId];
+    let party = parties[player.character.partyId];
     if (!party || !party.sharedState) return;
-
     const isPvp = !!party.sharedState.pvpEncounterId;
     const encounter = isPvp ? pvpEncounters[party.sharedState.pvpEncounterId] : null;
-
-    // Determine the authoritative state object to check for the reaction
     const stateObject = isPvp ? encounter : party.sharedState;
     if (!stateObject || !stateObject.pendingReaction) return;
-
     const reaction = stateObject.pendingReaction;
     if (reaction.targetName !== name) return;
-    
     if (stateObject.reactionTimeout) {
         clearTimeout(stateObject.reactionTimeout);
         stateObject.reactionTimeout = null;
     }
-
     const { reactionType } = payload;
     const reactingPlayerState = isPvp ? encounter.playerStates.find(p => p.name === name) : party.sharedState.partyMemberStates.find(p => p.name === name);
     const reactingPlayer = players[name];
-    
     let finalDamage = reaction.damage;
     let dodged = false;
     let blocked = false;
     let logMessage = '';
-
     if (reactionType === 'Dodge') {
         const dodgeSpell = reactingPlayer.character.equippedSpells.find(s => s.name === "Dodge");
         if (dodgeSpell && (reactingPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
@@ -856,7 +745,6 @@ export async function handleResolveReaction(io, socket, payload) {
             const statValue = reactingPlayer.character.agility + bonuses.agility;
             const roll = Math.floor(Math.random() * 20) + 1;
             const total = roll + statValue;
-
             if (roll === 1) {
                 logMessage = `${name}'s Dodge: ${roll}(d20) + ${statValue} = ${total}. Critical Failure!`;
             } else if (total >= dodgeSpell.hit) {
@@ -877,7 +765,6 @@ export async function handleResolveReaction(io, socket, payload) {
             const statValue = reactingPlayer.character.defense + bonuses.defense;
             const roll = Math.floor(Math.random() * 20) + 1;
             const total = roll + statValue;
-
             if (roll === 1) {
                 logMessage = `${name}'s Block: ${roll}(d20) + ${statValue} = ${total}. Critical Failure!`;
             } else if (total >= shield.reaction.hit) {
@@ -891,12 +778,10 @@ export async function handleResolveReaction(io, socket, payload) {
         } else {
             logMessage = `${name} tries to Block, but fails!`;
         }
-    } else { // 'take_damage'
+    } else {
         logMessage = `${name} braces for the attack!`;
     }
-    
     stateObject.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
-
     if (finalDamage > 0) {
         let damageToDeal = finalDamage;
         if (reaction.damageType === 'Physical') {
@@ -904,9 +789,7 @@ export async function handleResolveReaction(io, socket, payload) {
             const resistance = bonuses.physicalResistance || 0;
             damageToDeal = Math.max(0, finalDamage - resistance);
         }
-
         reactingPlayerState.health -= damageToDeal;
-        
         let damageMessage = `${reaction.attackerName} ${reaction.message} It hits ${name} for ${damageToDeal} damage!`;
         if (damageToDeal < finalDamage) {
             damageMessage += ` (${finalDamage - damageToDeal} resisted)`;
@@ -920,11 +803,9 @@ export async function handleResolveReaction(io, socket, payload) {
         }
         stateObject.log.push({ message: damageMessage, type: 'damage' });
     }
-
     if (reactingPlayerState.health <= 0) {
         reactingPlayerState.health = 0;
         reactingPlayerState.isDead = true;
-        
         if (isPvp) {
             handlePvpPlayerDeath(io, reactingPlayer, encounter);
         } else {
@@ -936,10 +817,8 @@ export async function handleResolveReaction(io, socket, payload) {
         }
         stateObject.log.push({ message: `${name} has been defeated!`, type: 'damage' });
     }
-
     const wasFleeing = reaction.isFleeing || false;
     stateObject.pendingReaction = null;
-    
     if (isPvp) {
         const duration = encounter.turnTimeRemaining;
         if (duration > 0) {
@@ -956,7 +835,6 @@ export async function handleResolveReaction(io, socket, payload) {
             }, duration);
             encounter.turnTimerEndsAt = timerEndsAt;
         }
-        // Victory check after reaction
         const defendingTeam = reactingPlayerState.team;
         const allDefendersDead = encounter.playerStates.filter(p=> p.team === defendingTeam).every(p => p.isDead);
         if (allDefendersDead) {
@@ -969,11 +847,8 @@ export async function handleResolveReaction(io, socket, payload) {
         }
         return;
     }
-    
-    // Resume PvE enemy phase
     const lastAttackerIndex = reaction.attackerIndex;
     const enemies = party.sharedState.zoneCards.map((c, i) => ({card: c, index: i})).filter(e => e.card && e.card.type === 'enemy');
     const lastEnemyListIndex = enemies.findIndex(e => e.index === lastAttackerIndex);
-    
-    await runEnemyPhaseForParty(io, partyId, wasFleeing, lastEnemyListIndex + 1);
+    await runEnemyPhaseForParty(io, party.id, wasFleeing, lastEnemyListIndex + 1);
 }

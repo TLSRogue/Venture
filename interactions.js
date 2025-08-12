@@ -23,55 +23,48 @@ export function lootPlayer(targetPlayerIndex) {
     }
 }
 
-export function interactWithCard(cardIndex) {
-    // Handle targeting other players in a party for spells
-    if (cardIndex.toString().startsWith('p')) {
-        const selectedAction = gameState.turnState.selectedAction;
+export function interactWithCard(targetIdentifier) {
+    const selectedAction = gameState.turnState.selectedAction;
+
+    // Handle targeting allies for spells
+    if (targetIdentifier.toString().startsWith('p')) {
         if (selectedAction && selectedAction.type === 'spell') {
             const spell = selectedAction.data;
             if (spell.type === 'heal' || spell.type === 'buff' || spell.type === 'versatile') {
-                Combat.castSpell(selectedAction.index, cardIndex);
+                Combat.castSpell(selectedAction.index, targetIdentifier);
             }
         }
         clearSelection();
         return;
     }
-    
-    const card = gameState.zoneCards[cardIndex];
-    if (!card) return;
 
-    const selectedAction = gameState.turnState.selectedAction;
-
+    // If an action is selected, it's a targeted combat action
     if (selectedAction) {
-        // A player has selected an action (like a weapon or spell) and is now clicking a target
-        if (card.type === 'enemy' || card.type === 'player') {
-            if (selectedAction.type === 'spell') {
-                Combat.castSpell(selectedAction.index, cardIndex);
-            } else if (selectedAction.type === 'weapon') {
-                Combat.weaponAttack(cardIndex);
-            }
-        } else {
-            UIMain.addToLog("Invalid target. Action cancelled.", "info");
-            clearSelection();
+        // In both PvE and PvP, the card has been identified. We just need to send the identifier.
+        // The server knows whether the identifier is an index (PvE) or a playerId (PvP).
+        if (selectedAction.type === 'spell') {
+            Combat.castSpell(selectedAction.index, targetIdentifier);
+        } else if (selectedAction.type === 'weapon') {
+            Combat.weaponAttack(targetIdentifier);
         }
         return;
     }
     
-    // If no action is selected, this is a generic interaction (e.g., talk, open, harvest)
-    // We just need to tell the server what card was clicked.
-    // This now works for BOTH solo and party play.
+    // If no action is selected, this is a generic PvE interaction (e.g., talk, open, harvest)
     if (gameState.partyId) {
         Network.emitPartyAction({
             type: 'interactWithCard',
-            payload: { cardIndex }
+            payload: { cardIndex: targetIdentifier } // Server expects `cardIndex` for this type
         });
     }
 }
 
 export function interactWithPlayerCard() {
     let localPlayerTargetIndex = 'player'; 
-    if (gameState.partyId && gameState.partyMemberStates) {
-        const localPlayerIndex = gameState.partyMemberStates.findIndex(p => p.playerId === Network.socket.id);
+    if (gameState.pvpEncounter) {
+        localPlayerTargetIndex = socket.id;
+    } else if (gameState.partyId && gameState.partyMemberStates) {
+        const localPlayerIndex = gameState.partyMemberStates.findIndex(p => p.playerId === socket.id);
         if (localPlayerIndex !== -1) {
             localPlayerTargetIndex = `p${localPlayerIndex}`;
         }
@@ -84,9 +77,9 @@ export function interactWithPlayerCard() {
             Combat.castSpell(selectedAction.index, localPlayerTargetIndex);
         } else {
             UIMain.addToLog("You can't use that on yourself.", "info");
-            clearSelection();
         }
     }
+    clearSelection();
 }
 
 export function selectAction(action) {
@@ -102,14 +95,3 @@ export function clearSelection() {
     gameState.turnState.selectedAction = null;
     UIAdventure.updateActionUI();
 }
-
-// NOTE: All solo-play logic functions that were here previously have been removed.
-// This includes:
-// - talkToNPC()
-// - acceptQuestById()
-// - completeQuest()
-// - openTreasureChest()
-// - showHarvestOptions()
-// - harvestResource()
-// - handleMuggerInteraction()
-// The server is now exclusively responsible for all of this logic.
