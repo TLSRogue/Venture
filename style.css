@@ -939,8 +939,8 @@ hr {
 
 /* Added for custom card images */
 .card-image {
-    width: 60px;
-    height: 60px;
+    width: 64px;
+    height: 64px;
     object-fit: contain; /* Ensures the image fits without being distorted */
     margin-bottom: 10px;
 }
