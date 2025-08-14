@@ -465,6 +465,11 @@ export async function processVentureDeeper(io, player, party) {
         sharedState.turnNumber = 0;
         sharedState.isPlayerTurn = true;
     };
+
+    // Set the searching flag for ALL zones immediately
+    sharedState.isSearchingForPvpMatch = true;
+    broadcastAdventureUpdate(io, party);
+
     if (PVP_ZONES.includes(zoneName)) {
         if (!pvpZoneQueues[zoneName]) {
             pvpZoneQueues[zoneName] = [];
@@ -478,8 +483,6 @@ export async function processVentureDeeper(io, player, party) {
             }
         } else {
             sharedState.log.push({ message: "You venture deeper, wary of your surroundings...", type: 'info' });
-            sharedState.isSearchingForPvpMatch = true;
-            broadcastAdventureUpdate(io, party);
             const timerId = setTimeout(() => {
                 const myEntryIndex = pvpZoneQueues[zoneName].findIndex(entry => entry.partyId === party.id);
                 if (myEntryIndex !== -1) {
@@ -496,7 +499,7 @@ export async function processVentureDeeper(io, player, party) {
     const inCombat = sharedState.zoneCards.some(c => c && c.type === 'enemy');
     if (inCombat) {
         sharedState.log.push({ message: "The party attempts to flee, but the enemies get one last attack!", type: 'reaction' });
-        broadcastAdventureUpdate(io, party);
+        // Don't broadcast here, the enemy phase will
         await runEnemyPhaseForParty(io, party.id, true); 
         const alivePlayers = sharedState.partyMemberStates.filter(p => p.health > 0);
         if (alivePlayers.length > 0) {
