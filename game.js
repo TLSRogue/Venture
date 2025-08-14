@@ -208,7 +208,10 @@ function handlePartyAdventureStarted(serverAdventureState) {
 }
 
 function handlePartyAdventureUpdate(serverAdventureState) {
-    gameState.isSearchingForPvp = false; // Any update (e.g. timeout) means the search is over.
+    // BUG FIX: Only clear the searching flag if the search has actually concluded.
+    if (serverAdventureState.pvpEncounterState || (serverAdventureState.zoneCards && serverAdventureState.zoneCards.length > 0)) {
+        gameState.isSearchingForPvp = false;
+    }
 
     if (serverAdventureState.pvpEncounterState) {
         gameState.pvpEncounter = serverAdventureState.pvpEncounterState;
@@ -636,10 +639,9 @@ function addEventListeners() {
 
 async function ventureDeeper() {
     if (gameState.partyId && gameState.isPartyLeader) {
-        // Set the searching flag if entering a PvP zone
         if (PVP_ZONES.includes(gameState.currentZone)) {
             gameState.isSearchingForPvp = true;
-            UIAdventure.renderAdventureScreen(); // Immediately update UI to disable the button
+            UIAdventure.renderAdventureScreen();
         }
         Network.emitPartyAction({ type: 'ventureDeeper' });
     }
