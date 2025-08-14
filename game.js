@@ -583,7 +583,7 @@ function addEventListeners() {
             if (button.id === 'info-ok-btn') return UIMain.hideModal();
             if (button.id === 'end-turn-btn') return gameState.inDuel ? Network.emitDuelAction({ type: 'endTurn' }) : Combat.endTurn();
             if (button.id === 'return-home-arrow') return Player.returnToHome();
-            if (button.id === 'venture-deeper-arrow') return ventureDeeper();
+            if (button.id === 'venture-deeper-arrow') return ventureDeeper(button);
             if (button.id === 'backpack-btn') return UIAdventure.showBackpack();
             if (button.id === 'character-sheet-btn') return UIAdventure.showCharacterSheet();
             
@@ -629,7 +629,12 @@ function addEventListeners() {
     });
 }
 
-async function ventureDeeper() {
+async function ventureDeeper(buttonElement) {
+    // BUG FIX: Immediately disable the button on click to prevent race conditions from double-clicks.
+    // The server-driven state will take over on the next update.
+    if (buttonElement && buttonElement.disabled) return;
+    if (buttonElement) buttonElement.disabled = true;
+
     if (gameState.partyId && gameState.isPartyLeader) {
         Network.emitPartyAction({ type: 'ventureDeeper' });
     }
