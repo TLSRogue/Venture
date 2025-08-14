@@ -77,8 +77,8 @@ function startPvpEncounter(io, partyA, partyB) {
         return;
     }
     
-    partyA.sharedState.isSearchingForPvpMatch = false;
-    partyB.sharedState.isSearchingForPvpMatch = false;
+    partyA.sharedState.isLoadingNextArea = false;
+    partyB.sharedState.isLoadingNextArea = false;
 
     const encounterId = `PVP-${Date.now()}`;
     const startingTeam = Math.random() < 0.5 ? 'A' : 'B';
@@ -448,7 +448,7 @@ export async function processVentureDeeper(io, player, party) {
     const { sharedState } = party;
     const zoneName = sharedState.currentZone;
     const proceedToNextArea = () => {
-        sharedState.isSearchingForPvpMatch = false;
+        sharedState.isLoadingNextArea = false;
         sharedState.zoneCards = [];
         sharedState.groundLoot = [];
         drawCardsForServer(sharedState, 3);
@@ -466,8 +466,8 @@ export async function processVentureDeeper(io, player, party) {
         sharedState.isPlayerTurn = true;
     };
 
-    // Set the searching flag for ALL zones immediately
-    sharedState.isSearchingForPvpMatch = true;
+    // Set the loading flag for ALL zones immediately
+    sharedState.isLoadingNextArea = true;
     broadcastAdventureUpdate(io, party);
 
     if (PVP_ZONES.includes(zoneName)) {

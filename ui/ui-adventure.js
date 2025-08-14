@@ -118,8 +118,8 @@ export function renderAdventureScreen() {
     const ventureArrow = document.getElementById('venture-deeper-arrow');
     const homeArrow = document.getElementById('return-home-arrow');
 
-    // BUG FIX: Use the new server-authoritative flag to disable the button.
-    const shouldDisableVenture = gameState.pvpEncounter || gameState.isSearchingForPvpMatch;
+    // ** FIX: Use the new isLoadingNextArea flag for consistent behavior **
+    const shouldDisableVenture = gameState.pvpEncounter || gameState.isLoadingNextArea;
     ventureArrow.disabled = shouldDisableVenture;
 
     ventureArrow.style.display = 'flex';
