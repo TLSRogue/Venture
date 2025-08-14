@@ -78,6 +78,5 @@ export function getInitialGameState() {
         partyId: null,
         inDuel: false,
         duelState: null,
-        isSearchingForPvp: false, // <-- ADD THIS LINE
     };
 }

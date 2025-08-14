@@ -6,7 +6,6 @@ import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js';
 import { getBonusStats } from '../player.js';
 
 let reactionTimerInterval = null;
-const PVP_ZONES = ['blighted_wastes']; // Client-side reference for PvP zones
 
 const effectIcons = {
     'bleed': '🩸',
@@ -119,8 +118,8 @@ export function renderAdventureScreen() {
     const ventureArrow = document.getElementById('venture-deeper-arrow');
     const homeArrow = document.getElementById('return-home-arrow');
 
-    // BUG FIX: Use the new, explicit flag to disable the venture deeper button.
-    const shouldDisableVenture = gameState.pvpEncounter || gameState.isSearchingForPvp;
+    // BUG FIX: Use the new server-authoritative flag to disable the button.
+    const shouldDisableVenture = gameState.pvpEncounter || gameState.isSearchingForPvpMatch;
     ventureArrow.disabled = shouldDisableVenture;
 
     ventureArrow.style.display = 'flex';

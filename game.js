@@ -19,7 +19,6 @@ import { ARENA_ENTRY_FEE } from './constants.js';
 let activeSlotIndex = null;
 let lootRollInterval = null;
 let pvpTurnTimerInterval = null;
-const PVP_ZONES = ['blighted_wastes'];
 
 // --- INITIALIZATION ---
 function initGame() {
@@ -178,8 +177,6 @@ function handleReceivePartyInvite({ inviterName, partyId }) {
 }
 
 function handlePartyAdventureStarted(serverAdventureState) {
-    gameState.isSearchingForPvp = false; 
-    
     if (serverAdventureState.pvpEncounterState) {
         gameState.pvpEncounter = serverAdventureState.pvpEncounterState;
         gameState.log = serverAdventureState.pvpEncounterState.log;
@@ -208,10 +205,6 @@ function handlePartyAdventureStarted(serverAdventureState) {
 }
 
 function handlePartyAdventureUpdate(serverAdventureState) {
-    if (serverAdventureState.pvpEncounterState || (serverAdventureState.zoneCards && serverAdventureState.zoneCards.length > 0)) {
-        gameState.isSearchingForPvp = false;
-    }
-
     if (serverAdventureState.pvpEncounterState) {
         gameState.pvpEncounter = serverAdventureState.pvpEncounterState;
         gameState.log = serverAdventureState.pvpEncounterState.log;
@@ -637,14 +630,7 @@ function addEventListeners() {
 }
 
 async function ventureDeeper() {
-    // BUG FIX: Add a guard to prevent sending multiple requests
-    if (gameState.isSearchingForPvp) return;
-
     if (gameState.partyId && gameState.isPartyLeader) {
-        if (PVP_ZONES.includes(gameState.currentZone)) {
-            gameState.isSearchingForPvp = true;
-            UIAdventure.renderAdventureScreen();
-        }
         Network.emitPartyAction({ type: 'ventureDeeper' });
     }
 }
