@@ -178,6 +178,8 @@ function handleReceivePartyInvite({ inviterName, partyId }) {
 
 function handlePartyAdventureStarted(serverAdventureState) {
     if (serverAdventureState.pvpEncounterState) {
+        // ** FIX: Ensure the entire state is updated, including the loading flag **
+        Object.assign(gameState, serverAdventureState); 
         gameState.pvpEncounter = serverAdventureState.pvpEncounterState;
         gameState.log = serverAdventureState.pvpEncounterState.log;
         gameState.groundLoot = serverAdventureState.pvpEncounterState.groundLoot;
