@@ -26,7 +26,7 @@ export function getBonusStats() {
             }
         }
     });
-    // Defensively check for buffs array
+    
     (gameState.buffs || []).forEach(buff => {
         if (buff.bonus) {
             for (const stat in buff.bonus) {
@@ -108,6 +108,7 @@ export function resetToHomeState() {
     gameState.turnState.isPlayerTurn = true;
     gameState.inDuel = false;
     gameState.duelState = null;
+    gameState.isSearchingForPvp = false; // <-- ADD THIS LINE
 
     if (gameState.partyId && gameState.partyId.startsWith('SOLO-')) {
         Network.emitLeaveParty();
@@ -135,7 +136,6 @@ export function resetPlayerCombatState() {
     
     const persistentBuffs = ['Well Fed (Agi)', 'Well Fed (Str)', 'Light Source'];
     
-    // --- BUG FIX START: Defensively check for buffs and debuffs before accessing them ---
     const currentBuffs = gameState.buffs || [];
     const expiredBuffs = currentBuffs.filter(b => !persistentBuffs.includes(b.type));
     
@@ -149,7 +149,6 @@ export function resetPlayerCombatState() {
         UIMain.addToLog("All debuffs have been cleared.", 'heal');
         gameState.debuffs = [];
     }
-    // --- BUG FIX END ---
     
     gameState.shield = 0;
     gameState.focus = 0;

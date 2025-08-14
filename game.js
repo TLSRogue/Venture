@@ -19,6 +19,7 @@ import { ARENA_ENTRY_FEE } from './constants.js';
 let activeSlotIndex = null;
 let lootRollInterval = null;
 let pvpTurnTimerInterval = null;
+const PVP_ZONES = ['blighted_wastes'];
 
 // --- INITIALIZATION ---
 function initGame() {
@@ -177,7 +178,8 @@ function handleReceivePartyInvite({ inviterName, partyId }) {
 }
 
 function handlePartyAdventureStarted(serverAdventureState) {
-    // NEW: Handle the initial state, which could be a PvP encounter
+    gameState.isSearchingForPvp = false; // The search is over, a match was found.
+    
     if (serverAdventureState.pvpEncounterState) {
         gameState.pvpEncounter = serverAdventureState.pvpEncounterState;
         gameState.log = serverAdventureState.pvpEncounterState.log;
@@ -206,15 +208,14 @@ function handlePartyAdventureStarted(serverAdventureState) {
 }
 
 function handlePartyAdventureUpdate(serverAdventureState) {
-    // NEW: Check for and assign the unified PvP encounter state
+    gameState.isSearchingForPvp = false; // Any update (e.g. timeout) means the search is over.
+
     if (serverAdventureState.pvpEncounterState) {
         gameState.pvpEncounter = serverAdventureState.pvpEncounterState;
-        // Ensure top-level state items are also synced from the encounter state
         gameState.log = serverAdventureState.pvpEncounterState.log;
         gameState.groundLoot = serverAdventureState.pvpEncounterState.groundLoot;
         gameState.pendingReaction = serverAdventureState.pvpEncounterState.pendingReaction;
     } else {
-        // Fallback for PvE
         Object.assign(gameState, serverAdventureState);
         gameState.pvpEncounter = null; 
     }
@@ -529,18 +530,14 @@ function addEventListeners() {
             }
             return;
         }
-
-        // --- MODIFIED: Handle PvP targeting ---
+        
         const zoneCard = target.closest('#zone-cards .card');
         if (zoneCard) {
             if (gameState.pvpEncounter) {
-                // In PvP, the target is identified by playerId
                 return Interactions.interactWithCard(zoneCard.dataset.playerId);
             }
-            // In PvE, the target is identified by its index
             return Interactions.interactWithCard(parseInt(zoneCard.dataset.index, 10));
         }
-        // --- End of Modification ---
 
         if (target.closest('[data-action="lootPlayer"]')) {
             const playerIndex = parseInt(target.closest('.card').dataset.index.substring(1), 10);
@@ -639,6 +636,11 @@ function addEventListeners() {
 
 async function ventureDeeper() {
     if (gameState.partyId && gameState.isPartyLeader) {
+        // Set the searching flag if entering a PvP zone
+        if (PVP_ZONES.includes(gameState.currentZone)) {
+            gameState.isSearchingForPvp = true;
+            UIAdventure.renderAdventureScreen(); // Immediately update UI to disable the button
+        }
         Network.emitPartyAction({ type: 'ventureDeeper' });
     }
 }

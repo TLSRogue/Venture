@@ -43,7 +43,7 @@ export function getInitialGameState() {
         inventory: Array(24).fill(null),
         bank: [],
         buffs: [],
-        debuffs: [], // MODIFIED: Was 'playerDebuffs'
+        debuffs: [],
         equippedSpells: [
             gameData.allSpells.find(s => s.name === 'Punch'),
             gameData.allSpells.find(s => s.name === 'Kick'),
@@ -78,5 +78,6 @@ export function getInitialGameState() {
         partyId: null,
         inDuel: false,
         duelState: null,
+        isSearchingForPvp: false, // <-- ADD THIS LINE
     };
 }

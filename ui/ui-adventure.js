@@ -119,9 +119,8 @@ export function renderAdventureScreen() {
     const ventureArrow = document.getElementById('venture-deeper-arrow');
     const homeArrow = document.getElementById('return-home-arrow');
 
-    // BUG FIX: Disable venture deeper button during PvP or while searching for a match.
-    const isSearchingPvP = PVP_ZONES.includes(gameState.currentZone) && (!gameState.zoneCards || gameState.zoneCards.length === 0);
-    const shouldDisableVenture = gameState.pvpEncounter || isSearchingPvP;
+    // BUG FIX: Use the new, explicit flag to disable the venture deeper button.
+    const shouldDisableVenture = gameState.pvpEncounter || gameState.isSearchingForPvp;
     ventureArrow.disabled = shouldDisableVenture;
 
     ventureArrow.style.display = 'flex';
@@ -322,7 +321,7 @@ function renderDuelScreen() {
 function renderZoneCards(cards) {
     const zoneContainer = document.getElementById('zone-cards');
     zoneContainer.innerHTML = '';
-    if (!cards) return; // Add a defensive check
+    if (!cards) return;
     cards.forEach((card, index) => {
         const cardEl = document.createElement('div');
         if (!card) {
