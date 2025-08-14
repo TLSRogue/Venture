@@ -76,6 +76,9 @@ function startPvpEncounter(io, partyA, partyB) {
         console.error("Attempted to start PvP encounter with a party that is missing a sharedState.");
         return;
     }
+    
+    partyA.sharedState.isSearchingForPvpMatch = false;
+    partyB.sharedState.isSearchingForPvpMatch = false;
 
     const encounterId = `PVP-${Date.now()}`;
     const startingTeam = Math.random() < 0.5 ? 'A' : 'B';
@@ -445,6 +448,7 @@ export async function processVentureDeeper(io, player, party) {
     const { sharedState } = party;
     const zoneName = sharedState.currentZone;
     const proceedToNextArea = () => {
+        sharedState.isSearchingForPvpMatch = false;
         sharedState.zoneCards = [];
         sharedState.groundLoot = [];
         drawCardsForServer(sharedState, 3);
@@ -474,6 +478,7 @@ export async function processVentureDeeper(io, player, party) {
             }
         } else {
             sharedState.log.push({ message: "You venture deeper, wary of your surroundings...", type: 'info' });
+            sharedState.isSearchingForPvpMatch = true;
             broadcastAdventureUpdate(io, party);
             const timerId = setTimeout(() => {
                 const myEntryIndex = pvpZoneQueues[zoneName].findIndex(entry => entry.partyId === party.id);
