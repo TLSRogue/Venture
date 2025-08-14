@@ -40,8 +40,6 @@ export function interactWithCard(targetIdentifier) {
 
     // If an action is selected, it's a targeted combat action
     if (selectedAction) {
-        // In both PvE and PvP, the card has been identified. We just need to send the identifier.
-        // The server knows whether the identifier is an index (PvE) or a playerId (PvP).
         if (selectedAction.type === 'spell') {
             Combat.castSpell(selectedAction.index, targetIdentifier);
         } else if (selectedAction.type === 'weapon') {
@@ -50,11 +48,12 @@ export function interactWithCard(targetIdentifier) {
         return;
     }
     
-    // If no action is selected, this is a generic PvE interaction (e.g., talk, open, harvest)
-    if (gameState.partyId) {
+    // BUG FIX: Only send a generic interact action for PvE cards (which use a numeric index).
+    // This prevents sending malformed requests with playerID strings during PvP, which would crash the server.
+    if (typeof targetIdentifier === 'number' && gameState.partyId) {
         Network.emitPartyAction({
             type: 'interactWithCard',
-            payload: { cardIndex: targetIdentifier } // Server expects `cardIndex` for this type
+            payload: { cardIndex: targetIdentifier }
         });
     }
 }
@@ -62,9 +61,10 @@ export function interactWithCard(targetIdentifier) {
 export function interactWithPlayerCard() {
     let localPlayerTargetIndex = 'player'; 
     if (gameState.pvpEncounter) {
-        localPlayerTargetIndex = socket.id;
+        // Correctly use the socket.id for PvP self-targeting
+        localPlayerTargetIndex = Network.socket.id;
     } else if (gameState.partyId && gameState.partyMemberStates) {
-        const localPlayerIndex = gameState.partyMemberStates.findIndex(p => p.playerId === socket.id);
+        const localPlayerIndex = gameState.partyMemberStates.findIndex(p => p.playerId === Network.socket.id);
         if (localPlayerIndex !== -1) {
             localPlayerTargetIndex = `p${localPlayerIndex}`;
         }

@@ -6,6 +6,7 @@ import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js';
 import { getBonusStats } from '../player.js';
 
 let reactionTimerInterval = null;
+const PVP_ZONES = ['blighted_wastes']; // Client-side reference for PvP zones
 
 const effectIcons = {
     'bleed': '🩸',
@@ -118,6 +119,11 @@ export function renderAdventureScreen() {
     const ventureArrow = document.getElementById('venture-deeper-arrow');
     const homeArrow = document.getElementById('return-home-arrow');
 
+    // BUG FIX: Disable venture deeper button during PvP or while searching for a match.
+    const isSearchingPvP = PVP_ZONES.includes(gameState.currentZone) && (!gameState.zoneCards || gameState.zoneCards.length === 0);
+    const shouldDisableVenture = gameState.pvpEncounter || isSearchingPvP;
+    ventureArrow.disabled = shouldDisableVenture;
+
     ventureArrow.style.display = 'flex';
     homeArrow.style.display = 'flex';
 
@@ -135,7 +141,6 @@ export function renderAdventureScreen() {
 function buildPlayerInspectTooltip(playerData) {
     let tooltip = `<strong>${playerData.name}</strong>`;
     
-    // During PvP, equipment/spells are on the player state, not the card.
     const source = playerData.equipment ? playerData : gameState;
 
     if (source.equipment) {
@@ -166,7 +171,6 @@ function buildPlayerInspectTooltip(playerData) {
     return tooltip;
 }
 
-// NEW: Renders the screen using the single shared PvP encounter state
 function renderPvpScreen() {
     const partyContainer = document.getElementById('party-cards-container');
     const zoneContainer = document.getElementById('zone-cards');
@@ -183,7 +187,7 @@ function renderPvpScreen() {
         
         const cardEl = document.createElement('div');
         cardEl.className = isAlly ? 'card player' : 'card player enemy';
-        cardEl.dataset.playerId = playerState.playerId; // Use playerId for targeting
+        cardEl.dataset.playerId = playerState.playerId;
         
         if (playerState.isDead) {
             cardEl.classList.add('dead');
@@ -279,7 +283,6 @@ function renderDuelScreen() {
     const localPlayer = gameState.duelState.player1.id === socket.id ? gameState.duelState.player1 : gameState.duelState.player2;
     const opponent = gameState.duelState.player1.id === socket.id ? gameState.duelState.player2 : gameState.duelState.player1;
     
-    // --- Render Player Card ---
     const playerCardEl = document.createElement('div');
     playerCardEl.className = 'card player is-local-player';
     if (gameState.duelState.activePlayerId === localPlayer.id && !gameState.duelState.ended) {
@@ -293,7 +296,6 @@ function renderDuelScreen() {
     playerCardEl.append(pIcon, pTitle, pHealth, createEffectsContainer(localPlayer));
     partyContainer.appendChild(playerCardEl);
 
-    // --- Render Opponent Card ---
     const opponentCardEl = document.createElement('div');
     opponentCardEl.className = 'card player enemy';
     if (gameState.duelState.activePlayerId === opponent.id && !gameState.duelState.ended) {
@@ -320,6 +322,7 @@ function renderDuelScreen() {
 function renderZoneCards(cards) {
     const zoneContainer = document.getElementById('zone-cards');
     zoneContainer.innerHTML = '';
+    if (!cards) return; // Add a defensive check
     cards.forEach((card, index) => {
         const cardEl = document.createElement('div');
         if (!card) {
@@ -359,14 +362,10 @@ function renderZoneCards(cards) {
             cardEl.addEventListener('mouseout', () => hideTooltip());
         }
         
-        // --- MODIFICATION START ---
         let visualHTML;
-        // Check if the card has a specific image URL
         if (card.imageUrl) {
-            // If it does, create an img tag
             visualHTML = `<img src="${card.imageUrl}" class="card-image" alt="${card.name}">`;
         } else {
-            // Otherwise, fall back to the emoji icon
             visualHTML = `<div class="card-icon">${card.icon || '❓'}</div>`;
         }
         
@@ -374,7 +373,6 @@ function renderZoneCards(cards) {
             ${visualHTML}
             <div class="card-title">${card.name}</div>
         `;
-        // --- MODIFICATION END ---
 
         if (card.type === 'enemy') {
             const healthDiv = document.createElement('div');
@@ -435,7 +433,6 @@ export function renderPlayerActionBars() {
     spellContainer.innerHTML = '';
 
     let localPlayerState;
-    // NEW: Get the local player state from the correct source (PvP or PvE)
     if (gameState.pvpEncounter) {
         localPlayerState = gameState.pvpEncounter.playerStates.find(p => p.playerId === socket.id);
     } else if (gameState.partyId && gameState.partyMemberStates) {
@@ -444,13 +441,13 @@ export function renderPlayerActionBars() {
         localPlayerState = gameState.duelState.player1.id === socket.id ? gameState.duelState.player1 : gameState.duelState.player2;
     }
     
-    if (!localPlayerState) { // Fallback or if not in adventure
+    if (!localPlayerState) {
         document.getElementById('end-turn-btn').disabled = true;
         return;
     }
     
     const localPlayerAP = localPlayerState.actionPoints;
-    const localPlayerTurnEnded = gameState.pvpEncounter ? gameState.pvpEncounter.activeTeam !== localPlayerState.team : localPlayerState.turnEnded;
+    const localPlayerTurnEnded = gameState.pvpEncounter ? (gameState.pvpEncounter.activeTeam !== localPlayerState.team || localPlayerState.turnEnded) : localPlayerState.turnEnded;
     const { weaponCooldowns, spellCooldowns, itemCooldowns } = localPlayerState;
 
     document.getElementById('end-turn-btn').disabled = localPlayerTurnEnded;

@@ -110,8 +110,19 @@ export async function processWeaponAttack(io, party, player, payload) {
             logMessage += ` Critical Failure! They miss!`;
             encounter.log.push({ message: logMessage, type: 'damage' });
         } else if (total >= hitTarget) {
-            defendingPlayerState.health -= weapon.weaponDamage;
-            logMessage += ` Hit! Dealt ${weapon.weaponDamage} ${weapon.damageType} damage to ${defendingPlayerState.name}.`;
+            // BUG FIX: Calculate damage with resistance for PvP hits
+            let damageToDeal = weapon.weaponDamage;
+            const defendingCharacter = players[defendingPlayerState.name]?.character;
+            if (defendingCharacter && weapon.damageType === 'Physical') {
+                const defendingBonuses = getBonusStatsForPlayer(defendingCharacter, defendingPlayerState);
+                const resistance = defendingBonuses.physicalResistance || 0;
+                damageToDeal = Math.max(0, damageToDeal - resistance);
+            }
+
+            defendingPlayerState.health -= damageToDeal;
+            // BUG FIX: Add target ID and resistance info to log message
+            logMessage += ` Hit! Dealt ${damageToDeal} ${weapon.damageType} damage to ${defendingPlayerState.name} [id:${defendingPlayerState.playerId}].`;
+            if (damageToDeal < weapon.weaponDamage) logMessage += ` (${weapon.weaponDamage - damageToDeal} resisted)`;
             
             if ((roll === 20 && weapon.onCrit?.debuff) || weapon.onHit?.debuff) {
                 const debuff = (roll === 20 && weapon.onCrit?.debuff) ? weapon.onCrit.debuff : weapon.onHit.debuff;
@@ -216,16 +227,30 @@ export async function processCastSpell(io, party, player, payload) {
         const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
         let statValue = 0;
         let rollDescription = "";
-        if (spell.name === "Warrior's Might") {
-            const strength = (character.strength || 0) + (bonuses.strength || 0);
-            const defense = (character.defense || 0) + (bonuses.defense || 0);
-            statValue = Math.max(strength, defense);
-            rollDescription = strength > defense ? `(Str)` : `(Def)`;
+        
+        if (Array.isArray(spell.stat)) {
+            let highestStatValue = -Infinity;
+            let highestStatName = '';
+            spell.stat.forEach(statName => {
+                const currentStatValue = (character[statName] || 0) + (bonuses[statName] || 0);
+                if (currentStatValue > highestStatValue) {
+                    highestStatValue = currentStatValue;
+                    highestStatName = statName;
+                }
+            });
+            statValue = highestStatValue;
+            rollDescription = `(${highestStatName.slice(0, 3)})`;
         } else {
-            const statName = Array.isArray(spell.stat) ? spell.stat[0] : spell.stat;
-            statValue = (character[statName] || 0) + (bonuses[statName] || 0);
-            rollDescription = `(${statName.slice(0, 3)})`;
+            const statName = spell.stat;
+            if (statName) {
+                statValue = (character[statName] || 0) + (bonuses[statName] || 0);
+                rollDescription = `(${statName.slice(0, 3)})`;
+            } else {
+                statValue = 0;
+                rollDescription = '';
+            }
         }
+        
         const dazeDebuff = actingPlayerState.debuffs.find(d => d.type === 'daze');
         const dazeModifier = dazeDebuff ? -3 : 0;
         const roll = Math.floor(Math.random() * 20) + 1;
@@ -244,13 +269,31 @@ export async function processCastSpell(io, party, player, payload) {
             encounter.log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' ? 'heal' : 'damage' });
             if (spell.type === 'heal') {
                 targetPlayerState.health = Math.min(targetPlayerState.maxHealth, targetPlayerState.health + spell.heal);
+                // BUG FIX: Add target ID for floating text
+                encounter.log.push({ message: `Healed ${targetPlayerState.name} for ${spell.heal} HP. [id:${targetPlayerState.playerId}]`, type: 'heal' });
             } else if (spell.type === 'buff') {
                 const buff = spell.buff;
                 const existingIndex = targetPlayerState.buffs.findIndex(b => b.type === buff.type);
                 if (existingIndex !== -1) targetPlayerState.buffs.splice(existingIndex, 1);
                 targetPlayerState.buffs.push({ ...buff });
+                 // BUG FIX: Add target ID for floating text
+                encounter.log.push({ message: `${targetPlayerState.name} gains ${buff.type}! [id:${targetPlayerState.playerId}]`, type: 'heal' });
             } else if (spell.type === 'attack') {
-                targetPlayerState.health -= spell.damage;
+                // BUG FIX: Calculate damage with resistance
+                let damageToDeal = spell.damage;
+                const defendingCharacter = players[targetPlayerState.name]?.character;
+                if (defendingCharacter && spell.damageType === 'Physical') {
+                    const defendingBonuses = getBonusStatsForPlayer(defendingCharacter, targetPlayerState);
+                    const resistance = defendingBonuses.physicalResistance || 0;
+                    damageToDeal = Math.max(0, damageToDeal - resistance);
+                }
+                
+                targetPlayerState.health -= damageToDeal;
+                // BUG FIX: Add target ID and resistance info to log message
+                let damageMessage = `Dealt ${damageToDeal} ${spell.damageType} damage to ${targetPlayerState.name} [id:${targetPlayerState.playerId}].`;
+                if (damageToDeal < spell.damage) damageMessage += ` (${spell.damage - damageToDeal} resisted)`;
+                encounter.log.push({ message: damageMessage, type: 'damage'});
+
                 if (spell.debuff) {
                     const debuff = spell.debuff;
                     const existingIndex = targetPlayerState.debuffs.findIndex(d => d.type === debuff.type);
@@ -305,15 +348,27 @@ export async function processCastSpell(io, party, player, payload) {
         let statValue = 0;
         let rollDescription = "";
 
-        if (spell.name === "Warrior's Might") {
-            const strength = (character.strength || 0) + (bonuses.strength || 0);
-            const defense = (character.defense || 0) + (bonuses.defense || 0);
-            statValue = Math.max(strength, defense);
-            rollDescription = strength > defense ? `(Str)` : `(Def)`;
+        if (Array.isArray(spell.stat)) {
+            let highestStatValue = -Infinity;
+            let highestStatName = '';
+            spell.stat.forEach(statName => {
+                const currentStatValue = (character[statName] || 0) + (bonuses[statName] || 0);
+                if (currentStatValue > highestStatValue) {
+                    highestStatValue = currentStatValue;
+                    highestStatName = statName;
+                }
+            });
+            statValue = highestStatValue;
+            rollDescription = `(${highestStatName.slice(0, 3)})`;
         } else {
-            const statName = Array.isArray(spell.stat) ? spell.stat[0] : spell.stat;
-            statValue = (character[statName] || 0) + (bonuses[statName] || 0);
-            rollDescription = `(${statName.slice(0, 3)})`;
+            const statName = spell.stat;
+            if (statName) {
+                statValue = (character[statName] || 0) + (bonuses[statName] || 0);
+                rollDescription = `(${statName.slice(0, 3)})`;
+            } else {
+                statValue = 0;
+                rollDescription = '';
+            }
         }
 
         const dazeDebuff = actingPlayerState.debuffs.find(d => d.type === 'daze');

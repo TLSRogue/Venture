@@ -150,8 +150,18 @@ export const registerDuelHandlers = (io, socket) => {
                         logMessage += ` Critical Failure!`;
                         duel.log.push({ message: logMessage, type: 'damage' });
                     } else if (total >= (weapon.hit || 15)) {
-                        opponentPlayerState.health -= weapon.weaponDamage;
-                        logMessage += ` Hit for ${weapon.weaponDamage} damage!`;
+                        // BUG FIX: Calculate damage with resistance
+                        let damageToDeal = weapon.weaponDamage;
+                        const opponentCharacter = players[opponentPlayerState.name]?.character;
+                        if (opponentCharacter && weapon.damageType === 'Physical') {
+                            const opponentBonuses = getBonusStatsForPlayer(opponentCharacter, opponentPlayerState);
+                            const resistance = opponentBonuses.physicalResistance || 0;
+                            damageToDeal = Math.max(0, damageToDeal - resistance);
+                        }
+
+                        opponentPlayerState.health -= damageToDeal;
+                        logMessage += ` Hit for ${damageToDeal} damage!`;
+                        if (damageToDeal < weapon.weaponDamage) logMessage += ` (${weapon.weaponDamage - damageToDeal} resisted)`;
                         duel.log.push({ message: logMessage, type: 'damage' });
                     } else {
                         logMessage += ` Miss!`;
