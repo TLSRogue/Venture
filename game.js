@@ -178,7 +178,7 @@ function handleReceivePartyInvite({ inviterName, partyId }) {
 }
 
 function handlePartyAdventureStarted(serverAdventureState) {
-    gameState.isSearchingForPvp = false; // The search is over, a match was found.
+    gameState.isSearchingForPvp = false; 
     
     if (serverAdventureState.pvpEncounterState) {
         gameState.pvpEncounter = serverAdventureState.pvpEncounterState;
@@ -208,7 +208,6 @@ function handlePartyAdventureStarted(serverAdventureState) {
 }
 
 function handlePartyAdventureUpdate(serverAdventureState) {
-    // BUG FIX: Only clear the searching flag if the search has actually concluded.
     if (serverAdventureState.pvpEncounterState || (serverAdventureState.zoneCards && serverAdventureState.zoneCards.length > 0)) {
         gameState.isSearchingForPvp = false;
     }
@@ -638,6 +637,9 @@ function addEventListeners() {
 }
 
 async function ventureDeeper() {
+    // BUG FIX: Add a guard to prevent sending multiple requests
+    if (gameState.isSearchingForPvp) return;
+
     if (gameState.partyId && gameState.isPartyLeader) {
         if (PVP_ZONES.includes(gameState.currentZone)) {
             gameState.isSearchingForPvp = true;
