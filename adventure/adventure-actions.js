@@ -110,7 +110,6 @@ export async function processWeaponAttack(io, party, player, payload) {
             logMessage += ` Critical Failure! They miss!`;
             encounter.log.push({ message: logMessage, type: 'damage' });
         } else if (total >= hitTarget) {
-            // BUG FIX: Calculate damage with resistance for PvP hits
             let damageToDeal = weapon.weaponDamage;
             const defendingCharacter = players[defendingPlayerState.name]?.character;
             if (defendingCharacter && weapon.damageType === 'Physical') {
@@ -120,7 +119,6 @@ export async function processWeaponAttack(io, party, player, payload) {
             }
 
             defendingPlayerState.health -= damageToDeal;
-            // BUG FIX: Add target ID and resistance info to log message
             logMessage += ` Hit! Dealt ${damageToDeal} ${weapon.damageType} damage to ${defendingPlayerState.name} [id:${defendingPlayerState.playerId}].`;
             if (damageToDeal < weapon.weaponDamage) logMessage += ` (${weapon.weaponDamage - damageToDeal} resisted)`;
             
@@ -170,8 +168,17 @@ export async function processWeaponAttack(io, party, player, payload) {
             logMessage += ` Critical Failure! They miss!`;
             sharedState.log.push({ message: logMessage, type: 'damage' });
         } else if (total >= hitTarget) {
-            target.health -= weapon.weaponDamage;
-            logMessage += ` Hit! Dealt ${weapon.weaponDamage} ${weapon.damageType} damage to ${target.name} [id:${target.id}].`;
+            // --- BUG FIX: Calculate damage with enemy resistance for PvE hits ---
+            let damageToDeal = weapon.weaponDamage;
+            if (weapon.damageType === 'Physical') {
+                const resistance = target.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
+                damageToDeal = Math.max(0, damageToDeal - resistance);
+            }
+            
+            target.health -= damageToDeal;
+            logMessage += ` Hit! Dealt ${damageToDeal} ${weapon.damageType} damage to ${target.name} [id:${target.id}].`;
+            if (damageToDeal < weapon.weaponDamage) logMessage += ` (${weapon.weaponDamage - damageToDeal} resisted)`;
+
 
             if (roll === 20 && weapon.onCrit && weapon.onCrit.debuff) {
                 const debuff = weapon.onCrit.debuff;
@@ -267,19 +274,35 @@ export async function processCastSpell(io, party, player, payload) {
         } else {
             description += ` Success!`;
             encounter.log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' ? 'heal' : 'damage' });
+
+            // --- BUG FIX START: Add Reaction Check for PvP Spells ---
+            if (spell.type === 'attack' || (spell.type === 'versatile' && targetPlayerState.team !== actingPlayerState.team)) {
+                const actionDetails = {
+                    damage: spell.damage || (spell.baseEffect ? spell.baseEffect + statValue : 0),
+                    damageType: spell.damageType,
+                    message: `is targeted by ${spell.name}.`,
+                    debuff: spell.debuff || null,
+                };
+
+                const reactionInitiated = handlePvpReactionCheck(io, encounter, actingPlayerState, targetPlayerState, actionDetails);
+
+                if (reactionInitiated) {
+                    broadcastAdventureUpdate(io, party);
+                    return; // Stop and wait for the player's reaction
+                }
+            }
+            // --- BUG FIX END ---
+
             if (spell.type === 'heal') {
                 targetPlayerState.health = Math.min(targetPlayerState.maxHealth, targetPlayerState.health + spell.heal);
-                // BUG FIX: Add target ID for floating text
                 encounter.log.push({ message: `Healed ${targetPlayerState.name} for ${spell.heal} HP. [id:${targetPlayerState.playerId}]`, type: 'heal' });
             } else if (spell.type === 'buff') {
                 const buff = spell.buff;
                 const existingIndex = targetPlayerState.buffs.findIndex(b => b.type === buff.type);
                 if (existingIndex !== -1) targetPlayerState.buffs.splice(existingIndex, 1);
                 targetPlayerState.buffs.push({ ...buff });
-                 // BUG FIX: Add target ID for floating text
                 encounter.log.push({ message: `${targetPlayerState.name} gains ${buff.type}! [id:${targetPlayerState.playerId}]`, type: 'heal' });
             } else if (spell.type === 'attack') {
-                // BUG FIX: Calculate damage with resistance
                 let damageToDeal = spell.damage;
                 const defendingCharacter = players[targetPlayerState.name]?.character;
                 if (defendingCharacter && spell.damageType === 'Physical') {
@@ -289,7 +312,6 @@ export async function processCastSpell(io, party, player, payload) {
                 }
                 
                 targetPlayerState.health -= damageToDeal;
-                // BUG FIX: Add target ID and resistance info to log message
                 let damageMessage = `Dealt ${damageToDeal} ${spell.damageType} damage to ${targetPlayerState.name} [id:${targetPlayerState.playerId}].`;
                 if (damageToDeal < spell.damage) damageMessage += ` (${spell.damage - damageToDeal} resisted)`;
                 encounter.log.push({ message: damageMessage, type: 'damage'});
@@ -463,8 +485,18 @@ export async function processCastSpell(io, party, player, payload) {
                         } else if (spell.name === 'Crushing Blow') {
                             damage = character.equipment.mainHand.weaponDamage + (spell.damageBonus || 0);
                         }
-                        aoeTarget.health -= damage;
-                        let hitDescription = `Dealt ${damage} damage to ${aoeTarget.name} [id:${aoeTarget.id}].`;
+
+                        // --- BUG FIX: Calculate damage with enemy resistance for PvE hits ---
+                        let damageToDeal = damage;
+                        if (spell.damageType === 'Physical') {
+                           const resistance = aoeTarget.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
+                           damageToDeal = Math.max(0, damageToDeal - resistance);
+                        }
+
+                        aoeTarget.health -= damageToDeal;
+                        let hitDescription = `Dealt ${damageToDeal} damage to ${aoeTarget.name} [id:${aoeTarget.id}].`;
+                        if (damageToDeal < damage) hitDescription += ` (${damage - damageToDeal} resisted)`;
+
                         if (spell.debuff) {
                             const debuff = spell.debuff;
                             const existingIndex = aoeTarget.debuffs.findIndex(d => d.type === debuff.type);
