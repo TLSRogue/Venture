@@ -529,6 +529,9 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
     const enemies = sharedState.zoneCards.map((card, index) => ({ card, index })).filter(e => e.card && e.card.type === 'enemy');
     for (let i = startIndex; i < enemies.length; i++) {
         const { card: enemy, index: enemyIndex } = enemies[i];
+        
+        delete enemy.usedThickHideThisTurn; // Ensures flag is fresh for each enemy.
+        
         if (!enemy || enemy.health <= 0) continue;
         try {
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -661,12 +664,32 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     }
                 }
                 if (enemy.name === 'Raging Bull' && attack.message.includes('Thick Hide')) {
-                    if (!enemy.buffs) enemy.buffs = [];
-                    const buff = { type: 'Thick Hide', duration: 2, bonus: { physicalResistance: 1 }};
-                    const existingIndex = enemy.buffs.findIndex(b => b.type === buff.type);
-                    if(existingIndex !== -1) enemy.buffs.splice(existingIndex, 1);
-                    enemy.buffs.push(buff);
-                    i--; 
+                    if (enemy.usedThickHideThisTurn) {
+                        sharedState.log.push({ message: `${enemy.name} roars and Charges again!`, type: 'reaction' });
+                        
+                        const targetCharacter = targetPlayerObject.character;
+                        let damageToDeal = 3; 
+                        const bonuses = getBonusStatsForPlayer(targetCharacter, targetPlayerState);
+                        const resistance = bonuses.physicalResistance || 0;
+                        damageToDeal = Math.max(0, damageToDeal - resistance);
+                        
+                        targetPlayerState.health -= damageToDeal;
+                        let attackMessage = `${enemy.name} hits ${targetPlayerState.name} for ${damageToDeal} damage!`;
+                        if (damageToDeal < 3) {
+                            attackMessage += ` (${3 - damageToDeal} resisted)`;
+                        }
+                        sharedState.log.push({ message: attackMessage, type: 'damage'});
+
+                    } else {
+                        if (!enemy.buffs) enemy.buffs = [];
+                        const buff = { type: 'Thick Hide', duration: 2, bonus: { physicalResistance: 1 }};
+                        
+                        enemy.buffs = enemy.buffs.filter(b => b.type !== 'Thick Hide');
+                        enemy.buffs.push(buff);
+                        
+                        enemy.usedThickHideThisTurn = true;
+                        i--;
+                    }
                     continue;
                 }
             } else {
