@@ -107,32 +107,53 @@ export const registerAdventureHandlers = (io, socket) => {
         try {
             if (action.type === 'resolvePvpFlee') {
                 const { sharedState } = party;
-                // Ensure the player is the leader and in a PvP encounter
                 if (!sharedState.pvpEncounterId || party.leaderId !== name) {
                     return;
                 }
                 const encounter = pvpEncounters[sharedState.pvpEncounterId];
                 if (!encounter) return;
 
-                // ** BUG FIX START **
-                // Correctly identify the fleeing party. 'party' is the one granting mercy,
-                // so the 'opponentParty' is the other one in the encounter.
                 const fleeingPartyId = (party.id === encounter.partyAId) ? encounter.partyBId : encounter.partyAId;
-                const opponentParty = parties[fleeingPartyId]; // This is the party that tried to flee.
-                // ** BUG FIX END **
+                const opponentParty = parties[fleeingPartyId];
                 
                 if (!opponentParty) return;
 
                 if (action.payload.allow) {
-                    // Mercy is granted. End the adventure for the fleeing party.
-                    party.sharedState.log.push({ message: `You have shown mercy. The fleeing party has returned home.`, type: 'info' });
+                    // Log messages for both parties
+                    party.sharedState.log.push({ message: `You have shown mercy. The other party has returned home.`, type: 'info' });
                     opponentParty.sharedState.log.push({ message: `Your plea was accepted! The encounter ends peacefully.`, type: 'success' });
-                    
-                    // Call the function to end the adventure specifically for the fleeing party
-                    await state.processEndAdventure(io, players[opponentParty.leaderId], opponentParty);
 
-                    // Clean up the PvP state for the party that remains
+                    // **BUG FIX START**: Directly end the adventure for the fleeing party (`opponentParty`)
+                    opponentParty.members.forEach(memberName => {
+                        const memberPlayer = players[memberName];
+                        const memberCharacter = memberPlayer?.character;
+                        if (memberCharacter) {
+                            const memberState = opponentParty.sharedState.partyMemberStates.find(p => p.name === memberName);
+                            if (!memberState?.isDead) {
+                                const bonuses = getBonusStatsForPlayer(memberCharacter, null);
+                                memberCharacter.health = 10 + bonuses.maxHealth;
+                            }
+                            if (memberPlayer.id) {
+                                io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
+                                io.to(memberPlayer.id).emit('party:adventureEnded');
+                            }
+                        }
+                    });
+
+                    if (opponentParty.isSoloParty) {
+                        if (players[opponentParty.leaderId]?.character) {
+                            players[opponentParty.leaderId].character.partyId = null;
+                        }
+                        delete parties[opponentParty.id];
+                    } else {
+                        opponentParty.sharedState = null;
+                        broadcastPartyUpdate(io, opponentParty.id);
+                    }
+                    // **BUG FIX END**
+
+                    // Clean up the PvP state for the party that remains (`party`)
                     party.sharedState.pvpEncounterId = null;
+                    delete pvpEncounters[encounter.id]; // Clean up the encounter object
                     party.sharedState.zoneCards = [];
                     party.sharedState.log.push({ message: "Combat has ended!", type: 'success' });
                     party.sharedState.partyMemberStates.forEach(p => {
@@ -145,10 +166,9 @@ export const registerAdventureHandlers = (io, socket) => {
                     broadcastAdventureUpdate(io, party);
 
                 } else {
-                    // Mercy is denied. The fight continues.
                     party.sharedState.log.push({ message: `You have denied their request for mercy.`, type: 'damage' });
                     opponentParty.sharedState.log.push({ message: `Your plea for mercy was denied!`, type: 'damage' });
-                    broadcastAdventureUpdate(io, party); // This will update both parties
+                    broadcastAdventureUpdate(io, party);
                 }
                 return;
             }

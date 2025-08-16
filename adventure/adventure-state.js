@@ -378,15 +378,21 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
 export async function processEndAdventure(io, player, party) {
     const { sharedState } = party;
     if (!sharedState) return;
+
+    // **BUG FIX START**: This function should only INITIATE a flee from PvP.
+    // The resolution of the flee is handled elsewhere.
     if (sharedState.pvpEncounterId) {
         const encounter = pvpEncounters[sharedState.pvpEncounterId];
         if (!encounter) return;
         const actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
+        
         if (actingPlayerState && !actingPlayerState.turnEnded) {
             actingPlayerState.turnEnded = true;
             encounter.log.push({ message: `${player.character.characterName} forfeits their turn to request mercy...`, type: 'reaction' });
+            
             const opponentPartyId = (party.id === encounter.partyAId) ? encounter.partyBId : encounter.partyAId;
             const opponentParty = parties[opponentPartyId];
+            
             if (opponentParty) {
                 const opponentLeader = players[opponentParty.leaderId];
                 if (opponentLeader && opponentLeader.id) {
@@ -398,6 +404,8 @@ export async function processEndAdventure(io, player, party) {
         }
         return;
     }
+    // **BUG FIX END**
+
     const endTheAdventure = () => {
         party.members.forEach(memberName => {
             const memberPlayer = players[memberName];
@@ -466,7 +474,6 @@ export async function processVentureDeeper(io, player, party) {
         sharedState.isPlayerTurn = true;
     };
 
-    // Set the loading flag for ALL zones immediately
     sharedState.isLoadingNextArea = true;
     broadcastAdventureUpdate(io, party);
 
@@ -499,7 +506,6 @@ export async function processVentureDeeper(io, player, party) {
     const inCombat = sharedState.zoneCards.some(c => c && c.type === 'enemy');
     if (inCombat) {
         sharedState.log.push({ message: "The party attempts to flee, but the enemies get one last attack!", type: 'reaction' });
-        // Don't broadcast here, the enemy phase will
         await runEnemyPhaseForParty(io, party.id, true); 
         const alivePlayers = sharedState.partyMemberStates.filter(p => p.health > 0);
         if (alivePlayers.length > 0) {
@@ -530,7 +536,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
     for (let i = startIndex; i < enemies.length; i++) {
         const { card: enemy, index: enemyIndex } = enemies[i];
         
-        delete enemy.usedThickHideThisTurn; // Ensures flag is fresh for each enemy.
+        delete enemy.usedThickHideThisTurn;
         
         if (!enemy || enemy.health <= 0) continue;
         try {
