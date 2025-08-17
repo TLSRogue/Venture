@@ -39,19 +39,19 @@ export const allSpells = [
         icon: "🤸",
         rarity: "common",
     },
+    // --- UPDATED FIREBALL ---
     {
         name: "Fireball",
         price: 100,
         cost: 1,
-        cooldown: 1,
-        school: "Arcane",
-        description: "D20+Wis, 15+ deals 2 damage and applies Burn (2 damage after enemy's next action).",
+        cooldown: 2, // Changed from 1
+        school: "Fire", // Changed from "Arcane"
+        description: "Hurl a blazing sphere of fire that explodes on impact, engulfing enemies in searing flames.", // Changed
         type: "attack",
         stat: "wisdom",
-        damage: 2,
-        hit: 10,
-        damageType: 'Arcane',
-        debuff: { type: 'burn', duration: 1, damage: 2, damageType: 'Arcane' },
+        hit: 10, // Changed from 15
+        damageType: 'Fire', // Changed from 'Arcane'
+        debuff: { type: 'burn', duration: 1, damage: 2, damageType: 'Fire' }, // Changed damageType
         icon: "🔥",
         rarity: "uncommon",
     },
@@ -117,19 +117,19 @@ export const allSpells = [
         icon: "🎯",
         rarity: "uncommon",
     },
+    // --- UPDATED FLAME STRIKE ---
     {
         name: "Flame Strike",
         price: 100,
         cost: 1,
         cooldown: 4,
-        school: "Arcane",
-        description: "D20+Wis, 15+ deals 3 damage and Burn to target and adjacent enemies.",
+        school: "Fire", // Changed from "Arcane"
+        description: "Call down a pillar of divine fire, scorching all foes within its fiery radius.", // Changed
         type: "aoe",
         stat: "wisdom",
-        damage: 3,
-        hit: 10,
-        damageType: 'Arcane',
-        debuff: { type: 'burn', duration: 1, damage: 2, damageType: 'Arcane' },
+        hit: 10, // Changed from 15
+        damageType: 'Fire', // Changed from 'Arcane'
+        debuff: { type: 'burn', duration: 1, damage: 2, damageType: 'Fire' }, // Changed damageType
         icon: "💥",
         rarity: "rare",
     },

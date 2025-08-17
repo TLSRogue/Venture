@@ -475,7 +475,25 @@ export async function processCastSpell(io, party, player, payload) {
                 uniqueTargets.forEach(({ card: aoeTarget, index: aoeIndex }) => {
                     if (aoeTarget && aoeTarget.health > 0) {
                         let damage = spell.damage || 0;
-                        if (spell.name === 'Split Shot') {
+
+                        // --- NEW LOGIC BLOCK FOR FIRE SPELLS ---
+                        if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
+                            const mainHand = character.equipment.mainHand;
+                            const offHand = character.equipment.offHand;
+                            let baseWeaponDamage = 0;
+
+                            if (mainHand && mainHand.weaponDamage) {
+                                baseWeaponDamage = mainHand.weaponDamage;
+                            }
+                            // Check offHand, ensuring it's not the same as a 2H mainHand
+                            if (offHand && offHand.weaponDamage && offHand.weaponDamage > baseWeaponDamage && mainHand !== offHand) {
+                                baseWeaponDamage = offHand.weaponDamage;
+                            }
+                            damage = baseWeaponDamage + 1; // Highest weapon damage (or 0) + 1
+                        } 
+                        // --- END OF NEW LOGIC BLOCK ---
+                        
+                        else if (spell.name === 'Split Shot') {
                             const mainHand = character.equipment.mainHand;
                             if (mainHand && mainHand.weaponType === 'Two-Hand Bow') damage = mainHand.weaponDamage;
                         } else if (spell.name === 'Punch' || spell.name === 'Kick') {
