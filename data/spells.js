@@ -253,6 +253,7 @@ export const allSpells = [
     // --- NEW EVASIVE SHOT ---
     {
         name: "Evasive Shot",
+	price: 100,
         cooldown: 2,
         school: "Physical",
         description: "The archer leaps back to evade an incoming strike, loosing an arrow mid-air at their attacker.",
