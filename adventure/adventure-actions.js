@@ -476,23 +476,33 @@ export async function processCastSpell(io, party, player, payload) {
                     if (aoeTarget && aoeTarget.health > 0) {
                         let damage = spell.damage || 0;
 
-                        // --- NEW LOGIC BLOCK FOR FIRE SPELLS ---
+                        // --- CORRECTED LOGIC BLOCK FOR FIRE SPELLS ---
                         if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
                             const mainHand = character.equipment.mainHand;
                             const offHand = character.equipment.offHand;
+                            
                             let baseWeaponDamage = 0;
-
+                            let weaponForBonusCheck = null;
+                        
                             if (mainHand && mainHand.weaponDamage) {
                                 baseWeaponDamage = mainHand.weaponDamage;
+                                weaponForBonusCheck = mainHand;
                             }
-                            // Check offHand, ensuring it's not the same as a 2H mainHand
+                        
                             if (offHand && offHand.weaponDamage && offHand.weaponDamage > baseWeaponDamage && mainHand !== offHand) {
                                 baseWeaponDamage = offHand.weaponDamage;
+                                weaponForBonusCheck = offHand;
                             }
-                            damage = baseWeaponDamage + 1; // Highest weapon damage (or 0) + 1
-                        } 
-                        // --- END OF NEW LOGIC BLOCK ---
+                            
+                            let bonusDamage = 0;
+                            if (weaponForBonusCheck && weaponForBonusCheck.damageType === 'Fire') {
+                                bonusDamage = 1;
+                            }
                         
+                            damage = baseWeaponDamage + bonusDamage;
+                        }
+                        // --- END OF CORRECTED LOGIC BLOCK ---
+
                         else if (spell.name === 'Split Shot') {
                             const mainHand = character.equipment.mainHand;
                             if (mainHand && mainHand.weaponType === 'Two-Hand Bow') damage = mainHand.weaponDamage;

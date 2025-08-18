@@ -261,6 +261,27 @@ export const allItems = [
         rarity: "common",
         canBeInMerchantWares: true,
     },
+    // --- NEW EXAMPLE FIRE WEAPON ---
+    {
+        name: "Flaming Sword",
+        price: 150,
+        type: "weapon",
+        slot: "mainHand",
+        cost: 1,
+        cooldown: 1,
+        stat: "strength",
+        hit: 10,
+        weaponType: "Sword",
+        weaponDamage: 2,
+        damageType: "Fire", // This weapon deals Fire damage
+        description: "A simple iron sword enchanted with ever-burning flames.",
+        tier: 1,
+        icon: "🔥⚔️",
+        traits: ['Sword', 'Melee', 'Fire', 'Tier 1'],
+        rarity: "uncommon",
+        canBeInMerchantWares: true,
+    },
+    // ----------------------------
     {
         name: "Pitchfork",
         price: 50,
