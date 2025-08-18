@@ -476,33 +476,31 @@ export async function processCastSpell(io, party, player, payload) {
                     if (aoeTarget && aoeTarget.health > 0) {
                         let damage = spell.damage || 0;
 
-                        // --- CORRECTED LOGIC BLOCK FOR FIRE SPELLS ---
+                        // --- REVISED LOGIC BLOCK FOR FIRE SPELLS ---
                         if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
                             const mainHand = character.equipment.mainHand;
                             const offHand = character.equipment.offHand;
                             
-                            let baseWeaponDamage = 0;
-                            let weaponForBonusCheck = null;
-                        
-                            if (mainHand && mainHand.weaponDamage) {
-                                baseWeaponDamage = mainHand.weaponDamage;
-                                weaponForBonusCheck = mainHand;
-                            }
-                        
-                            if (offHand && offHand.weaponDamage && offHand.weaponDamage > baseWeaponDamage && mainHand !== offHand) {
-                                baseWeaponDamage = offHand.weaponDamage;
-                                weaponForBonusCheck = offHand;
-                            }
-                            
                             let bonusDamage = 0;
-                            if (weaponForBonusCheck && weaponForBonusCheck.damageType === 'Fire') {
-                                bonusDamage = 1;
+                            let highestFireWeaponDamage = 0;
+                        
+                            // Check main hand for a Fire weapon
+                            if (mainHand && mainHand.weaponDamage && mainHand.damageType === 'Fire') {
+                                highestFireWeaponDamage = mainHand.weaponDamage;
                             }
                         
-                            damage = baseWeaponDamage + bonusDamage;
+                            // Check off hand for a Fire weapon, see if it's stronger
+                            if (offHand && offHand.weaponDamage && offHand.damageType === 'Fire' && mainHand !== offHand) {
+                                if (offHand.weaponDamage > highestFireWeaponDamage) {
+                                    highestFireWeaponDamage = offHand.weaponDamage;
+                                }
+                            }
+                        
+                            bonusDamage = highestFireWeaponDamage;
+                            damage = 1 + bonusDamage; // Base damage of 1 + bonus damage from Fire weapon
                         }
-                        // --- END OF CORRECTED LOGIC BLOCK ---
-
+                        // --- END OF REVISED LOGIC BLOCK ---
+                        
                         else if (spell.name === 'Split Shot') {
                             const mainHand = character.equipment.mainHand;
                             if (mainHand && mainHand.weaponType === 'Two-Hand Bow') damage = mainHand.weaponDamage;
