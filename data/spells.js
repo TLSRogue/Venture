@@ -39,19 +39,18 @@ export const allSpells = [
         icon: "🤸",
         rarity: "common",
     },
-    // --- UPDATED FIREBALL ---
     {
         name: "Fireball",
         price: 100,
         cost: 1,
-        cooldown: 2, // Changed from 1
-        school: "Fire", // Changed from "Arcane"
-        description: "Hurl a blazing sphere of fire that explodes on impact, engulfing enemies in searing flames.", // Changed
+        cooldown: 2,
+        school: "Fire",
+        description: "Hurl a blazing sphere of fire that explodes on impact, engulfing enemies in searing flames.",
         type: "attack",
         stat: "wisdom",
-        hit: 10, // Changed from 15
-        damageType: 'Fire', // Changed from 'Arcane'
-        debuff: { type: 'burn', duration: 1, damage: 2, damageType: 'Fire' }, // Changed damageType
+        hit: 10,
+        damageType: 'Fire',
+        debuff: { type: 'burn', duration: 1, damage: 2, damageType: 'Fire' },
         icon: "🔥",
         rarity: "uncommon",
     },
@@ -97,39 +96,39 @@ export const allSpells = [
         hit: 10,
         damageType: 'Physical',
         debuff: { type: 'stun', duration: 1 },
-        requires: { weaponType: "Shield", hand: "offHand" },
+        requires: { weaponType: ["Shield"] },
         icon: "🛡️",
         rarity: "uncommon",
     },
+    // --- UPDATED AIM TRUE ---
     {
         name: "Aim True",
         price: 100,
         cost: 1,
         cooldown: 3,
         school: "Physical",
-        description: "Requires Bow. D20+Agi, 10+ deals 3 damage. On 15+, also applies Stun.",
+        description: "Carefully line up a precise shot that, on impact, not only strikes with deadly accuracy but also stuns the target.",
         type: "attack",
         stat: "agility",
-        damage: 3,
         hit: 10,
         damageType: 'Physical',
         onHit: { threshold: 15, debuff: { type: 'stun', duration: 1 } },
+        requires: { weaponType: ["Two-Hand Bow"] },
         icon: "🎯",
         rarity: "uncommon",
     },
-    // --- UPDATED FLAME STRIKE ---
     {
         name: "Flame Strike",
         price: 100,
         cost: 1,
         cooldown: 4,
-        school: "Fire", // Changed from "Arcane"
-        description: "Call down a pillar of divine fire, scorching all foes within its fiery radius.", // Changed
+        school: "Fire",
+        description: "Call down a pillar of divine fire, scorching all foes within its fiery radius.",
         type: "aoe",
         stat: "wisdom",
-        hit: 10, // Changed from 15
-        damageType: 'Fire', // Changed from 'Arcane'
-        debuff: { type: 'burn', duration: 1, damage: 2, damageType: 'Fire' }, // Changed damageType
+        hit: 10,
+        damageType: 'Fire',
+        debuff: { type: 'burn', duration: 1, damage: 2, damageType: 'Fire' },
         icon: "💥",
         rarity: "rare",
     },
@@ -171,7 +170,7 @@ export const allSpells = [
         type: "attack",
         stat: "agility",
         hit: 10,
-        requires: { weaponType: "Dagger" },
+        requires: { weaponType: ["Dagger"] },
         icon: "🗡️",
         rarity: "uncommon",
     },
@@ -185,7 +184,7 @@ export const allSpells = [
         type: "attack",
         stat: "agility",
         hit: 10,
-        requires: { weaponType: "Dagger", hand: "mainHand" },
+        requires: { weaponType: ["Dagger"], hand: "mainHand" },
         damageBonus: 2,
         icon: "🔪",
         rarity: "uncommon",
@@ -234,20 +233,37 @@ export const allSpells = [
         icon: "🧘",
         rarity: "rare", // Quest reward
     },
+    // --- UPDATED SPLIT SHOT ---
     {
         name: "Split Shot",
         price: 100,
         cost: 1,
-        cooldown: 3,
+        cooldown: 4, // Changed from 3
         school: "Physical",
-        description: "Requires Bow. D20+Agility, 15+ Deal Bow Damage to all enemies.",
+        description: "Nock and fire multiple arrows at once, fanning out to hit several enemies in a single volley.",
         type: "aoe",
         stat: "agility",
-        hit: 10,
+        hit: 10, // Changed from 15
         damageType: 'Physical',
-        requires: { weaponType: "Two-Hand Bow" },
-        aoeTargeting: 'all',
+        requires: { weaponType: ["Two-Hand Bow"] },
+        aoeTargeting: 'adjacent', // Changed from 'all' to match new description
         icon: "🏹",
+        rarity: "uncommon",
+    },
+    // --- NEW EVASIVE SHOT ---
+    {
+        name: "Evasive Shot",
+        cooldown: 2,
+        school: "Physical",
+        description: "The archer leaps back to evade an incoming strike, loosing an arrow mid-air at their attacker.",
+        type: "reaction",
+        stat: "agility",
+        requires: { weaponType: ["Two-Hand Bow"] },
+        reactionDetails: { // Custom property for reaction logic
+            avoidHit: 10,
+            counterHit: 15,
+        },
+        icon: "↪️🏹",
         rarity: "uncommon",
     }
 ];

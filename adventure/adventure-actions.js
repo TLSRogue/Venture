@@ -168,7 +168,6 @@ export async function processWeaponAttack(io, party, player, payload) {
             logMessage += ` Critical Failure! They miss!`;
             sharedState.log.push({ message: logMessage, type: 'damage' });
         } else if (total >= hitTarget) {
-            // --- BUG FIX: Calculate damage with enemy resistance for PvE hits ---
             let damageToDeal = weapon.weaponDamage;
             if (weapon.damageType === 'Physical') {
                 const resistance = target.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
@@ -275,7 +274,6 @@ export async function processCastSpell(io, party, player, payload) {
             description += ` Success!`;
             encounter.log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' ? 'heal' : 'damage' });
 
-            // --- BUG FIX START: Add Reaction Check for PvP Spells ---
             if (spell.type === 'attack' || (spell.type === 'versatile' && targetPlayerState.team !== actingPlayerState.team)) {
                 const actionDetails = {
                     damage: spell.damage || (spell.baseEffect ? spell.baseEffect + statValue : 0),
@@ -288,10 +286,9 @@ export async function processCastSpell(io, party, player, payload) {
 
                 if (reactionInitiated) {
                     broadcastAdventureUpdate(io, party);
-                    return; // Stop and wait for the player's reaction
+                    return; 
                 }
             }
-            // --- BUG FIX END ---
 
             if (spell.type === 'heal') {
                 targetPlayerState.health = Math.min(targetPlayerState.maxHealth, targetPlayerState.health + spell.heal);
@@ -334,16 +331,22 @@ export async function processCastSpell(io, party, player, payload) {
             return;
         }
 
-        if (spell.requires) {
-            if (spell.requires.weaponType) {
-                const mainHand = character.equipment.mainHand;
-                const offHand = character.equipment.offHand;
-                const requiredHand = spell.requires.hand;
-                if (requiredHand) {
-                    if (!character.equipment[requiredHand] || !spell.requires.weaponType.includes(character.equipment[requiredHand].weaponType)) return;
-                } else {
-                    if ((!mainHand || !spell.requires.weaponType.includes(mainHand.weaponType)) && (!offHand || !spell.requires.weaponType.includes(offHand.weaponType))) return;
-                }
+        if (spell.requires && spell.requires.weaponType) {
+            const mainHand = character.equipment.mainHand;
+            const offHand = character.equipment.offHand;
+        
+            const hasRequiredWeapon = (hand) => {
+                if (!hand) return false;
+                // Ensure spell.requires.weaponType is an array before calling .includes()
+                return Array.isArray(spell.requires.weaponType) && spell.requires.weaponType.includes(hand.weaponType);
+            };
+        
+            if (spell.requires.hand) {
+                // Requires a specific hand (e.g., offHand for Shield Bash)
+                if (!hasRequiredWeapon(character.equipment[spell.requires.hand])) return;
+            } else {
+                // Requires the weapon type in either hand
+                if (!hasRequiredWeapon(mainHand) && !hasRequiredWeapon(offHand)) return;
             }
         }
 
@@ -460,10 +463,8 @@ export async function processCastSpell(io, party, player, payload) {
             } else if (spell.type === 'attack' || spell.type === 'aoe') {
                 let targets = [];
                 if (spell.aoeTargeting === 'all') {
-                    sharedState.zoneCards.forEach((card, idx) => {
-                        if (card && card.type === 'enemy') targets.push({ card, index: idx });
-                    });
-                } else if (spell.type === 'aoe') {
+                    targets = sharedState.zoneCards.map((card, idx) => ({ card, index: idx })).filter(e => e.card && e.card.type === 'enemy');
+                } else if (spell.aoeTargeting === 'adjacent') {
                     const enemyIdx = parseInt(targetIndex);
                     if (enemyTarget) targets.push({ card: enemyTarget, index: enemyIdx });
                     if (enemyIdx > 0 && sharedState.zoneCards[enemyIdx - 1]?.type === 'enemy') targets.push({ card: sharedState.zoneCards[enemyIdx - 1], index: enemyIdx - 1 });
@@ -471,48 +472,44 @@ export async function processCastSpell(io, party, player, payload) {
                 } else {
                     if (enemyTarget) targets.push({ card: enemyTarget, index: parseInt(targetIndex) });
                 }
+
                 const uniqueTargets = [...new Map(targets.map(item => [item.card.id, item])).values()];
                 uniqueTargets.forEach(({ card: aoeTarget, index: aoeIndex }) => {
                     if (aoeTarget && aoeTarget.health > 0) {
                         let damage = spell.damage || 0;
 
-                        // --- REVISED LOGIC BLOCK FOR FIRE SPELLS ---
                         if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
                             const mainHand = character.equipment.mainHand;
                             const offHand = character.equipment.offHand;
-                            
                             let bonusDamage = 0;
                             let highestFireWeaponDamage = 0;
-                        
-                            // Check main hand for a Fire weapon
                             if (mainHand && mainHand.weaponDamage && mainHand.damageType === 'Fire') {
                                 highestFireWeaponDamage = mainHand.weaponDamage;
                             }
-                        
-                            // Check off hand for a Fire weapon, see if it's stronger
                             if (offHand && offHand.weaponDamage && offHand.damageType === 'Fire' && mainHand !== offHand) {
                                 if (offHand.weaponDamage > highestFireWeaponDamage) {
                                     highestFireWeaponDamage = offHand.weaponDamage;
                                 }
                             }
-                        
                             bonusDamage = highestFireWeaponDamage;
-                            damage = 1 + bonusDamage; // Base damage of 1 + bonus damage from Fire weapon
+                            damage = 1 + bonusDamage;
                         }
-                        // --- END OF REVISED LOGIC BLOCK ---
-                        
-                        else if (spell.name === 'Split Shot') {
+                        // --- NEW LOGIC FOR BOW SPELLS ---
+                        else if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
                             const mainHand = character.equipment.mainHand;
-                            if (mainHand && mainHand.weaponType === 'Two-Hand Bow') damage = mainHand.weaponDamage;
-                        } else if (spell.name === 'Punch' || spell.name === 'Kick') {
+                            if (mainHand && mainHand.weaponDamage && spell.requires?.weaponType?.includes(mainHand.weaponType)) {
+                                damage = mainHand.weaponDamage;
+                            }
+                        }
+                        // --- END NEW LOGIC ---
+                        else if (spell.name === 'Punch' || spell.name === 'Kick') {
                             if (character.equippedSpells.some(s => s.name === "Monk's Training") && !character.equipment.mainHand && !character.equipment.offHand) {
                                 damage += 1;
                             }
                         } else if (spell.name === 'Crushing Blow') {
                             damage = character.equipment.mainHand.weaponDamage + (spell.damageBonus || 0);
                         }
-
-                        // --- BUG FIX: Calculate damage with enemy resistance for PvE hits ---
+                        
                         let damageToDeal = damage;
                         if (spell.damageType === 'Physical') {
                            const resistance = aoeTarget.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;

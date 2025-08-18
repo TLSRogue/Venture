@@ -1,9 +1,9 @@
 // adventure/adventure-state.js
 
-import { players, parties, pvpZoneQueues, pvpEncounters } from '../serverState.js';
-import { gameData } from '../data/index.js';
-import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
-import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js';
+import { players, parties, pvpZoneQueues, pvpEncounters } from './serverState.js';
+import { gameData } from './data/index.js';
+import { broadcastAdventureUpdate, broadcastPartyUpdate } from './utilsBroadcast.js';
+import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from './utilsHelpers.js';
 import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS } from '../constants.js';
 
 const PVP_ZONES = ['blighted_wastes'];
@@ -379,8 +379,6 @@ export async function processEndAdventure(io, player, party) {
     const { sharedState } = party;
     if (!sharedState) return;
 
-    // **BUG FIX START**: This function should only INITIATE a flee from PvP.
-    // The resolution of the flee is handled elsewhere.
     if (sharedState.pvpEncounterId) {
         const encounter = pvpEncounters[sharedState.pvpEncounterId];
         if (!encounter) return;
@@ -404,8 +402,7 @@ export async function processEndAdventure(io, player, party) {
         }
         return;
     }
-    // **BUG FIX END**
-
+    
     const endTheAdventure = () => {
         party.members.forEach(memberName => {
             const memberPlayer = players[memberName];
@@ -585,32 +582,48 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     damageToDeal = Math.max(0, attack.damage - resistance);
                 }
                 const availableReactions = [];
+                // --- REACTION LOGIC MODIFIED FOR EVASIVE SHOT ---
+                let isWearingHeavy = false;
+                if (targetCharacter.equipment) {
+                    for (const slot in targetCharacter.equipment) {
+                        const item = targetCharacter.equipment[slot];
+                        if (item && item.traits && item.traits.includes('Heavy')) {
+                            isWearingHeavy = true;
+                            break;
+                        }
+                    }
+                }
+
                 if (targetCharacter.equippedSpells && Array.isArray(targetCharacter.equippedSpells)) {
                     const dodgeSpell = targetCharacter.equippedSpells.find(s => s.name === "Dodge");
                     if (dodgeSpell && (targetPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
-                        let isWearingHeavy = false;
-                        if (targetCharacter.equipment) {
-                            for (const slot in targetCharacter.equipment) {
-                                const item = targetCharacter.equipment[slot];
-                                if (item && item.traits && item.traits.includes('Heavy')) {
-                                    isWearingHeavy = true;
-                                    break;
-                                }
-                            }
-                        }
                         if (isWearingHeavy) {
                             sharedState.log.push({ message: `${targetPlayerState.name} could have Dodged, but their heavy gear prevented it!`, type: 'info' });
                         } else {
                             availableReactions.push({ name: 'Dodge' });
                         }
                     }
+
+                    const evasiveShotSpell = targetCharacter.equippedSpells.find(s => s.name === "Evasive Shot");
+                    if (evasiveShotSpell && (targetPlayerState.spellCooldowns[evasiveShotSpell.name] || 0) <= 0) {
+                        const mainHand = targetCharacter.equipment.mainHand;
+                        if (mainHand && Array.isArray(evasiveShotSpell.requires?.weaponType) && evasiveShotSpell.requires.weaponType.includes(mainHand.weaponType)) {
+                            if (isWearingHeavy) {
+                                sharedState.log.push({ message: `${targetPlayerState.name} could have used Evasive Shot, but their heavy gear prevented it!`, type: 'info' });
+                            } else {
+                                availableReactions.push({ name: 'Evasive Shot' });
+                            }
+                        }
+                    }
                 }
+                
                 if (targetCharacter.equipment) {
                     const shield = targetCharacter.equipment.offHand;
                     if (shield && shield.type === 'shield' && shield.reaction && (targetPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
                         availableReactions.push({ name: 'Block' });
                     }
                 }
+                // --- END OF REACTION LOGIC MODIFICATION ---
                 if (availableReactions.length > 0 && !isFleeing) {
                     sharedState.pendingReaction = {
                         attackerName: enemy.name,
@@ -774,6 +787,7 @@ export async function handleResolveReaction(io, socket, payload) {
     let dodged = false;
     let blocked = false;
     let logMessage = '';
+
     if (reactionType === 'Dodge') {
         const dodgeSpell = reactingPlayer.character.equippedSpells.find(s => s.name === "Dodge");
         if (dodgeSpell && (reactingPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
@@ -815,10 +829,59 @@ export async function handleResolveReaction(io, socket, payload) {
         } else {
             logMessage = `${name} tries to Block, but fails!`;
         }
-    } else {
+    }
+    // --- NEW LOGIC FOR EVASIVE SHOT REACTION ---
+    else if (reactionType === 'Evasive Shot') {
+        const evasiveShotSpell = reactingPlayer.character.equippedSpells.find(s => s.name === "Evasive Shot");
+        const mainHand = reactingPlayer.character.equipment.mainHand;
+
+        if (evasiveShotSpell && mainHand && (reactingPlayerState.spellCooldowns[evasiveShotSpell.name] || 0) <= 0) {
+            reactingPlayerState.spellCooldowns[evasiveShotSpell.name] = evasiveShotSpell.cooldown;
+            const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
+            const statValue = reactingPlayer.character.agility + bonuses.agility;
+            const roll = Math.floor(Math.random() * 20) + 1;
+            const total = roll + statValue;
+            const { avoidHit, counterHit } = evasiveShotSpell.reactionDetails;
+
+            if (roll === 1) {
+                logMessage = `${name}'s Evasive Shot: ${roll}(d20) + ${statValue} = ${total}. Critical Failure!`;
+            } else if (total >= avoidHit) {
+                finalDamage = 0;
+                dodged = true;
+                logMessage = `${name}'s Evasive Shot: ${roll}(d20) + ${statValue} = ${total}. Success! They avoid the attack!`;
+
+                if (total >= counterHit && !isPvp) { // Counter-attack only in PvE for now
+                    const attackerEnemy = stateObject.zoneCards[reaction.attackerIndex];
+                    if (attackerEnemy && attackerEnemy.health > 0) {
+                        let counterDamage = mainHand.weaponDamage;
+                        const resistance = attackerEnemy.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
+                        let damageToDeal = Math.max(0, counterDamage - resistance);
+                        
+                        attackerEnemy.health -= damageToDeal;
+                        
+                        let counterLog = ` They counter-attack, dealing ${damageToDeal} damage to ${attackerEnemy.name}!`;
+                        stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
+                        
+                        if (attackerEnemy.health <= 0) {
+                            defeatEnemyInParty(io, party, attackerEnemy, reaction.attackerIndex);
+                        }
+                        logMessage = ''; // Clear message to prevent double logging
+                    }
+                }
+            } else {
+                logMessage = `${name}'s Evasive Shot: ${roll}(d20) + ${statValue} = ${total}. Failure!`;
+            }
+        } else {
+            logMessage = `${name} tries to use Evasive Shot, but fails!`;
+        }
+    }
+    // --- END OF NEW LOGIC ---
+    else {
         logMessage = `${name} braces for the attack!`;
     }
-    stateObject.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
+
+    if(logMessage) stateObject.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
+
     if (finalDamage > 0) {
         let damageToDeal = finalDamage;
         if (reaction.damageType === 'Physical') {
