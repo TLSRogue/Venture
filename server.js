@@ -7,12 +7,15 @@ import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Import all your new handler registration functions
+// Import all handler registration functions
 import { registerConnectionHandlers } from './handlersConnection.js';
 import { registerPartyHandlers } from './handlersParty.js';
 import { registerAdventureHandlers } from './handlersAdventure.js';
 import { registerDuelHandlers } from './handlersDuel.js';
 import { registerPlayerActionHandlers } from './handlersPlayerAction.js';
+
+// Import the save function
+import { saveAllPlayers } from './serverState.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -41,9 +44,31 @@ io.on('connection', (socket) => {
     registerAdventureHandlers(io, socket);
     registerDuelHandlers(io, socket);
     registerPlayerActionHandlers(io, socket);
+
+    socket.on('disconnect', () => {
+        console.log(`Player disconnected: ${socket.id}`);
+    });
 });
 
-// 4. START THE SERVER
+// 4. AUTO-SAVE SYSTEM
+const AUTO_SAVE_INTERVAL_MS = 60 * 1000; // Save every 1 minute
+setInterval(() => {
+    saveAllPlayers();
+}, AUTO_SAVE_INTERVAL_MS);
+
+// 5. GRACEFUL SHUTDOWN (Save on server stop)
+const handleShutdown = async (signal) => {
+    console.log(`Received ${signal}. Saving data before exit...`);
+    await saveAllPlayers();
+    console.log('Data saved. Exiting.');
+    process.exit(0);
+};
+
+process.on('SIGINT', () => handleShutdown('SIGINT'));
+process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+
+// 6. START SERVER
 server.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Auto-save enabled: Running every ${AUTO_SAVE_INTERVAL_MS / 1000} seconds.`);
 });

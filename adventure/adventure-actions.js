@@ -5,6 +5,7 @@ import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
 import { checkAndEndTurnForPlayer, defeatEnemyInParty, handleResolveReaction } from './adventure-state.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
+import { calculateFinalDamage } from './combatUtils.js';
 
 function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlayerState, actionDetails) {
     const defendingPlayerObject = players[defendingPlayerState.name];
@@ -110,17 +111,18 @@ export async function processWeaponAttack(io, party, player, payload) {
             logMessage += ` Critical Failure! They miss!`;
             encounter.log.push({ message: logMessage, type: 'damage' });
         } else if (total >= hitTarget) {
-            let damageToDeal = weapon.weaponDamage;
-            const defendingCharacter = players[defendingPlayerState.name]?.character;
-            if (defendingCharacter && weapon.damageType === 'Physical') {
-                const defendingBonuses = getBonusStatsForPlayer(defendingCharacter, defendingPlayerState);
-                const resistance = defendingBonuses.physicalResistance || 0;
-                damageToDeal = Math.max(0, damageToDeal - resistance);
-            }
+            // --- UPDATED: Use centralized damage calculation ---
+            const { finalDamage, resistedAmount } = calculateFinalDamage(
+                weapon.weaponDamage, 
+                weapon.damageType, 
+                defendingPlayerState, 
+                players
+            );
 
-            defendingPlayerState.health -= damageToDeal;
-            logMessage += ` Hit! Dealt ${damageToDeal} ${weapon.damageType} damage to ${defendingPlayerState.name} [id:${defendingPlayerState.playerId}].`;
-            if (damageToDeal < weapon.weaponDamage) logMessage += ` (${weapon.weaponDamage - damageToDeal} resisted)`;
+            defendingPlayerState.health -= finalDamage;
+            
+            logMessage += ` Hit! Dealt ${finalDamage} ${weapon.damageType} damage to ${defendingPlayerState.name} [id:${defendingPlayerState.playerId}].`;
+            if (resistedAmount > 0) logMessage += ` (${resistedAmount} resisted)`;
             
             if ((roll === 20 && weapon.onCrit?.debuff) || weapon.onHit?.debuff) {
                 const debuff = (roll === 20 && weapon.onCrit?.debuff) ? weapon.onCrit.debuff : weapon.onHit.debuff;
@@ -168,15 +170,17 @@ export async function processWeaponAttack(io, party, player, payload) {
             logMessage += ` Critical Failure! They miss!`;
             sharedState.log.push({ message: logMessage, type: 'damage' });
         } else if (total >= hitTarget) {
-            let damageToDeal = weapon.weaponDamage;
-            if (weapon.damageType === 'Physical') {
-                const resistance = target.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
-                damageToDeal = Math.max(0, damageToDeal - resistance);
-            }
+            // --- UPDATED: Use centralized damage calculation ---
+            const { finalDamage, resistedAmount } = calculateFinalDamage(
+                weapon.weaponDamage, 
+                weapon.damageType, 
+                target, 
+                players
+            );
             
-            target.health -= damageToDeal;
-            logMessage += ` Hit! Dealt ${damageToDeal} ${weapon.damageType} damage to ${target.name} [id:${target.id}].`;
-            if (damageToDeal < weapon.weaponDamage) logMessage += ` (${weapon.weaponDamage - damageToDeal} resisted)`;
+            target.health -= finalDamage;
+            logMessage += ` Hit! Dealt ${finalDamage} ${weapon.damageType} damage to ${target.name} [id:${target.id}].`;
+            if (resistedAmount > 0) logMessage += ` (${resistedAmount} resisted)`;
 
 
             if (roll === 20 && weapon.onCrit && weapon.onCrit.debuff) {
@@ -300,17 +304,18 @@ export async function processCastSpell(io, party, player, payload) {
                 targetPlayerState.buffs.push({ ...buff });
                 encounter.log.push({ message: `${targetPlayerState.name} gains ${buff.type}! [id:${targetPlayerState.playerId}]`, type: 'heal' });
             } else if (spell.type === 'attack') {
-                let damageToDeal = spell.damage;
-                const defendingCharacter = players[targetPlayerState.name]?.character;
-                if (defendingCharacter && spell.damageType === 'Physical') {
-                    const defendingBonuses = getBonusStatsForPlayer(defendingCharacter, targetPlayerState);
-                    const resistance = defendingBonuses.physicalResistance || 0;
-                    damageToDeal = Math.max(0, damageToDeal - resistance);
-                }
+                const baseDamage = spell.damage;
+                // --- UPDATED: Use centralized damage calculation ---
+                const { finalDamage, resistedAmount } = calculateFinalDamage(
+                    baseDamage,
+                    spell.damageType,
+                    targetPlayerState,
+                    players
+                );
                 
-                targetPlayerState.health -= damageToDeal;
-                let damageMessage = `Dealt ${damageToDeal} ${spell.damageType} damage to ${targetPlayerState.name} [id:${targetPlayerState.playerId}].`;
-                if (damageToDeal < spell.damage) damageMessage += ` (${spell.damage - damageToDeal} resisted)`;
+                targetPlayerState.health -= finalDamage;
+                let damageMessage = `Dealt ${finalDamage} ${spell.damageType} damage to ${targetPlayerState.name} [id:${targetPlayerState.playerId}].`;
+                if (resistedAmount > 0) damageMessage += ` (${resistedAmount} resisted)`;
                 encounter.log.push({ message: damageMessage, type: 'damage'});
 
                 if (spell.debuff) {
@@ -454,8 +459,19 @@ export async function processCastSpell(io, party, player, payload) {
                     target.health = Math.min(target.maxHealth, target.health + effectValue);
                     sharedState.log.push({ message: `Healed ${target.name} for ${effectValue} HP.`, type: 'heal' });
                 } else if (enemyTarget) {
-                    enemyTarget.health -= effectValue;
-                    sharedState.log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${enemyTarget.name} [id:${enemyTarget.id}].`, type: 'damage' });
+                    // --- UPDATED: Use centralized damage calculation ---
+                    const { finalDamage, resistedAmount } = calculateFinalDamage(
+                        effectValue,
+                        spell.damageType,
+                        enemyTarget,
+                        players
+                    );
+
+                    enemyTarget.health -= finalDamage;
+                    let msg = `Dealt ${finalDamage} ${spell.damageType} damage to ${enemyTarget.name} [id:${enemyTarget.id}].`;
+                    if (resistedAmount > 0) msg += ` (${resistedAmount} resisted)`;
+                    sharedState.log.push({ message: msg, type: 'damage' });
+
                     if (enemyTarget.health <= 0) {
                         defeatEnemyInParty(io, party, enemyTarget, parseInt(targetIndex));
                     }
@@ -510,15 +526,17 @@ export async function processCastSpell(io, party, player, payload) {
                             damage = character.equipment.mainHand.weaponDamage + (spell.damageBonus || 0);
                         }
                         
-                        let damageToDeal = damage;
-                        if (spell.damageType === 'Physical') {
-                           const resistance = aoeTarget.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
-                           damageToDeal = Math.max(0, damageToDeal - resistance);
-                        }
+                        // --- UPDATED: Use centralized damage calculation ---
+                        const { finalDamage, resistedAmount } = calculateFinalDamage(
+                            damage,
+                            spell.damageType,
+                            aoeTarget,
+                            players
+                        );
 
-                        aoeTarget.health -= damageToDeal;
-                        let hitDescription = `Dealt ${damageToDeal} damage to ${aoeTarget.name} [id:${aoeTarget.id}].`;
-                        if (damageToDeal < damage) hitDescription += ` (${damage - damageToDeal} resisted)`;
+                        aoeTarget.health -= finalDamage;
+                        let hitDescription = `Dealt ${finalDamage} damage to ${aoeTarget.name} [id:${aoeTarget.id}].`;
+                        if (resistedAmount > 0) hitDescription += ` (${resistedAmount} resisted)`;
 
                         if (spell.debuff) {
                             const debuff = spell.debuff;

@@ -3,7 +3,7 @@
 import { gameData } from '../data/index.js';
 import { gameState } from '../state.js';
 import * as Network from '../network.js';
-import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js'; // BUG FIX: Added hideTooltip
+import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js';
 
 // --- LOCAL STATE & HELPERS ---
 
@@ -32,13 +32,22 @@ function hasMaterials(materials, checkBank = true) {
 // --- RENDER FUNCTIONS ---
 
 export function renderBankInterface() {
-    const container = document.getElementById('bank-tab');
+    // Create a container to pass to showModal
+    const container = document.createElement('div');
+    container.className = 'bank-ui-container';
+    
     container.innerHTML = `
-        <div class="bank-header">
-            <h2>Bank</h2>
-            <button id="consolidate-btn" class="btn btn-sm">Consolidate Stacks</button>
-        </div>`;
-
+        <div class="bank-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>Bank Vault</h2>
+            <div style="display: flex; gap: 10px;">
+                <button id="consolidate-btn" class="btn btn-sm btn-primary">Consolidate</button>
+                <button id="close-bank-btn" class="btn btn-sm btn-danger">X</button>
+            </div>
+        </div>
+        <div id="bank-content-area"></div>
+    `;
+    
+    // --- 1. Render Bank Grid Logic ---
     const bankItems = [...gameState.bank].sort((a, b) => a.name.localeCompare(b.name));
     const itemsPerPage = 24;
     const totalPages = Math.ceil(bankItems.length / itemsPerPage) || 1;
@@ -66,38 +75,54 @@ export function renderBankInterface() {
         }
         bankGrid.appendChild(slot);
     }
-    container.appendChild(bankGrid);
+    
+    const contentArea = container.querySelector('#bank-content-area');
+    contentArea.appendChild(bankGrid);
 
     if (totalPages > 1) {
         const paginationControls = document.createElement('div');
         paginationControls.className = 'pagination-controls';
+        paginationControls.style.marginTop = '10px';
         paginationControls.innerHTML = `
-            <button id="bank-prev-btn" class="btn" ${bankCurrentPage === 1 ? 'disabled' : ''}>Previous</button>
-            <span>Page ${bankCurrentPage} / ${totalPages}</span>
-            <button id="bank-next-btn" class="btn" ${bankCurrentPage === totalPages ? 'disabled' : ''}>Next</button>
+            <button id="bank-prev-btn" class="btn btn-sm" ${bankCurrentPage === 1 ? 'disabled' : ''}>Prev</button>
+            <span style="margin: 0 10px;">Page ${bankCurrentPage} / ${totalPages}</span>
+            <button id="bank-next-btn" class="btn btn-sm" ${bankCurrentPage === totalPages ? 'disabled' : ''}>Next</button>
         `;
-        container.appendChild(paginationControls);
+        contentArea.appendChild(paginationControls);
 
-        paginationControls.querySelector('#bank-prev-btn').addEventListener('click', () => {
+        paginationControls.querySelector('#bank-prev-btn').onclick = () => {
             if (bankCurrentPage > 1) {
                 bankCurrentPage--;
-                renderBankInterface();
+                renderBankInterface(); // Re-render logic
             }
-        });
-        paginationControls.querySelector('#bank-next-btn').addEventListener('click', () => {
+        };
+        paginationControls.querySelector('#bank-next-btn').onclick = () => {
             if (bankCurrentPage < totalPages) {
                 bankCurrentPage++;
                 renderBankInterface();
             }
-        });
+        };
     }
+    
+    // Render Player Inventory Helper
+    renderPlayerInventoryPanel(contentArea, 'deposit');
 
-    renderPlayerInventoryPanel(container, 'deposit');
+    // Show Modal in WIDE mode
+    showModal(container, 'modal-wide');
+
+    // Bind Close Button
+    document.getElementById('close-bank-btn').onclick = hideModal;
+    document.getElementById('consolidate-btn').onclick = () => {
+        Network.emitPlayerAction('consolidateBank');
+    };
 }
 
 function renderPlayerInventoryPanel(parentContainer, mode) {
     const panel = document.createElement('div');
     panel.className = 'player-inventory-panel';
+    panel.style.marginTop = '20px';
+    panel.style.borderTop = '1px solid #555';
+    panel.style.paddingTop = '10px';
 
     let title = '';
     let action = '';
@@ -140,20 +165,22 @@ function renderPlayerInventoryPanel(parentContainer, mode) {
 }
 
 export function renderMerchant() {
-    const container = document.getElementById('merchant-tab');
+    const container = document.createElement('div');
     container.innerHTML = `
-        <h2>Merchant's Shop</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>Merchant's Shop</h2>
+            <button id="close-merchant-btn" class="btn btn-sm btn-danger">Leave</button>
+        </div>
         <p>Your Gold: <span id="gold-display">${gameState.gold}</span> | Restock in: <span id="restock-timer">10:00</span></p>
         <hr>
-        <div class="storage-grid">
-            <div id="merchant-wares-container"></div>
-            <div id="merchant-sell-container"></div>
+        <div class="storage-grid" style="display: flex; gap: 20px;">
+            <div id="merchant-wares-container" style="flex: 1;"></div>
+            <div id="merchant-sell-container" style="flex: 1; border-left: 1px solid #555; padding-left: 20px;"></div>
         </div>
     `;
     
-    document.getElementById('gold-display').textContent = gameState.gold;
-    const waresContainer = document.getElementById('merchant-wares-container');
-    waresContainer.innerHTML = ''; // Clear previous content
+    const waresContainer = container.querySelector('#merchant-wares-container');
+    const sellContainer = container.querySelector('#merchant-sell-container');
 
     const permanentStock = gameData.allItems.filter(item => item.type === 'tool' || item.name === 'Spices');
     const rotatingStock = gameState.merchantStock || [];
@@ -210,9 +237,13 @@ export function renderMerchant() {
     waresContainer.appendChild(rotatingGrid);
 
     // Player Inventory Panel (for selling)
-    const sellContainer = document.getElementById('merchant-sell-container');
-    sellContainer.innerHTML = ''; // Clear previous content
     renderPlayerInventoryPanel(sellContainer, 'sell');
+
+    // Show Modal in WIDE Mode
+    showModal(container, 'modal-wide');
+    
+    // Bind Timer & Close
+    document.getElementById('close-merchant-btn').onclick = hideModal;
 
     if (merchantTimerInterval) clearInterval(merchantTimerInterval);
     merchantTimerInterval = setInterval(updateRestockTimer, 1000);
@@ -252,30 +283,50 @@ export function showSellConfirmationModal(itemIndex) {
         <p>Sell 1x ${item.name} for ${sellPrice} Gold?</p>
         <div class="action-buttons">
             <button id="confirm-sell-btn" class="btn btn-success">Sell</button>
-            <button class="btn btn-danger" onclick="this.closest('.modal-overlay').classList.add('hidden')">Cancel</button>
+            <button id="cancel-sell-btn" class="btn btn-danger">Cancel</button>
         </div>
     `;
+    
+    // Standard modal (not wide) is fine here
     showModal(modalContent);
 
     document.getElementById('confirm-sell-btn').addEventListener('click', () => {
         Network.emitPlayerAction('sellItem', { itemIndex });
-        hideModal();
+        hideModal(); // Close confirmation
+        // Re-open Merchant to update views
+        setTimeout(renderMerchant, 100); 
+    });
+
+    document.getElementById('cancel-sell-btn').addEventListener('click', () => {
+        renderMerchant(); // Go back to merchant view
     });
 }
 
 export function renderCrafting() {
-    const categoriesContainer = document.getElementById('crafting-categories');
-    const gridContainer = document.getElementById('crafting-grid');
-    categoriesContainer.innerHTML = '';
-    gridContainer.innerHTML = '';
+    // Create container for ShowModal
+    const container = document.createElement('div');
+    container.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>Crafting Bench</h2>
+            <button id="close-crafting-btn" class="btn btn-sm btn-danger">Close</button>
+        </div>
+        <div class="tabs" id="crafting-categories"></div>
+        <div id="crafting-grid" class="crafting-grid" style="max-height: 500px; overflow-y: auto;"></div>
+    `;
 
+    const categoriesContainer = container.querySelector('#crafting-categories');
+    const gridContainer = container.querySelector('#crafting-grid');
+    
     const categories = [...new Set(gameData.craftingRecipes.map(r => r.category))];
     
     categories.forEach(category => {
         const tab = document.createElement('button');
         tab.className = `category-tab ${activeCraftingCategory === category ? 'active' : ''}`;
-        tab.dataset.category = category;
         tab.textContent = category;
+        tab.onclick = () => {
+            activeCraftingCategory = category;
+            renderCrafting(); // Re-render to update grid
+        };
         categoriesContainer.appendChild(tab);
     });
 
@@ -322,21 +373,22 @@ export function renderCrafting() {
                     breakdown += `Cost: ${resultItem.cost} AP | CD: ${resultItem.cooldown}<br>`;
                     const statName = (resultItem.stat || 'strength').charAt(0).toUpperCase() + (resultItem.stat || 'strength').slice(1);
                     breakdown += `Roll: D20 + ${statName} (${resultItem.hit}+)<br>`;
-                    breakdown += `Deals ${resultItem.weaponDamage} ${resultItem.damageType} Damage.`;
-                    if (resultItem.onCrit && resultItem.onCrit.debuff) {
-                        breakdown += `<br>On Crit (20): Apply ${resultItem.onCrit.debuff.type}.`;
-                    }
-                }
-                 if (resultItem.traits) {
-                    breakdown += `<hr style="margin: 5px 0;"><strong>Traits:</strong> ${resultItem.traits.join(', ')}`;
                 }
                 showTooltip(breakdown);
             }
         });
         recipeEl.addEventListener('mouseleave', () => hideTooltip());
+        
+        // Bind craft click
+        const craftBtn = recipeEl.querySelector('button');
+        craftBtn.onclick = () => showCraftingModal(gameData.craftingRecipes.indexOf(recipe));
 
         gridContainer.appendChild(recipeEl);
     });
+    
+    // Show Modal in WIDE mode
+    showModal(container, 'modal-wide');
+    document.getElementById('close-crafting-btn').onclick = hideModal;
 }
 
 export function showCraftingModal(recipeIndex) {
@@ -367,6 +419,10 @@ export function showCraftingModal(recipeIndex) {
         </div>
     `;
 
+    // Standard modal (overlay on top of wide modal)
+    // Actually showModal replaces content, so we temporarily switch.
+    showModal(modalContent);
+
     const slider = modalContent.querySelector('#craft-quantity-slider');
     const display = modalContent.querySelector('#craft-quantity-display');
     const confirmBtn = modalContent.querySelector('#confirm-craft-btn');
@@ -379,28 +435,42 @@ export function showCraftingModal(recipeIndex) {
     confirmBtn.addEventListener('click', () => {
         const quantity = parseInt(slider.value, 10);
         Network.emitPlayerAction('craftItem', { recipeIndex, quantity });
-        hideModal();
+        // Return to crafting menu
+        setTimeout(renderCrafting, 100);
     });
 
-    cancelBtn.addEventListener('click', hideModal);
-
-    showModal(modalContent);
+    cancelBtn.addEventListener('click', () => {
+        renderCrafting();
+    });
 }
 
 export function renderTrainer() {
-    const categoriesContainer = document.getElementById('trainer-categories');
-    const gridContainer = document.getElementById('trainer-grid');
-    document.getElementById('trainer-gold').textContent = gameState.gold;
-    categoriesContainer.innerHTML = '';
-    gridContainer.innerHTML = '';
+    const container = document.createElement('div');
+    container.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+             <h2>Skill Trainer</h2>
+             <button id="close-trainer-btn" class="btn btn-sm btn-danger">Close</button>
+        </div>
+        <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 15px;">
+             <div class="tabs" id="trainer-categories" style="margin-bottom:0;"></div>
+             <div>Gold: <span id="trainer-gold" style="color: gold; font-weight:bold;">${gameState.gold}</span></div>
+        </div>
+        <div id="trainer-grid" class="trainer-grid"></div>
+    `;
+
+    const categoriesContainer = container.querySelector('#trainer-categories');
+    const gridContainer = container.querySelector('#trainer-grid');
 
     const categories = [...new Set(gameData.allSpells.filter(s => s.price > 0).map(s => s.school))];
 
     categories.forEach(category => {
         const tab = document.createElement('button');
         tab.className = `category-tab ${activeTrainerCategory === category ? 'active' : ''}`;
-        tab.dataset.category = category;
         tab.textContent = category;
+        tab.onclick = () => {
+            activeTrainerCategory = category;
+            renderTrainer();
+        };
         categoriesContainer.appendChild(tab);
     });
 
@@ -423,8 +493,20 @@ export function renderTrainer() {
             <p>${spell.description}</p>
             ${buttonHTML}
         `;
+        
+        // Bind click
+        const btn = spellEl.querySelector('button');
+        if(!btn.disabled) {
+            btn.onclick = () => {
+                Network.emitPlayerAction('buySpell', { spellName: spell.name });
+            };
+        }
+        
         gridContainer.appendChild(spellEl);
     });
+    
+    showModal(container, 'modal-wide');
+    document.getElementById('close-trainer-btn').onclick = hideModal;
 }
 
 export function setActiveCraftingCategory(category) {

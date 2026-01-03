@@ -4,10 +4,34 @@
 
 let tooltipTimeout = null;
 
-export function showModal(content) {
+// --- SECURITY HELPER ---
+export function escapeHTML(str) {
+    if (typeof str !== 'string') return str;
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+/**
+ * Shows the main modal overlay.
+ * @param {string|HTMLElement} content - The HTML string or Element to display.
+ * @param {string} [className] - Optional CSS class to add to modal-content (e.g., 'modal-wide').
+ */
+export function showModal(content, className = '') {
     const modal = document.getElementById('modal');
     const modalContent = document.getElementById('modal-content');
+    
+    // Reset classes to base state then add optional class
+    modalContent.className = 'modal-content';
+    if (className) {
+        modalContent.classList.add(className);
+    }
+    
     modalContent.innerHTML = '';
+    
     if (typeof content === 'string') {
         modalContent.innerHTML = content;
     } else {
@@ -22,14 +46,22 @@ export function hideModal() {
         modal.classList.add('hidden');
         const content = modal.querySelector('.modal-content');
         if (content) {
-            content.classList.remove('modal-wide');
+            // Reset to default width when closing
+            content.className = 'modal-content';
         }
     }
 }
 
 export function showInfoModal(message) {
-    const modalContent = `<p>${message}</p><div class="action-buttons"><button class="btn btn-primary" id="info-ok-btn">OK</button></div>`;
+    const safeMessage = escapeHTML(message);
+    const modalContent = `<p>${safeMessage}</p><div class="action-buttons"><button class="btn btn-primary" id="info-ok-btn">OK</button></div>`;
     showModal(modalContent);
+    
+    // Defer binding to ensure element exists
+    setTimeout(() => {
+        const btn = document.getElementById('info-ok-btn');
+        if(btn) btn.onclick = hideModal;
+    }, 0);
 }
 
 export function showConfirmationModal(message, onConfirmCallback) {
@@ -46,7 +78,10 @@ export function showConfirmationModal(message, onConfirmCallback) {
     yesButton.className = 'btn btn-success';
     yesButton.id = 'confirm-yes-btn';
     yesButton.textContent = 'Yes';
-    yesButton.onclick = onConfirmCallback;
+    yesButton.onclick = () => {
+        onConfirmCallback();
+        hideModal();
+    };
 
     const noButton = document.createElement('button');
     noButton.className = 'btn btn-danger';
@@ -61,12 +96,6 @@ export function showConfirmationModal(message, onConfirmCallback) {
     showModal(fragment);
 }
 
-/**
- * NEW: A modal for decisions where both Yes and No have a consequence.
- * @param {string} message The text to display in the modal.
- * @param {function} onYesCallback The function to call when "Yes" is clicked.
- * @param {function} onNoCallback The function to call when "No" is clicked.
- */
 export function showDecisionModal(message, onYesCallback, onNoCallback) {
     const fragment = document.createDocumentFragment();
 
@@ -80,12 +109,18 @@ export function showDecisionModal(message, onYesCallback, onNoCallback) {
     const yesButton = document.createElement('button');
     yesButton.className = 'btn btn-success';
     yesButton.textContent = 'Yes';
-    yesButton.onclick = onYesCallback;
+    yesButton.onclick = () => {
+        onYesCallback();
+        hideModal();
+    };
 
     const noButton = document.createElement('button');
     noButton.className = 'btn btn-danger';
     noButton.textContent = 'No';
-    noButton.onclick = onNoCallback;
+    noButton.onclick = () => {
+        onNoCallback();
+        hideModal();
+    };
 
     buttonContainer.appendChild(yesButton);
     buttonContainer.appendChild(noButton);
@@ -93,7 +128,6 @@ export function showDecisionModal(message, onYesCallback, onNoCallback) {
 
     showModal(fragment);
 }
-
 
 export function showTooltip(content) {
     if (tooltipTimeout) { clearTimeout(tooltipTimeout); tooltipTimeout = null; }
@@ -118,7 +152,7 @@ export function addToLog(message, type = 'info') {
     if (!log) return;
     const entry = document.createElement('div');
     entry.className = `log-entry ${type}`;
-    entry.textContent = message;
+    entry.innerHTML = message; 
     log.prepend(entry);
 }
 

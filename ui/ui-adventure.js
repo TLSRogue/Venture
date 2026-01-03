@@ -75,11 +75,9 @@ export function showCombatFeedback({ targetName, targetId, type, text }) {
     let targetCard = null;
 
     if (targetId) {
-        // Prioritize finding by unique ID for enemies or players
         targetCard = document.querySelector(`.card[data-id='${targetId}'], .card[data-player-id='${targetId}']`);
     } 
     
-    // Fallback for players or if ID is not present
     if (!targetCard && targetName) {
         const allCards = document.querySelectorAll('#adventure-board .card, #party-cards-container .card');
         for (const card of allCards) {
@@ -91,9 +89,7 @@ export function showCombatFeedback({ targetName, targetId, type, text }) {
         }
     }
     
-    if (!targetCard) {
-        return;
-    }
+    if (!targetCard) return;
 
     const popup = document.createElement('div');
     popup.className = `combat-feedback-popup popup-${type}`;
@@ -117,8 +113,18 @@ export function showCombatFeedback({ targetName, targetId, type, text }) {
 export function renderAdventureScreen() {
     const ventureArrow = document.getElementById('venture-deeper-arrow');
     const homeArrow = document.getElementById('return-home-arrow');
+    
+    // Auto-close open modals when adventure screen updates (e.g. entering new zone)
+    // This prevents merchant/bank windows sticking around in combat
+    const modal = document.getElementById('modal');
+    if (modal && !modal.classList.contains('hidden')) {
+        // We only close if it's NOT a critical modal (like reaction). 
+        // Simple heuristic: if it contains 'Reaction' or 'Loot', don't close.
+        if (!modal.innerHTML.includes('Reaction') && !modal.innerHTML.includes('Loot')) {
+            hideModal();
+        }
+    }
 
-    // ** FIX: Use the new isLoadingNextArea flag for consistent behavior **
     const shouldDisableVenture = gameState.pvpEncounter || gameState.isLoadingNextArea;
     ventureArrow.disabled = shouldDisableVenture;
 
@@ -587,12 +593,107 @@ export function updateActionUI() {
     }
 }
 
+// --- NEW: Loot Roll Render Logic ---
+export function renderLootRoll(rollData) {
+    // CRITICAL: Close conflicting windows (Inventory, Help, etc.)
+    hideModal();
+
+    const container = document.getElementById('loot-roll-container');
+    const itemDisplay = document.getElementById('loot-item-display');
+    const timerBar = document.getElementById('loot-timer-bar');
+    const rollList = document.getElementById('loot-roll-list');
+    
+    if (!container) return; // UI element missing in HTML?
+
+    if (!rollData) {
+        container.classList.add('hidden');
+        return;
+    }
+
+    container.classList.remove('hidden');
+    
+    // Render the item
+    itemDisplay.innerHTML = `
+        <div class="item-icon">${rollData.item.icon}</div>
+        <div>
+            <div class="item-name">${rollData.item.name}</div>
+            <div style="font-size: 0.8em;">${rollData.item.description}</div>
+        </div>
+    `;
+
+    // Render rolls list
+    if (rollList) {
+        rollList.innerHTML = '';
+        if (rollData.rolls && rollData.rolls.length > 0) {
+            rollData.rolls.forEach(roll => {
+                const entry = document.createElement('div');
+                entry.className = 'loot-roll-entry';
+                entry.innerHTML = `
+                    <span class="player-name">${roll.playerName}</span>
+                    <span class="roll-choice-${roll.choice} value">${roll.choice.toUpperCase()} ${roll.roll ? `(${roll.roll})` : ''}</span>
+                `;
+                rollList.appendChild(entry);
+            });
+        } else {
+             rollList.innerHTML = '<div style="text-align:center; opacity:0.7;">Waiting for rolls...</div>';
+        }
+    }
+
+    // Setup Timer
+    const duration = 60000; 
+    const endTime = rollData.endTime || (Date.now() + duration);
+    
+    const updateTimer = () => {
+        const now = Date.now();
+        const left = Math.max(0, endTime - now);
+        const pct = (left / duration) * 100;
+        if (timerBar) timerBar.style.width = `${pct}%`;
+        
+        if (left <= 0 || container.classList.contains('hidden')) {
+            // Stop animating
+        } else {
+            requestAnimationFrame(updateTimer);
+        }
+    };
+    updateTimer();
+
+    // Bind Buttons
+    const btnNeed = document.getElementById('btn-need');
+    const btnGreed = document.getElementById('btn-greed');
+    const btnPass = document.getElementById('btn-pass');
+
+    // Only allow voting if we haven't voted yet
+    const myName = gameState.characterName;
+    const haveIVoted = rollData.rolls.some(r => r.playerName === myName);
+    
+    if (haveIVoted) {
+        if(btnNeed) btnNeed.disabled = true;
+        if(btnGreed) btnGreed.disabled = true;
+        if(btnPass) btnPass.disabled = true;
+    } else {
+        if(btnNeed) { btnNeed.disabled = false; btnNeed.onclick = () => sendRoll('need'); }
+        if(btnGreed) { btnGreed.disabled = false; btnGreed.onclick = () => sendRoll('greed'); }
+        if(btnPass) { btnPass.disabled = false; btnPass.onclick = () => sendRoll('pass'); }
+    }
+}
+
+function sendRoll(choice) {
+    import('../network.js').then(net => net.emitPartyAction({
+        type: 'lootRoll',
+        payload: { choice }
+    }));
+    // We don't hide the container immediately; we wait for server update to show our roll
+}
+
 export function showReactionModal({ damage, attacker, availableReactions, timer }) {
     if (reactionTimerInterval) clearInterval(reactionTimerInterval);
 
+    // CRITICAL: Close conflicting windows
+    hideModal();
+
     let buttons = '';
     availableReactions.forEach(reaction => {
-        buttons += `<button class="btn btn-primary" data-reaction="${reaction.name}">Use ${reaction.name}</button>`;
+        buttons += `<button class="btn btn-warning" data-reaction="${reaction.name}">Use ${reaction.name}</button>`;
     });
 
     let timerHtml = '';
@@ -601,15 +702,35 @@ export function showReactionModal({ damage, attacker, availableReactions, timer 
     }
 
     const modalContent = `
-        <h2>Reaction!</h2>
+        <h2 style="color: var(--accent-color);">⚠️ REACTION! ⚠️</h2>
         ${timerHtml}
-        <p>${attacker} is about to deal ${damage} damage to you!</p>
-        <div class="action-buttons" id="reaction-buttons">
+        <p><strong>${attacker}</strong> is attacking you for <strong>${damage}</strong> damage!</p>
+        <div class="action-buttons" id="reaction-buttons" style="flex-direction: column;">
             ${buttons}
             <button class="btn btn-danger" data-reaction="take_damage">Take Damage</button>
         </div>
     `;
+    
+    // We use showModal but with a specific class for reactions if desired, or standard
     showModal(modalContent);
+    
+    // Bind clicks
+    const container = document.getElementById('reaction-buttons');
+    if (container) {
+        container.onclick = (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const reaction = e.target.dataset.reaction;
+                if (reaction) {
+                    import('../network.js').then(net => net.emitPartyAction({
+                        type: 'resolveReaction',
+                        payload: { reactionType: reaction }
+                    }));
+                    hideModal();
+                    if (reactionTimerInterval) clearInterval(reactionTimerInterval);
+                }
+            }
+        }
+    }
 
     if (timer) {
         const countdownEl = document.getElementById('reaction-timer-countdown');
@@ -617,10 +738,11 @@ export function showReactionModal({ damage, attacker, availableReactions, timer 
         reactionTimerInterval = setInterval(() => {
             secondsLeft--;
             if (countdownEl) {
-                countdownEl.textContent = Math.max(0, secondsLeft);
+                countdownEl.textContent = Math.max(0, secondsLeft).toFixed(1);
             }
             if (secondsLeft <= 0) {
                 clearInterval(reactionTimerInterval);
+                hideModal(); // Time expired
             }
         }, 1000);
     }
@@ -684,11 +806,7 @@ export function showBackpack() {
     closeButton.onclick = hideModal;
     modalContentEl.appendChild(closeButton);
     
-    const modal = document.getElementById('modal');
-    const modalContentContainer = modal.querySelector('.modal-content');
-    modalContentContainer.classList.add('modal-wide');
-    
-    showModal(modalContentEl);
+    showModal(modalContentEl, 'modal-wide');
 }
 
 export function showCharacterSheet() {
@@ -755,7 +873,7 @@ export function showCharacterSheet() {
         </div>
         <button class="btn btn-primary" style="margin-top: 20px;" onclick="this.closest('.modal-overlay').classList.add('hidden')">Close</button>
     `;
-    showModal(modalContent);
+    showModal(modalContent, 'modal-wide');
 }
 
 function renderGroundLootButton() {
@@ -773,6 +891,7 @@ function renderGroundLootButton() {
             <div class="ground-loot-icon">💰</div>
             <div class="ground-loot-text">GROUND LOOT (${groundLoot.length})</div>
         `;
+        button.onclick = showGroundLootModal;
         container.appendChild(button);
     }
 }
@@ -843,10 +962,6 @@ export function showGroundLootModal() {
     closeButton.textContent = 'Close';
     closeButton.onclick = hideModal;
     modalContentEl.appendChild(closeButton);
-
-    const modal = document.getElementById('modal');
-    const modalContentContainer = modal.querySelector('.modal-content');
-    modalContentContainer.classList.add('modal-wide');
     
-    showModal(modalContentEl);
+    showModal(modalContentEl, 'modal-wide');
 }

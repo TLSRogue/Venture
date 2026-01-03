@@ -5,6 +5,7 @@ import { gameData } from '../data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js';
 import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS } from '../constants.js';
+import { calculateFinalDamage } from './combatUtils.js';
 
 const PVP_ZONES = ['blighted_wastes'];
 
@@ -575,12 +576,19 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             const attack = enemy.attackTable ? enemy.attackTable.find(a => roll >= a.range[0] && roll <= a.range[1]) : null;
             if (attack && attack.action === 'attack') {
                 const targetCharacter = targetPlayerObject.character;
+                
+                // --- UPDATED: Use centralized damage calculation (Initial Calc for Reaction Check) ---
+                // Note: Reaction check needs RAW damage sometimes, but let's calc potential damage
+                // In your original code, you calculated damageToDeal to check vs reaction, 
+                // but the reaction handler recalculates it anyway.
+                // We'll proceed with basic calculation to display the prompt.
                 let damageToDeal = attack.damage;
                 if (attack.damageType === 'Physical') {
                     const bonuses = getBonusStatsForPlayer(targetCharacter, targetPlayerState);
                     const resistance = bonuses.physicalResistance || 0;
                     damageToDeal = Math.max(0, attack.damage - resistance);
                 }
+
                 const availableReactions = [];
                 // --- REACTION LOGIC MODIFIED FOR EVASIVE SHOT ---
                 let isWearingHeavy = false;
@@ -650,10 +658,18 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     }, REACTION_TIMER_MS);
                     return;
                 } else {
-                    targetPlayerState.health -= damageToDeal;
-                    let attackMessage = `${enemy.name} ${attack.message} It hits ${targetPlayerState.name} for ${damageToDeal} damage!`;
-                    if (damageToDeal < attack.damage) {
-                        attackMessage += ` (${attack.damage - damageToDeal} resisted)`;
+                    // --- UPDATED: Use centralized damage calculation ---
+                    const { finalDamage, resistedAmount } = calculateFinalDamage(
+                        attack.damage, 
+                        attack.damageType, 
+                        targetPlayerState, 
+                        players
+                    );
+
+                    targetPlayerState.health -= finalDamage;
+                    let attackMessage = `${enemy.name} ${attack.message} It hits ${targetPlayerState.name} for ${finalDamage} damage!`;
+                    if (resistedAmount > 0) {
+                        attackMessage += ` (${resistedAmount} resisted)`;
                     }
                     if (attack.debuff) {
                         const debuff = attack.debuff;
@@ -686,16 +702,19 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     if (enemy.usedThickHideThisTurn) {
                         sharedState.log.push({ message: `${enemy.name} roars and Charges again!`, type: 'reaction' });
                         
-                        const targetCharacter = targetPlayerObject.character;
-                        let damageToDeal = 3; 
-                        const bonuses = getBonusStatsForPlayer(targetCharacter, targetPlayerState);
-                        const resistance = bonuses.physicalResistance || 0;
-                        damageToDeal = Math.max(0, damageToDeal - resistance);
+                        // --- UPDATED: Use centralized damage calculation ---
+                        // Charge deals 3 damage
+                        const { finalDamage, resistedAmount } = calculateFinalDamage(
+                            3, 
+                            'Physical', 
+                            targetPlayerState, 
+                            players
+                        );
                         
-                        targetPlayerState.health -= damageToDeal;
-                        let attackMessage = `${enemy.name} hits ${targetPlayerState.name} for ${damageToDeal} damage!`;
-                        if (damageToDeal < 3) {
-                            attackMessage += ` (${3 - damageToDeal} resisted)`;
+                        targetPlayerState.health -= finalDamage;
+                        let attackMessage = `${enemy.name} hits ${targetPlayerState.name} for ${finalDamage} damage!`;
+                        if (resistedAmount > 0) {
+                            attackMessage += ` (${resistedAmount} resisted)`;
                         }
                         sharedState.log.push({ message: attackMessage, type: 'damage'});
 
@@ -853,13 +872,22 @@ export async function handleResolveReaction(io, socket, payload) {
                 if (total >= counterHit && !isPvp) { // Counter-attack only in PvE for now
                     const attackerEnemy = stateObject.zoneCards[reaction.attackerIndex];
                     if (attackerEnemy && attackerEnemy.health > 0) {
-                        let counterDamage = mainHand.weaponDamage;
-                        const resistance = attackerEnemy.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
-                        let damageToDeal = Math.max(0, counterDamage - resistance);
+                        const counterDamage = mainHand.weaponDamage;
+                        
+                        // --- UPDATED: Use centralized damage calculation ---
+                        // Note: Counter attack deals Weapon Damage
+                        const { finalDamage: damageToDeal, resistedAmount } = calculateFinalDamage(
+                            counterDamage, 
+                            'Physical', 
+                            attackerEnemy, 
+                            players
+                        );
                         
                         attackerEnemy.health -= damageToDeal;
                         
                         let counterLog = ` They counter-attack, dealing ${damageToDeal} damage to ${attackerEnemy.name}!`;
+                        if (resistedAmount > 0) counterLog += ` (${resistedAmount} resisted)`;
+                        
                         stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
                         
                         if (attackerEnemy.health <= 0) {
@@ -883,16 +911,18 @@ export async function handleResolveReaction(io, socket, payload) {
     if(logMessage) stateObject.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
 
     if (finalDamage > 0) {
-        let damageToDeal = finalDamage;
-        if (reaction.damageType === 'Physical') {
-            const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
-            const resistance = bonuses.physicalResistance || 0;
-            damageToDeal = Math.max(0, finalDamage - resistance);
-        }
+        // --- UPDATED: Use centralized damage calculation ---
+        const { finalDamage: damageToDeal, resistedAmount } = calculateFinalDamage(
+            finalDamage, 
+            reaction.damageType, 
+            reactingPlayerState, 
+            players
+        );
+
         reactingPlayerState.health -= damageToDeal;
         let damageMessage = `${reaction.attackerName} ${reaction.message} It hits ${name} for ${damageToDeal} damage!`;
-        if (damageToDeal < finalDamage) {
-            damageMessage += ` (${finalDamage - damageToDeal} resisted)`;
+        if (resistedAmount > 0) {
+            damageMessage += ` (${resistedAmount} resisted)`;
         }
         if (reaction.debuff && !dodged) {
             const debuff = reaction.debuff;

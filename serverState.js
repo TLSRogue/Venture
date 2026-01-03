@@ -2,7 +2,7 @@
 
 /**
  * This file holds the "in-memory database" for the server.
- * It now includes logic to load the state from a file on startup.
+ * It manages loading data on startup and saving data to disk.
  */
 
 import fs from 'fs';
@@ -12,126 +12,110 @@ import { gameData } from './data/index.js';
 let players = {};
 let dataWasMigrated = false;
 
+// --- LOAD DATA ON STARTUP ---
 try {
-    const data = fs.readFileSync('players.json', 'utf8');
-    const savedPlayers = JSON.parse(data);
-    
-    const newWarriorsMight = gameData.allSpells.find(s => s.name === "Warrior's Might");
+    // Check if file exists before trying to read
+    if (fs.existsSync('players.json')) {
+        const data = fs.readFileSync('players.json', 'utf8');
+        const savedPlayers = JSON.parse(data);
+        
+        const newWarriorsMight = gameData.allSpells.find(s => s.name === "Warrior's Might");
 
-    for (const characterName in savedPlayers) {
-        if (savedPlayers.hasOwnProperty(characterName)) {
-            const character = savedPlayers[characterName].character;
-            
-            if (character.hasOwnProperty('playerDebuffs')) {
-                character.debuffs = character.playerDebuffs;
-                delete character.playerDebuffs;
-                console.log(`Migrated 'playerDebuffs' to 'debuffs' for ${characterName}.`);
-                dataWasMigrated = true;
-            }
-
-            // --- BUG FIX START: Ensure buffs/debuffs arrays exist on all loaded characters ---
-            if (!character.hasOwnProperty('buffs') || !Array.isArray(character.buffs)) {
-                character.buffs = [];
-                console.log(`Initialized missing 'buffs' array for ${characterName}.`);
-                dataWasMigrated = true;
-            }
-            if (!character.hasOwnProperty('debuffs') || !Array.isArray(character.debuffs)) {
-                character.debuffs = [];
-                console.log(`Initialized missing 'debuffs' array for ${characterName}.`);
-                dataWasMigrated = true;
-            }
-            // --- BUG FIX END ---
-
-            if (newWarriorsMight) {
-                const equippedIndex = character.equippedSpells.findIndex(s => s && s.name === "Warrior's Might" && s.bonusThreat === undefined);
-                if (equippedIndex !== -1) {
-                    character.equippedSpells[equippedIndex] = { ...newWarriorsMight };
-                    console.log(`Updated Warrior's Might for ${characterName} in equipped spells.`);
+        for (const characterName in savedPlayers) {
+            if (savedPlayers.hasOwnProperty(characterName)) {
+                const character = savedPlayers[characterName].character;
+                
+                // --- MIGRATIONS & DATA FIXES ---
+                if (character.hasOwnProperty('playerDebuffs')) {
+                    character.debuffs = character.playerDebuffs;
+                    delete character.playerDebuffs;
+                    console.log(`Migrated 'playerDebuffs' to 'debuffs' for ${characterName}.`);
                     dataWasMigrated = true;
                 }
-                const spellbookIndex = character.spellbook.findIndex(s => s && s.name === "Warrior's Might" && s.bonusThreat === undefined);
-                if (spellbookIndex !== -1) {
-                    character.spellbook[spellbookIndex] = { ...newWarriorsMight };
-                    console.log(`Updated Warrior's Might for ${characterName} in spellbook.`);
+
+                if (!character.hasOwnProperty('buffs') || !Array.isArray(character.buffs)) {
+                    character.buffs = [];
                     dataWasMigrated = true;
                 }
-            }
+                
+                if (!character.hasOwnProperty('debuffs') || !Array.isArray(character.debuffs)) {
+                    character.debuffs = [];
+                    dataWasMigrated = true;
+                }
 
-            players[characterName] = {
-                id: null,
-                character: character
-            };
+                if (!character.hasOwnProperty('unlockedTitles')) {
+                    character.unlockedTitles = ["The Novice"];
+                    dataWasMigrated = true;
+                }
+
+                if (!character.hasOwnProperty('focus')) {
+                    character.focus = 0;
+                    dataWasMigrated = true;
+                }
+
+                if (newWarriorsMight) {
+                   const oldSpellIndex = character.equippedSpells.findIndex(s => s.name === "Warrior's Might" && s.type !== "utility");
+                   if (oldSpellIndex !== -1) {
+                       character.equippedSpells[oldSpellIndex] = {...newWarriorsMight};
+                       console.log(`Updated Warrior's Might for ${characterName}`);
+                       dataWasMigrated = true;
+                   }
+                }
+                // -----------------------------
+
+                // Reconstruct the full player object structure
+                players[characterName] = {
+                    id: null, // Socket ID is transient, reset to null
+                    character: character
+                };
+            }
         }
-    }
-    
-    if (dataWasMigrated) {
-        fs.writeFileSync('players.json', JSON.stringify(players, null, 2));
-        console.log('Successfully saved migrated player data to players.json.');
+        console.log(`Loaded data for ${Object.keys(players).length} players.`);
+    } else {
+        console.log("No players.json found. Starting with empty database.");
+        // Create an empty file to prevent errors later
+        fs.writeFileSync('players.json', JSON.stringify({}, null, 2));
     }
 
-    console.log('Player data loaded successfully from players.json');
 } catch (err) {
-    console.log('No existing players.json file found. Starting with a clean state.');
-    players = {};
+    console.error("Error loading players.json:", err);
+    // If the file is corrupt, we start empty but don't overwrite the corrupt file immediately
+    // to allow for manual recovery if needed.
+    players = {}; 
 }
 
-function createInitialCharacter(characterName, characterIcon) {
-    return {
-        characterName: characterName,
-        characterIcon: characterIcon,
-        title: "The Novice",
-        unlockedTitles: ["The Novice"],
-        health: 10,
-        maxHealth: 10,
-        shield: 0,
-        wisdom: 0,
-        strength: 0,
-        agility: 0,
-        defense: 0,
-        luck: 0,
-        physicalResistance: 0,
-        mining: 0,
-        fishing: 0,
-        woodcutting: 0,
-        harvesting: 0,
-        gold: 200,
-        questPoints: 0,
-        actionPoints: 3,
-        focus: 0,
-        inventory: Array(24).fill(null),
-        bank: [],
-        buffs: [],
-        debuffs: [],
-        equippedSpells: [
-            gameData.allSpells.find(s => s.name === 'Punch'),
-            gameData.allSpells.find(s => s.name === 'Kick'),
-            gameData.allSpells.find(s => s.name === 'Dodge')
-        ].filter(Boolean).map(s => ({...s})),
-        spellbook: [],
-        knownRecipes: [],
-        equipment: {
-            mainHand: {...gameData.allItems.find(i => i.name === "Wooden Training Sword")},
-            offHand: null,
-            helmet: null,
-            armor: null,
-            boots: null,
-            accessory: null,
-            ammo: null
-        },
-        quests: [],
-        spellCooldowns: {},
-        weaponCooldowns: {},
-        itemCooldowns: {},
-        merchantStock: [],
-        merchantLastStocked: null,
-        cardDefeatTimes: {},
-        partyId: null,
-        duelId: null,
-    };
+// If we performed migrations on startup, save immediately to persist fixes.
+if (dataWasMigrated) {
+    try {
+        fs.writeFileSync('players.json', JSON.stringify(players, null, 2));
+        console.log("Migration changes saved to players.json.");
+    } catch (err) {
+        console.error("Failed to save migration changes:", err);
+    }
 }
 
-export { players, createInitialCharacter };
-export let parties = {};
-export let duels = {};
-export let pvpZoneQueues = {};
-export let pvpEncounters = {};
+// --- STATE CONTAINERS ---
+export { players };
+export const parties = {};
+export const duels = {};
+export const pvpEncounters = {};
+export const pvpZoneQueues = {};
+
+// --- PERSISTENCE HELPER ---
+let isSaving = false;
+
+export async function saveAllPlayers() {
+    if (isSaving) return; // Prevent concurrent writes
+    isSaving = true;
+
+    try {
+        // We use the promise version of writeFile to avoid blocking the game loop
+        await fs.promises.writeFile('players.json', JSON.stringify(players, null, 2));
+        // Uncomment the line below if you want to see every auto-save in the console
+        // console.log(`[System] Game state auto-saved.`);
+    } catch (err) {
+        console.error('[System] Failed to save player data:', err);
+    } finally {
+        isSaving = false;
+    }
+}

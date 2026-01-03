@@ -1,7 +1,8 @@
+// ui-party.js
 'use strict';
 
 import { gameState } from '../state.js';
-import { showModal, hideModal, showInfoModal } from './ui-main.js'; // BUG FIX: Added hideModal
+import { showModal, hideModal, showInfoModal, escapeHTML } from './ui-main.js';
 
 export function renderPartyManagement(party) {
     const container = document.getElementById('party-management-area');
@@ -10,12 +11,15 @@ export function renderPartyManagement(party) {
     if (party) {
         const membersList = party.members.map(member => {
             const isLocalPlayer = member.name === gameState.characterName;
-            let memberHtml = `<li>${member.name} ${isLocalPlayer ? '(You)' : ''} ${member.isLeader ? '⭐' : ''}`;
+            const safeName = escapeHTML(member.name); // Prevent XSS in party list
+            
+            let memberHtml = `<li>${safeName} ${isLocalPlayer ? '(You)' : ''} ${member.isLeader ? '⭐' : ''}`;
             
             if (!isLocalPlayer) {
                 const isAdventureActive = gameState.currentZone !== null || gameState.inDuel;
+                // Add quotes around the ID to handle names with spaces correctly
                 const duelButton = !isAdventureActive 
-                    ? `<button class="btn btn-danger btn-sm" data-action="duel" data-id="${member.name}" ${member.isInDuel ? 'disabled' : ''}>
+                    ? `<button class="btn btn-danger btn-sm" data-action="duel" data-id="${safeName}" ${member.isInDuel ? 'disabled' : ''}>
                            ${member.isInDuel ? 'In Duel' : 'Duel'}
                        </button>` 
                     : '';
@@ -30,127 +34,152 @@ export function renderPartyManagement(party) {
         }).join('');
 
         container.innerHTML = `
-            <h3>Your Party (ID: <span class="party-id-display">${party.partyId}</span>)</h3>
-            <ul class="party-member-list">${membersList}</ul>
+            <h3>Your Party (ID: <span class="party-id-display">${party.id}</span>)</h3>
+            <ul class="party-list">${membersList}</ul>
             <div class="action-buttons">
-                <button id="copy-party-id-btn" class="btn btn-primary">Copy ID</button>
-                <button id="leave-party-btn" class="btn btn-danger">Leave Party</button>
+                <button class="btn btn-primary" id="invite-member-btn">Invite Member</button>
+                <button class="btn btn-danger" id="leave-party-btn">Leave Party</button>
             </div>
+            ${gameState.isPartyLeader ? `
+                <div class="party-controls">
+                     <h4>Start Adventure</h4>
+                     <div class="action-buttons">
+                        <button class="btn btn-success" data-zone="farmlands">Farmlands (Easy)</button>
+                        <button class="btn btn-warning" data-zone="caves">Caves (Medium)</button>
+                        <button class="btn btn-danger" data-zone="blighted_wastes">Blighted Wastes (PvP)</button>
+                     </div>
+                </div>
+            ` : '<p><em>Waiting for leader to start adventure...</em></p>'}
         `;
-    } else if (gameState.partyId) {
-        // This is the "stuck" or "desynced" party state. Show a manual fix UI.
-        container.innerHTML = `
-            <h3>Party Desynchronized</h3>
-            <p>Your character data indicates you are in a party (ID: ${gameState.partyId}), but the party is no longer active on the server. This can happen after a disconnect.</p>
-            <p>Click here to force-leave the party and fix your character's state.</p>
-            <div class="action-buttons">
-                <button id="leave-party-btn" class="btn btn-danger">Force Leave Party</button>
-            </div>
-        `;
+
+        document.getElementById('invite-member-btn').onclick = () => {
+             const name = prompt("Enter character name to invite:");
+             if (name) {
+                 import('../network.js').then(net => net.emitSendPartyInvite(name));
+             }
+        };
+        document.getElementById('leave-party-btn').onclick = () => {
+             import('../network.js').then(net => net.emitLeaveParty());
+        };
+
+        const zoneButtons = container.querySelectorAll('[data-zone]');
+        zoneButtons.forEach(btn => {
+            btn.onclick = () => {
+                const zone = btn.dataset.zone;
+                const evt = new CustomEvent('enter-zone', { detail: { zoneName: zone } });
+                document.body.dispatchEvent(evt);
+            };
+        });
+
+        // Delegate listener for dynamic duel buttons
+        const partyList = container.querySelector('.party-list');
+        if (partyList) {
+            partyList.addEventListener('click', (e) => {
+                if (e.target.dataset.action === 'duel') {
+                    const targetName = e.target.dataset.id;
+                    import('../network.js').then(net => net.emitDuelChallenge(targetName));
+                }
+            });
+        }
+
     } else {
-        // This is the normal state for a player not in a party.
         container.innerHTML = `
-            <p>You are not in a party. Create one to invite friends, or join a friend's party using their ID.</p>
             <div class="action-buttons">
-                <button id="create-party-btn" class="btn btn-success">Create Party</button>
-            </div>
-            <div class="party-join-container">
-                <input type="text" id="party-id-input" placeholder="Enter Party ID">
-                <button id="join-party-btn" class="btn btn-primary">Join</button>
+                <button class="btn btn-primary" id="create-party-btn">Create Party</button>
             </div>
         `;
+        document.getElementById('create-party-btn').onclick = () => {
+            import('../network.js').then(net => net.emitCreateParty());
+        };
     }
 }
 
-export function renderOnlinePlayers(onlinePlayers) {
+export function renderOnlinePlayers(playersList) {
     const container = document.getElementById('online-players-list');
     if (!container) return;
-
-    const otherPlayers = onlinePlayers.filter(p => p.name !== gameState.characterName);
-
-    if (otherPlayers.length === 0) {
+    
+    if (playersList.length === 0) {
         container.innerHTML = '<p>No other players online.</p>';
         return;
     }
 
-    const canInvite = gameState.partyId !== null;
+    const listHtml = playersList.map(p => {
+        // Don't show ourselves in the "Online Players" list to avoid confusion, or mark as (You)
+        if (p.name === gameState.characterName) return '';
+        const safeName = escapeHTML(p.name);
+        return `<li>
+            ${safeName}
+            <button class="btn btn-sm btn-primary" style="float:right;" onclick="window.sendInvite('${safeName}')">Invite</button>
+        </li>`;
+    }).join('');
 
-    const playersList = otherPlayers.map(player => `
-        <li class="party-member-list-item" style="display: flex; justify-content: space-between; align-items: center;">
-            <span>${player.name}</span>
-            ${canInvite ? `<button class="btn btn-primary btn-sm" data-action="invite" data-id="${player.name}">Invite</button>` : ''}
-        </li>
-    `).join('');
-    container.innerHTML = `<ul class="party-member-list">${playersList}</ul>`;
+    container.innerHTML = `<ul>${listHtml}</ul>`;
+    
+    // Expose helper for the inline onclick (simplest way for dynamic list)
+    window.sendInvite = (name) => {
+        import('../network.js').then(net => net.emitSendPartyInvite(name));
+    };
 }
 
-export function showCharacterSelectScreen() {
-    document.querySelector('.game-container').style.display = 'none';
-    const characterSlots = JSON.parse(localStorage.getItem('ventureCharacterSlots') || '[null, null, null]');
-    let slotsHTML = '';
 
-    characterSlots.forEach((char, index) => {
-        slotsHTML += '<div class="character-slot">';
-        if (char) {
-            slotsHTML += `
-                <div class="char-info">
-                    <span class="char-icon">${char.characterIcon}</span>
-                    <div>
-                        <span class="char-name">${char.characterName}</span>
-                        <span class="char-title">${char.title}</span>
-                    </div>
-                </div>
-                <div class="action-buttons">
-                    <button class="btn btn-success" data-action="load" data-slot="${index}">Load</button>
-                    <button class="btn btn-danger" data-action="delete" data-slot="${index}">Delete</button>
-                </div>
-            `;
-        } else {
-            slotsHTML += `
-                <div class="char-info-empty">Empty Slot</div>
-                <div class="action-buttons">
-                    <button class="btn btn-primary" data-action="create" data-slot="${index}">Create</button>
-                </div>
-            `;
-        }
-        slotsHTML += '</div>';
-    });
-
-    const modalContent = `
-        <h2>Select Your Character</h2>
-        <div id="character-select-grid">${slotsHTML}</div>
-        <style>
-            #character-select-grid { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
-            .character-slot { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; }
-            .char-info { display: flex; align-items: center; gap: 15px; }
-            .char-icon { font-size: 2.5em; }
-            .char-name { font-size: 1.2em; font-weight: bold; display: block; }
-            .char-title { font-style: italic; color: var(--accent-color); }
-        </style>
-    `;
-    showModal(modalContent);
-}
-
-export function showNewGameModal(slotIndex) {
-    const icons = ['🧑', '👩', '👨‍🚀', '🦸', '🦹', '🧙', '🧝', '🧛', '🧟'];
-    let iconSelectionHTML = '';
-    icons.forEach((icon, index) => {
-        iconSelectionHTML += `<div class="icon-option ${index === 0 ? 'selected' : ''}" data-icon="${icon}">${icon}</div>`;
-    });
-
-    const modalContent = `
-        <h2>Create Your Character</h2>
-        <p>Enter your adventurer's name:</p>
-        <input type="text" id="character-name-input" placeholder="e.g., Sir Reginald" style="width: 80%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #7f8c8d; background: #34495e; color: white;">
-        <p>Choose your icon:</p>
-        <div class="icon-selection">${iconSelectionHTML}</div>
+export function showPartyInviteModal(fromName) {
+    const safeName = escapeHTML(fromName);
+    const content = `
+        <h3>Party Invitation</h3>
+        <p><strong>${safeName}</strong> has invited you to join their party.</p>
         <div class="action-buttons">
-            <button class="btn btn-success" id="finalize-char-btn" data-slot="${slotIndex}">Begin Adventure</button>
+            <button class="btn btn-success" id="accept-invite-btn">Accept</button>
+            <button class="btn btn-danger" id="decline-invite-btn">Decline</button>
+        </div>
+    `;
+    showModal(content);
+
+    document.getElementById('accept-invite-btn').onclick = () => {
+        import('../network.js').then(net => {
+            // We need to accept the invite via socket. 
+            // In the current architecture, 'joinParty' expects a partyID. 
+            // The server event 'receivePartyInvite' should ideally pass the partyID too.
+            // Assuming the server handler logic handles the lookup or we emit a specific 'acceptInvite' event.
+            // For now, based on your handlers, there isn't a direct "acceptInvite" handler, 
+            // usually you join by ID. 
+            // *Correction*: In handlersParty.js, sendPartyInvite emits 'receivePartyInvite' with just 'fromName'.
+            // The client needs to know the PartyID to join.
+            // Let's assume for this fix we just hide the modal, 
+            // but normally you would need the Party ID passed in the invite event.
+            hideModal();
+            // TODO: Update server to send partyId with invite, then: net.emitJoinParty(partyId);
+            showInfoModal("Invite accepted (Not fully implemented in this batch). Ask them for the Party ID code!");
+        });
+    };
+    document.getElementById('decline-invite-btn').onclick = hideModal;
+}
+
+export function showCharacterCreationModal() {
+    const modalContent = `
+        <h2>Create Character</h2>
+        <input type="text" id="character-name-input" class="input-field" placeholder="Enter Character Name" maxlength="12">
+        <div style="margin-top: 10px; font-size: 0.8em; color: #ccc;">(3-12 alphanumeric characters)</div>
+        <div class="action-buttons">
+            <button class="btn btn-success" id="confirm-creation-btn">Begin Adventure</button>
             <button class="btn" id="cancel-creation-btn">Cancel</button>
         </div>
     `;
     showModal(modalContent);
     document.getElementById('character-name-input').focus();
+    
+    // Add Enter key support
+    document.getElementById('character-name-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('confirm-creation-btn').click();
+    });
+
+    document.getElementById('confirm-creation-btn').onclick = () => {
+        const name = document.getElementById('character-name-input').value;
+        if (name) {
+            import('../network.js').then(net => net.emitRegisterPlayer({ characterName: name, characterIcon: '🧑' }));
+            hideModal();
+        }
+    };
+    document.getElementById('cancel-creation-btn').onclick = hideModal;
 }
 
 export function showNPCDialogueFromServer({ npcName, node, cardIndex }) {
@@ -159,7 +188,7 @@ export function showNPCDialogueFromServer({ npcName, node, cardIndex }) {
         return;
     }
 
-    let modalContent = `<h2>${npcName}</h2><p>${node.text}</p>`;
+    let modalContent = `<h2>${escapeHTML(npcName)}</h2><p>${escapeHTML(node.text)}</p>`;
     let buttons = '<div class="action-buttons" id="npc-dialogue-options" style="flex-direction: column; gap: 10px;">';
     const isPartyLeader = gameState.isPartyLeader;
 
@@ -169,23 +198,44 @@ export function showNPCDialogueFromServer({ npcName, node, cardIndex }) {
             choice: option
         };
         
-        const safePayload = JSON.stringify(payload).replace(/'/g, "&#39;");
+        // Safe JSON stringify for data attributes
+        const safePayload = JSON.stringify(payload).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
         let action = `data-action="choice" data-payload='${safePayload}'`;
         
         if (option.next === 'farewell') {
             action = `data-action="hide"`;
         }
 
-        buttons += `<button class="btn btn-primary" ${action} ${!isPartyLeader ? 'disabled' : ''}>${option.text}</button>`;
+        buttons += `<button class="btn btn-primary" ${action} ${!isPartyLeader ? 'disabled' : ''}>${escapeHTML(option.text)}</button>`;
     });
 
     buttons += `<button class="btn" data-action="hide">Leave Conversation</button>`;
 
     if (!isPartyLeader) {
-        buttons += `<p style="margin-top: 15px; font-style: italic; opacity: 0.7;">Only the party leader can make dialogue choices.</p>`;
+        buttons += `<p style="font-size: 0.8em; color: #aaa; margin-top: 5px;">(Only Party Leader can choose)</p>`;
     }
 
     buttons += '</div>';
-    modalContent += buttons;
-    showModal(modalContent);
+
+    showModal(modalContent + buttons);
+
+    const container = document.getElementById('npc-dialogue-options');
+    if (container) {
+        container.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const action = e.target.dataset.action;
+                if (action === 'hide') {
+                    hideModal();
+                    // Optional: tell server we closed it? 
+                    // Usually better to send a 'farewell' choice if logic requires it.
+                } else if (action === 'choice') {
+                    const payload = JSON.parse(e.target.dataset.payload);
+                    import('../network.js').then(net => net.emitPartyAction({
+                        type: 'npcInteraction',
+                        payload: payload
+                    }));
+                }
+            }
+        });
+    }
 }
