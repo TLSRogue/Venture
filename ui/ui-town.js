@@ -29,490 +29,304 @@ function hasMaterials(materials, checkBank = true) {
     return true;
 }
 
+/**
+ * Renders the unified navigation tabs for Town Services.
+ * @param {string} activeTab - The ID of the currently active tab (merchant, bank, crafting, trainer).
+ * @param {HTMLElement} container - The container element to prepend the navigation to.
+ */
+function renderTownNavigation(activeTab, container) {
+    const navBar = document.createElement('div');
+    navBar.className = 'town-nav-bar';
+
+    const tabs = [
+        { id: 'merchant', label: '🏪 Merchant', render: renderMerchant },
+        { id: 'bank', label: '🏦 Bank', render: renderBankInterface },
+        { id: 'crafting', label: '⚒️ Crafting', render: renderCrafting },
+        { id: 'trainer', label: '⚔️ Trainer', render: renderTrainer }
+    ];
+
+    tabs.forEach(tab => {
+        const btn = document.createElement('button');
+        btn.className = `btn btn-sm ${activeTab === tab.id ? 'btn-primary' : ''}`;
+        btn.textContent = tab.label;
+        btn.onclick = () => {
+            // Re-render the specific view. 
+            // Since our render functions create new Modals contents, 
+            // we just call the function which will replace the modal content.
+            tab.render(); 
+        };
+        navBar.appendChild(btn);
+    });
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'btn btn-sm btn-danger';
+    closeBtn.textContent = '❌ Close';
+    closeBtn.style.marginLeft = 'auto'; // Push to right
+    closeBtn.onclick = hideModal;
+    navBar.appendChild(closeBtn);
+
+    container.insertBefore(navBar, container.firstChild);
+}
+
 // --- RENDER FUNCTIONS ---
 
 export function renderBankInterface() {
-    // Create a container to pass to showModal
     const container = document.createElement('div');
     container.className = 'bank-ui-container';
     
-    container.innerHTML = `
-        <div class="bank-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h2>Bank Vault</h2>
-            <div style="display: flex; gap: 10px;">
-                <button id="consolidate-btn" class="btn btn-sm btn-primary">Consolidate</button>
-                <button id="close-bank-btn" class="btn btn-sm btn-danger">X</button>
-            </div>
+    // Add Navigation
+    renderTownNavigation('bank', container);
+    
+    const contentWrapper = document.createElement('div');
+    contentWrapper.innerHTML = `
+        <div class="bank-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3>Bank Vault (${gameState.bank.length} items)</h3>
+            <button class="btn btn-sm" id="consolidate-bank-btn">Consolidate Stacks</button>
         </div>
-        <div id="bank-content-area"></div>
+        <div class="bank-grid" id="bank-grid-display"></div>
     `;
     
-    // --- 1. Render Bank Grid Logic ---
-    const bankItems = [...gameState.bank].sort((a, b) => a.name.localeCompare(b.name));
-    const itemsPerPage = 24;
-    const totalPages = Math.ceil(bankItems.length / itemsPerPage) || 1;
-    if (bankCurrentPage > totalPages) bankCurrentPage = totalPages;
-
-    const bankGrid = document.createElement('div');
-    bankGrid.className = 'inventory-grid';
-    const startIndex = (bankCurrentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const pageItems = bankItems.slice(startIndex, endIndex);
-
-    for (let i = 0; i < itemsPerPage; i++) {
-        const slot = document.createElement('div');
-        slot.className = 'inventory-item';
-        const item = pageItems[i];
-        if (item) {
-            slot.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div><div class="item-quantity">${item.quantity || 1}</div>`;
-            slot.dataset.bankAction = 'withdraw';
-            const originalIndex = gameState.bank.findIndex(bankItem => bankItem.name === item.name);
-            slot.dataset.index = originalIndex;
-            slot.onmouseover = () => showTooltip(`<strong>${item.name}</strong><br>${item.description}<br><br>Click to Withdraw 1`);
-            slot.onmouseout = () => hideTooltip();
-        } else {
-            slot.classList.add('empty');
+    // Populate Grid
+    const grid = contentWrapper.querySelector('#bank-grid-display');
+    
+    gameState.bank.forEach((item, index) => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'inventory-item';
+        
+        let itemHtml = `<strong>${item.name}</strong>`;
+        if (item.quantity && item.quantity > 1) {
+            itemHtml += `<span class="item-quantity">${item.quantity}</span>`;
         }
-        bankGrid.appendChild(slot);
+        itemHtml += `<div style="font-size: 0.7em; margin-top: 5px;">(Withdraw)</div>`;
+        
+        itemEl.innerHTML = itemHtml;
+        itemEl.onclick = () => Network.emitPlayerAction('withdrawBankItem', { index });
+        
+        // Tooltip
+        itemEl.addEventListener('mouseenter', () => showTooltip(`<strong>${item.name}</strong><br>${item.description || ''}`));
+        itemEl.addEventListener('mouseleave', hideTooltip);
+
+        grid.appendChild(itemEl);
+    });
+
+    if (gameState.bank.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #888; padding: 20px;">Your bank is empty.</div>';
+    }
+
+    container.appendChild(contentWrapper);
+
+    // Bind Consolidate
+    const consolidateBtn = contentWrapper.querySelector('#consolidate-bank-btn');
+    if(consolidateBtn) {
+        consolidateBtn.onclick = () => Network.emitPlayerAction('consolidateBank', {});
     }
     
-    const contentArea = container.querySelector('#bank-content-area');
-    contentArea.appendChild(bankGrid);
-
-    if (totalPages > 1) {
-        const paginationControls = document.createElement('div');
-        paginationControls.className = 'pagination-controls';
-        paginationControls.style.marginTop = '10px';
-        paginationControls.innerHTML = `
-            <button id="bank-prev-btn" class="btn btn-sm" ${bankCurrentPage === 1 ? 'disabled' : ''}>Prev</button>
-            <span style="margin: 0 10px;">Page ${bankCurrentPage} / ${totalPages}</span>
-            <button id="bank-next-btn" class="btn btn-sm" ${bankCurrentPage === totalPages ? 'disabled' : ''}>Next</button>
-        `;
-        contentArea.appendChild(paginationControls);
-
-        paginationControls.querySelector('#bank-prev-btn').onclick = () => {
-            if (bankCurrentPage > 1) {
-                bankCurrentPage--;
-                renderBankInterface(); // Re-render logic
-            }
-        };
-        paginationControls.querySelector('#bank-next-btn').onclick = () => {
-            if (bankCurrentPage < totalPages) {
-                bankCurrentPage++;
-                renderBankInterface();
-            }
-        };
-    }
-    
-    // Render Player Inventory Helper
-    renderPlayerInventoryPanel(contentArea, 'deposit');
-
-    // Show Modal in WIDE mode
     showModal(container, 'modal-wide');
-
-    // Bind Close Button
-    document.getElementById('close-bank-btn').onclick = hideModal;
-    document.getElementById('consolidate-btn').onclick = () => {
-        Network.emitPlayerAction('consolidateBank');
-    };
-}
-
-function renderPlayerInventoryPanel(parentContainer, mode) {
-    const panel = document.createElement('div');
-    panel.className = 'player-inventory-panel';
-    panel.style.marginTop = '20px';
-    panel.style.borderTop = '1px solid #555';
-    panel.style.paddingTop = '10px';
-
-    let title = '';
-    let action = '';
-    if (mode === 'deposit') {
-        title = 'Your Inventory (Click to Deposit)';
-        action = 'deposit';
-    } else if (mode === 'sell') {
-        title = 'Your Items to Sell';
-        action = 'sell';
-    }
-    panel.innerHTML = `<h3>${title}</h3>`;
-
-    const inventoryGrid = document.createElement('div');
-    inventoryGrid.className = 'inventory-grid';
-
-    for (let i = 0; i < 24; i++) {
-        const slot = document.createElement('div');
-        slot.className = 'inventory-item';
-        const item = gameState.inventory[i];
-        if (item) {
-            slot.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div><div class="item-quantity">${item.quantity || ''}</div>`;
-            slot.dataset.inventoryAction = action;
-            slot.dataset.index = i;
-            
-            let tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
-            if (mode === 'sell' && item.price) {
-                const sellPrice = Math.floor(item.price / 2) || 1;
-                tooltipContent += `<hr style="margin: 5px 0;">Sell Price: ${sellPrice}g`;
-            }
-            slot.addEventListener('mouseover', () => showTooltip(tooltipContent));
-            slot.addEventListener('mouseout', () => hideTooltip());
-        } else {
-            slot.classList.add('empty');
-        }
-        inventoryGrid.appendChild(slot);
-    }
-
-    panel.appendChild(inventoryGrid);
-    parentContainer.appendChild(panel);
 }
 
 export function renderMerchant() {
     const container = document.createElement('div');
-    container.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h2>Merchant's Shop</h2>
-            <button id="close-merchant-btn" class="btn btn-sm btn-danger">Leave</button>
+    
+    // Add Navigation
+    renderTownNavigation('merchant', container);
+
+    const contentWrapper = document.createElement('div');
+    contentWrapper.innerHTML = `
+        <div style="text-align: center; margin-bottom: 10px;">
+            <p>Welcome! Stock refreshes in <span id="merchant-timer">--</span>s.</p>
+            <p>Your Gold: <span style="color: gold; font-weight: bold;">${gameState.gold}</span></p>
         </div>
-        <p>Your Gold: <span id="gold-display">${gameState.gold}</span> | Restock in: <span id="restock-timer">10:00</span></p>
-        <hr>
-        <div class="storage-grid" style="display: flex; gap: 20px;">
-            <div id="merchant-wares-container" style="flex: 1;"></div>
-            <div id="merchant-sell-container" style="flex: 1; border-left: 1px solid #555; padding-left: 20px;"></div>
-        </div>
+        <div class="inventory-grid" id="merchant-grid"></div>
+        <hr style="margin: 15px 0; border-color: #444;">
+        <h3>Sell Items</h3>
+        <div class="inventory-grid" id="sell-grid"></div>
     `;
-    
-    const waresContainer = container.querySelector('#merchant-wares-container');
-    const sellContainer = container.querySelector('#merchant-sell-container');
 
-    const permanentStock = gameData.allItems.filter(item => item.type === 'tool' || item.name === 'Spices');
-    const rotatingStock = gameState.merchantStock || [];
-    
-    // Permanent Stock
-    const permanentHeader = document.createElement('h3');
-    permanentHeader.textContent = 'Permanent Stock';
-    waresContainer.appendChild(permanentHeader);
-
-    const permanentGrid = document.createElement('div');
-    permanentGrid.className = 'inventory-grid';
-    permanentStock.forEach(item => {
+    // Buy Grid
+    const buyGrid = contentWrapper.querySelector('#merchant-grid');
+    gameState.merchantStock.forEach(item => {
         const itemEl = document.createElement('div');
         itemEl.className = 'inventory-item';
-        itemEl.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div>`;
-        itemEl.dataset.buyItem = item.name;
-        itemEl.dataset.permanent = 'true';
-        
-        itemEl.addEventListener('mouseover', () => showTooltip(`<strong>${item.name}</strong> (${item.price}g)<br>${item.description}<br><br>Click to Buy`));
-        itemEl.addEventListener('mouseout', () => hideTooltip());
-
-        if (gameState.gold < item.price) {
-            itemEl.classList.add('disabled');
-        }
-        permanentGrid.appendChild(itemEl);
+        itemEl.innerHTML = `
+            <div style="font-size: 1.5em;">${item.icon || '📦'}</div>
+            <strong>${item.name}</strong>
+            <div style="color: gold; font-size: 0.9em;">${item.price}g</div>
+        `;
+        itemEl.onclick = () => Network.emitPlayerAction('buyItem', { identifier: item.name, isPermanent: false });
+        itemEl.addEventListener('mouseenter', () => showTooltip(`<strong>${item.name}</strong><br>${item.description}<br>Price: ${item.price}g`));
+        itemEl.addEventListener('mouseleave', hideTooltip);
+        buyGrid.appendChild(itemEl);
     });
-    waresContainer.appendChild(permanentGrid);
-    
-    // Rotating Wares
-    const rotatingHeader = document.createElement('h3');
-    rotatingHeader.textContent = 'Rotating Wares';
-    rotatingHeader.style.marginTop = '20px';
-    waresContainer.appendChild(rotatingHeader);
 
-    const rotatingGrid = document.createElement('div');
-    rotatingGrid.className = 'inventory-grid';
-     if (rotatingStock.length > 0) {
-        rotatingStock.forEach((item, index) => {
-            const itemEl = document.createElement('div');
-            itemEl.className = 'inventory-item';
-            itemEl.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div><div class="item-quantity">${item.quantity}</div>`;
-            itemEl.dataset.buyItem = index;
-            itemEl.dataset.permanent = 'false';
+    // Sell Grid
+    const sellGrid = contentWrapper.querySelector('#sell-grid');
+    gameState.inventory.forEach((item, index) => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'inventory-item';
+        if (item) {
+            const sellPrice = Math.floor(item.price ? item.price / 2 : 1);
+            let qty = item.quantity > 1 ? `<span class="item-quantity">${item.quantity}</span>` : '';
+            itemEl.innerHTML = `
+                <div style="font-size: 1.5em;">${item.icon || '🎒'}</div>
+                <strong>${item.name}</strong>
+                ${qty}
+                <div style="color: gold; font-size: 0.8em;">Sell: ${sellPrice}g</div>
+            `;
+            itemEl.onclick = () => Network.emitPlayerAction('sellItem', { itemIndex: index });
+            itemEl.addEventListener('mouseenter', () => showTooltip(`<strong>${item.name}</strong><br>Sell for ${sellPrice}g?`));
+            itemEl.addEventListener('mouseleave', hideTooltip);
+        } else {
+            itemEl.style.opacity = 0.3;
+            itemEl.innerHTML = '<small>Empty</small>';
+        }
+        sellGrid.appendChild(itemEl);
+    });
 
-            itemEl.addEventListener('mouseover', () => showTooltip(`<strong>${item.name}</strong> (${item.price}g)<br>${item.description}<br><br>Click to Buy`));
-            itemEl.addEventListener('mouseout', () => hideTooltip());
-
-            if (gameState.gold < item.price || item.quantity <= 0) {
-                itemEl.classList.add('disabled');
-            }
-            rotatingGrid.appendChild(itemEl);
-        });
-    }
-    waresContainer.appendChild(rotatingGrid);
-
-    // Player Inventory Panel (for selling)
-    renderPlayerInventoryPanel(sellContainer, 'sell');
-
-    // Show Modal in WIDE Mode
+    container.appendChild(contentWrapper);
     showModal(container, 'modal-wide');
-    
-    // Bind Timer & Close
-    document.getElementById('close-merchant-btn').onclick = hideModal;
 
+    // Timer Logic
     if (merchantTimerInterval) clearInterval(merchantTimerInterval);
-    merchantTimerInterval = setInterval(updateRestockTimer, 1000);
-    updateRestockTimer();
-}
-
-export function updateRestockTimer() {
-    const TEN_MINUTES = 10 * 60 * 1000;
-    const timerEl = document.getElementById('restock-timer');
-    if (!timerEl || !gameState.merchantLastStocked) return;
-
-    const timePassed = Date.now() - gameState.merchantLastStocked;
-    const timeRemaining = TEN_MINUTES - timePassed;
-
-    if (timeRemaining <= 0) {
-        timerEl.textContent = '00:00';
-        if (merchantTimerInterval) {
-            clearInterval(merchantTimerInterval);
-            merchantTimerInterval = null;
-        }
-    } else {
-        const minutes = Math.floor(timeRemaining / 60000);
-        const seconds = Math.floor((timeRemaining % 60000) / 1000);
-        timerEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    }
-}
-
-export function showSellConfirmationModal(itemIndex) {
-    const item = gameState.inventory[itemIndex];
-    if (!item) return;
-
-    const sellPrice = Math.floor(item.price / 2) || 1;
-
-    const modalContent = `
-        <h2>Confirm Sell</h2>
-        <div class="item-icon" style="font-size: 3em; margin: 10px;">${item.icon || '❓'}</div>
-        <p>Sell 1x ${item.name} for ${sellPrice} Gold?</p>
-        <div class="action-buttons">
-            <button id="confirm-sell-btn" class="btn btn-success">Sell</button>
-            <button id="cancel-sell-btn" class="btn btn-danger">Cancel</button>
-        </div>
-    `;
-    
-    // Standard modal (not wide) is fine here
-    showModal(modalContent);
-
-    document.getElementById('confirm-sell-btn').addEventListener('click', () => {
-        Network.emitPlayerAction('sellItem', { itemIndex });
-        hideModal(); // Close confirmation
-        // Re-open Merchant to update views
-        setTimeout(renderMerchant, 100); 
-    });
-
-    document.getElementById('cancel-sell-btn').addEventListener('click', () => {
-        renderMerchant(); // Go back to merchant view
-    });
+    const updateTimer = () => {
+        const timerEl = document.getElementById('merchant-timer');
+        if (!timerEl) return clearInterval(merchantTimerInterval);
+        const now = Date.now();
+        const nextRestock = gameState.merchantLastStocked + (5 * 60 * 1000); // 5 mins
+        const diff = Math.max(0, Math.ceil((nextRestock - now) / 1000));
+        timerEl.textContent = diff;
+        if (diff <= 0) Network.emitPlayerAction('viewMerchant', {}); // Refresh
+    };
+    updateTimer();
+    merchantTimerInterval = setInterval(updateTimer, 1000);
 }
 
 export function renderCrafting() {
-    // Create container for ShowModal
     const container = document.createElement('div');
-    container.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h2>Crafting Bench</h2>
-            <button id="close-crafting-btn" class="btn btn-sm btn-danger">Close</button>
-        </div>
-        <div class="tabs" id="crafting-categories"></div>
-        <div id="crafting-grid" class="crafting-grid" style="max-height: 500px; overflow-y: auto;"></div>
-    `;
-
-    const categoriesContainer = container.querySelector('#crafting-categories');
-    const gridContainer = container.querySelector('#crafting-grid');
     
+    // Add Navigation
+    renderTownNavigation('crafting', container);
+
     const categories = [...new Set(gameData.craftingRecipes.map(r => r.category))];
     
-    categories.forEach(category => {
-        const tab = document.createElement('button');
-        tab.className = `category-tab ${activeCraftingCategory === category ? 'active' : ''}`;
-        tab.textContent = category;
-        tab.onclick = () => {
-            activeCraftingCategory = category;
-            renderCrafting(); // Re-render to update grid
+    // Category Tabs
+    const catTabs = document.createElement('div');
+    catTabs.style.cssText = "display: flex; gap: 5px; margin-bottom: 10px; overflow-x: auto; padding-bottom: 5px;";
+    categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = `btn btn-sm ${activeCraftingCategory === cat ? 'btn-primary' : ''}`;
+        btn.textContent = cat;
+        btn.onclick = () => {
+            activeCraftingCategory = cat;
+            renderCrafting(); // Re-render current modal
         };
-        categoriesContainer.appendChild(tab);
+        catTabs.appendChild(btn);
     });
+    container.appendChild(catTabs);
 
-    const recipesToDisplay = gameData.craftingRecipes.filter(r => r.category === activeCraftingCategory);
+    const grid = document.createElement('div');
+    grid.className = 'crafting-grid';
 
-    recipesToDisplay.forEach((recipe, index) => {
-        if (recipe.requiresDiscovery && !gameState.knownRecipes.includes(recipe.result.name)) {
-            return;
-        }
+    const recipes = gameData.craftingRecipes.filter(r => r.category === activeCraftingCategory);
+    
+    recipes.forEach((recipe, index) => {
+        // Find actual index in global array for the emit
+        const globalIndex = gameData.craftingRecipes.indexOf(recipe);
+        const hasMats = hasMaterials(recipe.materials);
+        const known = !recipe.requiresDiscovery || gameState.knownRecipes.includes(recipe.result.name);
 
-        const recipeEl = document.createElement('div');
-        recipeEl.className = 'crafting-item';
+        if (!known) return;
+
+        const itemEl = document.createElement('div');
+        itemEl.className = 'crafting-item';
+        itemEl.style.opacity = hasMats ? '1' : '0.5';
         
-        let materialsList = '<ul>';
-        for (const material in recipe.materials) {
-            materialsList += `<li>${recipe.materials[material]}x ${material}</li>`;
-        }
-        materialsList += '</ul>';
+        // Build Mat List for Tooltip
+        let matList = '';
+        for(let m in recipe.materials) { matList += `${m}: ${recipe.materials[m]}, `; }
 
-        const canCraft = hasMaterials(recipe.materials);
-        const resultItem = gameData.allItems.find(i => i.name === recipe.result.name);
-
-        recipeEl.innerHTML = `
-            <div class="crafting-item-header">
-                <div class="item-icon">${resultItem.icon || '❓'}</div>
-                <h4>${recipe.result.quantity || 1}x ${recipe.result.name}</h4>
-            </div>
-            <p>Requires:</p>
-            ${materialsList}
-            <button class="btn btn-success" data-craft-index="${gameData.craftingRecipes.indexOf(recipe)}" ${!canCraft ? 'disabled' : ''}>Craft</button>
+        itemEl.innerHTML = `
+            <strong>${recipe.result.name}</strong>
+            <small>${hasMats ? 'Ready' : 'Missing Mats'}</small>
         `;
         
-        recipeEl.addEventListener('mousemove', (e) => {
-            if (e.altKey) {
-                let breakdown = `<strong>${resultItem.name}</strong><br>${resultItem.description}`;
-                if (resultItem.bonus) {
-                    breakdown += '<hr style="margin: 5px 0;"><strong>Bonuses:</strong><br>';
-                    for (const stat in resultItem.bonus) {
-                        breakdown += `${stat.charAt(0).toUpperCase() + stat.slice(1)}: +${resultItem.bonus[stat]}<br>`;
-                    }
-                }
-                if (resultItem.type === 'weapon') {
-                    breakdown += `<hr style="margin: 5px 0;"><strong>Ability:</strong><br>`;
-                    breakdown += `Cost: ${resultItem.cost} AP | CD: ${resultItem.cooldown}<br>`;
-                    const statName = (resultItem.stat || 'strength').charAt(0).toUpperCase() + (resultItem.stat || 'strength').slice(1);
-                    breakdown += `Roll: D20 + ${statName} (${resultItem.hit}+)<br>`;
-                }
-                showTooltip(breakdown);
-            }
-        });
-        recipeEl.addEventListener('mouseleave', () => hideTooltip());
+        if (hasMats) {
+            itemEl.onclick = () => Network.emitPlayerAction('craftItem', { recipeIndex: globalIndex });
+        }
         
-        // Bind craft click
-        const craftBtn = recipeEl.querySelector('button');
-        craftBtn.onclick = () => showCraftingModal(gameData.craftingRecipes.indexOf(recipe));
+        itemEl.addEventListener('mouseenter', () => showTooltip(`<strong>${recipe.result.name}</strong><br>Requires: ${matList}`));
+        itemEl.addEventListener('mouseleave', hideTooltip);
 
-        gridContainer.appendChild(recipeEl);
+        grid.appendChild(itemEl);
     });
-    
-    // Show Modal in WIDE mode
+
+    container.appendChild(grid);
     showModal(container, 'modal-wide');
-    document.getElementById('close-crafting-btn').onclick = hideModal;
-}
-
-export function showCraftingModal(recipeIndex) {
-    const recipe = gameData.craftingRecipes[recipeIndex];
-    const resultItem = gameData.allItems.find(i => i.name === recipe.result.name);
-
-    let maxCraftable = Infinity;
-    for (const materialName in recipe.materials) {
-        const requiredAmount = recipe.materials[materialName];
-        const playerAmount = (gameState.inventory.filter(i => i && i.name === materialName).reduce((sum, i) => sum + (i.quantity || 1), 0)) + 
-                             (gameState.bank.filter(i => i && i.name === materialName).reduce((sum, i) => sum + (i.quantity || 1), 0));
-        maxCraftable = Math.min(maxCraftable, Math.floor(playerAmount / requiredAmount));
-    }
-    
-    if (maxCraftable === 0) return;
-
-    const modalContent = document.createElement('div');
-    modalContent.innerHTML = `
-        <h2>Craft: ${resultItem.name}</h2>
-        <p>Select how many you want to craft.</p>
-        <div class="crafting-modal-controls">
-            <input type="range" id="craft-quantity-slider" min="1" max="${maxCraftable}" value="1">
-            <span id="craft-quantity-display">1</span>
-        </div>
-        <div class="action-buttons">
-            <button id="confirm-craft-btn" class="btn btn-success">Confirm</button>
-            <button id="cancel-craft-btn" class="btn btn-danger">Cancel</button>
-        </div>
-    `;
-
-    // Standard modal (overlay on top of wide modal)
-    // Actually showModal replaces content, so we temporarily switch.
-    showModal(modalContent);
-
-    const slider = modalContent.querySelector('#craft-quantity-slider');
-    const display = modalContent.querySelector('#craft-quantity-display');
-    const confirmBtn = modalContent.querySelector('#confirm-craft-btn');
-    const cancelBtn = modalContent.querySelector('#cancel-craft-btn');
-
-    slider.addEventListener('input', () => {
-        display.textContent = slider.value;
-    });
-
-    confirmBtn.addEventListener('click', () => {
-        const quantity = parseInt(slider.value, 10);
-        Network.emitPlayerAction('craftItem', { recipeIndex, quantity });
-        // Return to crafting menu
-        setTimeout(renderCrafting, 100);
-    });
-
-    cancelBtn.addEventListener('click', () => {
-        renderCrafting();
-    });
 }
 
 export function renderTrainer() {
     const container = document.createElement('div');
-    container.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-             <h2>Skill Trainer</h2>
-             <button id="close-trainer-btn" class="btn btn-sm btn-danger">Close</button>
-        </div>
-        <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 15px;">
-             <div class="tabs" id="trainer-categories" style="margin-bottom:0;"></div>
-             <div>Gold: <span id="trainer-gold" style="color: gold; font-weight:bold;">${gameState.gold}</span></div>
-        </div>
-        <div id="trainer-grid" class="trainer-grid"></div>
-    `;
+    
+    // Add Navigation
+    renderTownNavigation('trainer', container);
 
-    const categoriesContainer = container.querySelector('#trainer-categories');
-    const gridContainer = container.querySelector('#trainer-grid');
-
-    const categories = [...new Set(gameData.allSpells.filter(s => s.price > 0).map(s => s.school))];
-
-    categories.forEach(category => {
-        const tab = document.createElement('button');
-        tab.className = `category-tab ${activeTrainerCategory === category ? 'active' : ''}`;
-        tab.textContent = category;
-        tab.onclick = () => {
-            activeTrainerCategory = category;
+    const schools = ['Physical', 'Fire', 'Holy', 'Arcane'];
+    
+    const schoolTabs = document.createElement('div');
+    schoolTabs.style.cssText = "display: flex; gap: 5px; margin-bottom: 10px;";
+    schools.forEach(school => {
+        const btn = document.createElement('button');
+        btn.className = `btn btn-sm ${activeTrainerCategory === school ? 'btn-primary' : ''}`;
+        btn.textContent = school;
+        btn.onclick = () => {
+            activeTrainerCategory = school;
             renderTrainer();
         };
-        categoriesContainer.appendChild(tab);
+        schoolTabs.appendChild(btn);
     });
+    container.appendChild(schoolTabs);
+
+    const grid = document.createElement('div');
+    grid.className = 'trainer-grid';
 
     const spellsToDisplay = gameData.allSpells.filter(s => s.school === activeTrainerCategory && s.price > 0);
 
     spellsToDisplay.forEach(spell => {
         const spellEl = document.createElement('div');
         spellEl.className = 'trainer-item';
+        spellEl.style.flexDirection = 'column';
+        spellEl.style.alignItems = 'stretch';
+        spellEl.style.padding = '10px';
+        spellEl.style.aspectRatio = 'auto'; // Override square for trainer list
 
         const knowsSpell = gameState.spellbook.some(s => s.name === spell.name) || gameState.equippedSpells.some(s => s.name === spell.name);
         const canAfford = gameState.gold >= spell.price;
 
-        let buttonHTML = `<button class="btn btn-success" data-spell-name="${spell.name}" ${knowsSpell || !canAfford ? 'disabled' : ''}>Learn (${spell.price}g)</button>`;
+        let buttonHTML = `<button class="btn btn-sm btn-success" style="width: 100%; margin-top: 5px;">Learn (${spell.price}g)</button>`;
         if (knowsSpell) {
-            buttonHTML = `<button class="btn" disabled>Already Known</button>`;
+            buttonHTML = `<button class="btn btn-sm" disabled style="width: 100%; margin-top: 5px;">Learned</button>`;
+        } else if (!canAfford) {
+            buttonHTML = `<button class="btn btn-sm" disabled style="width: 100%; margin-top: 5px;">Need Gold</button>`;
         }
 
         spellEl.innerHTML = `
-            <h4>${spell.icon || '✨'} ${spell.name}</h4>
-            <p>${spell.description}</p>
-            ${buttonHTML}
+            <div style="display:flex; justify-content:space-between;">
+                <strong>${spell.icon || '✨'} ${spell.name}</strong>
+            </div>
+            <small style="color:#aaa; display:block; margin: 5px 0;">${spell.description}</small>
         `;
         
-        // Bind click
-        const btn = spellEl.querySelector('button');
-        if(!btn.disabled) {
-            btn.onclick = () => {
-                Network.emitPlayerAction('buySpell', { spellName: spell.name });
-            };
+        const btnContainer = document.createElement('div');
+        btnContainer.innerHTML = buttonHTML;
+        const btn = btnContainer.querySelector('button');
+        
+        if (!knowsSpell && canAfford) {
+            btn.onclick = () => Network.emitPlayerAction('buySpell', { spellName: spell.name });
         }
         
-        gridContainer.appendChild(spellEl);
+        spellEl.appendChild(btnContainer);
+        grid.appendChild(spellEl);
     });
     
+    container.appendChild(grid);
     showModal(container, 'modal-wide');
-    document.getElementById('close-trainer-btn').onclick = hideModal;
-}
-
-export function setActiveCraftingCategory(category) {
-    activeCraftingCategory = category;
-}
-
-export function setActiveTrainerCategory(category) {
-    activeTrainerCategory = category;
 }
