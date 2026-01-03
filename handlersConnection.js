@@ -6,68 +6,11 @@
  * Now includes logic to save player data to a file on disconnect.
  */
 
-import { players, parties, duels } from './serverState.js';
-import { gameData } from './data/index.js';
+import { players, parties, duels, createInitialCharacter } from './serverState.js';
 import { broadcastOnlinePlayers, broadcastPartyUpdate, broadcastDuelUpdate } from './utilsBroadcast.js';
 import { endDuel } from './handlersDuel.js';
 import fs from 'fs';
 import { DUEL_DISCONNECT_MS } from './constants.js';
-
-function createInitialCharacter(characterName, characterIcon) {
-    return {
-        characterName: characterName,
-        characterIcon: characterIcon,
-        title: "The Novice",
-        unlockedTitles: ["The Novice"],
-        health: 10,
-        maxHealth: 10,
-        shield: 0,
-        wisdom: 0,
-        strength: 0,
-        agility: 0,
-        defense: 0,
-        luck: 0,
-        physicalResistance: 0,
-        mining: 0,
-        fishing: 0,
-        woodcutting: 0,
-        harvesting: 0,
-        gold: 300,
-        questPoints: 0,
-        actionPoints: 3,
-        focus: 0,
-        inventory: Array(24).fill(null),
-        bank: [],
-        buffs: [],
-        playerDebuffs: [],
-        equippedSpells: [
-            gameData.allSpells.find(s => s.name === 'Punch'),
-            gameData.allSpells.find(s => s.name === 'Kick'),
-            gameData.allSpells.find(s => s.name === 'Dodge')
-        ].filter(Boolean).map(s => ({ ...s })),
-        spellbook: [],
-        knownRecipes: [],
-        equipment: {
-            mainHand: { ...gameData.allItems.find(i => i.name === "Wooden Training Sword") },
-            offHand: null,
-            helmet: null,
-            armor: null,
-            boots: null,
-            accessory: null,
-            ammo: null
-        },
-        quests: [],
-        spellCooldowns: {},
-        weaponCooldowns: {},
-        itemCooldowns: {},
-        merchantStock: [],
-        merchantLastStocked: null,
-        cardDefeatTimes: {},
-        partyId: null,
-        duelId: null,
-    };
-}
-
 
 export const registerConnectionHandlers = (io, socket) => {
 

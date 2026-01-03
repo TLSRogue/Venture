@@ -75,14 +75,3 @@ export function useItemAbility(slot) {
     }
     Interactions.clearSelection();
 }
-
-// NOTE: All solo-play logic functions that were here previously have been removed.
-// This includes:
-// - runEnemyPhase()
-// - startPlayerTurn()
-// - checkEndOfPlayerTurn()
-// - processEnemyAction()
-// - awaitPlayerReaction()
-// - resolveReaction()
-// - defeatEnemy()
-// The server is now exclusively responsible for all of this logic.
