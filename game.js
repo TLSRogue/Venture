@@ -147,7 +147,7 @@ function handleCharacterUpdate(serverState) {
     document.querySelector('.game-container').style.display = 'block';
     UIMain.hideModal();
     UIPlayer.renderAll();
-    
+
     if (wasInParty && !gameState.partyId) {
         UIParty.renderPartyManagement(null);
     }
@@ -161,9 +161,9 @@ function handleLoadError(message) {
 
 function handlePartyUpdate(party) {
     if (gameState && gameState.characterName) {
-       gameState.partyId = party ? party.partyId : null;
-       gameState.partyMembers = party ? party.members : [];
-       gameState.isPartyLeader = party ? party.isPartyLeader : false;
+        gameState.partyId = party ? party.partyId : null;
+        gameState.partyMembers = party ? party.members : [];
+        gameState.isPartyLeader = party ? party.isPartyLeader : false;
     }
     UIParty.renderPartyManagement(party);
 }
@@ -179,7 +179,7 @@ function handleReceivePartyInvite({ inviterName, partyId }) {
 function handlePartyAdventureStarted(serverAdventureState) {
     if (serverAdventureState.pvpEncounterState) {
         // ** FIX: Ensure the entire state is updated, including the loading flag **
-        Object.assign(gameState, serverAdventureState); 
+        Object.assign(gameState, serverAdventureState);
         gameState.pvpEncounter = serverAdventureState.pvpEncounterState;
         gameState.log = serverAdventureState.pvpEncounterState.log;
         gameState.groundLoot = serverAdventureState.pvpEncounterState.groundLoot;
@@ -191,7 +191,7 @@ function handlePartyAdventureStarted(serverAdventureState) {
 
     UIMain.setTabsDisabled(true);
     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
-    document.getElementById('adventure-tab').style.display = 'flex'; 
+    document.getElementById('adventure-tab').style.display = 'flex';
 
     document.getElementById('main-stats-display').style.display = 'none';
     document.getElementById('adventure-hud').style.display = 'flex';
@@ -214,7 +214,7 @@ function handlePartyAdventureUpdate(serverAdventureState) {
         gameState.pendingReaction = serverAdventureState.pvpEncounterState.pendingReaction;
     } else {
         Object.assign(gameState, serverAdventureState);
-        gameState.pvpEncounter = null; 
+        gameState.pvpEncounter = null;
     }
 
     const reactionModalIsOpen = document.getElementById('reaction-buttons');
@@ -224,23 +224,23 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     if (reactionModalIsOpen && !isReactionPendingForMe) {
         UIMain.hideModal();
     }
-    
+
     const logContainer = document.getElementById('adventure-log');
     const existingLogCount = logContainer.children.length;
     const logSource = gameState.pvpEncounter ? gameState.pvpEncounter.log : serverAdventureState.log;
     const newLogEntries = logSource.slice(existingLogCount);
     const effectsToPlay = getEffectsFromLog(newLogEntries);
-    
+
     newLogEntries.reverse().forEach(entry => UIMain.addToLog(entry.message, entry.type));
-    
+
     UIAdventure.renderAdventureScreen();
     UIPlayer.updateDisplay();
-    UIAdventure.renderPlayerActionBars(); 
+    UIAdventure.renderPlayerActionBars();
 
     if (effectsToPlay.length > 0) {
         UIAdventure.playEffectQueue(effectsToPlay);
     }
-    
+
     updateLootRollUI(gameState.pendingLootRoll);
     updatePvpTurnTimerUI();
     updateWaitingBannerUI();
@@ -283,8 +283,13 @@ function updatePvpTurnTimerUI() {
 function updateWaitingBannerUI() {
     const banner = document.getElementById('waiting-for-reaction-banner');
     const pendingReaction = gameState.pvpEncounter ? gameState.pvpEncounter.pendingReaction : gameState.pendingReaction;
+
     if (pendingReaction && pendingReaction.targetName !== gameState.characterName) {
         banner.textContent = `Waiting for ${pendingReaction.targetName} to react...`;
+        banner.style.display = 'block';
+    } else if (gameState.isLoadingNextArea && !gameState.pvpEncounter) {
+        // Show banner when waiting in PVP zone queue for other players
+        banner.textContent = '⏳ Searching for other adventurers...';
         banner.style.display = 'block';
     } else {
         banner.style.display = 'none';
@@ -313,9 +318,9 @@ function handleDuelUpdate(duelState) {
 
     gameState.duelState = duelState;
     // ... rest of duel update logic ...
-    
+
     newLogEntries.reverse().forEach(entry => UIMain.addToLog(entry.message, entry.type));
-    
+
     UIAdventure.renderAdventureScreen();
     UIPlayer.updateDisplay();
     UIAdventure.renderPlayerActionBars();
@@ -338,10 +343,10 @@ function handleLootRollStarted(lootData) {
     const container = document.getElementById('loot-roll-container');
     const itemDisplay = document.getElementById('loot-item-display');
     const timerDisplay = document.getElementById('loot-timer-display');
-    
+
     const rarityColor = { common: '#fff', uncommon: '#2ecc71', rare: '#3498db', quest: '#9b59b6' }[lootData.item.rarity] || '#fff';
     itemDisplay.innerHTML = `<div class="item-icon">${lootData.item.icon || '❓'}</div> <span class="item-name" style="color: ${rarityColor};">[${lootData.item.name}]</span>`;
-    
+
     document.querySelectorAll('#loot-roll-container button').forEach(btn => btn.disabled = false);
     container.classList.remove('hidden');
 
@@ -361,7 +366,7 @@ function handleLootRollEnded() {
 
 function handlePvpFleeRequest({ fleeingPartyName }) {
     const message = `The opposing party has requested to flee the battle. Do you let them go?`;
-    
+
     const onYes = () => {
         Network.emitPartyAction({ type: 'resolvePvpFlee', payload: { allow: true } });
         UIMain.hideModal();
@@ -381,7 +386,7 @@ function updateLootRollUI(lootData) {
         if (!container.classList.contains('hidden')) handleLootRollEnded();
         return;
     }
-    
+
     if (container.classList.contains('hidden')) handleLootRollStarted(lootData);
 
     const rollList = document.getElementById('loot-roll-list');
@@ -413,7 +418,7 @@ function loadCharacterFromServer(slotIndex) {
 function deleteCharacter(slotIndex) {
     const characterSlots = JSON.parse(localStorage.getItem('ventureCharacterSlots') || '[null, null, null]');
     const charToDelete = characterSlots[slotIndex];
-    if(!charToDelete) return;
+    if (!charToDelete) return;
 
     UIMain.showConfirmationModal(`Are you sure you want to delete ${charToDelete.characterName}? This is permanent.`, () => {
         characterSlots[slotIndex] = null;
@@ -436,7 +441,7 @@ function finalizeCharacterCreation(slotIndex) {
     newGameState.characterName = characterName;
     newGameState.characterIcon = characterIcon;
     setGameState(newGameState);
-    activeSlotIndex = slotIndex; 
+    activeSlotIndex = slotIndex;
     Network.emitRegisterPlayer(gameState);
     UIMain.showModal('<h2>Creating character...</h2>');
 }
@@ -445,11 +450,11 @@ function finalizeCharacterCreation(slotIndex) {
 function addEventListeners() {
     document.body.addEventListener('click', (e) => {
         const target = e.target;
-        
+
         const lootButton = target.closest('#loot-roll-container button[data-choice]');
         if (lootButton) {
             const choice = lootButton.dataset.choice;
-            Network.emitPartyAction({ type: 'submitLootRoll', payload: { choice }});
+            Network.emitPartyAction({ type: 'submitLootRoll', payload: { choice } });
             document.querySelectorAll('#loot-roll-container button').forEach(btn => btn.disabled = true);
             return;
         }
@@ -527,7 +532,7 @@ function addEventListeners() {
             }
             return;
         }
-        
+
         const zoneCard = target.closest('#zone-cards .card');
         if (zoneCard) {
             if (gameState.pvpEncounter) {
@@ -543,13 +548,13 @@ function addEventListeners() {
         if (target.closest('#party-cards-container .card')) {
             const cardElement = target.closest('.card');
             if (cardElement.classList.contains('is-local-player')) return Interactions.interactWithPlayerCard();
-            
+
             const targetIdentifier = gameState.pvpEncounter ? cardElement.dataset.playerId : cardElement.dataset.index;
             return Interactions.interactWithCard(targetIdentifier);
         }
 
         const button = target.closest('button');
-        if(button) {
+        if (button) {
             if (button.id === 'ground-loot-btn') return UIAdventure.showGroundLootModal();
             if (button.id === 'consolidate-btn') return Network.emitPlayerAction('consolidateBank');
             if (button.id === 'create-party-btn') return Network.emitCreateParty();
@@ -588,7 +593,7 @@ function addEventListeners() {
             if (button.id === 'venture-deeper-arrow') return ventureDeeper(button);
             if (button.id === 'backpack-btn') return UIAdventure.showBackpack();
             if (button.id === 'character-sheet-btn') return UIAdventure.showCharacterSheet();
-            
+
             if (button.dataset.action === 'takeGroundLoot') return Player.takeGroundLoot(parseInt(button.dataset.index, 10));
 
             if (button.dataset.inventoryAction) {
@@ -609,7 +614,7 @@ function addEventListeners() {
 
             if (button.dataset.craftIndex) return UITown.showCraftingModal(parseInt(button.dataset.craftIndex, 10));
             if (button.dataset.spellName) return Merchant.buySpell(button.dataset.spellName);
-            
+
             if (button.closest('#player-action-bar')) {
                 const { action, actionData, spellIndex, slot } = button.dataset;
                 if (action === 'select') Interactions.selectAction(JSON.parse(actionData));
