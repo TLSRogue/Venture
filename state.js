@@ -34,7 +34,7 @@ export function getInitialGameState() {
         fishing: 0,
         woodcutting: 0,
         harvesting: 0,
-        gold: 200,
+        gold: 300,
         questPoints: 0,
         actionPoints: 3,
         focus: 0,
@@ -52,7 +52,8 @@ export function getInitialGameState() {
         spellbook: [],
         knownRecipes: [],
         equipment: {
-            mainHand: {...gameData.allItems.find(i => i.name === "Wooden Training Sword")
+            mainHand: {
+                ...gameData.allItems.find(i => i.name === "Wooden Training Sword")
             },
             offHand: null,
             helmet: null,

@@ -32,7 +32,7 @@ function createInitialCharacter(characterName, characterIcon) {
         fishing: 0,
         woodcutting: 0,
         harvesting: 0,
-        gold: 200,
+        gold: 300,
         questPoints: 0,
         actionPoints: 3,
         focus: 0,
@@ -44,11 +44,11 @@ function createInitialCharacter(characterName, characterIcon) {
             gameData.allSpells.find(s => s.name === 'Punch'),
             gameData.allSpells.find(s => s.name === 'Kick'),
             gameData.allSpells.find(s => s.name === 'Dodge')
-        ].filter(Boolean).map(s => ({...s})),
+        ].filter(Boolean).map(s => ({ ...s })),
         spellbook: [],
         knownRecipes: [],
         equipment: {
-            mainHand: {...gameData.allItems.find(i => i.name === "Wooden Training Sword")},
+            mainHand: { ...gameData.allItems.find(i => i.name === "Wooden Training Sword") },
             offHand: null,
             helmet: null,
             armor: null,
@@ -70,7 +70,7 @@ function createInitialCharacter(characterName, characterIcon) {
 
 
 export const registerConnectionHandlers = (io, socket) => {
-    
+
     const handlePlayerLogin = (characterDataFromClient) => {
         const name = characterDataFromClient.characterName;
 
@@ -85,7 +85,7 @@ export const registerConnectionHandlers = (io, socket) => {
             socket.disconnect();
             return;
         }
-        
+
         let characterToUpdate;
 
         if (players[name]) {
@@ -94,7 +94,7 @@ export const registerConnectionHandlers = (io, socket) => {
             players[name].id = socket.id;
             socket.characterName = name;
             characterToUpdate = players[name].character;
-            
+
             const duelId = characterToUpdate.duelId;
             if (duelId && duels[duelId] && duels[duelId].disconnectTimeout) {
                 console.log(`Player ${name} reconnected, cancelling duel termination for ${duelId}`);
@@ -124,7 +124,7 @@ export const registerConnectionHandlers = (io, socket) => {
                 socket.emit('party:adventureStarted', parties[partyId].sharedState);
             }
         }
-        
+
         broadcastOnlinePlayers(io);
     };
 
@@ -133,7 +133,7 @@ export const registerConnectionHandlers = (io, socket) => {
         const newCharacter = createInitialCharacter(characterData.characterName, characterData.characterIcon);
         handlePlayerLogin(newCharacter);
     });
-    
+
     socket.on('loadCharacter', (characterData) => {
         // When loading, we trust the data from localStorage.
         handlePlayerLogin(characterData);
@@ -173,8 +173,8 @@ export const registerConnectionHandlers = (io, socket) => {
                 duel.log.push({ message: `${name} has disconnected. The duel will end in 20 seconds...`, type: 'damage' });
                 broadcastDuelUpdate(io, duelId);
                 duel.disconnectTimeout = setTimeout(() => {
-                    if(duels[duelId] && !duels[duelId].ended) {
-                       endDuel(io, duelId, opponent.name, name);
+                    if (duels[duelId] && !duels[duelId].ended) {
+                        endDuel(io, duelId, opponent.name, name);
                     }
                 }, DUEL_DISCONNECT_MS);
             }

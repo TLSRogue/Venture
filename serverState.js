@@ -15,13 +15,13 @@ let dataWasMigrated = false;
 try {
     const data = fs.readFileSync('players.json', 'utf8');
     const savedPlayers = JSON.parse(data);
-    
+
     const newWarriorsMight = gameData.allSpells.find(s => s.name === "Warrior's Might");
 
     for (const characterName in savedPlayers) {
         if (savedPlayers.hasOwnProperty(characterName)) {
             const character = savedPlayers[characterName].character;
-            
+
             if (character.hasOwnProperty('playerDebuffs')) {
                 character.debuffs = character.playerDebuffs;
                 delete character.playerDebuffs;
@@ -63,7 +63,7 @@ try {
             };
         }
     }
-    
+
     if (dataWasMigrated) {
         fs.writeFileSync('players.json', JSON.stringify(players, null, 2));
         console.log('Successfully saved migrated player data to players.json.');
@@ -94,7 +94,7 @@ function createInitialCharacter(characterName, characterIcon) {
         fishing: 0,
         woodcutting: 0,
         harvesting: 0,
-        gold: 200,
+        gold: 300,
         questPoints: 0,
         actionPoints: 3,
         focus: 0,
@@ -106,11 +106,11 @@ function createInitialCharacter(characterName, characterIcon) {
             gameData.allSpells.find(s => s.name === 'Punch'),
             gameData.allSpells.find(s => s.name === 'Kick'),
             gameData.allSpells.find(s => s.name === 'Dodge')
-        ].filter(Boolean).map(s => ({...s})),
+        ].filter(Boolean).map(s => ({ ...s })),
         spellbook: [],
         knownRecipes: [],
         equipment: {
-            mainHand: {...gameData.allItems.find(i => i.name === "Wooden Training Sword")},
+            mainHand: { ...gameData.allItems.find(i => i.name === "Wooden Training Sword") },
             offHand: null,
             helmet: null,
             armor: null,
