@@ -623,7 +623,7 @@ export const allItems = [
         slot: "helmet",
         price: 200,
         bonus: { strength: 1, wisdom: 1, maxHealth: 2 },
-        description: "The crude but imposing crown of the Goblin King. It radiates authority.",
+        description: "The crude but imposing crown of the Goblin King. It radiates authority. +1 Str, +1 Wis, +2 Max HP.",
         icon: "👑",
         rarity: "rare",
         canBeInMerchantWares: false,
@@ -641,7 +641,7 @@ export const allItems = [
         damageType: "Physical",
         price: 250,
         onHit: { debuff: { type: 'daze', duration: 2 } },
-        description: "A heavy mace adorned with stolen trinkets. Dazes targets on hit.",
+        description: "A heavy mace adorned with stolen trinkets. 1 AP, 2 CD | D20+Str (10+) | Deals 4 Physical Damage. Dazes on hit.",
         icon: "🔨",
         rarity: "rare",
         canBeInMerchantWares: false,
@@ -679,7 +679,7 @@ export const allItems = [
         weaponDamage: 2,
         damageType: "Physical",
         price: 80,
-        description: "A compact bow favored by goblin archers. Faster but weaker than a longbow.",
+        description: "A compact bow favored by goblin archers. 1 AP, 1 CD | D20+Agi (10+) | Deals 2 Physical Damage.",
         icon: "🏹",
         rarity: "common",
         canBeInMerchantWares: false,
@@ -697,7 +697,7 @@ export const allItems = [
         damageType: "Physical",
         price: 90,
         onCrit: { debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' } },
-        description: "A brutal cleaver used by goblin warriors. Causes bleeding on critical hits.",
+        description: "A brutal cleaver used by goblin warriors. 1 AP, 2 CD | D20+Str (10+) | Deals 3 Physical Damage. On crit, applies Bleed.",
         icon: "🪓",
         rarity: "uncommon",
         canBeInMerchantWares: false,
@@ -716,5 +716,5 @@ export const allItems = [
 
 export const genericTreasureLoot = [
     { name: "Healing Potion" },
-    { name: "Gold Pouch", type: "consumable", price: 0, gold: 25, description: "A pouch containing 25 gold." }
+    { name: "Gold Pouch", type: "consumable", price: 0, gold: 25, description: "A pouch containing 25 gold. Open to receive your reward.", }
 ];
