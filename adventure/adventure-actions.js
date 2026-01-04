@@ -23,6 +23,21 @@ function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlaye
         availableReactions.push({ name: 'Block' });
     }
 
+    // Check for Evasive Shot reaction (requires bow, no heavy armor)
+    const evasiveShotSpell = defendingCharacter.equippedSpells.find(s => s.name === "Evasive Shot");
+    if (evasiveShotSpell && (defendingPlayerState.spellCooldowns[evasiveShotSpell.name] || 0) <= 0) {
+        const mainHand = defendingCharacter.equipment.mainHand;
+        if (mainHand && Array.isArray(evasiveShotSpell.requires?.weaponType) &&
+            evasiveShotSpell.requires.weaponType.includes(mainHand.weaponType)) {
+            let isWearingHeavy = Object.values(defendingCharacter.equipment).some(
+                item => item && item.traits && item.traits.includes('Heavy')
+            );
+            if (!isWearingHeavy) {
+                availableReactions.push({ name: 'Evasive Shot' });
+            }
+        }
+    }
+
     if (availableReactions.length > 0) {
         const timeRemaining = encounter.turnTimerEndsAt - Date.now();
         clearTimeout(encounter.turnTimerId);

@@ -6,9 +6,10 @@
  * Now includes logic to save player data to a file on disconnect.
  */
 
-import { players, parties, duels, createInitialCharacter } from './serverState.js';
+import { players, parties, duels, pvpEncounters, createInitialCharacter } from './serverState.js';
 import { broadcastOnlinePlayers, broadcastPartyUpdate, broadcastDuelUpdate } from './utilsBroadcast.js';
 import { endDuel } from './handlersDuel.js';
+import { handlePvpPlayerDeath } from './adventure/adventure-state.js';
 import fs from 'fs';
 import { DUEL_DISCONNECT_MS } from './constants.js';
 
