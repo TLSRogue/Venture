@@ -121,7 +121,7 @@ export const allItems = [
         rarity: "uncommon",
         canBeInMerchantWares: false, // Crafted only
     },
-    
+
     // --- Ammunition ---
     {
         name: "Iron Arrows",
@@ -186,7 +186,7 @@ export const allItems = [
         rarity: "common",
         canBeInMerchantWares: true,
     },
-    
+
     // --- Weapons ---
     {
         name: "Wooden Training Sword",
@@ -402,7 +402,7 @@ export const allItems = [
         rarity: "common",
         canBeInMerchantWares: true,
     },
-    
+
     // --- Armor & Accessories ---
     {
         name: "Bull Horn",
@@ -600,7 +600,7 @@ export const allItems = [
         rarity: "common",
         canBeInMerchantWares: true,
     },
-    
+
     // --- Materials ---
     { name: "Iron", type: "material", price: 10, description: "A chunk of raw iron.", icon: "🪨", rarity: "common", canBeInMerchantWares: true, },
     { name: "Wood", type: "material", price: 5, description: "A sturdy log of wood.", icon: "🪵", rarity: "common", canBeInMerchantWares: true, },
@@ -614,6 +614,96 @@ export const allItems = [
     { name: "Steel Bar", type: "material", price: 50, description: "A strong metal bar.", icon: "🔗", rarity: "uncommon", canBeInMerchantWares: false, },
     { name: "Spices", type: "material", price: 10, description: "A blend of savory spices.", icon: "🌶️", stackable: 200, rarity: "common", canBeInMerchantWares: true, },
     { name: "Cloth", type: "material", price: 8, description: "A piece of rough cloth.", icon: "📜", rarity: "common", canBeInMerchantWares: true, },
+    { name: "Gold Nugget", type: "material", price: 50, description: "A small but valuable nugget of pure gold.", icon: "🪙", rarity: "uncommon", canBeInMerchantWares: false, },
+
+    // --- Goblin Loot Items ---
+    {
+        name: "Gorbon's Crown",
+        type: "armor",
+        slot: "helmet",
+        price: 200,
+        bonus: { strength: 1, wisdom: 1, maxHealth: 2 },
+        description: "The crude but imposing crown of the Goblin King. It radiates authority.",
+        icon: "👑",
+        rarity: "rare",
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Gorbon's Royal Mace",
+        type: "weapon",
+        slot: "mainHand",
+        cost: 1,
+        cooldown: 2,
+        stat: "strength",
+        hit: 10,
+        weaponType: "Mace",
+        weaponDamage: 4,
+        damageType: "Physical",
+        price: 250,
+        onHit: { debuff: { type: 'daze', duration: 2 } },
+        description: "A heavy mace adorned with stolen trinkets. Dazes targets on hit.",
+        icon: "🔨",
+        rarity: "rare",
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Shaman's Fetish",
+        type: "accessory",
+        slot: "accessory",
+        price: 100,
+        bonus: { wisdom: 2 },
+        description: "A strange totem that enhances magical power. +2 Wisdom.",
+        icon: "🪬",
+        rarity: "uncommon",
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Arrow Bundle",
+        type: "material",
+        price: 15,
+        description: "A bundle of crude goblin arrows.",
+        icon: "➡️",
+        rarity: "common",
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Archer's Shortbow",
+        type: "weapon",
+        slot: "mainHand",
+        hands: 2,
+        cost: 1,
+        cooldown: 1,
+        stat: "agility",
+        hit: 10,
+        weaponType: "Two-Hand Bow",
+        weaponDamage: 2,
+        damageType: "Physical",
+        price: 80,
+        description: "A compact bow favored by goblin archers. Faster but weaker than a longbow.",
+        icon: "🏹",
+        rarity: "common",
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Warrior's Cleaver",
+        type: "weapon",
+        slot: "mainHand",
+        cost: 1,
+        cooldown: 2,
+        stat: "strength",
+        hit: 10,
+        weaponType: "One-Hand Axe",
+        weaponDamage: 3,
+        damageType: "Physical",
+        price: 90,
+        onCrit: { debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' } },
+        description: "A brutal cleaver used by goblin warriors. Causes bleeding on critical hits.",
+        icon: "🪓",
+        rarity: "uncommon",
+        canBeInMerchantWares: false,
+    },
+
+    { name: "Goblin Head", type: "material", price: 30, description: "A gruesome trophy.", icon: "💀", rarity: "common", canBeInMerchantWares: false, },
     { name: "Egg", type: "material", price: 5, description: "A fresh egg.", icon: "🥚", rarity: "common", canBeInMerchantWares: false, },
     { name: "Raw Chicken", type: "material", price: 8, description: "Uncooked chicken meat.", icon: "🍗", rarity: "common", canBeInMerchantWares: false, },
     { name: "Milk", type: "material", price: 6, description: "A bottle of fresh milk.", icon: "🥛", rarity: "common", canBeInMerchantWares: false, },
