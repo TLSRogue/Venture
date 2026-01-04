@@ -123,6 +123,10 @@ export async function processWeaponAttack(io, party, player, payload) {
         const statValue = (character[stat] || 0) + (bonuses[stat] || 0);
         const dazeDebuff = actingPlayerState.debuffs.find(d => d.type === 'daze');
         const dazeModifier = dazeDebuff ? -3 : 0;
+
+        // Emit dice roll to party so clients can show anticipatory animation
+        emitDiceRollToParty(io, party, `${character.characterName} attacks...`);
+
         const roll = Math.floor(Math.random() * 20) + 1;
         const total = roll + statValue + dazeModifier;
         const hitTarget = weapon.hit || 15;
@@ -286,6 +290,10 @@ export async function processCastSpell(io, party, player, payload) {
 
         const dazeDebuff = actingPlayerState.debuffs.find(d => d.type === 'daze');
         const dazeModifier = dazeDebuff ? -3 : 0;
+
+        // Emit dice roll to party so clients can show anticipatory animation
+        emitDiceRollToParty(io, party, `${character.characterName} casts ${spell.name}...`);
+
         const roll = Math.floor(Math.random() * 20) + 1;
         const total = roll + statValue + dazeModifier;
         const hitTarget = spell.hit || 15;
@@ -427,6 +435,10 @@ export async function processCastSpell(io, party, player, payload) {
         const dazeModifier = dazeDebuff ? -3 : 0;
         const focusBuff = actingPlayerState.buffs.find(b => b.type === 'Focus');
         const focusModifier = focusBuff ? focusBuff.bonus.rollBonus : 0;
+
+        // Emit dice roll to party so clients can show anticipatory animation
+        emitDiceRollToParty(io, party, `${character.characterName} casts ${spell.name}...`);
+
         const roll = Math.floor(Math.random() * 20) + 1;
         const total = roll + statValue + dazeModifier + focusModifier;
         const hitTarget = spell.hit || 15;
