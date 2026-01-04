@@ -3,47 +3,29 @@
 // Dice Roll Visualization Module
 // Shows animated dice rolls when players or enemies make dice rolls
 
-const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 const D20_DISPLAY = '🎲';
+const ROLL_ANIMATION_DURATION = 800; // How long to show rolling animation before auto-hiding if no result
+const RESULT_DISPLAY_DURATION = 1200; // How long to show result
 
-let isRolling = false;
-let rollQueue = [];
+let currentRollTimeout = null;
+let currentAnimationInterval = null;
+let isCurrentlyRolling = false; // Tracks if we're in "rolling" state waiting for result
 
 /**
- * Shows a dice roll animation
+ * Shows the dice rolling animation (anticipatory, before result is known)
  * @param {string} label - Who is rolling (e.g., "Player attacks")
- * @param {number} roll - The raw d20 roll value (1-20)
- * @param {number} modifier - The modifier being added
- * @param {number} total - The total result
- * @param {number} target - The target number to beat (optional)
- * @param {boolean} isSuccess - Whether the roll succeeded (optional)
  */
-export function showDiceRoll(label, roll, modifier, total, target = null, isSuccess = null) {
-    const rollData = { label, roll, modifier, total, target, isSuccess };
-
-    if (isRolling) {
-        rollQueue.push(rollData);
-        return;
-    }
-
-    executeRoll(rollData);
-}
-
-function executeRoll(rollData) {
-    const { label, roll, modifier, total, target, isSuccess } = rollData;
-
-    isRolling = true;
+export function showRolling(label) {
+    // Clear any existing animation
+    cleanup();
+    isCurrentlyRolling = true;
 
     const container = document.getElementById('dice-roll-container');
     const labelEl = document.getElementById('dice-roller-label');
     const diceEl = document.getElementById('dice-face');
     const resultEl = document.getElementById('dice-result');
 
-    if (!container || !labelEl || !diceEl || !resultEl) {
-        isRolling = false;
-        processNextRoll();
-        return;
-    }
+    if (!container || !labelEl || !diceEl || !resultEl) return;
 
     // Reset state
     labelEl.textContent = label || 'Rolling...';
@@ -55,26 +37,47 @@ function executeRoll(rollData) {
     // Show the container
     container.classList.remove('hidden');
 
-    // Simulate rolling animation with random numbers
-    let rollCount = 0;
-    const rollInterval = setInterval(() => {
+    // Animate random numbers
+    currentAnimationInterval = setInterval(() => {
         diceEl.textContent = Math.floor(Math.random() * 20) + 1;
-        rollCount++;
-        if (rollCount >= 10) {
-            clearInterval(rollInterval);
-            finishRoll(roll, modifier, total, target, isSuccess, diceEl, resultEl, container);
-        }
     }, 80);
+
+    // Auto-hide if no result arrives within timeout
+    currentRollTimeout = setTimeout(() => {
+        if (isCurrentlyRolling) {
+            hideDice();
+        }
+    }, ROLL_ANIMATION_DURATION + 2000); // Give extra time for result to arrive
 }
 
-function finishRoll(roll, modifier, total, target, isSuccess, diceEl, resultEl, container) {
+/**
+ * Shows the dice roll result (after rolling animation)
+ * @param {number} roll - The raw d20 roll value (1-20)
+ * @param {number} modifier - The modifier being added
+ * @param {number} total - The total result
+ * @param {number} target - The target number to beat (optional)
+ * @param {boolean} isSuccess - Whether the roll succeeded (optional)
+ */
+export function showResult(roll, modifier, total, target = null, isSuccess = null) {
+    const container = document.getElementById('dice-roll-container');
+    const diceEl = document.getElementById('dice-face');
+    const resultEl = document.getElementById('dice-result');
+
+    if (!container || !diceEl || !resultEl) return;
+
+    // Stop rolling animation
+    if (currentAnimationInterval) {
+        clearInterval(currentAnimationInterval);
+        currentAnimationInterval = null;
+    }
+
     // Show final roll value
     diceEl.classList.remove('rolling');
     diceEl.textContent = roll;
 
     // Build result text
     let resultText = `${roll}`;
-    if (modifier !== 0) {
+    if (modifier && modifier !== 0) {
         resultText += modifier > 0 ? ` + ${modifier}` : ` - ${Math.abs(modifier)}`;
     }
     resultText += ` = ${total}`;
@@ -95,17 +98,46 @@ function finishRoll(roll, modifier, total, target, isSuccess, diceEl, resultEl, 
     }
 
     // Hide after delay
-    setTimeout(() => {
-        container.classList.add('hidden');
-        isRolling = false;
-        processNextRoll();
-    }, 1200);
+    currentRollTimeout = setTimeout(() => {
+        hideDice();
+    }, RESULT_DISPLAY_DURATION);
 }
 
-function processNextRoll() {
-    if (rollQueue.length > 0) {
-        const nextRoll = rollQueue.shift();
-        setTimeout(() => executeRoll(nextRoll), 200);
+/**
+ * Combined function: shows rolling animation, then reveals result
+ * @param {string} label - Who is rolling
+ * @param {number} roll - The raw d20 roll value (1-20)
+ * @param {number} modifier - The modifier being added  
+ * @param {number} total - The total result
+ * @param {number} target - The target number to beat (optional)
+ * @param {boolean} isSuccess - Whether the roll succeeded (optional)
+ */
+export function showDiceRoll(label, roll, modifier, total, target = null, isSuccess = null) {
+    showRolling(label);
+
+    // After animation, show result
+    currentRollTimeout = setTimeout(() => {
+        showResult(roll, modifier, total, target, isSuccess);
+    }, ROLL_ANIMATION_DURATION);
+}
+
+function hideDice() {
+    const container = document.getElementById('dice-roll-container');
+    if (container) {
+        container.classList.add('hidden');
+    }
+    cleanup();
+}
+
+function cleanup() {
+    isCurrentlyRolling = false;
+    if (currentRollTimeout) {
+        clearTimeout(currentRollTimeout);
+        currentRollTimeout = null;
+    }
+    if (currentAnimationInterval) {
+        clearInterval(currentAnimationInterval);
+        currentAnimationInterval = null;
     }
 }
 
@@ -171,14 +203,26 @@ export function tryShowDiceRollFromMessage(message) {
     const rollData = parseRollFromMessage(message);
 
     if (rollData) {
-        showDiceRoll(
-            rollData.label,
-            rollData.roll,
-            rollData.modifier,
-            rollData.total,
-            rollData.target,
-            rollData.isSuccess
-        );
+        // If we're already rolling (from dice:rolling event), just show the result
+        if (isCurrentlyRolling) {
+            showResult(
+                rollData.roll,
+                rollData.modifier,
+                rollData.total,
+                rollData.target,
+                rollData.isSuccess
+            );
+        } else {
+            // Otherwise, show the full animation
+            showDiceRoll(
+                rollData.label,
+                rollData.roll,
+                rollData.modifier,
+                rollData.total,
+                rollData.target,
+                rollData.isSuccess
+            );
+        }
         return true;
     }
 

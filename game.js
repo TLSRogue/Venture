@@ -43,6 +43,8 @@ function initGame() {
         onPartyLootRollEnded: handleLootRollEnded,
         // PvP Flee Listener
         onPartyPvpFleeRequest: handlePvpFleeRequest,
+        // Dice Roll Listener
+        onDiceRolling: handleDiceRolling,
         // Duel Listeners
         onDuelReceiveChallenge: handleDuelReceiveChallenge,
         onDuelStart: handleDuelStart,
@@ -655,6 +657,11 @@ async function ventureDeeper(buttonElement) {
     if (gameState.partyId && gameState.isPartyLeader) {
         Network.emitPartyAction({ type: 'ventureDeeper' });
     }
+}
+
+// --- DICE ROLL HANDLER ---
+function handleDiceRolling(data) {
+    UIDice.showRolling(data.label);
 }
 
 // --- START THE GAME ---

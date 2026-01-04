@@ -35,9 +35,12 @@ export function initSocketListeners(handlers) {
     // Loot Roll Listeners
     socket.on('party:lootRollStarted', handlers.onPartyLootRollStarted);
     socket.on('party:lootRollEnded', handlers.onPartyLootRollEnded);
-    
+
     // NEW: PvP Flee Request Listener
     socket.on('party:pvpFleeRequest', handlers.onPartyPvpFleeRequest);
+
+    // Dice Roll Listener
+    socket.on('dice:rolling', handlers.onDiceRolling);
 
     // Duel Listeners
     socket.on('duel:receiveChallenge', handlers.onDuelReceiveChallenge);
