@@ -125,24 +125,15 @@ export const registerConnectionHandlers = (io, socket) => {
 
             // --- PVP ENCOUNTER DISCONNECT HANDLING ---
             const partyId = character.partyId;
-            console.log(`[PVP DISCONNECT DEBUG] Player ${name} disconnecting. PartyId: ${partyId}`);
-
-            if (partyId && parties[partyId]) {
-                console.log(`[PVP DISCONNECT DEBUG] Party exists. sharedState: ${!!parties[partyId].sharedState}, pvpEncounterId: ${parties[partyId].sharedState?.pvpEncounterId}`);
-            }
-
             if (partyId && parties[partyId] && parties[partyId].sharedState?.pvpEncounterId) {
                 const party = parties[partyId];
                 const encounter = pvpEncounters[party.sharedState.pvpEncounterId];
-                console.log(`[PVP DISCONNECT DEBUG] Found encounter: ${!!encounter}`);
 
                 if (encounter) {
                     const disconnectedPlayerState = encounter.playerStates.find(p => p.name === name);
-                    console.log(`[PVP DISCONNECT DEBUG] Found player state: ${!!disconnectedPlayerState}, isDead: ${disconnectedPlayerState?.isDead}`);
 
                     if (disconnectedPlayerState && !disconnectedPlayerState.isDead) {
                         // Kill the disconnected player and drop their items
-                        console.log(`[PVP DISCONNECT DEBUG] Processing death for ${name}`);
                         disconnectedPlayerState.isDead = true;
                         disconnectedPlayerState.health = 0;
 

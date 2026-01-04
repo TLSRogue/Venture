@@ -45,19 +45,19 @@ function addActionTooltipListener(element, itemOrSpell) {
                     breakdown += `<br>On Crit (20): Apply ${itemOrSpell.onCrit.debuff.type}.`;
                 }
             }
-             if (itemOrSpell.school) { // It's a spell
-                 breakdown += `<hr style="margin: 5px 0;">`;
-                 breakdown += `<strong>Type:</strong> ${itemOrSpell.type.charAt(0).toUpperCase() + itemOrSpell.type.slice(1)}<br>`;
-                 breakdown += `<strong>School:</strong> ${itemOrSpell.school}<br>`;
-                 if (itemOrSpell.cost) breakdown += `<strong>Cost:</strong> ${itemOrSpell.cost} AP<br>`;
-                 breakdown += `<strong>Cooldown:</strong> ${itemOrSpell.cooldown}`;
+            if (itemOrSpell.school) { // It's a spell
+                breakdown += `<hr style="margin: 5px 0;">`;
+                breakdown += `<strong>Type:</strong> ${itemOrSpell.type.charAt(0).toUpperCase() + itemOrSpell.type.slice(1)}<br>`;
+                breakdown += `<strong>School:</strong> ${itemOrSpell.school}<br>`;
+                if (itemOrSpell.cost) breakdown += `<strong>Cost:</strong> ${itemOrSpell.cost} AP<br>`;
+                breakdown += `<strong>Cooldown:</strong> ${itemOrSpell.cooldown}`;
             }
             if (itemOrSpell.traits) {
                 breakdown += `<hr style="margin: 5px 0;"><strong>Traits:</strong> ${itemOrSpell.traits.join(', ')}`;
             }
             showTooltip(breakdown);
         } else {
-             showTooltip(`<strong>${itemOrSpell.name}</strong><br>${itemOrSpell.description}<br><em style='color: #aaa; font-size: 0.9em;'>Hold [Alt] for details</em>`);
+            showTooltip(`<strong>${itemOrSpell.name}</strong><br>${itemOrSpell.description}<br><em style='color: #aaa; font-size: 0.9em;'>Hold [Alt] for details</em>`);
         }
     });
     element.addEventListener('mouseleave', hideTooltip);
@@ -77,8 +77,8 @@ export function showCombatFeedback({ targetName, targetId, type, text }) {
     if (targetId) {
         // Prioritize finding by unique ID for enemies or players
         targetCard = document.querySelector(`.card[data-id='${targetId}'], .card[data-player-id='${targetId}']`);
-    } 
-    
+    }
+
     // Fallback for players or if ID is not present
     if (!targetCard && targetName) {
         const allCards = document.querySelectorAll('#adventure-board .card, #party-cards-container .card');
@@ -90,7 +90,7 @@ export function showCombatFeedback({ targetName, targetId, type, text }) {
             }
         }
     }
-    
+
     if (!targetCard) {
         return;
     }
@@ -98,9 +98,9 @@ export function showCombatFeedback({ targetName, targetId, type, text }) {
     const popup = document.createElement('div');
     popup.className = `combat-feedback-popup popup-${type}`;
     popup.textContent = text;
-    
+
     targetCard.appendChild(popup);
-    
+
     setTimeout(() => {
         popup.remove();
     }, 1900);
@@ -138,7 +138,7 @@ export function renderAdventureScreen() {
 
 function buildPlayerInspectTooltip(playerData) {
     let tooltip = `<strong>${playerData.name}</strong>`;
-    
+
     const source = playerData.equipment ? playerData : gameState;
 
     if (source.equipment) {
@@ -147,7 +147,7 @@ function buildPlayerInspectTooltip(playerData) {
         for (const slot in source.equipment) {
             const item = source.equipment[slot];
             if (item) {
-                if(slot === 'offHand' && source.equipment.mainHand?.hands === 2) continue;
+                if (slot === 'offHand' && source.equipment.mainHand?.hands === 2) continue;
                 hasEquipment = true;
                 tooltip += `<br>${item.icon} ${item.name}`;
             }
@@ -159,13 +159,13 @@ function buildPlayerInspectTooltip(playerData) {
         tooltip += '<hr style="margin: 5px 0;"><strong>Spells:</strong>';
         if (source.equippedSpells.length > 0) {
             source.equippedSpells.forEach(spell => {
-                if(spell) tooltip += `<br>${spell.icon} ${spell.name}`;
+                if (spell) tooltip += `<br>${spell.icon} ${spell.name}`;
             });
         } else {
             tooltip += '<br>None';
         }
     }
-    
+
     return tooltip;
 }
 
@@ -182,11 +182,11 @@ function renderPvpScreen() {
     gameState.pvpEncounter.playerStates.forEach(playerState => {
         const isAlly = playerState.team === localPlayerTeam;
         const container = isAlly ? partyContainer : zoneContainer;
-        
+
         const cardEl = document.createElement('div');
         cardEl.className = isAlly ? 'card player' : 'card player enemy';
         cardEl.dataset.playerId = playerState.playerId;
-        
+
         if (playerState.isDead) {
             cardEl.classList.add('dead');
             cardEl.innerHTML = `
@@ -196,7 +196,7 @@ function renderPvpScreen() {
             `;
         } else {
             cardEl.addEventListener('mousemove', (e) => {
-                 if (e.altKey) showTooltip(buildPlayerInspectTooltip(playerState));
+                if (e.altKey) showTooltip(buildPlayerInspectTooltip(playerState));
             });
             cardEl.addEventListener('mouseleave', hideTooltip);
 
@@ -207,7 +207,7 @@ function renderPvpScreen() {
             if (gameState.pvpEncounter.activeTeam === playerState.team) {
                 cardEl.classList.add('active-turn');
             }
-            
+
             cardEl.innerHTML = `
                 <div class="card-icon">${playerState.icon}</div>
                 <div class="card-title">${playerState.name}</div>
@@ -225,7 +225,7 @@ function renderPartyScreen() {
     gameState.partyMemberStates.forEach((playerState, index) => {
         const cardEl = document.createElement('div');
         cardEl.className = 'card player';
-        
+
         if (playerState.isDead) {
             cardEl.classList.add('dead');
             cardEl.innerHTML = `
@@ -243,16 +243,16 @@ function renderPartyScreen() {
             });
             cardEl.addEventListener('mouseleave', hideTooltip);
 
-             if (playerState.playerId === socket.id) {
+            if (playerState.playerId === socket.id) {
                 cardEl.classList.add('is-local-player');
-                gameState.health = playerState.health; 
+                gameState.health = playerState.health;
                 gameState.maxHealth = playerState.maxHealth;
             }
 
             if (playerState.turnEnded) {
                 cardEl.style.opacity = '0.6';
             }
-            
+
             cardEl.innerHTML = `
                 <div class="card-icon">${playerState.icon}</div>
                 <div class="card-title">${playerState.name}</div>
@@ -280,14 +280,14 @@ function renderDuelScreen() {
 
     const localPlayer = gameState.duelState.player1.id === socket.id ? gameState.duelState.player1 : gameState.duelState.player2;
     const opponent = gameState.duelState.player1.id === socket.id ? gameState.duelState.player2 : gameState.duelState.player1;
-    
+
     const playerCardEl = document.createElement('div');
     playerCardEl.className = 'card player is-local-player';
     if (gameState.duelState.activePlayerId === localPlayer.id && !gameState.duelState.ended) {
         playerCardEl.classList.add('active-turn');
     }
     playerCardEl.dataset.target = 'player';
-    
+
     const pIcon = document.createElement('div'); pIcon.className = 'card-icon'; pIcon.textContent = localPlayer.icon;
     const pTitle = document.createElement('div'); pTitle.className = 'card-title'; pTitle.textContent = localPlayer.name;
     const pHealth = document.createElement('div'); pHealth.textContent = `❤️ ${localPlayer.health}/${localPlayer.maxHealth}`;
@@ -299,8 +299,8 @@ function renderDuelScreen() {
     if (gameState.duelState.activePlayerId === opponent.id && !gameState.duelState.ended) {
         opponentCardEl.classList.add('active-turn');
     }
-    opponentCardEl.dataset.index = 0; 
-    
+    opponentCardEl.dataset.index = 0;
+
     if (opponent.health <= 0) {
         opponentCardEl.classList.add('dead');
         opponentCardEl.innerHTML = `
@@ -331,7 +331,7 @@ function renderZoneCards(cards) {
 
         cardEl.className = `card ${card.type}`;
         cardEl.dataset.index = index;
-        if(card.id) cardEl.dataset.id = card.id;
+        if (card.id) cardEl.dataset.id = card.id;
 
         if (card.isDead) {
             cardEl.classList.add('dead');
@@ -343,15 +343,15 @@ function renderZoneCards(cards) {
             zoneContainer.appendChild(cardEl);
             return;
         }
-        
-        if(card.type === 'enemy' || card.type === 'treasure' || card.type === 'npc') {
+
+        if (card.type === 'enemy' || card.type === 'treasure' || card.type === 'npc') {
             let tooltipContent = `<strong>${card.name}</strong><br>${card.description || ''}`;
             if (card.attackTable) {
                 tooltipContent += `<hr style="margin: 5px 0;"><strong>Attacks:</strong>`;
                 card.attackTable.forEach(attack => {
                     tooltipContent += `<br>${attack.range[0]}-${attack.range[1]}: ${attack.message || 'Miss!'}`;
                 });
-            } else if(card.attackDesc) {
+            } else if (card.attackDesc) {
                 tooltipContent += `<hr style="margin: 5px 0;">${card.attackDesc}`;
             }
             cardEl.addEventListener('mouseover', (e) => {
@@ -359,14 +359,14 @@ function renderZoneCards(cards) {
             });
             cardEl.addEventListener('mouseout', () => hideTooltip());
         }
-        
+
         let visualHTML;
         if (card.imageUrl) {
             visualHTML = `<img src="${card.imageUrl}" class="card-image" alt="${card.name}">`;
         } else {
             visualHTML = `<div class="card-icon">${card.icon || '❓'}</div>`;
         }
-        
+
         cardEl.innerHTML = `
             ${visualHTML}
             <div class="card-title">${card.name}</div>
@@ -382,7 +382,7 @@ function renderZoneCards(cards) {
             chargesDiv.textContent = `Charges: ${card.charges}`;
             cardEl.appendChild(chargesDiv);
         }
-        
+
         zoneContainer.appendChild(cardEl);
     });
 }
@@ -438,12 +438,12 @@ export function renderPlayerActionBars() {
     } else if (gameState.inDuel && gameState.duelState) {
         localPlayerState = gameState.duelState.player1.id === socket.id ? gameState.duelState.player1 : gameState.duelState.player2;
     }
-    
+
     if (!localPlayerState) {
         document.getElementById('end-turn-btn').disabled = true;
         return;
     }
-    
+
     const localPlayerAP = localPlayerState.actionPoints;
     const localPlayerTurnEnded = gameState.pvpEncounter ? (gameState.pvpEncounter.activeTeam !== localPlayerState.team || localPlayerState.turnEnded) : localPlayerState.turnEnded;
     const { weaponCooldowns, spellCooldowns, itemCooldowns } = localPlayerState;
@@ -466,7 +466,7 @@ export function renderPlayerActionBars() {
     equipmentSlots.forEach(slotInfo => {
         const slotEl = document.createElement('button');
         const item = gameState.equipment[slotInfo.key];
-        
+
         if (item) {
             addActionTooltipListener(slotEl, item);
         }
@@ -479,6 +479,7 @@ export function renderPlayerActionBars() {
             slotEl.dataset.action = 'useAbility';
             slotEl.dataset.slot = slotInfo.key;
             slotEl.innerHTML = `
+                <div class="item-icon">${item.icon || '❓'}</div>
                 <div class="item-name">${item.name}</div>
                 <div class="item-details">
                     <span>⚡ ${item.activatedAbility.cost}</span>
@@ -487,10 +488,10 @@ export function renderPlayerActionBars() {
                 <div class="cooldown-overlay" style="height: ${cooldown > 0 ? '100' : '0'}%">${cooldown}</div>
             `;
         } else if (item && item.type === 'weapon') {
-            if(item.hands === 2 && slotInfo.key === 'offHand') {
-                 slotEl.className = 'action-slot';
-                 slotEl.disabled = true;
-                 slotEl.innerHTML = `<div class="slot-name">(2H Weapon)</div>`;
+            if (item.hands === 2 && slotInfo.key === 'offHand') {
+                slotEl.className = 'action-slot';
+                slotEl.disabled = true;
+                slotEl.innerHTML = `<div class="slot-name">(2H Weapon)</div>`;
             } else {
                 const cooldown = weaponCooldowns[item.name] || 0;
                 const canAttack = localPlayerAP >= item.cost && !localPlayerTurnEnded && cooldown <= 0;
@@ -499,6 +500,7 @@ export function renderPlayerActionBars() {
                 slotEl.dataset.action = 'select';
                 slotEl.dataset.actionData = JSON.stringify({ type: 'weapon', data: item, slot: slotInfo.key });
                 slotEl.innerHTML = `
+                    <div class="item-icon">${item.icon || '⚔️'}</div>
                     <div class="item-name">${item.name}</div>
                     <div class="item-details">
                         <span>⚡ ${item.cost}</span>
@@ -508,13 +510,13 @@ export function renderPlayerActionBars() {
                 `;
             }
         } else if (item) {
-             slotEl.className = 'action-slot';
-             slotEl.disabled = true;
-             let itemText = item.name;
-             if (item.quantity > 1) {
-                 itemText += ` <div class="item-quantity">${item.quantity}</div>`;
-             }
-             slotEl.innerHTML = `<div class="item-name">${itemText}</div><div class="slot-name">${slotInfo.name}</div>`;
+            slotEl.className = 'action-slot';
+            slotEl.disabled = true;
+            let itemText = item.name;
+            if (item.quantity > 1) {
+                itemText += ` <div class="item-quantity">${item.quantity}</div>`;
+            }
+            slotEl.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div><div class="item-name">${itemText}</div><div class="slot-name">${slotInfo.name}</div>`;
         } else {
             slotEl.className = 'action-slot empty';
             slotEl.disabled = true;
@@ -534,8 +536,9 @@ export function renderPlayerActionBars() {
             const canCast = cooldown <= 0 && localPlayerAP >= (spell.cost || 0) && !localPlayerTurnEnded;
             slotEl.className = 'action-slot active';
             slotEl.disabled = !canCast;
-            
+
             slotEl.innerHTML = `
+                <div class="item-icon">${spell.icon || '✨'}</div>
                 <div class="item-name">${spell.name}</div>
                 <div class="item-details">
                     <span>⚡ ${spell.cost || 0}</span>
@@ -546,7 +549,7 @@ export function renderPlayerActionBars() {
 
             if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile') {
                 slotEl.dataset.action = 'select';
-                slotEl.dataset.actionData = JSON.stringify({type: 'spell', data: spell, index: i});
+                slotEl.dataset.actionData = JSON.stringify({ type: 'spell', data: spell, index: i });
             } else if (spell.type === 'heal' || spell.type === 'buff' || spell.type === 'utility') {
                 slotEl.dataset.action = 'castSelf';
                 slotEl.dataset.spellIndex = i;
@@ -568,7 +571,7 @@ export function updateActionUI() {
     if (gameState.turnState.selectedAction) {
         const actionName = gameState.turnState.selectedAction.data.name;
         const selectedBtn = Array.from(document.querySelectorAll('.action-slot .item-name')).find(span => span.textContent === actionName)?.parentElement;
-        if(selectedBtn) selectedBtn.classList.add('selected');
+        if (selectedBtn) selectedBtn.classList.add('selected');
     }
 
     document.querySelectorAll('.card').forEach(card => card.classList.remove('targetable'));
@@ -683,11 +686,11 @@ export function showBackpack() {
     closeButton.textContent = 'Close';
     closeButton.onclick = hideModal;
     modalContentEl.appendChild(closeButton);
-    
+
     const modal = document.getElementById('modal');
     const modalContentContainer = modal.querySelector('.modal-content');
     modalContentContainer.classList.add('modal-wide');
-    
+
     showModal(modalContentEl);
 }
 
@@ -708,7 +711,7 @@ export function showCharacterSheet() {
 
     const slotNames = { mainHand: 'Main Hand', offHand: 'Off Hand', helmet: 'Helmet', armor: 'Armor', boots: 'Boots', accessory: 'Accessory', ammo: 'Ammo' };
     let equipmentHTML = '<h3>Equipment</h3><div class="char-sheet-equipment">';
-    
+
     for (const slotKey in slotNames) {
         const item = gameState.equipment[slotKey];
         if (item) {
@@ -762,7 +765,7 @@ function renderGroundLootButton() {
     const container = document.getElementById('ground-loot-container');
     if (!container) return;
     container.innerHTML = '';
-    
+
     const groundLoot = gameState.pvpEncounter ? gameState.pvpEncounter.groundLoot : gameState.groundLoot;
 
     if (groundLoot && groundLoot.length > 0 && (gameState.currentZone || gameState.pvpEncounter)) {
@@ -789,7 +792,7 @@ export function showGroundLootModal() {
     groundLootSide.innerHTML = '<h3>On The Ground</h3>';
     const groundGrid = document.createElement('div');
     groundGrid.className = 'inventory-grid';
-    
+
     const groundLoot = gameState.pvpEncounter ? gameState.pvpEncounter.groundLoot : gameState.groundLoot;
 
     if (groundLoot && groundLoot.length > 0) {
@@ -832,7 +835,7 @@ export function showGroundLootModal() {
         inventoryGrid.appendChild(itemEl);
     }
     inventorySide.appendChild(inventoryGrid);
-    
+
     storageGrid.appendChild(groundLootSide);
     storageGrid.appendChild(inventorySide);
     modalContentEl.appendChild(storageGrid);
@@ -847,6 +850,6 @@ export function showGroundLootModal() {
     const modal = document.getElementById('modal');
     const modalContentContainer = modal.querySelector('.modal-content');
     modalContentContainer.classList.add('modal-wide');
-    
+
     showModal(modalContentEl);
 }
