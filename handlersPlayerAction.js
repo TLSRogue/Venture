@@ -13,7 +13,7 @@ export const registerPlayerActionHandlers = (io, socket) => {
     socket.on('playerAction', (action) => {
         const name = socket.characterName;
         const player = players[name];
-        
+
         // Prevent actions if the player is in an active adventure or duel
         if (!player || (player.character.partyId && parties[player.character.partyId]?.sharedState) || player.character.duelId) {
             return;
@@ -24,7 +24,7 @@ export const registerPlayerActionHandlers = (io, socket) => {
 
         let success = false; // Flag to check if an action successfully changed the state
 
-        switch(type) {
+        switch (type) {
             case 'viewMerchant':
                 {
                     checkAndRotateMerchantStock(character);
@@ -38,11 +38,11 @@ export const registerPlayerActionHandlers = (io, socket) => {
                     const { identifier, isPermanent } = payload;
                     const stockItem = isPermanent ? null : character.merchantStock[identifier];
                     const itemData = isPermanent ? gameData.allItems.find(i => i.name === identifier) : stockItem;
-                    
+
                     if (itemData && character.gold >= itemData.price) {
                         const itemToGive = isPermanent ? { ...itemData } : (({ quantity, ...rest }) => rest)(itemData);
 
-                        if(addItemToInventoryServer(character, itemToGive)) {
+                        if (addItemToInventoryServer(character, itemToGive)) {
                             character.gold -= itemData.price;
                             if (!isPermanent && stockItem && stockItem.quantity > 0) {
                                 stockItem.quantity--;
@@ -54,12 +54,19 @@ export const registerPlayerActionHandlers = (io, socket) => {
                 break;
             case 'sellItem':
                 {
-                    const item = character.inventory[payload.itemIndex];
-                    if(item) {
+                    const { itemIndex, fromBank } = payload;
+                    const item = fromBank ? character.bank[itemIndex] : character.inventory[itemIndex];
+                    if (item) {
                         const sellPrice = Math.floor(item.price / 2) || 1;
                         character.gold += sellPrice;
                         item.quantity = (item.quantity || 1) - 1;
-                        if (item.quantity <= 0) character.inventory[payload.itemIndex] = null;
+                        if (item.quantity <= 0) {
+                            if (fromBank) {
+                                character.bank.splice(itemIndex, 1);
+                            } else {
+                                character.inventory[itemIndex] = null;
+                            }
+                        }
                         success = true;
                     }
                 }
@@ -92,7 +99,7 @@ export const registerPlayerActionHandlers = (io, socket) => {
                     const spell = gameData.allSpells.find(s => s.name === payload.spellName && s.price > 0);
                     if (spell && character.gold >= spell.price) {
                         character.gold -= spell.price;
-                        character.spellbook.push({...spell});
+                        character.spellbook.push({ ...spell });
                         success = true;
                     }
                 }
@@ -102,27 +109,27 @@ export const registerPlayerActionHandlers = (io, socket) => {
                     const { itemIndex, chosenSlot } = payload;
                     const itemToEquip = character.inventory[itemIndex];
                     if (!itemToEquip || !itemToEquip.slot) break;
-            
+
                     const canEquipInSlot = Array.isArray(itemToEquip.slot) ? itemToEquip.slot.includes(chosenSlot) : itemToEquip.slot === chosenSlot;
                     if (!canEquipInSlot) break;
-            
+
                     const currentlyEquipped = character.equipment[chosenSlot];
-            
+
                     if (itemToEquip.hands === 2) {
                         const mainHandItem = character.equipment.mainHand;
                         const offHandItem = character.equipment.offHand;
                         const freeSlots = character.inventory.filter(i => !i).length;
                         const slotsToFree = (mainHandItem ? 1 : 0) + (offHandItem && offHandItem !== mainHandItem ? 1 : 0);
-                        
+
                         if (slotsToFree > freeSlots + 1) break;
-            
+
                         character.inventory[itemIndex] = null;
                         if (mainHandItem) addItemToInventoryServer(character, mainHandItem);
                         if (offHandItem && offHandItem !== mainHandItem) addItemToInventoryServer(character, offHandItem);
-                        
+
                         character.equipment.mainHand = itemToEquip;
                         character.equipment.offHand = itemToEquip;
-            
+
                     } else {
                         // ** BUG FIX START ** // Only unequip a 2H weapon if equipping an item into a hand slot.
                         if (['mainHand', 'offHand'].includes(chosenSlot) && character.equipment.mainHand && character.equipment.mainHand.hands === 2) {
@@ -132,7 +139,7 @@ export const registerPlayerActionHandlers = (io, socket) => {
                             addItemToInventoryServer(character, twoHandedWeapon);
                         }
                         // ** BUG FIX END **
-                        
+
                         character.equipment[chosenSlot] = itemToEquip;
                         character.inventory[itemIndex] = currentlyEquipped;
                     }
@@ -144,7 +151,7 @@ export const registerPlayerActionHandlers = (io, socket) => {
                     const { slot } = payload;
                     const itemToUnequip = character.equipment[slot];
                     if (!itemToUnequip) break;
-                    
+
                     if (addItemToInventoryServer(character, itemToUnequip)) {
                         character.equipment[slot] = null;
                         if (itemToUnequip.hands === 2) {
@@ -160,7 +167,7 @@ export const registerPlayerActionHandlers = (io, socket) => {
                     if (character.equippedSpells.length >= 5) break;
                     const spellToEquip = character.spellbook[index];
                     if (!spellToEquip) break;
-            
+
                     character.equippedSpells.push(spellToEquip);
                     character.spellbook.splice(index, 1);
                     success = true;
@@ -171,7 +178,7 @@ export const registerPlayerActionHandlers = (io, socket) => {
                     const { index } = payload;
                     const spellToUnequip = character.equippedSpells[index];
                     if (!spellToUnequip) break;
-            
+
                     character.spellbook.push(spellToUnequip);
                     character.equippedSpells.splice(index, 1);
                     success = true;
@@ -186,7 +193,7 @@ export const registerPlayerActionHandlers = (io, socket) => {
                     // --- FIX: Prevent use of combat consumables outside of combat ---
                     if (item.cost > 0) {
                         console.log(`Action blocked: Attempted to use combat item '${item.name}' at home.`);
-                        break; 
+                        break;
                     }
 
                     if (item.heal) {
@@ -197,7 +204,7 @@ export const registerPlayerActionHandlers = (io, socket) => {
                     if (item.buff) {
                         character.buffs.push({ ...item.buff });
                     }
-    
+
                     if (item.charges) {
                         item.charges--;
                         if (item.charges <= 0) character.inventory[index] = null;
@@ -243,14 +250,14 @@ export const registerPlayerActionHandlers = (io, socket) => {
                 {
                     const { index } = payload;
                     const itemToWithdraw = character.bank[index];
-                    
+
                     if (itemToWithdraw) {
                         const baseItemData = gameData.allItems.find(i => i.name === itemToWithdraw.name);
                         let itemToAdd = { ...itemToWithdraw };
 
                         // If the base item is not naturally stackable (like armor), remove quantity before adding to inventory
                         if (!baseItemData.stackable) {
-                             delete itemToAdd.quantity;
+                            delete itemToAdd.quantity;
                         }
 
                         if (addItemToInventoryServer(character, itemToAdd, 1)) {
@@ -273,7 +280,7 @@ export const registerPlayerActionHandlers = (io, socket) => {
                             existing.quantity += quantity;
                         } else {
                             // Create a fresh copy to avoid reference issues
-                            const newItem = {...item};
+                            const newItem = { ...item };
                             if (!newItem.quantity) {
                                 newItem.quantity = 1;
                             }
@@ -281,6 +288,28 @@ export const registerPlayerActionHandlers = (io, socket) => {
                         }
                     }
                     character.bank = Array.from(itemMap.values());
+                    success = true;
+                }
+                break;
+            case 'depositAll':
+                {
+                    character.inventory.forEach((item, index) => {
+                        if (item) {
+                            const existingBankItem = character.bank.find(bankItem => bankItem.name === item.name);
+                            const amountToDeposit = item.quantity || 1;
+
+                            if (existingBankItem) {
+                                existingBankItem.quantity += amountToDeposit;
+                            } else {
+                                const newItemForBank = { ...item };
+                                if (!newItemForBank.quantity) {
+                                    newItemForBank.quantity = 1;
+                                }
+                                character.bank.push(newItemForBank);
+                            }
+                            character.inventory[index] = null;
+                        }
+                    });
                     success = true;
                 }
                 break;

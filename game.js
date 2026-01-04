@@ -497,8 +497,9 @@ function addEventListeners() {
         if (inventoryPanelItem) {
             const action = inventoryPanelItem.dataset.inventoryAction;
             const index = parseInt(inventoryPanelItem.dataset.index, 10);
+            const fromBank = inventoryPanelItem.dataset.fromBank === 'true';
             if (action === 'deposit') return Player.depositItem(index);
-            if (action === 'sell') return UITown.showSellConfirmationModal(index);
+            if (action === 'sell') return UITown.showSellConfirmationModal(index, fromBank);
         }
         if (target.closest('[data-bank-action="withdraw"]')) {
             const index = parseInt(target.closest('[data-bank-action="withdraw"]').dataset.index, 10);
@@ -562,6 +563,7 @@ function addEventListeners() {
         if (button) {
             if (button.id === 'ground-loot-btn') return UIAdventure.showGroundLootModal();
             if (button.id === 'consolidate-btn') return Network.emitPlayerAction('consolidateBank');
+            if (button.id === 'deposit-all-btn') return Network.emitPlayerAction('depositAll');
             if (button.id === 'create-party-btn') return Network.emitCreateParty();
             if (button.id === 'join-party-btn') {
                 const input = document.getElementById('party-id-input');

@@ -11,6 +11,7 @@ let activeCraftingCategory = 'Blacksmithing';
 let activeTrainerCategory = 'Physical';
 let merchantTimerInterval = null;
 let bankCurrentPage = 1;
+let merchantSellTab = 'inventory'; // local state for merchant tab
 
 function hasMaterials(materials, checkBank = true) {
     for (const material in materials) {
@@ -36,7 +37,10 @@ export function renderBankInterface() {
     container.innerHTML = `
         <div class="bank-header">
             <h2>Bank</h2>
-            <button id="consolidate-btn" class="btn btn-sm">Consolidate Stacks</button>
+            <div class="header-actions">
+                <button id="deposit-all-btn" class="btn btn-sm btn-primary">Deposit All</button>
+                <button id="consolidate-btn" class="btn btn-sm">Consolidate Stacks</button>
+            </div>
         </div>`;
 
     const bankItems = [...gameState.bank].sort((a, b) => a.name.localeCompare(b.name));
@@ -92,36 +96,44 @@ export function renderBankInterface() {
         });
     }
 
-    renderPlayerInventoryPanel(container, 'deposit');
+    renderStoragePanel(container, 'deposit');
 }
 
-function renderPlayerInventoryPanel(parentContainer, mode) {
+function renderStoragePanel(parentContainer, mode, storageSource = 'inventory') {
     const panel = document.createElement('div');
     panel.className = 'player-inventory-panel';
 
     let title = '';
     let action = '';
+
     if (mode === 'deposit') {
         title = 'Your Inventory (Click to Deposit)';
         action = 'deposit';
     } else if (mode === 'sell') {
-        title = 'Your Items to Sell';
+        const titleText = storageSource === 'inventory' ? 'Inventory' : 'Bank';
+        title = `Sell from ${titleText}`;
         action = 'sell';
     }
+
     panel.innerHTML = `<h3>${title}</h3>`;
 
     const inventoryGrid = document.createElement('div');
     inventoryGrid.className = 'inventory-grid';
 
-    for (let i = 0; i < 24; i++) {
+    const items = storageSource === 'inventory' ? gameState.inventory : gameState.bank;
+    const isBank = storageSource === 'bank';
+    const slotsToShow = 24;
+
+    for (let i = 0; i < slotsToShow; i++) {
         const slot = document.createElement('div');
         slot.className = 'inventory-item';
-        const item = gameState.inventory[i];
+        const item = items[i];
         if (item) {
             slot.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div><div class="item-quantity">${item.quantity || ''}</div>`;
             slot.dataset.inventoryAction = action;
             slot.dataset.index = i;
-            
+            if (isBank) slot.dataset.fromBank = 'true';
+
             let tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
             if (mode === 'sell' && item.price) {
                 const sellPrice = Math.floor(item.price / 2) || 1;
@@ -150,14 +162,14 @@ export function renderMerchant() {
             <div id="merchant-sell-container"></div>
         </div>
     `;
-    
+
     document.getElementById('gold-display').textContent = gameState.gold;
     const waresContainer = document.getElementById('merchant-wares-container');
     waresContainer.innerHTML = ''; // Clear previous content
 
     const permanentStock = gameData.allItems.filter(item => item.type === 'tool' || item.name === 'Spices');
     const rotatingStock = gameState.merchantStock || [];
-    
+
     // Permanent Stock
     const permanentHeader = document.createElement('h3');
     permanentHeader.textContent = 'Permanent Stock';
@@ -171,7 +183,7 @@ export function renderMerchant() {
         itemEl.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div>`;
         itemEl.dataset.buyItem = item.name;
         itemEl.dataset.permanent = 'true';
-        
+
         itemEl.addEventListener('mouseover', () => showTooltip(`<strong>${item.name}</strong> (${item.price}g)<br>${item.description}<br><br>Click to Buy`));
         itemEl.addEventListener('mouseout', () => hideTooltip());
 
@@ -181,7 +193,7 @@ export function renderMerchant() {
         permanentGrid.appendChild(itemEl);
     });
     waresContainer.appendChild(permanentGrid);
-    
+
     // Rotating Wares
     const rotatingHeader = document.createElement('h3');
     rotatingHeader.textContent = 'Rotating Wares';
@@ -190,7 +202,7 @@ export function renderMerchant() {
 
     const rotatingGrid = document.createElement('div');
     rotatingGrid.className = 'inventory-grid';
-     if (rotatingStock.length > 0) {
+    if (rotatingStock.length > 0) {
         rotatingStock.forEach((item, index) => {
             const itemEl = document.createElement('div');
             itemEl.className = 'inventory-item';
@@ -209,10 +221,26 @@ export function renderMerchant() {
     }
     waresContainer.appendChild(rotatingGrid);
 
-    // Player Inventory Panel (for selling)
+    // Player Inventory/Bank Panel (for selling)
     const sellContainer = document.getElementById('merchant-sell-container');
     sellContainer.innerHTML = ''; // Clear previous content
-    renderPlayerInventoryPanel(sellContainer, 'sell');
+
+    const tabContainer = document.createElement('div');
+    tabContainer.className = 'merchant-sell-tabs';
+    tabContainer.innerHTML = `
+        <button class="tab-btn ${merchantSellTab === 'inventory' ? 'active' : ''}" data-sell-tab="inventory">Inventory</button>
+        <button class="tab-btn ${merchantSellTab === 'bank' ? 'active' : ''}" data-sell-tab="bank">Bank</button>
+    `;
+    sellContainer.appendChild(tabContainer);
+
+    tabContainer.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            merchantSellTab = btn.dataset.sellTab;
+            renderMerchant();
+        });
+    });
+
+    renderStoragePanel(sellContainer, 'sell', merchantSellTab);
 
     if (merchantTimerInterval) clearInterval(merchantTimerInterval);
     merchantTimerInterval = setInterval(updateRestockTimer, 1000);
@@ -240,8 +268,8 @@ export function updateRestockTimer() {
     }
 }
 
-export function showSellConfirmationModal(itemIndex) {
-    const item = gameState.inventory[itemIndex];
+export function showSellConfirmationModal(itemIndex, fromBank = false) {
+    const item = fromBank ? gameState.bank[itemIndex] : gameState.inventory[itemIndex];
     if (!item) return;
 
     const sellPrice = Math.floor(item.price / 2) || 1;
@@ -250,6 +278,7 @@ export function showSellConfirmationModal(itemIndex) {
         <h2>Confirm Sell</h2>
         <div class="item-icon" style="font-size: 3em; margin: 10px;">${item.icon || '❓'}</div>
         <p>Sell 1x ${item.name} for ${sellPrice} Gold?</p>
+        <p style="font-size: 0.8em; color: #888;">(From ${fromBank ? 'Bank' : 'Inventory'})</p>
         <div class="action-buttons">
             <button id="confirm-sell-btn" class="btn btn-success">Sell</button>
             <button class="btn btn-danger" onclick="this.closest('.modal-overlay').classList.add('hidden')">Cancel</button>
@@ -258,7 +287,7 @@ export function showSellConfirmationModal(itemIndex) {
     showModal(modalContent);
 
     document.getElementById('confirm-sell-btn').addEventListener('click', () => {
-        Network.emitPlayerAction('sellItem', { itemIndex });
+        Network.emitPlayerAction('sellItem', { itemIndex, fromBank });
         hideModal();
     });
 }
@@ -270,7 +299,7 @@ export function renderCrafting() {
     gridContainer.innerHTML = '';
 
     const categories = [...new Set(gameData.craftingRecipes.map(r => r.category))];
-    
+
     categories.forEach(category => {
         const tab = document.createElement('button');
         tab.className = `category-tab ${activeCraftingCategory === category ? 'active' : ''}`;
@@ -288,7 +317,7 @@ export function renderCrafting() {
 
         const recipeEl = document.createElement('div');
         recipeEl.className = 'crafting-item';
-        
+
         let materialsList = '<ul>';
         for (const material in recipe.materials) {
             materialsList += `<li>${recipe.materials[material]}x ${material}</li>`;
@@ -307,7 +336,7 @@ export function renderCrafting() {
             ${materialsList}
             <button class="btn btn-success" data-craft-index="${gameData.craftingRecipes.indexOf(recipe)}" ${!canCraft ? 'disabled' : ''}>Craft</button>
         `;
-        
+
         recipeEl.addEventListener('mousemove', (e) => {
             if (e.altKey) {
                 let breakdown = `<strong>${resultItem.name}</strong><br>${resultItem.description}`;
@@ -327,7 +356,7 @@ export function renderCrafting() {
                         breakdown += `<br>On Crit (20): Apply ${resultItem.onCrit.debuff.type}.`;
                     }
                 }
-                 if (resultItem.traits) {
+                if (resultItem.traits) {
                     breakdown += `<hr style="margin: 5px 0;"><strong>Traits:</strong> ${resultItem.traits.join(', ')}`;
                 }
                 showTooltip(breakdown);
@@ -346,11 +375,11 @@ export function showCraftingModal(recipeIndex) {
     let maxCraftable = Infinity;
     for (const materialName in recipe.materials) {
         const requiredAmount = recipe.materials[materialName];
-        const playerAmount = (gameState.inventory.filter(i => i && i.name === materialName).reduce((sum, i) => sum + (i.quantity || 1), 0)) + 
-                             (gameState.bank.filter(i => i && i.name === materialName).reduce((sum, i) => sum + (i.quantity || 1), 0));
+        const playerAmount = (gameState.inventory.filter(i => i && i.name === materialName).reduce((sum, i) => sum + (i.quantity || 1), 0)) +
+            (gameState.bank.filter(i => i && i.name === materialName).reduce((sum, i) => sum + (i.quantity || 1), 0));
         maxCraftable = Math.min(maxCraftable, Math.floor(playerAmount / requiredAmount));
     }
-    
+
     if (maxCraftable === 0) return;
 
     const modalContent = document.createElement('div');
