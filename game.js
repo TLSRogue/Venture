@@ -12,7 +12,6 @@ import * as UIAdventure from './ui/ui-adventure.js';
 import * as UIParty from './ui/ui-party.js';
 import * as UIPlayer from './ui/ui-player.js';
 import * as UITown from './ui/ui-town.js';
-import * as UIDice from './ui/ui-dice.js';
 import { ARENA_ENTRY_FEE } from './constants.js';
 
 
@@ -43,8 +42,6 @@ function initGame() {
         onPartyLootRollEnded: handleLootRollEnded,
         // PvP Flee Listener
         onPartyPvpFleeRequest: handlePvpFleeRequest,
-        // Dice Roll Listener
-        onDiceRolling: handleDiceRolling,
         // Duel Listeners
         onDuelReceiveChallenge: handleDuelReceiveChallenge,
         onDuelStart: handleDuelStart,
@@ -239,11 +236,7 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     const newLogEntries = logSource.slice(existingLogCount);
     const effectsToPlay = getEffectsFromLog(newLogEntries);
 
-    newLogEntries.reverse().forEach(entry => {
-        // Trigger dice roll animation if the message contains a roll
-        UIDice.tryShowDiceRollFromMessage(entry.message);
-        UIMain.addToLog(entry.message, entry.type);
-    });
+    newLogEntries.reverse().forEach(entry => UIMain.addToLog(entry.message, entry.type));
 
     UIAdventure.renderAdventureScreen();
     UIPlayer.updateDisplay();
@@ -657,11 +650,6 @@ async function ventureDeeper(buttonElement) {
     if (gameState.partyId && gameState.isPartyLeader) {
         Network.emitPartyAction({ type: 'ventureDeeper' });
     }
-}
-
-// --- DICE ROLL HANDLER ---
-function handleDiceRolling(data) {
-    UIDice.showRolling(data.label);
 }
 
 // --- START THE GAME ---

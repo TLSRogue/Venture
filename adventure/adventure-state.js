@@ -8,14 +8,6 @@ import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUE
 
 const PVP_ZONES = ['blighted_wastes'];
 
-// Utility to emit dice roll event to party members
-function emitDiceRollToParty(io, party, label) {
-    if (!party || !party.members) return;
-    party.members.forEach(memberId => {
-        io.to(memberId).emit('dice:rolling', { label });
-    });
-}
-
 export function handlePvpPlayerDeath(io, defeatedPlayer, encounter) {
     const character = defeatedPlayer.character;
 
@@ -579,10 +571,6 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             }
             const targetPlayerObject = players[targetPlayerState.name];
             if (!targetPlayerObject) continue;
-
-            // Emit dice roll to party so clients can show anticipatory animation
-            emitDiceRollToParty(io, party, `${enemy.name} attacks...`);
-
             const roll = Math.floor(Math.random() * 20) + 1;
             const attack = enemy.attackTable ? enemy.attackTable.find(a => roll >= a.range[0] && roll <= a.range[1]) : null;
             if (attack && attack.action === 'attack') {
