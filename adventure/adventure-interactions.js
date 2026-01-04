@@ -35,7 +35,7 @@ export function processTakeGroundLoot(io, party, player, payload) {
             sharedState.groundLoot.splice(groundLootIndex, 1);
             sharedState.log.push({ message: `${character.characterName} picked up ${itemToTake.name}.`, type: 'success' });
             io.to(player.id).emit('characterUpdate', character);
-             // BUG FIX: Broadcast the state change to all players
+            // BUG FIX: Broadcast the state change to all players
             broadcastAdventureUpdate(io, party);
         } else {
             sharedState.log.push({ message: `${character.characterName} tried to pick up ${itemToTake.name}, but their inventory is full.`, type: 'damage' });
@@ -60,7 +60,7 @@ export async function processInteractWithCard(io, party, player, payload) {
         party.sharedState.zoneCards = [];
         party.sharedState.groundLoot = [];
         drawCardsForServer(party.sharedState, 3);
-        return; 
+        return;
     }
 
     if (card.type === 'resource') {
@@ -85,13 +85,13 @@ export async function processInteractWithCard(io, party, player, payload) {
             } else {
                 lootItemData = card.loot;
             }
-    
+
             if (lootItemData) {
                 if (!addItemToInventoryServer(character, lootItemData, 1, sharedState.groundLoot)) {
-                     sharedState.log.push({ message: `Success! But their inventory is full. They dropped 1 ${lootItemData.name} on the ground.`, type: 'damage' });
+                    sharedState.log.push({ message: `Success! But their inventory is full. They dropped 1 ${lootItemData.name} on the ground.`, type: 'damage' });
                 } else {
-                     logMessage += ` Success! They gathered 1 ${lootItemData.name}.`;
-                     sharedState.log.push({ message: logMessage, type: 'success' });
+                    logMessage += ` Success! They gathered 1 ${lootItemData.name}.`;
+                    sharedState.log.push({ message: logMessage, type: 'success' });
                 }
                 io.to(player.id).emit('characterUpdate', character);
             }
@@ -106,11 +106,11 @@ export async function processInteractWithCard(io, party, player, payload) {
             sharedState.zoneCards[cardIndex] = null;
         }
     }
-    
+
     else if (card.type === 'enemy') {
         return;
     }
-    
+
     else if (card.type === 'npc' && player.character.characterName !== party.leaderId) {
         return;
     }
@@ -126,36 +126,36 @@ export async function processInteractWithCard(io, party, player, payload) {
             const numItems = Math.floor(Math.random() * 2) + 1;
             let foundItemsLog = '';
 
-            for(let i = 0; i < numItems; i++) {
+            for (let i = 0; i < numItems; i++) {
                 if (lootTable.length > 0) {
-                    const randomLoot = {...lootTable[Math.floor(Math.random() * lootTable.length)]};
+                    const randomLoot = { ...lootTable[Math.floor(Math.random() * lootTable.length)] };
                     if (randomLoot.gold) {
                         const goldPerPlayer = Math.floor(randomLoot.gold / party.members.length);
                         party.members.forEach(memberName => {
                             const memberPlayer = players[memberName];
                             if (memberPlayer && memberPlayer.character) {
                                 memberPlayer.character.gold += goldPerPlayer;
-                                if(memberPlayer.id) io.to(memberPlayer.id).emit('characterUpdate', memberPlayer.character);
+                                if (memberPlayer.id) io.to(memberPlayer.id).emit('characterUpdate', memberPlayer.character);
                             }
                         });
                         foundItemsLog += `${randomLoot.gold} Gold (split), `;
                     } else {
                         if (addItemToInventoryServer(character, randomLoot, 1, sharedState.groundLoot)) {
-                           foundItemsLog += `${randomLoot.name}, `;
+                            foundItemsLog += `${randomLoot.name}, `;
                         } else {
-                           sharedState.log.push({ message: `Found ${randomLoot.name}, but inventory was full. It was left on the ground.`, type: 'damage' });
+                            sharedState.log.push({ message: `Found ${randomLoot.name}, but inventory was full. It was left on the ground.`, type: 'damage' });
                         }
                     }
                 }
             }
-            
+
             if (foundItemsLog) {
                 foundItemsLog = foundItemsLog.slice(0, -2);
                 sharedState.log.push({ message: `${character.characterName} opened a chest and found: ${foundItemsLog}!`, type: 'success' });
             } else {
                 sharedState.log.push({ message: "The chest was empty.", type: "info" });
             }
-            
+
             io.to(player.id).emit('characterUpdate', character);
             sharedState.zoneCards[cardIndex] = null;
         }
@@ -166,6 +166,24 @@ export async function processInteractWithCard(io, party, player, payload) {
 
 export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNodeKey = 'start') {
     const leaderCharacter = player.character;
+
+    // Fallback for NPCs without dialogue or quests
+    if (!npc.dialogue || !npc.quests || npc.quests.length === 0) {
+        const genericDialogue = {
+            text: npc.description || "Hello, traveler. Safe journeys to you.",
+            options: [{ text: "Farewell.", next: "farewell" }]
+        };
+        const payload = {
+            npcName: npc.name,
+            node: genericDialogue,
+            cardIndex: cardIndex
+        };
+        party.members.forEach(memberName => {
+            const member = players[memberName];
+            if (member && member.id) io.to(member.id).emit('party:showDialogue', payload);
+        });
+        return;
+    }
 
     let currentDialogueNodeKey = dialogueNodeKey;
     if (dialogueNodeKey === 'start') {
@@ -217,7 +235,7 @@ export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNode
             currentDialogueNodeKey = 'allQuestsDone';
         }
     }
-    
+
     const currentNode = npc.dialogue[currentDialogueNodeKey];
     const payload = {
         npcName: npc.name,
@@ -243,7 +261,7 @@ export function processDialogueChoice(io, player, party, payload) {
                 const member = players[memberName]?.character;
                 if (member && !member.quests.some(q => q.details.id === choice.questId)) {
                     member.quests.push({ details: questDetails, status: 'active', progress: 0 });
-                    if(players[memberName].id) io.to(players[memberName].id).emit('characterUpdate', member);
+                    if (players[memberName].id) io.to(players[memberName].id).emit('characterUpdate', member);
                 }
             });
             party.sharedState.log.push({ message: `Party accepted Quest: ${questDetails.title}`, type: 'success' });
@@ -257,7 +275,7 @@ export function processDialogueChoice(io, player, party, payload) {
                 consumeMaterials(character, questToComplete.details.turnInItems);
             }
 
-             party.members.forEach(memberName => {
+            party.members.forEach(memberName => {
                 const memberPlayer = players[memberName];
                 const member = memberPlayer?.character;
                 if (member) {
@@ -265,27 +283,27 @@ export function processDialogueChoice(io, player, party, payload) {
                     if (memberQuest) {
                         const reward = memberQuest.details.reward;
                         memberQuest.status = 'completed';
-                        
+
                         if (reward.gold) member.gold += reward.gold;
                         if (reward.qp) member.questPoints += reward.qp;
-                        
+
                         if (reward.titleReward && !member.unlockedTitles.includes(reward.titleReward)) {
                             member.unlockedTitles.push(reward.titleReward);
                         }
-                        
+
                         if (reward.spellReward) {
                             const spellData = gameData.allSpells.find(s => s.name === reward.spellReward.name);
                             const alreadyHasSpell = member.spellbook.some(s => s.name === spellData.name) || member.equippedSpells.some(s => s.name === spellData.name);
                             if (spellData && !alreadyHasSpell) {
-                                member.spellbook.push({...spellData});
+                                member.spellbook.push({ ...spellData });
                             }
                         }
-                        
+
                         if (reward.recipeReward && !member.knownRecipes.includes(reward.recipeReward)) {
                             member.knownRecipes.push(reward.recipeReward);
                         }
 
-                        if(memberPlayer.id) io.to(memberPlayer.id).emit('characterUpdate', memberPlayer.character);
+                        if (memberPlayer.id) io.to(memberPlayer.id).emit('characterUpdate', memberPlayer.character);
                     }
                 }
             });
@@ -296,7 +314,7 @@ export function processDialogueChoice(io, player, party, payload) {
     if (choice.next === 'farewell') {
         party.members.forEach(memberName => {
             const member = players[memberName];
-            if(member && member.id) io.to(member.id).emit('party:hideDialogue')
+            if (member && member.id) io.to(member.id).emit('party:hideDialogue')
         });
     } else {
         startNPCDialogue(io, player, party, npc, cardIndex, choice.next);
@@ -306,7 +324,7 @@ export function processDialogueChoice(io, player, party, payload) {
 export function processLootPlayer(io, player, party, payload) {
     const { targetPlayerIndex } = payload;
     const { sharedState } = party;
-    
+
     const deadPlayerState = sharedState.partyMemberStates[targetPlayerIndex];
     const lootingCharacter = player.character;
 
@@ -319,7 +337,7 @@ export function processLootPlayer(io, player, party, payload) {
     if (addItemToInventoryServer(lootingCharacter, itemToLoot, 1, sharedState.groundLoot)) {
         deadPlayerState.lootableInventory.splice(0, 1);
         sharedState.log.push({ message: `${lootingCharacter.characterName} looted ${itemToLoot.name} from ${deadPlayerState.name}'s bag.`, type: 'info' });
-        
+
         io.to(player.id).emit('characterUpdate', lootingCharacter);
         broadcastAdventureUpdate(io, party);
     } else {

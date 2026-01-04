@@ -25,7 +25,7 @@ export function handlePvpPlayerDeath(io, defeatedPlayer, encounter) {
 
     character.inventory = Array(24).fill(null);
     character.equipment = { mainHand: null, offHand: null, helmet: null, armor: null, boots: null, accessory: null, ammo: null };
-    
+
     io.to(defeatedPlayer.id).emit('characterUpdate', character);
     encounter.log.push({ message: `${character.characterName} has been slain and dropped all of their items!`, type: 'damage' });
 }
@@ -37,7 +37,7 @@ function endPvpEncounter(io, winningParty, losingParty) {
     if (encounter && encounter.turnTimerId) {
         clearTimeout(encounter.turnTimerId);
     }
-    
+
     if (encounterId) {
         delete pvpEncounters[encounterId];
     }
@@ -60,7 +60,7 @@ function endPvpEncounter(io, winningParty, losingParty) {
     sharedState.pvpEncounterId = null;
     sharedState.zoneCards = [];
     sharedState.log.push({ message: "Combat has ended! You may now loot the spoils of victory.", type: 'success' });
-    
+
     sharedState.partyMemberStates.forEach(p => {
         if (!p.isDead) {
             p.actionPoints = 3;
@@ -76,7 +76,7 @@ function startPvpEncounter(io, partyA, partyB) {
         console.error("Attempted to start PvP encounter with a party that is missing a sharedState.");
         return;
     }
-    
+
     partyA.sharedState.isLoadingNextArea = false;
     partyB.sharedState.isLoadingNextArea = false;
 
@@ -129,7 +129,7 @@ function startPvpEncounter(io, partyA, partyB) {
 
     partyA.sharedState.pvpEncounterId = encounterId;
     partyB.sharedState.pvpEncounterId = encounterId;
-    
+
     partyA.sharedState.zoneCards = [];
     partyB.sharedState.zoneCards = [];
     partyA.sharedState.groundLoot = encounterState.groundLoot;
@@ -141,11 +141,11 @@ function startPvpEncounter(io, partyA, partyB) {
 
     partyA.members.forEach(memberName => {
         const member = players[memberName];
-        if(member && member.id) io.to(member.id).emit('party:adventureStarted', stateForClients);
+        if (member && member.id) io.to(member.id).emit('party:adventureStarted', stateForClients);
     });
     partyB.members.forEach(memberName => {
         const member = players[memberName];
-        if(member && member.id) io.to(member.id).emit('party:adventureStarted', stateForClients);
+        if (member && member.id) io.to(member.id).emit('party:adventureStarted', stateForClients);
     });
 }
 
@@ -354,7 +354,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
                 quest.progress++;
                 if (quest.progress >= quest.details.required) {
                     quest.status = 'readyToTurnIn';
-                    if(member.id) io.to(member.id).emit('questObjectiveComplete', quest.details.title);
+                    if (member.id) io.to(member.id).emit('questObjectiveComplete', quest.details.title);
                 }
             }
         });
@@ -366,7 +366,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         if (member.id) io.to(member.id).emit('characterUpdate', character);
     });
     if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
-        sharedState.log.push({ message: `${enemy.name} dropped gold, which was split among the party.`, type: 'success'});
+        sharedState.log.push({ message: `${enemy.name} dropped gold, which was split among the party.`, type: 'success' });
     }
     sharedState.zoneCards[enemyIndex] = null;
     if (!sharedState.zoneCards.some(c => c && c.type === 'enemy')) {
@@ -383,14 +383,14 @@ export async function processEndAdventure(io, player, party) {
         const encounter = pvpEncounters[sharedState.pvpEncounterId];
         if (!encounter) return;
         const actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
-        
+
         if (actingPlayerState && !actingPlayerState.turnEnded) {
             actingPlayerState.turnEnded = true;
             encounter.log.push({ message: `${player.character.characterName} forfeits their turn to request mercy...`, type: 'reaction' });
-            
+
             const opponentPartyId = (party.id === encounter.partyAId) ? encounter.partyBId : encounter.partyAId;
             const opponentParty = parties[opponentPartyId];
-            
+
             if (opponentParty) {
                 const opponentLeader = players[opponentParty.leaderId];
                 if (opponentLeader && opponentLeader.id) {
@@ -402,7 +402,7 @@ export async function processEndAdventure(io, player, party) {
         }
         return;
     }
-    
+
     const endTheAdventure = () => {
         party.members.forEach(memberName => {
             const memberPlayer = players[memberName];
@@ -412,7 +412,7 @@ export async function processEndAdventure(io, player, party) {
                     const bonuses = getBonusStatsForPlayer(memberCharacter, null);
                     memberCharacter.health = 10 + bonuses.maxHealth;
                 }
-                if(memberPlayer.id) {
+                if (memberPlayer.id) {
                     io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
                     io.to(memberPlayer.id).emit('party:adventureEnded');
                 }
@@ -421,12 +421,12 @@ export async function processEndAdventure(io, player, party) {
         if (party.isSoloParty) {
             if (player && player.character) {
                 player.character.partyId = null;
-                if(player.id) io.to(player.id).emit('partyUpdate', null);
+                if (player.id) io.to(player.id).emit('partyUpdate', null);
             }
             delete parties[party.id];
         } else {
-           party.sharedState = null;
-           broadcastPartyUpdate(io, party.id);
+            party.sharedState = null;
+            broadcastPartyUpdate(io, party.id);
         }
     };
     const inCombat = sharedState.zoneCards.some(c => c && c.type === 'enemy');
@@ -483,7 +483,7 @@ export async function processVentureDeeper(io, player, party) {
             clearTimeout(opponentQueueEntry.timerId);
             const opponentParty = parties[opponentQueueEntry.partyId];
             if (opponentParty) {
-                 startPvpEncounter(io, party, opponentParty);
+                startPvpEncounter(io, party, opponentParty);
             }
         } else {
             sharedState.log.push({ message: "You venture deeper, wary of your surroundings...", type: 'info' });
@@ -503,7 +503,7 @@ export async function processVentureDeeper(io, player, party) {
     const inCombat = sharedState.zoneCards.some(c => c && c.type === 'enemy');
     if (inCombat) {
         sharedState.log.push({ message: "The party attempts to flee, but the enemies get one last attack!", type: 'reaction' });
-        await runEnemyPhaseForParty(io, party.id, true); 
+        await runEnemyPhaseForParty(io, party.id, true);
         const alivePlayers = sharedState.partyMemberStates.filter(p => p.health > 0);
         if (alivePlayers.length > 0) {
             sharedState.log.push({ message: "They successfully escaped to a new area!", type: 'success' });
@@ -532,9 +532,9 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
     const enemies = sharedState.zoneCards.map((card, index) => ({ card, index })).filter(e => e.card && e.card.type === 'enemy');
     for (let i = startIndex; i < enemies.length; i++) {
         const { card: enemy, index: enemyIndex } = enemies[i];
-        
+
         delete enemy.usedThickHideThisTurn;
-        
+
         if (!enemy || enemy.health <= 0) continue;
         try {
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -552,7 +552,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 continue;
             }
             enemy.debuffs = enemy.debuffs.filter(d => d.duration > 0);
-            if(tookDotDamage) broadcastAdventureUpdate(io, party);
+            if (tookDotDamage) broadcastAdventureUpdate(io, party);
             if (enemy.debuffs.some(d => d.type === 'stun')) {
                 sharedState.log.push({ message: `${enemy.name} is stunned and cannot act!`, type: 'reaction' });
                 enemy.debuffs = enemy.debuffs.filter(d => d.type !== 'stun');
@@ -616,7 +616,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         }
                     }
                 }
-                
+
                 if (targetCharacter.equipment) {
                     const shield = targetCharacter.equipment.offHand;
                     if (shield && shield.type === 'shield' && shield.reaction && (targetPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
@@ -658,11 +658,11 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     if (attack.debuff) {
                         const debuff = attack.debuff;
                         const existingIndex = targetPlayerState.debuffs.findIndex(d => d.type === debuff.type);
-                        if(existingIndex !== -1) targetPlayerState.debuffs.splice(existingIndex, 1);
+                        if (existingIndex !== -1) targetPlayerState.debuffs.splice(existingIndex, 1);
                         targetPlayerState.debuffs.push({ ...debuff });
                         attackMessage += ` ${targetPlayerState.name} is now ${debuff.type}!`;
                     }
-                    sharedState.log.push({ message: attackMessage, type: 'damage'});
+                    sharedState.log.push({ message: attackMessage, type: 'damage' });
                 }
             } else if (attack && attack.action === 'special') {
                 sharedState.log.push({ message: `${enemy.name} uses a special ability: ${attack.message}`, type: 'reaction' });
@@ -685,31 +685,55 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 if (enemy.name === 'Raging Bull' && attack.message.includes('Thick Hide')) {
                     if (enemy.usedThickHideThisTurn) {
                         sharedState.log.push({ message: `${enemy.name} roars and Charges again!`, type: 'reaction' });
-                        
+
                         const targetCharacter = targetPlayerObject.character;
-                        let damageToDeal = 3; 
+                        let damageToDeal = 3;
                         const bonuses = getBonusStatsForPlayer(targetCharacter, targetPlayerState);
                         const resistance = bonuses.physicalResistance || 0;
                         damageToDeal = Math.max(0, damageToDeal - resistance);
-                        
+
                         targetPlayerState.health -= damageToDeal;
                         let attackMessage = `${enemy.name} hits ${targetPlayerState.name} for ${damageToDeal} damage!`;
                         if (damageToDeal < 3) {
                             attackMessage += ` (${3 - damageToDeal} resisted)`;
                         }
-                        sharedState.log.push({ message: attackMessage, type: 'damage'});
+                        sharedState.log.push({ message: attackMessage, type: 'damage' });
 
                     } else {
                         if (!enemy.buffs) enemy.buffs = [];
-                        const buff = { type: 'Thick Hide', duration: 2, bonus: { physicalResistance: 1 }};
-                        
+                        const buff = { type: 'Thick Hide', duration: 2, bonus: { physicalResistance: 1 } };
+
                         enemy.buffs = enemy.buffs.filter(b => b.type !== 'Thick Hide');
                         enemy.buffs.push(buff);
-                        
+
                         enemy.usedThickHideThisTurn = true;
                         i--;
                     }
                     continue;
+                }
+                // --- RAT KING: Summon Rat ---
+                if (enemy.name === 'The Rat King' && attack.message.includes('rat appears')) {
+                    const ratCard = {
+                        name: "Rat",
+                        type: "enemy",
+                        health: 3,
+                        maxHealth: 3,
+                        icon: "🐀",
+                        debuffs: [],
+                        id: Date.now(),
+                        attackTable: [
+                            { range: [1, 10], action: 'miss', message: "Miss!" },
+                            { range: [11, 20], action: 'attack', damage: 1, damageType: 'Physical', message: "Bite! Deals 1 Physical Damage!" }
+                        ]
+                    };
+                    // Find an empty slot to place the rat
+                    const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+                    if (emptySlotIndex !== -1) {
+                        sharedState.zoneCards[emptySlotIndex] = ratCard;
+                        sharedState.log.push({ message: `A rat scurries into the battle!`, type: 'reaction' });
+                    } else {
+                        sharedState.log.push({ message: `The Rat King shrieks, but there's no room for more rats!`, type: 'info' });
+                    }
                 }
             } else {
                 sharedState.log.push({ message: `${enemy.name} misses its attack.`, type: 'info' });
@@ -723,7 +747,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     if (targetPlayerObject.character) {
                         targetPlayerState.lootableInventory = [...targetPlayerObject.character.inventory.filter(Boolean)];
                         targetPlayerObject.character.inventory = Array(24).fill(null);
-                        if(targetPlayerObject.id) io.to(targetPlayerObject.id).emit('characterUpdate', targetPlayerObject.character);
+                        if (targetPlayerObject.id) io.to(targetPlayerObject.id).emit('characterUpdate', targetPlayerObject.character);
                     }
                 }
                 sharedState.log.push({ message: `${targetPlayerState.name} has been defeated!`, type: 'damage' });
@@ -824,7 +848,7 @@ export async function handleResolveReaction(io, socket, payload) {
                 blocked = true;
                 logMessage = `${name}'s Block: ${roll}(d20) + ${statValue} = ${total}. Success! They block ${damageReduction} damage.`;
             } else {
-                 logMessage = `${name}'s Block: ${roll}(d20) + ${statValue} = ${total}. Failure!`;
+                logMessage = `${name}'s Block: ${roll}(d20) + ${statValue} = ${total}. Failure!`;
             }
         } else {
             logMessage = `${name} tries to Block, but fails!`;
@@ -856,12 +880,12 @@ export async function handleResolveReaction(io, socket, payload) {
                         let counterDamage = mainHand.weaponDamage;
                         const resistance = attackerEnemy.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
                         let damageToDeal = Math.max(0, counterDamage - resistance);
-                        
+
                         attackerEnemy.health -= damageToDeal;
-                        
+
                         let counterLog = ` They counter-attack, dealing ${damageToDeal} damage to ${attackerEnemy.name}!`;
                         stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
-                        
+
                         if (attackerEnemy.health <= 0) {
                             defeatEnemyInParty(io, party, attackerEnemy, reaction.attackerIndex);
                         }
@@ -880,7 +904,7 @@ export async function handleResolveReaction(io, socket, payload) {
         logMessage = `${name} braces for the attack!`;
     }
 
-    if(logMessage) stateObject.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
+    if (logMessage) stateObject.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
 
     if (finalDamage > 0) {
         let damageToDeal = finalDamage;
@@ -897,7 +921,7 @@ export async function handleResolveReaction(io, socket, payload) {
         if (reaction.debuff && !dodged) {
             const debuff = reaction.debuff;
             const existingIndex = reactingPlayerState.debuffs.findIndex(d => d.type === debuff.type);
-            if(existingIndex !== -1) reactingPlayerState.debuffs.splice(existingIndex, 1);
+            if (existingIndex !== -1) reactingPlayerState.debuffs.splice(existingIndex, 1);
             reactingPlayerState.debuffs.push({ ...debuff });
             damageMessage += ` ${name} is now ${debuff.type}!`;
         }
@@ -912,7 +936,7 @@ export async function handleResolveReaction(io, socket, payload) {
             if (reactingPlayer.character) {
                 reactingPlayerState.lootableInventory = [...reactingPlayer.character.inventory.filter(Boolean)];
                 reactingPlayer.character.inventory = Array(24).fill(null);
-                if(reactingPlayer.id) io.to(reactingPlayer.id).emit('characterUpdate', reactingPlayer.character);
+                if (reactingPlayer.id) io.to(reactingPlayer.id).emit('characterUpdate', reactingPlayer.character);
             }
         }
         stateObject.log.push({ message: `${name} has been defeated!`, type: 'damage' });
@@ -936,7 +960,7 @@ export async function handleResolveReaction(io, socket, payload) {
             encounter.turnTimerEndsAt = timerEndsAt;
         }
         const defendingTeam = reactingPlayerState.team;
-        const allDefendersDead = encounter.playerStates.filter(p=> p.team === defendingTeam).every(p => p.isDead);
+        const allDefendersDead = encounter.playerStates.filter(p => p.team === defendingTeam).every(p => p.isDead);
         if (allDefendersDead) {
             const winningTeam = defendingTeam === 'A' ? 'B' : 'A';
             const winningParty = (winningTeam === 'A') ? parties[encounter.partyAId] : parties[encounter.partyBId];
@@ -948,7 +972,7 @@ export async function handleResolveReaction(io, socket, payload) {
         return;
     }
     const lastAttackerIndex = reaction.attackerIndex;
-    const enemies = party.sharedState.zoneCards.map((c, i) => ({card: c, index: i})).filter(e => e.card && e.card.type === 'enemy');
+    const enemies = party.sharedState.zoneCards.map((c, i) => ({ card: c, index: i })).filter(e => e.card && e.card.type === 'enemy');
     const lastEnemyListIndex = enemies.findIndex(e => e.index === lastAttackerIndex);
     await runEnemyPhaseForParty(io, party.id, wasFleeing, lastEnemyListIndex + 1);
 }
