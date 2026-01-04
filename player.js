@@ -120,6 +120,7 @@ export function resetToHomeState() {
     gameState.turnState.isPlayerTurn = true;
     gameState.inDuel = false;
     gameState.duelState = null;
+    gameState.pvpEncounter = null;
 
     if (gameState.partyId && gameState.partyId.startsWith('SOLO-')) {
         Network.emitLeaveParty();

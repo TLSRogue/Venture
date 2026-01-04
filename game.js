@@ -185,6 +185,7 @@ function handlePartyAdventureStarted(serverAdventureState) {
         gameState.groundLoot = serverAdventureState.pvpEncounterState.groundLoot;
     } else {
         Object.assign(gameState, serverAdventureState);
+        gameState.pvpEncounter = null;
     }
 
     Player.resetPlayerCombatState();
