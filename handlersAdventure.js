@@ -14,9 +14,9 @@ export const registerAdventureHandlers = (io, socket) => {
         const name = socket.characterName;
         const player = players[name];
         if (!player) return;
-        
+
         if (player.character.duelId && duels[player.character.duelId]) {
-            return; 
+            return;
         }
 
         let partyId = player.character.partyId;
@@ -35,8 +35,8 @@ export const registerAdventureHandlers = (io, socket) => {
             socket.emit('partyUpdate', { partyId: partyId, leaderId: name, members: [{ name: name, id: socket.id, isLeader: true }], isPartyLeader: true });
             console.log(`Player ${name} created temporary solo party ${partyId}`);
         }
-        
-        const deck = buildZoneDeckForServer(zoneName); 
+
+        const deck = buildZoneDeckForServer(zoneName);
         party.sharedState = {
             currentZone: zoneName,
             zoneDeck: deck,
@@ -49,8 +49,8 @@ export const registerAdventureHandlers = (io, socket) => {
                 const memberCharacter = memberPlayer.character;
                 const bonuses = getBonusStatsForPlayer(memberCharacter, null);
                 const maxHealth = 10 + bonuses.maxHealth;
-                return { 
-                    playerId: memberPlayer.id, 
+                return {
+                    playerId: memberPlayer.id,
                     name: memberCharacter.characterName,
                     icon: memberCharacter.characterIcon,
                     health: maxHealth,
@@ -74,7 +74,7 @@ export const registerAdventureHandlers = (io, socket) => {
             pendingReaction: null,
             pendingLootRoll: null,
         };
-        
+
         if (zoneName === 'arena') {
             const bossIndex = party.sharedState.zoneDeck.findIndex(card => card.name === 'Pulvis Cadus');
             if (bossIndex !== -1) {
@@ -88,18 +88,18 @@ export const registerAdventureHandlers = (io, socket) => {
         } else {
             drawCardsForServer(party.sharedState, 3);
         }
-        
+
         party.members.forEach(memberName => {
             const member = players[memberName];
-            if(member && member.id) io.to(member.id).emit('party:adventureStarted', party.sharedState);
+            if (member && member.id) io.to(member.id).emit('party:adventureStarted', party.sharedState);
         });
     });
-  
+
     socket.on('party:playerAction', async (action) => {
         const name = socket.characterName;
         const player = players[name];
         if (!player || !player.character) return;
-        
+
         const partyId = player.character.partyId;
         const party = parties[partyId];
         if (!party) return;
@@ -115,7 +115,7 @@ export const registerAdventureHandlers = (io, socket) => {
 
                 const fleeingPartyId = (party.id === encounter.partyAId) ? encounter.partyBId : encounter.partyAId;
                 const opponentParty = parties[fleeingPartyId];
-                
+
                 if (!opponentParty) return;
 
                 if (action.payload.allow) {
@@ -180,42 +180,42 @@ export const registerAdventureHandlers = (io, socket) => {
                 if (!rollData || rollData.rolls.some(r => r.playerName === name)) {
                     return;
                 }
-                
+
                 const choice = action.payload.choice;
                 const rollValue = choice === 'pass' ? 0 : Math.floor(Math.random() * 100) + 1;
 
                 rollData.rolls.push({ playerName: name, choice, roll: rollValue });
-                
+
                 if (choice !== 'pass') {
                     sharedState.log.push({ message: `${name} rolls ${rollValue} (${choice}) for [${rollData.item.name}].`, type: 'info' });
                 } else {
                     sharedState.log.push({ message: `${name} passes on [${rollData.item.name}].`, type: 'info' });
                 }
-                
+
                 const livingPlayers = sharedState.partyMemberStates.filter(p => !p.isDead).length;
                 if (rollData.rolls.length >= livingPlayers) {
                     state.determineLootWinnerAndDistribute(io, partyId);
                 }
-                
+
                 broadcastAdventureUpdate(io, partyId);
                 return;
             }
-            
+
             if (action.type === 'resolveReaction') {
                 await state.handleResolveReaction(io, socket, action.payload);
-                return; 
+                return;
             }
-            
+
             if (!party.sharedState || party.sharedState.pendingReaction) return;
-    
+
             if (action.type === 'returnHome' || action.type === 'ventureDeeper') {
                 if (name === party.leaderId) {
-                     if (action.type === 'returnHome') await state.processEndAdventure(io, player, party);
-                     if (action.type === 'ventureDeeper') await state.processVentureDeeper(io, player, party);
+                    if (action.type === 'returnHome') await state.processEndAdventure(io, player, party);
+                    if (action.type === 'ventureDeeper') await state.processVentureDeeper(io, player, party);
                 }
                 return;
             }
-    
+
             let actingPlayerState;
             if (party.sharedState.pvpEncounterId) {
                 const encounter = pvpEncounters[party.sharedState.pvpEncounterId];
@@ -225,12 +225,12 @@ export const registerAdventureHandlers = (io, socket) => {
             } else {
                 actingPlayerState = party.sharedState.partyMemberStates.find(p => p.name === name);
             }
-            
+
             if (!actingPlayerState || actingPlayerState.isDead) return;
             if (actingPlayerState.turnEnded && action.type !== 'dialogueChoice') return;
             if (action.type === 'dialogueChoice' && name !== party.leaderId) return;
-    
-            switch(action.type) {
+
+            switch (action.type) {
                 case 'weaponAttack':
                     await actions.processWeaponAttack(io, party, player, action.payload);
                     break;
@@ -246,6 +246,9 @@ export const registerAdventureHandlers = (io, socket) => {
                 case 'equipItem':
                     await actions.processEquipItem(io, party, player, action.payload);
                     break;
+                case 'unequipItem':
+                    await actions.processUnequipItem(io, party, player, action.payload);
+                    break;
                 case 'interactWithCard':
                     await interactions.processInteractWithCard(io, party, player, action.payload);
                     break;
@@ -257,7 +260,7 @@ export const registerAdventureHandlers = (io, socket) => {
                     break;
                 case 'dialogueChoice':
                     interactions.processDialogueChoice(io, player, party, action.payload);
-                    break; 
+                    break;
                 case 'lootPlayer':
                     interactions.processLootPlayer(io, player, party, action.payload);
                     break;
@@ -283,9 +286,9 @@ export const registerAdventureHandlers = (io, socket) => {
                     }
                     break;
             }
-    
+
             broadcastAdventureUpdate(io, party);
-            
+
         } catch (error) {
             console.error(`!!! PLAYER ACTION ERROR !!! A server crash was prevented. Action:`, action);
             console.error(error);

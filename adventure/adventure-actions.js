@@ -9,7 +9,7 @@ import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlayerState, actionDetails) {
     const defendingPlayerObject = players[defendingPlayerState.name];
     const defendingCharacter = defendingPlayerObject.character;
-    
+
     const availableReactions = [];
     const dodgeSpell = defendingCharacter.equippedSpells.find(s => s.name === "Dodge");
     if (dodgeSpell && (defendingPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
@@ -35,10 +35,10 @@ function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlaye
             damage: actionDetails.damage,
             damageType: actionDetails.damageType,
             message: actionDetails.message,
-            debuff: actionDetails.debuff || null, 
+            debuff: actionDetails.debuff || null,
             isFleeing: false
         };
-        
+
         const reactionPayload = {
             damage: actionDetails.damage,
             attacker: attackerCharacter.characterName,
@@ -54,10 +54,10 @@ function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlaye
                 handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
             }
         }, 10000);
-        
+
         return true;
     }
-    
+
     return false;
 }
 
@@ -65,7 +65,7 @@ export async function processWeaponAttack(io, party, player, payload) {
     const { weaponSlot, targetIndex } = payload;
     const character = player.character;
     const { sharedState } = party;
-    
+
     if (sharedState.pvpEncounterId) {
         const encounter = pvpEncounters[sharedState.pvpEncounterId];
         if (!encounter) return;
@@ -76,14 +76,14 @@ export async function processWeaponAttack(io, party, player, payload) {
         if (!weapon || weapon.type !== 'weapon' || !defendingPlayerState || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weapon.name] || 0) > 0) {
             return;
         }
-        
+
         const actionDetails = {
             damage: weapon.weaponDamage,
             damageType: weapon.damageType,
             message: `attacks with ${weapon.name}.`,
             debuff: null,
         };
-        
+
         actingPlayerState.actionPoints -= weapon.cost;
         actingPlayerState.threat += weapon.cost;
         actingPlayerState.weaponCooldowns[weapon.name] = weapon.cooldown;
@@ -121,7 +121,7 @@ export async function processWeaponAttack(io, party, player, payload) {
             defendingPlayerState.health -= damageToDeal;
             logMessage += ` Hit! Dealt ${damageToDeal} ${weapon.damageType} damage to ${defendingPlayerState.name} [id:${defendingPlayerState.playerId}].`;
             if (damageToDeal < weapon.weaponDamage) logMessage += ` (${weapon.weaponDamage - damageToDeal} resisted)`;
-            
+
             if ((roll === 20 && weapon.onCrit?.debuff) || weapon.onHit?.debuff) {
                 const debuff = (roll === 20 && weapon.onCrit?.debuff) ? weapon.onCrit.debuff : weapon.onHit.debuff;
                 const existingIndex = defendingPlayerState.debuffs.findIndex(d => d.type === debuff.type);
@@ -173,7 +173,7 @@ export async function processWeaponAttack(io, party, player, payload) {
                 const resistance = target.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
                 damageToDeal = Math.max(0, damageToDeal - resistance);
             }
-            
+
             target.health -= damageToDeal;
             logMessage += ` Hit! Dealt ${damageToDeal} ${weapon.damageType} damage to ${target.name} [id:${target.id}].`;
             if (damageToDeal < weapon.weaponDamage) logMessage += ` (${weapon.weaponDamage - damageToDeal} resisted)`;
@@ -204,7 +204,7 @@ export async function processWeaponAttack(io, party, player, payload) {
             sharedState.log.push({ message: logMessage, type: 'info' });
         }
     }
-    
+
     broadcastAdventureUpdate(io, party);
     await checkAndEndTurnForPlayer(io, party, player);
 }
@@ -214,7 +214,7 @@ export async function processCastSpell(io, party, player, payload) {
     const character = player.character;
     const { sharedState } = party;
     const spell = character.equippedSpells[spellIndex];
-    
+
     if (!spell) return;
     const cost = spell.cost || 0;
 
@@ -226,14 +226,14 @@ export async function processCastSpell(io, party, player, payload) {
         if (actingPlayerState.actionPoints < cost || (actingPlayerState.spellCooldowns[spell.name] || 0) > 0) {
             return;
         }
-        
+
         let targetPlayerState = encounter.playerStates.find(p => p.playerId === targetIndex);
-        if(!targetPlayerState) return;
+        if (!targetPlayerState) return;
 
         const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
         let statValue = 0;
         let rollDescription = "";
-        
+
         if (Array.isArray(spell.stat)) {
             let highestStatValue = -Infinity;
             let highestStatName = '';
@@ -256,7 +256,7 @@ export async function processCastSpell(io, party, player, payload) {
                 rollDescription = '';
             }
         }
-        
+
         const dazeDebuff = actingPlayerState.debuffs.find(d => d.type === 'daze');
         const dazeModifier = dazeDebuff ? -3 : 0;
         const roll = Math.floor(Math.random() * 20) + 1;
@@ -286,7 +286,7 @@ export async function processCastSpell(io, party, player, payload) {
 
                 if (reactionInitiated) {
                     broadcastAdventureUpdate(io, party);
-                    return; 
+                    return;
                 }
             }
 
@@ -307,11 +307,11 @@ export async function processCastSpell(io, party, player, payload) {
                     const resistance = defendingBonuses.physicalResistance || 0;
                     damageToDeal = Math.max(0, damageToDeal - resistance);
                 }
-                
+
                 targetPlayerState.health -= damageToDeal;
                 let damageMessage = `Dealt ${damageToDeal} ${spell.damageType} damage to ${targetPlayerState.name} [id:${targetPlayerState.playerId}].`;
                 if (damageToDeal < spell.damage) damageMessage += ` (${spell.damage - damageToDeal} resisted)`;
-                encounter.log.push({ message: damageMessage, type: 'damage'});
+                encounter.log.push({ message: damageMessage, type: 'damage' });
 
                 if (spell.debuff) {
                     const debuff = spell.debuff;
@@ -320,7 +320,7 @@ export async function processCastSpell(io, party, player, payload) {
                     targetPlayerState.debuffs.push({ ...debuff });
                 }
             }
-            if(targetPlayerState.health <= 0) {
+            if (targetPlayerState.health <= 0) {
                 defeatEnemyInParty(io, party, { playerId: targetPlayerState.playerId }, null);
             }
         }
@@ -334,13 +334,13 @@ export async function processCastSpell(io, party, player, payload) {
         if (spell.requires && spell.requires.weaponType) {
             const mainHand = character.equipment.mainHand;
             const offHand = character.equipment.offHand;
-        
+
             const hasRequiredWeapon = (hand) => {
                 if (!hand) return false;
                 // Ensure spell.requires.weaponType is an array before calling .includes()
                 return Array.isArray(spell.requires.weaponType) && spell.requires.weaponType.includes(hand.weaponType);
             };
-        
+
             if (spell.requires.hand) {
                 // Requires a specific hand (e.g., offHand for Shield Bash)
                 if (!hasRequiredWeapon(character.equipment[spell.requires.hand])) return;
@@ -509,11 +509,11 @@ export async function processCastSpell(io, party, player, payload) {
                         } else if (spell.name === 'Crushing Blow') {
                             damage = character.equipment.mainHand.weaponDamage + (spell.damageBonus || 0);
                         }
-                        
+
                         let damageToDeal = damage;
                         if (spell.damageType === 'Physical') {
-                           const resistance = aoeTarget.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
-                           damageToDeal = Math.max(0, damageToDeal - resistance);
+                            const resistance = aoeTarget.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
+                            damageToDeal = Math.max(0, damageToDeal - resistance);
                         }
 
                         aoeTarget.health -= damageToDeal;
@@ -549,7 +549,7 @@ export async function processCastSpell(io, party, player, payload) {
             }
         }
     }
-    
+
     broadcastAdventureUpdate(io, party);
     await checkAndEndTurnForPlayer(io, party, player);
 }
@@ -557,10 +557,10 @@ export async function processCastSpell(io, party, player, payload) {
 export async function processEquipItem(io, party, player, payload) {
     const { inventoryIndex } = payload;
     const { character } = player;
-    
+
     const itemToEquip = character.inventory[inventoryIndex];
     if (!itemToEquip) return;
-    
+
     const chosenSlot = Array.isArray(itemToEquip.slot) ? itemToEquip.slot[0] : itemToEquip.slot;
     if (!chosenSlot) return;
 
@@ -572,11 +572,11 @@ export async function processEquipItem(io, party, player, payload) {
         } else {
             actingPlayerState = party.sharedState.partyMemberStates.find(p => p.playerId === player.id);
         }
-        
+
         if (actingPlayerState.actionPoints < 1) return;
         actingPlayerState.actionPoints--;
         actingPlayerState.threat += 1;
-        
+
         const logTarget = party.sharedState.pvpEncounterId ? pvpEncounters[party.sharedState.pvpEncounterId] : party.sharedState;
         logTarget.log.push({ message: `${character.characterName} spends 1 AP to change equipment.`, type: 'info' });
     }
@@ -600,7 +600,7 @@ export async function processEquipItem(io, party, player, payload) {
     if (hands === 2) {
         if (character.equipment.mainHand) addItemToInventoryServer(character, character.equipment.mainHand);
         if (character.equipment.offHand && character.equipment.offHand !== character.equipment.mainHand) {
-             addItemToInventoryServer(character, character.equipment.offHand);
+            addItemToInventoryServer(character, character.equipment.offHand);
         }
         character.equipment.mainHand = null;
         character.equipment.offHand = null;
@@ -624,9 +624,9 @@ export async function processEquipItem(io, party, player, payload) {
     }
 
     character.inventory[inventoryIndex] = null;
-    
+
     io.to(player.id).emit('characterUpdate', character);
-    
+
     broadcastAdventureUpdate(io, party);
     await checkAndEndTurnForPlayer(io, party, player);
 }
@@ -636,10 +636,10 @@ export async function processUseItemAbility(io, party, player, payload) {
     const character = player.character;
     const { sharedState } = party;
     const item = character.equipment[slot];
-    
+
     let actingPlayerState;
     let logTarget;
-    if(sharedState.pvpEncounterId) {
+    if (sharedState.pvpEncounterId) {
         const encounter = pvpEncounters[sharedState.pvpEncounterId];
         actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
         logTarget = encounter;
@@ -647,16 +647,16 @@ export async function processUseItemAbility(io, party, player, payload) {
         actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
         logTarget = sharedState;
     }
-    
+
     if (!item || !item.activatedAbility || !actingPlayerState || actingPlayerState.actionPoints < item.activatedAbility.cost || (actingPlayerState.itemCooldowns[item.name] || 0) > 0) {
         return;
     }
-    
+
     const ability = item.activatedAbility;
     actingPlayerState.actionPoints -= ability.cost;
     actingPlayerState.threat += ability.cost;
     actingPlayerState.itemCooldowns[item.name] = ability.cooldown;
-    
+
     if (ability.buff) {
         const buff = ability.buff;
         const existingIndex = actingPlayerState.buffs.findIndex(b => b.type === buff.type);
@@ -687,10 +687,10 @@ export async function processUseConsumable(io, party, player, payload) {
     const character = player.character;
     const { sharedState } = party;
     const item = character.inventory[inventoryIndex];
-    
+
     let actingPlayerState;
     let logTarget;
-    if(sharedState.pvpEncounterId) {
+    if (sharedState.pvpEncounterId) {
         const encounter = pvpEncounters[sharedState.pvpEncounterId];
         actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
         logTarget = encounter;
@@ -706,7 +706,7 @@ export async function processUseConsumable(io, party, player, payload) {
 
     actingPlayerState.actionPoints -= cost;
     actingPlayerState.threat += cost;
-    
+
     if (item.heal) {
         actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + item.heal);
         logTarget.log.push({ message: `${character.characterName} used ${item.name}, healing for ${item.heal} HP.`, type: 'heal' });
@@ -726,6 +726,49 @@ export async function processUseConsumable(io, party, player, payload) {
         item.quantity = (item.quantity || 1) - 1;
         if (item.quantity <= 0) character.inventory[inventoryIndex] = null;
     }
+    io.to(player.id).emit('characterUpdate', character);
+
+    broadcastAdventureUpdate(io, party);
+    await checkAndEndTurnForPlayer(io, party, player);
+}
+
+export async function processUnequipItem(io, party, player, payload) {
+    const { slot } = payload;
+    const { character } = player;
+
+    const itemToUnequip = character.equipment[slot];
+    if (!itemToUnequip) return;
+
+    // Check if there's room in inventory
+    const freeSlots = character.inventory.filter(i => !i).length;
+    if (freeSlots === 0) return;
+
+    if (party.sharedState) {
+        let actingPlayerState;
+        if (party.sharedState.pvpEncounterId) {
+            const encounter = pvpEncounters[party.sharedState.pvpEncounterId];
+            actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
+        } else {
+            actingPlayerState = party.sharedState.partyMemberStates.find(p => p.playerId === player.id);
+        }
+
+        if (actingPlayerState.actionPoints < 1) return;
+        actingPlayerState.actionPoints--;
+        actingPlayerState.threat += 1;
+
+        const logTarget = party.sharedState.pvpEncounterId ? pvpEncounters[party.sharedState.pvpEncounterId] : party.sharedState;
+        logTarget.log.push({ message: `${character.characterName} spends 1 AP to unequip ${itemToUnequip.name}.`, type: 'info' });
+    }
+
+    // Move item to inventory
+    addItemToInventoryServer(character, itemToUnequip);
+    character.equipment[slot] = null;
+
+    // Handle 2-handed weapons
+    if (itemToUnequip.hands === 2) {
+        character.equipment.offHand = null;
+    }
+
     io.to(player.id).emit('characterUpdate', character);
 
     broadcastAdventureUpdate(io, party);

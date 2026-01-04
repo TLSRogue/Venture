@@ -193,6 +193,10 @@ function handlePartyAdventureStarted(serverAdventureState) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
     document.getElementById('adventure-tab').style.display = 'flex';
 
+    // Hide header and tabs during adventure to save screen space
+    document.querySelector('.header').style.display = 'none';
+    document.querySelector('.tabs').style.display = 'none';
+
     document.getElementById('main-stats-display').style.display = 'none';
     document.getElementById('adventure-hud').style.display = 'flex';
     document.getElementById('player-action-bar').style.display = 'flex';

@@ -26,7 +26,7 @@ export function getBonusStats() {
             }
         }
     });
-    
+
     (gameState.buffs || []).forEach(buff => {
         if (buff.bonus) {
             for (const stat in buff.bonus) {
@@ -62,12 +62,19 @@ export function equipItem(itemIndex, chosenSlot) {
 }
 
 export function unequipItem(slot) {
-    Network.emitPlayerAction('unequipItem', { slot });
+    if (gameState.currentZone || gameState.inDuel) {
+        Network.emitPartyAction({
+            type: 'unequipItem',
+            payload: { slot }
+        });
+    } else {
+        Network.emitPlayerAction('unequipItem', { slot });
+    }
 }
 
 export function unequipSpell(index) {
-     if (gameState.currentZone !== null) return;
-     Network.emitPlayerAction('unequipSpell', { index });
+    if (gameState.currentZone !== null) return;
+    Network.emitPlayerAction('unequipSpell', { index });
 }
 
 export function equipSpell(index) {
@@ -97,6 +104,11 @@ export function returnToHome() {
 
 export function resetToHomeState() {
     UIMain.setTabsDisabled(false);
+
+    // Restore header and tabs visibility when returning home
+    document.querySelector('.header').style.display = '';
+    document.querySelector('.tabs').style.display = '';
+
     gameState.currentZone = null;
     gameState.zoneCards = [];
     gameState.groundLoot = [];
@@ -115,7 +127,7 @@ export function resetToHomeState() {
         gameState.isPartyLeader = false;
         gameState.partyMembers = [];
     }
-    
+
     Interactions.clearSelection();
     document.getElementById('end-turn-btn').disabled = false;
     UIMain.hideModal();
@@ -132,23 +144,23 @@ export function resetPlayerCombatState() {
     gameState.spellCooldowns = {};
     gameState.weaponCooldowns = {};
     gameState.itemCooldowns = {};
-    
+
     const persistentBuffs = ['Well Fed (Agi)', 'Well Fed (Str)', 'Light Source'];
-    
+
     const currentBuffs = gameState.buffs || [];
     const expiredBuffs = currentBuffs.filter(b => !persistentBuffs.includes(b.type));
-    
+
     if (expiredBuffs.length > 0) {
         UIMain.addToLog(`Combat buffs worn off: ${expiredBuffs.map(b => b.type).join(', ')}.`, 'info');
     }
     gameState.buffs = currentBuffs.filter(b => persistentBuffs.includes(b.type));
-    
+
     const currentDebuffs = gameState.debuffs || [];
     if (currentDebuffs.length > 0) {
         UIMain.addToLog("All debuffs have been cleared.", 'heal');
         gameState.debuffs = [];
     }
-    
+
     gameState.shield = 0;
     gameState.focus = 0;
 
