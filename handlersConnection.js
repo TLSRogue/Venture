@@ -7,7 +7,7 @@
  */
 
 import { players, parties, duels, pvpEncounters, createInitialCharacter } from './serverState.js';
-import { broadcastOnlinePlayers, broadcastPartyUpdate, broadcastDuelUpdate } from './utilsBroadcast.js';
+import { broadcastOnlinePlayers, broadcastPartyUpdate, broadcastDuelUpdate, broadcastAdventureUpdate } from './utilsBroadcast.js';
 import { endDuel } from './handlersDuel.js';
 import { handlePvpPlayerDeath } from './adventure/adventure-state.js';
 import fs from 'fs';
@@ -122,6 +122,100 @@ export const registerConnectionHandlers = (io, socket) => {
                     }
                 }, DUEL_DISCONNECT_MS);
             }
+
+            // --- PVP ENCOUNTER DISCONNECT HANDLING ---
+            const partyId = character.partyId;
+            console.log(`[PVP DISCONNECT DEBUG] Player ${name} disconnecting. PartyId: ${partyId}`);
+
+            if (partyId && parties[partyId]) {
+                console.log(`[PVP DISCONNECT DEBUG] Party exists. sharedState: ${!!parties[partyId].sharedState}, pvpEncounterId: ${parties[partyId].sharedState?.pvpEncounterId}`);
+            }
+
+            if (partyId && parties[partyId] && parties[partyId].sharedState?.pvpEncounterId) {
+                const party = parties[partyId];
+                const encounter = pvpEncounters[party.sharedState.pvpEncounterId];
+                console.log(`[PVP DISCONNECT DEBUG] Found encounter: ${!!encounter}`);
+
+                if (encounter) {
+                    const disconnectedPlayerState = encounter.playerStates.find(p => p.name === name);
+                    console.log(`[PVP DISCONNECT DEBUG] Found player state: ${!!disconnectedPlayerState}, isDead: ${disconnectedPlayerState?.isDead}`);
+
+                    if (disconnectedPlayerState && !disconnectedPlayerState.isDead) {
+                        // Kill the disconnected player and drop their items
+                        console.log(`[PVP DISCONNECT DEBUG] Processing death for ${name}`);
+                        disconnectedPlayerState.isDead = true;
+                        disconnectedPlayerState.health = 0;
+
+                        const disconnectedPlayer = players[name];
+                        if (disconnectedPlayer) {
+                            handlePvpPlayerDeath(io, disconnectedPlayer, encounter);
+                        }
+
+                        encounter.log.push({ message: `${name} has disconnected and forfeits the battle!`, type: 'damage' });
+
+                        // Check if the disconnected player's entire team is now dead
+                        const team = disconnectedPlayerState.team;
+                        const teammates = encounter.playerStates.filter(p => p.team === team);
+                        const allTeamDead = teammates.every(p => p.isDead);
+
+                        if (allTeamDead) {
+                            // End the encounter - the other team wins
+                            const winningTeam = team === 'A' ? 'B' : 'A';
+                            const winningPartyId = winningTeam === 'A' ? encounter.partyAId : encounter.partyBId;
+                            const losingPartyId = winningTeam === 'A' ? encounter.partyBId : encounter.partyAId;
+                            const winningParty = parties[winningPartyId];
+                            const losingParty = parties[losingPartyId];
+
+                            encounter.log.push({ message: `All opponents have been defeated! You are victorious!`, type: 'success' });
+
+                            if (encounter.turnTimerId) {
+                                clearTimeout(encounter.turnTimerId);
+                            }
+
+                            // Clean up the losing party
+                            if (losingParty) {
+                                losingParty.members.forEach(memberName => {
+                                    const memberPlayer = players[memberName];
+                                    if (memberPlayer && memberPlayer.id) {
+                                        io.to(memberPlayer.id).emit('party:adventureEnded');
+                                    }
+                                });
+
+                                if (losingParty.isSoloParty) {
+                                    if (players[losingParty.leaderId]?.character) {
+                                        players[losingParty.leaderId].character.partyId = null;
+                                    }
+                                    delete parties[losingParty.id];
+                                } else {
+                                    losingParty.sharedState = null;
+                                    broadcastPartyUpdate(io, losingParty.id);
+                                }
+                            }
+
+                            // Clean up winning party's PVP state
+                            if (winningParty && winningParty.sharedState) {
+                                winningParty.sharedState.pvpEncounterId = null;
+                                winningParty.sharedState.zoneCards = [];
+                                winningParty.sharedState.groundLoot = encounter.groundLoot;
+                                winningParty.sharedState.log = encounter.log;
+                                winningParty.sharedState.partyMemberStates.forEach(p => {
+                                    if (!p.isDead) {
+                                        p.actionPoints = 3;
+                                        p.turnEnded = false;
+                                    }
+                                });
+                                broadcastAdventureUpdate(io, winningParty);
+                            }
+
+                            delete pvpEncounters[encounter.id];
+                        } else {
+                            // Just broadcast the update - the encounter continues
+                            broadcastAdventureUpdate(io, party);
+                        }
+                    }
+                }
+            }
+            // --- END PVP DISCONNECT HANDLING ---
 
             // --- SAVE PROGRESS TO FILE ---
             try {

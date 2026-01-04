@@ -874,22 +874,50 @@ export async function handleResolveReaction(io, socket, payload) {
                 dodged = true;
                 logMessage = `${name}'s Evasive Shot: ${roll}(d20) + ${statValue} = ${total}. Success! They avoid the attack!`;
 
-                if (total >= counterHit && !isPvp) { // Counter-attack only in PvE for now
-                    const attackerEnemy = stateObject.zoneCards[reaction.attackerIndex];
-                    if (attackerEnemy && attackerEnemy.health > 0) {
-                        let counterDamage = mainHand.weaponDamage;
-                        const resistance = attackerEnemy.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
-                        let damageToDeal = Math.max(0, counterDamage - resistance);
+                if (total >= counterHit) {
+                    let counterDamage = mainHand.weaponDamage;
 
-                        attackerEnemy.health -= damageToDeal;
+                    if (isPvp) {
+                        // PVP counter-attack - target is another player
+                        const attackerPlayerState = encounter.playerStates.find(p => p.playerId === reaction.attackerPlayerId);
+                        if (attackerPlayerState && !attackerPlayerState.isDead) {
+                            const attackerCharacter = players[attackerPlayerState.name]?.character;
+                            let damageToDeal = counterDamage;
 
-                        let counterLog = ` They counter-attack, dealing ${damageToDeal} damage to ${attackerEnemy.name}!`;
-                        stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
+                            if (attackerCharacter) {
+                                const attackerBonuses = getBonusStatsForPlayer(attackerCharacter, attackerPlayerState);
+                                const resistance = attackerBonuses.physicalResistance || 0;
+                                damageToDeal = Math.max(0, counterDamage - resistance);
+                            }
 
-                        if (attackerEnemy.health <= 0) {
-                            defeatEnemyInParty(io, party, attackerEnemy, reaction.attackerIndex);
+                            attackerPlayerState.health -= damageToDeal;
+
+                            let counterLog = ` They counter-attack, dealing ${damageToDeal} damage to ${attackerPlayerState.name}!`;
+                            if (damageToDeal < counterDamage) counterLog += ` (${counterDamage - damageToDeal} resisted)`;
+                            stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
+
+                            if (attackerPlayerState.health <= 0) {
+                                defeatEnemyInParty(io, party, { playerId: attackerPlayerState.playerId }, null);
+                            }
+                            logMessage = ''; // Clear message to prevent double logging
                         }
-                        logMessage = ''; // Clear message to prevent double logging
+                    } else {
+                        // PVE counter-attack - target is an enemy card
+                        const attackerEnemy = stateObject.zoneCards[reaction.attackerIndex];
+                        if (attackerEnemy && attackerEnemy.health > 0) {
+                            const resistance = attackerEnemy.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
+                            let damageToDeal = Math.max(0, counterDamage - resistance);
+
+                            attackerEnemy.health -= damageToDeal;
+
+                            let counterLog = ` They counter-attack, dealing ${damageToDeal} damage to ${attackerEnemy.name}!`;
+                            stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
+
+                            if (attackerEnemy.health <= 0) {
+                                defeatEnemyInParty(io, party, attackerEnemy, reaction.attackerIndex);
+                            }
+                            logMessage = ''; // Clear message to prevent double logging
+                        }
                     }
                 }
             } else {
