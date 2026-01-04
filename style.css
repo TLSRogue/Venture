@@ -1277,3 +1277,113 @@ hr {
     /* Ensures the image fits without being distorted */
     margin-bottom: 10px;
 }
+
+/* --- Dice Roll Visualization --- */
+.dice-roll-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2500;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.dice-roll-container.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.dice-roll-content {
+    background: rgba(0, 0, 0, 0.9);
+    border: 3px solid var(--accent-color);
+    border-radius: 16px;
+    padding: 20px 40px;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(241, 196, 15, 0.5);
+}
+
+.dice-roller-label {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: var(--text-color);
+    margin-bottom: 10px;
+}
+
+.dice-display {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    border: 2px solid var(--primary-color);
+    border-radius: 12px;
+}
+
+.dice-face {
+    font-size: 3.5em;
+    line-height: 1;
+    transition: transform 0.1s ease;
+}
+
+.dice-face.rolling {
+    animation: dice-shake 0.1s infinite;
+}
+
+.dice-result {
+    margin-top: 15px;
+    font-size: 1.4em;
+    font-weight: bold;
+    color: var(--accent-color);
+    min-height: 1.5em;
+}
+
+.dice-result.success {
+    color: var(--success-color);
+}
+
+.dice-result.fail {
+    color: var(--danger-color);
+}
+
+.dice-result.crit {
+    color: #ffd700;
+    text-shadow: 0 0 10px #ffd700;
+    animation: crit-pulse 0.5s ease-in-out;
+}
+
+@keyframes dice-shake {
+
+    0%,
+    100% {
+        transform: rotate(0deg) scale(1);
+    }
+
+    25% {
+        transform: rotate(-15deg) scale(1.1);
+    }
+
+    50% {
+        transform: rotate(10deg) scale(0.95);
+    }
+
+    75% {
+        transform: rotate(-8deg) scale(1.05);
+    }
+}
+
+@keyframes crit-pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.3);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}

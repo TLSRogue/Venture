@@ -12,6 +12,7 @@ import * as UIAdventure from './ui/ui-adventure.js';
 import * as UIParty from './ui/ui-party.js';
 import * as UIPlayer from './ui/ui-player.js';
 import * as UITown from './ui/ui-town.js';
+import * as UIDice from './ui/ui-dice.js';
 import { ARENA_ENTRY_FEE } from './constants.js';
 
 
@@ -236,7 +237,11 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     const newLogEntries = logSource.slice(existingLogCount);
     const effectsToPlay = getEffectsFromLog(newLogEntries);
 
-    newLogEntries.reverse().forEach(entry => UIMain.addToLog(entry.message, entry.type));
+    newLogEntries.reverse().forEach(entry => {
+        // Trigger dice roll animation if the message contains a roll
+        UIDice.tryShowDiceRollFromMessage(entry.message);
+        UIMain.addToLog(entry.message, entry.type);
+    });
 
     UIAdventure.renderAdventureScreen();
     UIPlayer.updateDisplay();
