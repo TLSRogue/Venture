@@ -13,8 +13,8 @@ import * as UIParty from './ui-party.js';
 
 export function renderAll() {
     if (!gameState || !gameState.characterName) {
-         console.log("RenderAll called without a valid gameState.");
-         return;
+        console.log("RenderAll called without a valid gameState.");
+        return;
     }
     renderHeader();
     renderQuestLog();
@@ -42,21 +42,21 @@ export function showTab(tabName) {
     document.querySelectorAll('.tab').forEach(tab => { tab.classList.remove('active'); });
     document.getElementById(tabName + '-tab').style.display = 'block';
     document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
-    
+
     const mainStatsDisplay = document.getElementById('main-stats-display');
     const adventureHUD = document.getElementById('adventure-hud');
     const actionBar = document.getElementById('player-action-bar');
     const logContainer = document.getElementById('adventure-log-container');
-    
+
     mainStatsDisplay.style.display = 'flex';
     adventureHUD.style.display = 'none';
     actionBar.style.display = 'none';
     logContainer.style.display = 'none';
-    
+
     TownUI.updateRestockTimer(); // Clears or updates the timer interval
-    
+
     // --- BUG FIX: Add a loading state for the merchant to prevent race condition ---
-    if (tabName === 'merchant') { 
+    if (tabName === 'merchant') {
         document.getElementById('merchant-tab').innerHTML = '<h2>Contacting merchant...</h2>';
         Network.emitPlayerAction('viewMerchant');
     }
@@ -107,7 +107,7 @@ export function updateDisplay() {
         defense: gameState.defense + bonuses.defense,
         physicalResistance: (gameState.physicalResistance || 0) + (bonuses.physicalResistance || 0)
     };
-    
+
     const mainStatsContainer = document.getElementById('main-stats-display');
     mainStatsContainer.innerHTML = `
         <div class="compact-stat">❤️ Health: <span>${gameState.health} / ${gameState.maxHealth}</span></div>
@@ -118,12 +118,20 @@ export function updateDisplay() {
         <div class="compact-stat">💰 Gold: <span>${gameState.gold}</span></div>
         <div class="compact-stat">⭐ QP: <span>${gameState.questPoints}</span></div>
     `;
-    
+
     const adventureHUD = document.getElementById('adventure-hud');
     if (adventureHUD && (gameState.currentZone || gameState.inDuel)) {
         let currentHealth, currentMaxHealth, currentAP;
 
-        if (gameState.partyId && gameState.partyMemberStates) {
+        // Handle PvP encounter state
+        if (gameState.pvpEncounter && gameState.pvpEncounter.playerStates) {
+            const localPlayerState = gameState.pvpEncounter.playerStates.find(p => p.playerId === Network.socket?.id);
+            if (localPlayerState) {
+                currentHealth = localPlayerState.health;
+                currentMaxHealth = localPlayerState.maxHealth;
+                currentAP = localPlayerState.actionPoints;
+            }
+        } else if (gameState.partyId && gameState.partyMemberStates) {
             const localPlayerState = gameState.partyMemberStates.find(p => p.playerId === Network.socket?.id);
             if (localPlayerState) {
                 currentHealth = localPlayerState.health;
@@ -149,7 +157,7 @@ export function updateDisplay() {
         hudHealthBar.style.width = `${healthPercentage}%`;
         hudHealthBar.textContent = `${Math.round(currentHealth)} / ${currentMaxHealth}`;
         document.getElementById('hud-action-points').textContent = currentAP;
-        
+
         const shieldDisplay = document.getElementById('player-shield-display');
         if (gameState.shield > 0) {
             shieldDisplay.textContent = `🛡️ ${gameState.shield}`;
@@ -163,11 +171,11 @@ export function updateDisplay() {
 export function renderInventory() {
     const container = document.getElementById('inventory-grid');
     container.innerHTML = '';
-    
+
     for (let i = 0; i < 24; i++) {
         const slot = document.createElement('div');
         slot.className = 'inventory-item';
-        
+
         const item = gameState.inventory[i];
         if (item) {
             const tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
@@ -189,7 +197,7 @@ export function renderInventory() {
             slot.innerHTML = '';
             slot.classList.add('empty');
         }
-        
+
         container.appendChild(slot);
     }
 }
@@ -213,7 +221,7 @@ export function showItemActions(itemIndex) {
 
     buttonsHTML += `<button class="btn btn-danger" data-inventory-action="drop" data-index="${itemIndex}">Drop</button>`;
     buttonsHTML += `<button class="btn" onclick="this.closest('.modal-overlay').classList.add('hidden')">Cancel</button>`;
-    
+
     const modalContent = `
         <h2>${item.name}</h2>
         <p>${item.description}</p>
@@ -237,19 +245,19 @@ export function renderSpells() {
         }
     } else if (gameState.inDuel && gameState.duelState) {
         const localPlayerState = gameState.duelState.player1.id === Network.socket?.id ? gameState.duelState.player1 : gameState.duelState.player2;
-        if(localPlayerState) spellCooldowns = localPlayerState.spellCooldowns;
+        if (localPlayerState) spellCooldowns = localPlayerState.spellCooldowns;
     }
 
     for (let i = 0; i < 5; i++) {
         const slot = document.createElement('div');
-        
+
         if (gameState.equippedSpells[i]) {
             const spell = gameState.equippedSpells[i];
             slot.className = `spell-card ${spell.type}`;
             const cooldown = spellCooldowns[spell.name] || 0;
-            
+
             if (cooldown > 0) slot.classList.add('on-cooldown');
-            
+
             let swapButton = '';
             if (canSwap) {
                 swapButton = `<button class="btn btn-danger btn-sm" data-spell-action="unequip" data-index="${i}">Unequip</button>`;
@@ -288,20 +296,20 @@ export function renderSpells() {
 export function renderEquipment() {
     const container = document.getElementById('equipment-grid');
     container.innerHTML = '';
-    
+
     const slotNames = { mainHand: 'Main Hand', offHand: 'Off Hand', helmet: 'Helmet', armor: 'Armor', boots: 'Boots', accessory: 'Accessory', ammo: 'Ammo' };
 
     const slots = ['mainHand', 'offHand', 'helmet', 'armor', 'boots', 'accessory'];
     if (gameState.equipment.accessory && gameState.equipment.accessory.grantsSlot === 'ammo') {
         slots.push('ammo');
     }
-    
+
     slots.forEach(slotKey => {
         const slotEl = document.createElement('div');
         slotEl.className = 'equipment-slot';
         const item = gameState.equipment[slotKey];
-        
-        if(item && item.hands === 2 && slotKey === 'offHand') {
+
+        if (item && item.hands === 2 && slotKey === 'offHand') {
             slotEl.classList.add('filled');
             slotEl.innerHTML = `<div><strong>${slotNames[slotKey]}</strong></div><div>(Blocked by 2H)</div>`;
         } else if (item) {
@@ -314,7 +322,7 @@ export function renderEquipment() {
         } else {
             slotEl.innerHTML = `<div><strong>${slotNames[slotKey]}</strong></div><div>Empty</div>`;
         }
-        
+
         container.appendChild(slotEl);
     });
 }
@@ -367,7 +375,7 @@ export function renderTitleSelection() {
     }
     section.style.display = 'block';
     container.innerHTML = '';
-    
+
     gameState.unlockedTitles.forEach(title => {
         const btn = document.createElement('button');
         btn.className = 'btn';
