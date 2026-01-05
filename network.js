@@ -45,6 +45,11 @@ export function initSocketListeners(handlers) {
     socket.on('duel:update', handlers.onDuelUpdate);
     socket.on('duel:end', handlers.onDuelEnd);
 
+    // Chat Listeners
+    socket.on('chat:globalMessage', handlers.onGlobalChatMessage);
+    socket.on('chat:globalHistory', handlers.onGlobalChatHistory);
+    socket.on('chat:zoneMessage', handlers.onZoneChatMessage);
+
 }
 
 // --- EMITTER FUNCTIONS ---
@@ -99,4 +104,18 @@ export function emitDuelAccept(challengerId) {
 
 export function emitDuelAction(action) {
     socket.emit('duel:playerAction', action);
+}
+
+// --- CHAT EMITTERS ---
+
+export function emitGlobalChatMessage(message) {
+    socket.emit('chat:sendGlobal', message);
+}
+
+export function emitZoneChatMessage(message) {
+    socket.emit('chat:sendZone', message);
+}
+
+export function requestGlobalChatHistory() {
+    socket.emit('chat:requestGlobalHistory');
 }

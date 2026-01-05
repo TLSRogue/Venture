@@ -47,6 +47,10 @@ function initGame() {
         onDuelStart: handleDuelStart,
         onDuelUpdate: handleDuelUpdate,
         onDuelEnd: handleDuelEnd,
+        // Chat Listeners
+        onGlobalChatMessage: handleGlobalChatMessage,
+        onGlobalChatHistory: handleGlobalChatHistory,
+        onZoneChatMessage: handleZoneChatMessage,
     });
     UIParty.showCharacterSelectScreen();
 }
@@ -654,5 +658,90 @@ async function ventureDeeper(buttonElement) {
     }
 }
 
+// --- CHAT HANDLERS ---
+function handleGlobalChatMessage(chatEntry) {
+    appendChatMessage('global-chat-log', chatEntry);
+}
+
+function handleGlobalChatHistory(history) {
+    const chatLog = document.getElementById('global-chat-log');
+    if (!chatLog) return;
+    chatLog.innerHTML = '';
+    history.forEach(entry => appendChatMessage('global-chat-log', entry));
+}
+
+function handleZoneChatMessage(chatEntry) {
+    // Add chat message to the adventure log
+    const logContainer = document.getElementById('adventure-log');
+    if (!logContainer) return;
+
+    const entry = document.createElement('div');
+    entry.className = 'log-entry chat';
+    entry.innerHTML = `<strong>${chatEntry.sender}:</strong> ${chatEntry.message}`;
+    logContainer.appendChild(entry);
+    logContainer.scrollTop = logContainer.scrollHeight;
+}
+
+function appendChatMessage(containerId, chatEntry) {
+    const chatLog = document.getElementById(containerId);
+    if (!chatLog) return;
+
+    const messageEl = document.createElement('div');
+    messageEl.className = 'chat-message';
+
+    const time = new Date(chatEntry.timestamp);
+    const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    messageEl.innerHTML = `<span class="chat-sender">${chatEntry.sender}:</span> ${chatEntry.message} <span class="chat-timestamp">${timeStr}</span>`;
+    chatLog.appendChild(messageEl);
+    chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+function setupChatListeners() {
+    // Global Chat
+    const globalInput = document.getElementById('global-chat-input');
+    const globalSendBtn = document.getElementById('global-chat-send-btn');
+
+    if (globalSendBtn && globalInput) {
+        globalSendBtn.addEventListener('click', () => {
+            const message = globalInput.value.trim();
+            if (message) {
+                Network.emitGlobalChatMessage(message);
+                globalInput.value = '';
+            }
+        });
+
+        globalInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                globalSendBtn.click();
+            }
+        });
+    }
+
+    // Zone Chat
+    const zoneInput = document.getElementById('zone-chat-input');
+    const zoneSendBtn = document.getElementById('zone-chat-send-btn');
+
+    if (zoneSendBtn && zoneInput) {
+        zoneSendBtn.addEventListener('click', () => {
+            const message = zoneInput.value.trim();
+            if (message) {
+                Network.emitZoneChatMessage(message);
+                zoneInput.value = '';
+            }
+        });
+
+        zoneInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                zoneSendBtn.click();
+            }
+        });
+    }
+}
+
 // --- START THE GAME ---
-document.addEventListener('DOMContentLoaded', initGame);
+document.addEventListener('DOMContentLoaded', () => {
+    initGame();
+    setupChatListeners();
+    Network.requestGlobalChatHistory();
+});

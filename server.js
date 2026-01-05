@@ -13,12 +13,13 @@ import { registerPartyHandlers } from './handlersParty.js';
 import { registerAdventureHandlers } from './handlersAdventure.js';
 import { registerDuelHandlers } from './handlersDuel.js';
 import { registerPlayerActionHandlers } from './handlersPlayerAction.js';
+import { registerChatHandlers } from './handlersChat.js';
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-    pingTimeout: 20000,
-    pingInterval: 25000,
+  pingTimeout: 20000,
+  pingInterval: 25000,
 });
 
 const PORT = process.env.PORT || 3000;
@@ -33,14 +34,15 @@ app.get('/', (req, res) => {
 
 // 3. HANDLE PLAYER CONNECTIONS
 io.on('connection', (socket) => {
-    console.log(`A player connected with ID: ${socket.id}`);
+  console.log(`A player connected with ID: ${socket.id}`);
 
-    // Delegate all event handling to the imported modules
-    registerConnectionHandlers(io, socket);
-    registerPartyHandlers(io, socket);
-    registerAdventureHandlers(io, socket);
-    registerDuelHandlers(io, socket);
-    registerPlayerActionHandlers(io, socket);
+  // Delegate all event handling to the imported modules
+  registerConnectionHandlers(io, socket);
+  registerPartyHandlers(io, socket);
+  registerAdventureHandlers(io, socket);
+  registerDuelHandlers(io, socket);
+  registerPlayerActionHandlers(io, socket);
+  registerChatHandlers(io, socket);
 });
 
 // 4. START THE SERVER

@@ -135,3 +135,4 @@ export let parties = {};
 export let duels = {};
 export let pvpZoneQueues = {};
 export let pvpEncounters = {};
+export let globalChatHistory = [];

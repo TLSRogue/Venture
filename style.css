@@ -1321,3 +1321,71 @@ hr {
     display: flex;
     gap: 10px;
 }
+
+/* --- Chat Styles --- */
+.chat-log {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #7f8c8d;
+    border-radius: 8px;
+    padding: 10px;
+    height: 150px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    font-size: 0.9em;
+}
+
+.chat-log .chat-message {
+    margin-bottom: 5px;
+    line-height: 1.4;
+}
+
+.chat-log .chat-sender {
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+.chat-log .chat-timestamp {
+    font-size: 0.75em;
+    color: #7f8c8d;
+    margin-left: 5px;
+}
+
+.chat-input-area {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.chat-input-area input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #7f8c8d;
+    background: #34495e;
+    color: white;
+    font-size: 0.9em;
+}
+
+.chat-input-area input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.chat-input-area button {
+    flex-shrink: 0;
+}
+
+#global-chat-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+#adventure-log-container .chat-input-area {
+    max-width: 1200px;
+    margin: 10px auto 0 auto;
+}
+
+.log-entry.chat {
+    color: #ecf0f1;
+    font-style: italic;
+}

@@ -78,6 +78,15 @@
                     <div id="title-selection-container" class="action-buttons">
                     </div>
                 </div>
+                <hr>
+                <h3>Global Chat</h3>
+                <div id="global-chat-container">
+                    <div id="global-chat-log" class="chat-log"></div>
+                    <div class="chat-input-area">
+                        <input type="text" id="global-chat-input" placeholder="Type a message..." maxlength="200">
+                        <button id="global-chat-send-btn" class="btn btn-primary">Send</button>
+                    </div>
+                </div>
             </div>
 
             <div id="party-tab" class="tab-content" style="display: none;">
@@ -254,6 +263,10 @@
 
     <div id="adventure-log-container" style="display: none;">
         <div id="adventure-log" class="log"></div>
+        <div class="chat-input-area">
+            <input type="text" id="zone-chat-input" placeholder="Say something..." maxlength="200">
+            <button id="zone-chat-send-btn" class="btn btn-primary">Send</button>
+        </div>
     </div>
 
     <div id="modal" class="modal-overlay hidden">
