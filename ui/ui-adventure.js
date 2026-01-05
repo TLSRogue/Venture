@@ -67,7 +67,7 @@ export function playEffectQueue(effects) {
     effects.forEach((effect, index) => {
         setTimeout(() => {
             showCombatFeedback(effect);
-        }, index * 250);
+        }, index * 600);
     });
 }
 
@@ -103,7 +103,7 @@ export function showCombatFeedback({ targetName, targetId, type, text }) {
 
     setTimeout(() => {
         popup.remove();
-    }, 1900);
+    }, 2200);
 
     if (type === 'damage' || type === 'resource') {
         targetCard.classList.add('shake-effect');

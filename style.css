@@ -1051,7 +1051,7 @@ hr {
     font-weight: bold;
     pointer-events: none;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-    animation: combat-popup-animation 1.5s ease-out forwards;
+    animation: combat-popup-animation 2s ease-out forwards;
     z-index: 10;
     white-space: nowrap;
 }

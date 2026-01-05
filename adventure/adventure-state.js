@@ -539,6 +539,8 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
         try {
             await new Promise(resolve => setTimeout(resolve, 1000));
             let tookDotDamage = false;
+
+            // Process burn damage
             const burnDebuff = enemy.debuffs.find(d => d.type === 'burn');
             if (burnDebuff) {
                 enemy.health -= burnDebuff.damage;
@@ -546,12 +548,29 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 burnDebuff.duration--;
                 tookDotDamage = true;
             }
+
+            // Process bleed damage
+            const bleedDebuff = enemy.debuffs.find(d => d.type === 'bleed');
+            if (bleedDebuff) {
+                enemy.health -= bleedDebuff.damage;
+                sharedState.log.push({ message: `${enemy.name} takes ${bleedDebuff.damage} damage from Bleed.`, type: 'damage' });
+                bleedDebuff.duration--;
+                tookDotDamage = true;
+            }
+
             if (enemy.health <= 0) {
                 defeatEnemyInParty(io, party, enemy, enemyIndex);
                 broadcastAdventureUpdate(io, party);
                 continue;
             }
             enemy.debuffs = enemy.debuffs.filter(d => d.duration > 0);
+
+            // Decrement enemy buff durations and filter expired buffs
+            if (enemy.buffs && enemy.buffs.length > 0) {
+                enemy.buffs.forEach(b => b.duration--);
+                enemy.buffs = enemy.buffs.filter(b => b.duration > 0);
+            }
+
             if (tookDotDamage) broadcastAdventureUpdate(io, party);
             if (enemy.debuffs.some(d => d.type === 'stun')) {
                 sharedState.log.push({ message: `${enemy.name} is stunned and cannot act!`, type: 'reaction' });
@@ -683,8 +702,11 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     }
                 }
                 if (enemy.name === 'Raging Bull' && attack.message.includes('Thick Hide')) {
-                    if (enemy.usedThickHideThisTurn) {
-                        sharedState.log.push({ message: `${enemy.name} roars and Charges again!`, type: 'reaction' });
+                    // Check if Thick Hide buff is already active - if so, do a Charge instead
+                    const hasThickHide = enemy.buffs && enemy.buffs.some(b => b.type === 'Thick Hide');
+                    if (hasThickHide || enemy.usedThickHideThisTurn) {
+                        // Already has the buff or used it this turn - do a Charge attack instead
+                        sharedState.log.push({ message: `${enemy.name} roars and Charges!`, type: 'reaction' });
 
                         const targetCharacter = targetPlayerObject.character;
                         let damageToDeal = 3;
@@ -700,6 +722,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         sharedState.log.push({ message: attackMessage, type: 'damage' });
 
                     } else {
+                        // First time using Thick Hide this turn - apply the buff and reroll
                         if (!enemy.buffs) enemy.buffs = [];
                         const buff = { type: 'Thick Hide', duration: 2, bonus: { physicalResistance: 1 } };
 
@@ -774,6 +797,18 @@ export function startNextPlayerTurn(io, partyId) {
         if (p.isDead) {
             p.turnEnded = true;
         } else {
+            // Process DOT damage at start of turn (before debuff duration decrements)
+            const bleedDebuff = p.debuffs.find(d => d.type === 'bleed');
+            if (bleedDebuff) {
+                p.health -= bleedDebuff.damage;
+                sharedState.log.push({ message: `${p.name} takes ${bleedDebuff.damage} damage from Bleed.`, type: 'damage' });
+            }
+            const burnDebuff = p.debuffs.find(d => d.type === 'burn');
+            if (burnDebuff) {
+                p.health -= burnDebuff.damage;
+                sharedState.log.push({ message: `${p.name} takes ${burnDebuff.damage} damage from Burn.`, type: 'damage' });
+            }
+
             p.actionPoints = 3;
             p.turnEnded = false;
         }
