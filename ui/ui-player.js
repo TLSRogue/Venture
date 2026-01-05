@@ -66,9 +66,12 @@ export function showTab(tabName) {
     if (tabName === 'bank') TownUI.renderBankInterface();
     if (tabName === 'crafting') TownUI.renderCrafting();
     if (tabName === 'trainer') TownUI.renderTrainer();
-    if (tabName === 'home') renderTitleSelection();
-    if (tabName === 'spells') renderSpells();
-    if (tabName === 'quest-log') renderQuestLog();
+    if (tabName === 'character') {
+        renderInventory();
+        renderSpells();
+        renderEquipment();
+        renderTitleSelection();
+    }
 }
 
 
@@ -265,8 +268,10 @@ export function renderSpells() {
 
             slot.innerHTML = `
                 <div><strong>${spell.icon || '✨'} ${spell.name}</strong> <span style="font-size: 0.8em; color: var(--accent-color);">(${spell.school})</span></div>
-                <div>Cost: ${spell.cost || 0} AP | CD: ${spell.cooldown}</div>
-                <div>${spell.description}</div>
+                <div class="spell-details">
+                    <div>Cost: ${spell.cost || 0} AP | CD: ${spell.cooldown}</div>
+                    <div>${spell.description}</div>
+                </div>
                 ${swapButton}
             `;
         } else {
@@ -286,7 +291,9 @@ export function renderSpells() {
         }
         card.innerHTML = `
             <div><strong>${spell.icon || '✨'} ${spell.name}</strong></div>
-            <div>${spell.description}</div>
+            <div class="spell-details">
+                <div>${spell.description}</div>
+            </div>
             ${equipButton}
         `;
         spellbookContainer.appendChild(card);
@@ -368,12 +375,8 @@ export function renderQuestLog() {
 
 export function renderTitleSelection() {
     const container = document.getElementById('title-selection-container');
-    const section = document.getElementById('title-management-section');
-    if (!gameState.characterName) {
-        section.style.display = 'none';
-        return;
-    }
-    section.style.display = 'block';
+    if (!container || !gameState.characterName) return;
+
     container.innerHTML = '';
 
     gameState.unlockedTitles.forEach(title => {

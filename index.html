@@ -32,15 +32,12 @@
         <div class="tabs">
             <button class="tab active" data-tab="home">🏠 Home</button>
             <button class="tab" data-tab="party">🧑‍🤝‍🧑 Party</button>
-            <button class="tab" data-tab="inventory">🎒 Inventory</button>
-            <button class="tab" data-tab="spells">✨ Spells</button>
-            <button class="tab" data-tab="equipment">⚔️ Equipment</button>
+            <button class="tab" data-tab="character">👤 Character</button>
             <button class="tab" data-tab="bank">🏦 Bank</button>
             <button class="tab" data-tab="crafting">🛠️ Crafting</button>
             <button class="tab" data-tab="trainer">🎓 Trainer</button>
             <button class="tab" data-tab="merchant">🏪 Merchant</button>
             <button class="tab" data-tab="map">🗺️ Map</button>
-            <button class="tab" data-tab="quest-log">📜 Quest Log</button>
         </div>
 
         <div class="content-area">
@@ -72,13 +69,6 @@
                 <h3>Game Options</h3>
                 <div class="action-buttons">
                 </div>
-                <div id="title-management-section" style="display: none;">
-                    <hr>
-                    <h3>Select Title</h3>
-                    <div id="title-selection-container" class="action-buttons">
-                    </div>
-                </div>
-                <hr>
                 <h3>Global Chat</h3>
                 <div id="global-chat-container">
                     <div id="global-chat-log" class="chat-log"></div>
@@ -100,21 +90,26 @@
                 </div>
             </div>
 
-            <div id="inventory-tab" class="tab-content" style="display: none;">
-                <h2>Inventory (24 slots)</h2>
-                <div id="inventory-grid" class="inventory-grid"></div>
-            </div>
-
-            <div id="spells-tab" class="tab-content" style="display: none;">
-                <h2>Equipped Spells (5 max)</h2>
-                <div id="spells-grid" class="spell-grid"></div>
-                <h3>Spellbook</h3>
-                <div id="spellbook-grid" class="spell-grid"></div>
-            </div>
-
-            <div id="equipment-tab" class="tab-content" style="display: none;">
-                <h2>Equipment</h2>
-                <div id="equipment-grid" class="equipment-grid"></div>
+            <div id="character-tab" class="tab-content" style="display: none;">
+                <h2>👤 Character</h2>
+                <div class="storage-grid">
+                    <div>
+                        <h3>⚔️ Equipment</h3>
+                        <div id="equipment-grid" class="equipment-grid"></div>
+                        <div id="character-title-section" style="margin-top: 20px;">
+                            <h3>🏆 Select Title</h3>
+                            <div id="title-selection-container" class="action-buttons"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3>🎒 Inventory (24 slots)</h3>
+                        <div id="inventory-grid" class="inventory-grid"></div>
+                        <h3 style="margin-top: 20px;">✨ Equipped Spells (5 max)</h3>
+                        <div id="spells-grid" class="spell-grid"></div>
+                        <h3>📖 Spellbook</h3>
+                        <div id="spellbook-grid" class="spell-grid"></div>
+                    </div>
+                </div>
             </div>
 
             <div id="bank-tab" class="tab-content" style="display: none;">

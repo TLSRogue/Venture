@@ -640,6 +640,23 @@ function addEventListeners() {
         Network.emitPartyEnterZone(e.detail.zoneName);
     });
 
+    window.addEventListener('keydown', (e) => {
+        if (e.altKey) {
+            document.body.classList.add('show-spell-details');
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (!e.altKey) {
+            document.body.classList.remove('show-spell-details');
+        }
+    });
+
+    // Handle case where user switches windows while alt is pressed
+    window.addEventListener('blur', () => {
+        document.body.classList.remove('show-spell-details');
+    });
+
     document.addEventListener('mousemove', (e) => {
         const tooltip = document.getElementById('tooltip');
         tooltip.style.left = e.pageX + 15 + 'px';

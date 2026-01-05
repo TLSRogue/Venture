@@ -446,6 +446,18 @@ body {
     background: rgba(127, 140, 141, 0.3);
 }
 
+.spell-card .spell-details {
+    display: none;
+    margin-top: 10px;
+    font-size: 0.9em;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 8px;
+}
+
+body.show-spell-details .spell-card .spell-details {
+    display: block;
+}
+
 .crafting-item-header {
     display: flex;
     align-items: center;

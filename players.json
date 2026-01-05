@@ -1,0 +1,470 @@
+{
+  "bob": {
+    "id": "Wfr7gZH3GawHjwJ_AAAD",
+    "character": {
+      "characterName": "bob",
+      "characterIcon": "🧑",
+      "title": "The Novice",
+      "unlockedTitles": [
+        "The Novice"
+      ],
+      "health": 10,
+      "maxHealth": 10,
+      "shield": 0,
+      "wisdom": 0,
+      "strength": 0,
+      "agility": 0,
+      "defense": 0,
+      "luck": 0,
+      "physicalResistance": 0,
+      "mining": 0,
+      "fishing": 0,
+      "woodcutting": 0,
+      "harvesting": 0,
+      "gold": 225,
+      "questPoints": 0,
+      "actionPoints": 3,
+      "focus": 0,
+      "currentZone": null,
+      "zoneDeck": [],
+      "inventory": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "bank": [
+        {
+          "name": "Mining Pickaxe (T1)",
+          "price": 50,
+          "type": "tool",
+          "slot": "mainHand",
+          "skillBonus": {
+            "mining": 1
+          },
+          "description": "A sturdy pickaxe for extracting ore from rock. Allows mining iron nodes. +1 Mining.",
+          "tier": 1,
+          "icon": "⛏️",
+          "rarity": "common",
+          "canBeInMerchantWares": true,
+          "quantity": 1
+        }
+      ],
+      "buffs": [],
+      "debuffs": [],
+      "equippedSpells": [
+        {
+          "name": "Punch",
+          "cost": 1,
+          "cooldown": 1,
+          "school": "Physical",
+          "description": "A simple but effective strike with your fist. 1 AP, 1 CD | D20+Str (10+) | Deals 1 Physical Damage.",
+          "type": "attack",
+          "stat": "strength",
+          "damage": 1,
+          "hit": 10,
+          "damageType": "Physical",
+          "icon": "👊",
+          "rarity": "common"
+        },
+        {
+          "name": "Kick",
+          "cost": 1,
+          "cooldown": 1,
+          "school": "Physical",
+          "description": "A swift kick aimed at your opponent's midsection. 1 AP, 1 CD | D20+Agi (10+) | Deals 1 Physical Damage.",
+          "type": "attack",
+          "stat": "agility",
+          "damage": 1,
+          "hit": 10,
+          "damageType": "Physical",
+          "icon": "🦶",
+          "rarity": "common"
+        },
+        {
+          "name": "Dodge",
+          "cooldown": 2,
+          "school": "Physical",
+          "description": "Quickly leap out of harm's way. Less effective in heavy armor. 2 CD | D20+Agi (10+) | Avoid incoming attack.",
+          "type": "reaction",
+          "stat": "agility",
+          "hit": 10,
+          "icon": "🤸",
+          "rarity": "common"
+        }
+      ],
+      "spellbook": [],
+      "knownRecipes": [],
+      "equipment": {
+        "mainHand": {
+          "name": "Wooden Training Sword",
+          "type": "weapon",
+          "slot": "mainHand",
+          "cost": 1,
+          "cooldown": 1,
+          "hit": 10,
+          "weaponType": "One-Hand Sword",
+          "weaponDamage": 1,
+          "damageType": "Physical",
+          "description": "A blunt practice sword for novice fighters. 1 AP, 1 CD | D20+Str (10+) | Deals 1 Physical Damage.",
+          "tier": 1,
+          "icon": "⚔️",
+          "rarity": "common",
+          "canBeInMerchantWares": true
+        },
+        "offHand": null,
+        "helmet": null,
+        "armor": null,
+        "boots": null,
+        "accessory": null,
+        "ammo": null
+      },
+      "quests": [],
+      "spellCooldowns": {},
+      "weaponCooldowns": {},
+      "itemCooldowns": {},
+      "merchantStock": [
+        {
+          "name": "Cow Hide",
+          "type": "material",
+          "price": 15,
+          "description": "A tough piece of leather.",
+          "icon": "🐮",
+          "rarity": "common",
+          "canBeInMerchantWares": true,
+          "quantity": 4
+        },
+        {
+          "name": "Iron Helm",
+          "price": 70,
+          "type": "armor",
+          "slot": "helmet",
+          "bonus": {
+            "strength": 1,
+            "maxHealth": 1,
+            "defense": 1
+          },
+          "description": "A clunky metal helmet that protects your skull. +1 Str, +1 Def, +1 Max HP.",
+          "tier": 1,
+          "icon": "🪖",
+          "traits": [
+            "Heavy",
+            "Physical",
+            "Tier 1"
+          ],
+          "rarity": "common",
+          "canBeInMerchantWares": true,
+          "quantity": 7
+        },
+        {
+          "name": "Harvesting Sickle (T1)",
+          "price": 50,
+          "type": "tool",
+          "slot": "mainHand",
+          "skillBonus": {
+            "harvesting": 1
+          },
+          "description": "A curved blade for gathering crops. Allows harvesting crops. +1 Harvesting.",
+          "tier": 1,
+          "icon": "🌾",
+          "rarity": "common",
+          "canBeInMerchantWares": true,
+          "quantity": 10
+        },
+        {
+          "name": "Iron Sword",
+          "price": 70,
+          "type": "weapon",
+          "slot": "mainHand",
+          "cost": 1,
+          "cooldown": 1,
+          "stat": "strength",
+          "hit": 10,
+          "weaponType": "Sword",
+          "weaponDamage": 2,
+          "damageType": "Physical",
+          "description": "Basic, balanced, and barely exciting—but it'll stab just fine. 1 AP, 1 CD | D20+Str (10+) | Deals 2 Physical Damage.",
+          "tier": 1,
+          "icon": "⚔️",
+          "traits": [
+            "Sword",
+            "Melee",
+            "Tier 1"
+          ],
+          "rarity": "common",
+          "canBeInMerchantWares": true,
+          "quantity": 3
+        },
+        {
+          "name": "Iron Arrows",
+          "type": "arrows",
+          "price": 1,
+          "stackable": 200,
+          "slot": "ammo",
+          "bonus": {
+            "rollBonus": 1
+          },
+          "description": "A bundle of simple iron-tipped arrows. Provides +1 to bow attack rolls.",
+          "tier": 1,
+          "icon": "🏹",
+          "rarity": "common",
+          "canBeInMerchantWares": true,
+          "quantity": 2
+        }
+      ],
+      "merchantLastStocked": 1767583768318,
+      "cardDefeatTimes": {},
+      "partyId": null,
+      "inDuel": false,
+      "duelState": null,
+      "duelId": null
+    }
+  },
+  "tester": {
+    "id": null,
+    "character": {
+      "characterName": "tester",
+      "characterIcon": "🧑",
+      "title": "The Novice",
+      "unlockedTitles": [
+        "The Novice"
+      ],
+      "health": 10,
+      "maxHealth": 10,
+      "shield": 0,
+      "wisdom": 0,
+      "strength": 0,
+      "agility": 0,
+      "defense": 0,
+      "luck": 0,
+      "physicalResistance": 0,
+      "mining": 0,
+      "fishing": 0,
+      "woodcutting": 0,
+      "harvesting": 0,
+      "gold": 300,
+      "questPoints": 0,
+      "actionPoints": 3,
+      "focus": 0,
+      "currentZone": null,
+      "zoneDeck": [],
+      "inventory": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "bank": [],
+      "buffs": [],
+      "debuffs": [],
+      "equippedSpells": [
+        {
+          "name": "Punch",
+          "cost": 1,
+          "cooldown": 1,
+          "school": "Physical",
+          "description": "A simple but effective strike with your fist. 1 AP, 1 CD | D20+Str (10+) | Deals 1 Physical Damage.",
+          "type": "attack",
+          "stat": "strength",
+          "damage": 1,
+          "hit": 10,
+          "damageType": "Physical",
+          "icon": "👊",
+          "rarity": "common"
+        },
+        {
+          "name": "Kick",
+          "cost": 1,
+          "cooldown": 1,
+          "school": "Physical",
+          "description": "A swift kick aimed at your opponent's midsection. 1 AP, 1 CD | D20+Agi (10+) | Deals 1 Physical Damage.",
+          "type": "attack",
+          "stat": "agility",
+          "damage": 1,
+          "hit": 10,
+          "damageType": "Physical",
+          "icon": "🦶",
+          "rarity": "common"
+        },
+        {
+          "name": "Dodge",
+          "cooldown": 2,
+          "school": "Physical",
+          "description": "Quickly leap out of harm's way. Less effective in heavy armor. 2 CD | D20+Agi (10+) | Avoid incoming attack.",
+          "type": "reaction",
+          "stat": "agility",
+          "hit": 10,
+          "icon": "🤸",
+          "rarity": "common"
+        }
+      ],
+      "spellbook": [],
+      "knownRecipes": [],
+      "equipment": {
+        "mainHand": {
+          "name": "Wooden Training Sword",
+          "type": "weapon",
+          "slot": "mainHand",
+          "cost": 1,
+          "cooldown": 1,
+          "hit": 10,
+          "weaponType": "One-Hand Sword",
+          "weaponDamage": 1,
+          "damageType": "Physical",
+          "description": "A blunt practice sword for novice fighters. 1 AP, 1 CD | D20+Str (10+) | Deals 1 Physical Damage.",
+          "tier": 1,
+          "icon": "⚔️",
+          "rarity": "common",
+          "canBeInMerchantWares": true
+        },
+        "offHand": null,
+        "helmet": null,
+        "armor": null,
+        "boots": null,
+        "accessory": null,
+        "ammo": null
+      },
+      "quests": [],
+      "spellCooldowns": {},
+      "weaponCooldowns": {},
+      "itemCooldowns": {},
+      "merchantStock": [
+        {
+          "name": "Flaming Sword",
+          "price": 150,
+          "type": "weapon",
+          "slot": "mainHand",
+          "cost": 1,
+          "cooldown": 1,
+          "stat": "strength",
+          "hit": 10,
+          "weaponType": "Sword",
+          "weaponDamage": 2,
+          "damageType": "Fire",
+          "description": "A simple iron sword enchanted with ever-burning flames. 1 AP, 1 CD | D20+Str (10+) | Deals 2 Fire Damage.",
+          "tier": 1,
+          "icon": "🔥⚔️",
+          "traits": [
+            "Sword",
+            "Melee",
+            "Fire",
+            "Tier 1"
+          ],
+          "rarity": "uncommon",
+          "canBeInMerchantWares": true,
+          "quantity": 2
+        },
+        {
+          "name": "Cow Hide",
+          "type": "material",
+          "price": 15,
+          "description": "A tough piece of leather.",
+          "icon": "🐮",
+          "rarity": "common",
+          "canBeInMerchantWares": true,
+          "quantity": 1
+        },
+        {
+          "name": "Leather Cowl",
+          "price": 70,
+          "type": "armor",
+          "slot": "helmet",
+          "bonus": {
+            "agility": 1,
+            "maxHealth": 1
+          },
+          "description": "A simple leather cap that cushions light blows. +1 Agi, +1 Max HP.",
+          "tier": 1,
+          "icon": "🪖",
+          "traits": [
+            "Medium",
+            "Physical",
+            "Tier 1"
+          ],
+          "rarity": "common",
+          "canBeInMerchantWares": true,
+          "quantity": 2
+        },
+        {
+          "name": "Wizard Robe",
+          "price": 100,
+          "type": "armor",
+          "slot": "armor",
+          "bonus": {
+            "wisdom": 1,
+            "maxHealth": 1
+          },
+          "description": "A flowing garment woven with arcane threads. +1 Wis, +1 Max HP.",
+          "tier": 1,
+          "icon": "👘",
+          "traits": [
+            "Light",
+            "Magical",
+            "Tier 1"
+          ],
+          "rarity": "common",
+          "canBeInMerchantWares": true,
+          "quantity": 6
+        },
+        {
+          "name": "Healing Potion",
+          "price": 25,
+          "type": "consumable",
+          "cost": 1,
+          "heal": 3,
+          "description": "A crimson elixir that mends wounds in moments. 1 AP | Heals 3 HP.",
+          "icon": "🧪",
+          "rarity": "common",
+          "canBeInMerchantWares": true,
+          "quantity": 9
+        }
+      ],
+      "merchantLastStocked": 1767581789781,
+      "cardDefeatTimes": {},
+      "partyId": null,
+      "inDuel": false,
+      "duelState": null,
+      "duelId": null
+    }
+  }
+}
