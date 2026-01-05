@@ -5,7 +5,7 @@
  * such as buying, selling, crafting, and equipping items/spells.
  */
 
-import { players, parties } from './serverState.js';
+import { players, parties, duels } from './serverState.js';
 import { gameData } from './data/index.js';
 import { addItemToInventoryServer, playerHasMaterials, consumeMaterials, checkAndRotateMerchantStock, getBonusStatsForPlayer } from './utilsHelpers.js';
 
@@ -15,15 +15,31 @@ export const registerPlayerActionHandlers = (io, socket) => {
         const player = players[name];
 
         // Prevent actions if the player is missing, in an active adventure, or duel
-        if (!player) return;
-
-        const party = player.character.partyId ? parties[player.character.partyId] : null;
-        const isInActiveAdventure = party?.sharedState?.currentZone != null;
-        if (isInActiveAdventure || player.character.duelId) {
+        if (!player) {
+            console.log(`[playerAction] Blocked: Player not found for socket ${socket.id}`);
             return;
         }
 
         const character = player.character;
+
+        // Clear stale duelId if duel doesn't exist
+        if (character.duelId && !duels[character.duelId]) {
+            console.log(`[playerAction] Clearing stale duelId ${character.duelId} for ${name}`);
+            character.duelId = null;
+        }
+
+        const party = character.partyId ? parties[character.partyId] : null;
+        const isInActiveAdventure = party?.sharedState?.currentZone != null;
+
+        if (isInActiveAdventure) {
+            console.log(`[playerAction] Blocked: ${name} is in active adventure (zone: ${party.sharedState.currentZone})`);
+            return;
+        }
+        if (character.duelId) {
+            console.log(`[playerAction] Blocked: ${name} is in duel ${character.duelId}`);
+            return;
+        }
+
         const { type, payload } = action;
 
         let success = false; // Flag to check if an action successfully changed the state
