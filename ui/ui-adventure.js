@@ -493,11 +493,12 @@ export function renderPlayerActionBars() {
                 slotEl.disabled = true;
                 slotEl.innerHTML = `<div class="slot-name">(2H Weapon)</div>`;
             } else {
-                const cooldown = weaponCooldowns[item.name] || 0;
+                const cooldown = weaponCooldowns[slotInfo.key] || 0;
                 const canAttack = localPlayerAP >= item.cost && !localPlayerTurnEnded && cooldown <= 0;
                 slotEl.className = 'action-slot active';
                 slotEl.disabled = !canAttack;
                 slotEl.dataset.action = 'select';
+                slotEl.dataset.slot = slotInfo.key;
                 slotEl.dataset.actionData = JSON.stringify({ type: 'weapon', data: item, slot: slotInfo.key });
                 slotEl.innerHTML = `
                     <div class="item-icon">${item.icon || '⚔️'}</div>
@@ -569,8 +570,16 @@ export function renderPlayerActionBars() {
 export function updateActionUI() {
     document.querySelectorAll('.action-slot').forEach(btn => btn.classList.remove('selected'));
     if (gameState.turnState.selectedAction) {
-        const actionName = gameState.turnState.selectedAction.data.name;
-        const selectedBtn = Array.from(document.querySelectorAll('.action-slot .item-name')).find(span => span.textContent === actionName)?.parentElement;
+        const selectedAction = gameState.turnState.selectedAction;
+        // For weapons, match by slot (mainHand/offHand) to handle dual-wielding identical weapons
+        // For spells, match by index
+        let selectedBtn = null;
+        if (selectedAction.type === 'weapon' && selectedAction.slot) {
+            selectedBtn = document.querySelector(`.action-slot[data-slot="${selectedAction.slot}"]`);
+        } else if (selectedAction.type === 'spell' && selectedAction.index !== undefined) {
+            const spellSlots = document.querySelectorAll('#spell-bar .action-slot');
+            selectedBtn = spellSlots[selectedAction.index];
+        }
         if (selectedBtn) selectedBtn.classList.add('selected');
     }
 
