@@ -88,7 +88,7 @@ export async function processWeaponAttack(io, party, player, payload) {
         const weapon = character.equipment[weaponSlot];
         const defendingPlayerState = encounter.playerStates.find(p => p.playerId === targetIndex);
 
-        if (!weapon || weapon.type !== 'weapon' || !defendingPlayerState || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weapon.name] || 0) > 0) {
+        if (!weapon || weapon.type !== 'weapon' || !defendingPlayerState || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weaponSlot] || 0) > 0) {
             return;
         }
 
@@ -101,7 +101,7 @@ export async function processWeaponAttack(io, party, player, payload) {
 
         actingPlayerState.actionPoints -= weapon.cost;
         actingPlayerState.threat += weapon.cost;
-        actingPlayerState.weaponCooldowns[weapon.name] = weapon.cooldown;
+        actingPlayerState.weaponCooldowns[weaponSlot] = weapon.cooldown;
 
         const reactionInitiated = handlePvpReactionCheck(io, encounter, actingPlayerState, defendingPlayerState, actionDetails);
 
@@ -160,13 +160,13 @@ export async function processWeaponAttack(io, party, player, payload) {
         const target = sharedState.zoneCards[targetIndex];
         const weapon = character.equipment[weaponSlot];
 
-        if (!weapon || weapon.type !== 'weapon' || !target || target.type !== 'enemy' || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weapon.name] || 0) > 0) {
+        if (!weapon || weapon.type !== 'weapon' || !target || target.type !== 'enemy' || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weaponSlot] || 0) > 0) {
             return;
         }
 
         actingPlayerState.actionPoints -= weapon.cost;
         actingPlayerState.threat += weapon.cost;
-        actingPlayerState.weaponCooldowns[weapon.name] = weapon.cooldown;
+        actingPlayerState.weaponCooldowns[weaponSlot] = weapon.cooldown;
 
         const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
         const stat = weapon.stat || 'strength';
@@ -526,7 +526,23 @@ export async function processCastSpell(io, party, player, payload) {
                                 damage = mainHand.weaponDamage;
                             }
                         }
-                        // --- END NEW LOGIC ---
+                        // --- AMBUSH SPELL LOGIC ---
+                        else if (spell.name === 'Ambush') {
+                            const hands = ['mainHand', 'offHand'];
+                            let totalDaggerDamage = 0;
+                            hands.forEach(hand => {
+                                const weapon = character.equipment[hand];
+                                if (weapon && weapon.weaponType === 'Dagger') {
+                                    totalDaggerDamage += weapon.weaponDamage || 0;
+                                }
+                            });
+                            damage = totalDaggerDamage;
+                            // Apply bleed debuff on hit
+                            if (!spell.debuff) {
+                                spell.debuff = { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' };
+                            }
+                        }
+                        // --- END AMBUSH LOGIC ---
                         else if (spell.name === 'Punch' || spell.name === 'Kick') {
                             if (character.equippedSpells.some(s => s.name === "Monk's Training") && !character.equipment.mainHand && !character.equipment.offHand) {
                                 damage += 1;
