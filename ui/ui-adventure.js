@@ -95,11 +95,24 @@ export function showCombatFeedback({ targetName, targetId, type, text }) {
         return;
     }
 
+    // Get the overlay container for persistent popups
+    const overlay = document.getElementById('combat-effects-overlay');
+    if (!overlay) return;
+
+    // Calculate position based on card's location
+    const cardRect = targetCard.getBoundingClientRect();
+    const overlayRect = overlay.getBoundingClientRect();
+
     const popup = document.createElement('div');
     popup.className = `combat-feedback-popup popup-${type}`;
     popup.textContent = text;
 
-    targetCard.appendChild(popup);
+    // Position the popup at the center of the card
+    popup.style.left = `${cardRect.left - overlayRect.left + cardRect.width / 2}px`;
+    popup.style.top = `${cardRect.top - overlayRect.top + cardRect.height / 2}px`;
+    popup.style.transform = 'translate(-50%, -50%)';
+
+    overlay.appendChild(popup);
 
     setTimeout(() => {
         popup.remove();
