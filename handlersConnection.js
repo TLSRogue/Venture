@@ -62,10 +62,16 @@ export const registerConnectionHandlers = (io, socket) => {
         }
 
         const partyId = characterToUpdate.partyId;
-        if (partyId && parties[partyId]) {
-            broadcastPartyUpdate(io, partyId);
-            if (parties[partyId].sharedState) {
-                socket.emit('party:adventureStarted', parties[partyId].sharedState);
+        if (partyId) {
+            if (parties[partyId]) {
+                broadcastPartyUpdate(io, partyId);
+                if (parties[partyId].sharedState) {
+                    socket.emit('party:adventureStarted', parties[partyId].sharedState);
+                }
+            } else {
+                // Clear stale partyId if the party no longer exists
+                console.log(`Clearing stale partyId ${partyId} for character ${name}.`);
+                characterToUpdate.partyId = null;
             }
         }
 
