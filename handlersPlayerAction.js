@@ -14,12 +14,8 @@ export const registerPlayerActionHandlers = (io, socket) => {
         const name = socket.characterName;
         const player = players[name];
 
-        // Prevent actions if the player is missing, in an active adventure, or duel
-        if (!player) return;
-
-        const party = player.character.partyId ? parties[player.character.partyId] : null;
-        const isInActiveAdventure = party?.sharedState?.currentZone != null;
-        if (isInActiveAdventure || player.character.duelId) {
+        // Prevent actions if the player is in an active adventure or duel
+        if (!player || (player.character.partyId && parties[player.character.partyId]?.sharedState) || player.character.duelId) {
             return;
         }
 
