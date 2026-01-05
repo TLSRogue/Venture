@@ -63,23 +63,55 @@ function addActionTooltipListener(element, itemOrSpell) {
     element.addEventListener('mouseleave', hideTooltip);
 }
 
-export function playEffectQueue(effects) {
+export function cacheCardPositions() {
+    const positions = {};
+    const overlay = document.getElementById('combat-effects-overlay');
+    if (!overlay) return positions;
+    const overlayRect = overlay.getBoundingClientRect();
+
+    // Cache all cards by ID and by name
+    const allCards = document.querySelectorAll('#adventure-board .card, #party-cards-container .card');
+    allCards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const posData = {
+            left: rect.left - overlayRect.left + rect.width / 2,
+            top: rect.top - overlayRect.top + rect.height / 2
+        };
+
+        // Cache by ID
+        const id = card.dataset.id || card.dataset.playerId;
+        if (id) {
+            positions[`id:${id}`] = posData;
+        }
+
+        // Cache by name
+        const titleEl = card.querySelector('.card-title');
+        if (titleEl) {
+            positions[`name:${titleEl.textContent.trim()}`] = posData;
+        }
+    });
+    return positions;
+}
+
+export function playEffectQueue(effects, cachedPositions = {}) {
     effects.forEach((effect, index) => {
         setTimeout(() => {
-            showCombatFeedback(effect);
+            showCombatFeedback(effect, cachedPositions);
         }, index * 600);
     });
 }
 
-export function showCombatFeedback({ targetName, targetId, type, text }) {
-    let targetCard = null;
+export function showCombatFeedback({ targetName, targetId, type, text }, cachedPositions = {}) {
+    const overlay = document.getElementById('combat-effects-overlay');
+    if (!overlay) return;
 
+    let position = null;
+
+    // First, try to find the live card
+    let targetCard = null;
     if (targetId) {
-        // Prioritize finding by unique ID for enemies or players
         targetCard = document.querySelector(`.card[data-id='${targetId}'], .card[data-player-id='${targetId}']`);
     }
-
-    // Fallback for players or if ID is not present
     if (!targetCard && targetName) {
         const allCards = document.querySelectorAll('#adventure-board .card, #party-cards-container .card');
         for (const card of allCards) {
@@ -91,25 +123,32 @@ export function showCombatFeedback({ targetName, targetId, type, text }) {
         }
     }
 
-    if (!targetCard) {
-        return;
+    // If card is found, calculate position from it
+    if (targetCard) {
+        const overlayRect = overlay.getBoundingClientRect();
+        const cardRect = targetCard.getBoundingClientRect();
+        position = {
+            left: cardRect.left - overlayRect.left + cardRect.width / 2,
+            top: cardRect.top - overlayRect.top + cardRect.height / 2
+        };
+    } else {
+        // Fallback to cached position for dead enemies
+        if (targetId && cachedPositions[`id:${targetId}`]) {
+            position = cachedPositions[`id:${targetId}`];
+        } else if (targetName && cachedPositions[`name:${targetName}`]) {
+            position = cachedPositions[`name:${targetName}`];
+        }
     }
 
-    // Get the overlay container for persistent popups
-    const overlay = document.getElementById('combat-effects-overlay');
-    if (!overlay) return;
-
-    // Calculate position based on card's location
-    const cardRect = targetCard.getBoundingClientRect();
-    const overlayRect = overlay.getBoundingClientRect();
+    if (!position) {
+        return;
+    }
 
     const popup = document.createElement('div');
     popup.className = `combat-feedback-popup popup-${type}`;
     popup.textContent = text;
-
-    // Position the popup at the center of the card
-    popup.style.left = `${cardRect.left - overlayRect.left + cardRect.width / 2}px`;
-    popup.style.top = `${cardRect.top - overlayRect.top + cardRect.height / 2}px`;
+    popup.style.left = `${position.left}px`;
+    popup.style.top = `${position.top}px`;
     popup.style.transform = 'translate(-50%, -50%)';
 
     overlay.appendChild(popup);
@@ -118,7 +157,7 @@ export function showCombatFeedback({ targetName, targetId, type, text }) {
         popup.remove();
     }, 2200);
 
-    if (type === 'damage' || type === 'resource') {
+    if (targetCard && (type === 'damage' || type === 'resource')) {
         targetCard.classList.add('shake-effect');
         setTimeout(() => {
             targetCard.classList.remove('shake-effect');

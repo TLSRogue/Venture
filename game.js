@@ -81,17 +81,39 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-        // PATTERN 4: Spell fizzle / Critical Failure
+        // PATTERN 4: Weapon attack Hit! (e.g., "PlayerName attacks with Iron Dagger: (Roll 15) Hit!")
+        match = entry.message.match(/^(.+?) attacks with .+:.*Hit!/);
+        if (match) {
+            effects.push({ targetName: match[1], type: 'success', text: 'Hit!' });
+            return;
+        }
+
+        // PATTERN 5: Weapon attack Miss! (e.g., "PlayerName attacks with Iron Dagger: (Roll 3) Miss!")
+        match = entry.message.match(/^(.+?) attacks with .+:.*Miss!/);
+        if (match) {
+            effects.push({ targetName: match[1], type: 'fail', text: 'Miss!' });
+            return;
+        }
+
+        // PATTERN 6: Spell fizzle / Critical Failure
         match = entry.message.match(/(.+?) (?:attacks|casting).*(?:Critical Failure|fizzles)!/);
         if (match) {
             effects.push({ targetName: match[1], type: 'fail', text: 'Fail!' });
             return;
         }
 
-        // PATTERN 5: Healing
+        // PATTERN 7: Healing
         match = entry.message.match(/Healed (.+?) for (\d+) HP/);
         if (match) {
             effects.push({ targetName: match[1], type: 'heal', text: `+${match[2]}` });
+            return;
+        }
+
+        // PATTERN 8: Debuff application (e.g., "Target is now bleed!" or "Target is now daze!")
+        match = entry.message.match(/(.+?) is now (\w+)!/);
+        if (match) {
+            const debuffName = match[2].charAt(0).toUpperCase() + match[2].slice(1);
+            effects.push({ targetName: match[1], type: 'debuff', text: debuffName + '!' });
             return;
         }
     });
@@ -240,6 +262,9 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     const newLogEntries = logSource.slice(existingLogCount);
     const effectsToPlay = getEffectsFromLog(newLogEntries);
 
+    // Cache card positions BEFORE re-render so we can show popups on dying enemies
+    const cachedPositions = UIAdventure.cacheCardPositions();
+
     newLogEntries.forEach(entry => UIMain.addToLog(entry.message, entry.type));
 
     UIAdventure.renderAdventureScreen();
@@ -247,7 +272,7 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     UIAdventure.renderPlayerActionBars();
 
     if (effectsToPlay.length > 0) {
-        UIAdventure.playEffectQueue(effectsToPlay);
+        UIAdventure.playEffectQueue(effectsToPlay, cachedPositions);
     }
 
     updateLootRollUI(gameState.pendingLootRoll);

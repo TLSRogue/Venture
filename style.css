@@ -1084,6 +1084,10 @@ hr {
     color: #ffa502;
 }
 
+.popup-debuff {
+    color: #a55eea;
+}
+
 .shake-effect {
     animation: card-shake-animation 0.5s ease-in-out;
 }
