@@ -240,7 +240,7 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     const newLogEntries = logSource.slice(existingLogCount);
     const effectsToPlay = getEffectsFromLog(newLogEntries);
 
-    newLogEntries.reverse().forEach(entry => UIMain.addToLog(entry.message, entry.type));
+    newLogEntries.forEach(entry => UIMain.addToLog(entry.message, entry.type));
 
     UIAdventure.renderAdventureScreen();
     UIPlayer.updateDisplay();
