@@ -671,15 +671,14 @@ function handleGlobalChatHistory(history) {
 }
 
 function handleZoneChatMessage(chatEntry) {
-    // Add chat message to the adventure log
+    // Add chat message to the adventure log (prepend for column-reverse layout)
     const logContainer = document.getElementById('adventure-log');
     if (!logContainer) return;
 
     const entry = document.createElement('div');
     entry.className = 'log-entry chat';
     entry.innerHTML = `<strong>${chatEntry.sender}:</strong> ${chatEntry.message}`;
-    logContainer.appendChild(entry);
-    logContainer.scrollTop = logContainer.scrollHeight;
+    logContainer.prepend(entry);
 }
 
 function appendChatMessage(containerId, chatEntry) {

@@ -119,8 +119,7 @@ export function addToLog(message, type = 'info') {
     const entry = document.createElement('div');
     entry.className = `log-entry ${type}`;
     entry.textContent = message;
-    log.appendChild(entry);
-    log.scrollTop = log.scrollHeight;
+    log.prepend(entry);
 }
 
 export function setTabsDisabled(isDisabled) {

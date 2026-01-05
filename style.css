@@ -868,6 +868,13 @@ hr {
     max-width: 1200px;
     margin: 0 auto;
     margin-top: 0;
+    height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 10px;
 }
 
 #adventure-content-wrapper {
