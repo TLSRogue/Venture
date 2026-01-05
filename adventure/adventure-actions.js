@@ -315,17 +315,7 @@ export async function processCastSpell(io, party, player, payload) {
                 targetPlayerState.buffs.push({ ...buff });
                 encounter.log.push({ message: `${targetPlayerState.name} gains ${buff.type}! [id:${targetPlayerState.playerId}]`, type: 'heal' });
             } else if (spell.type === 'attack') {
-                let damageToDeal = spell.damage || 0;
-
-                // Special handling for bow spells that use weapon damage
-                if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
-                    const mainHand = character.equipment.mainHand;
-                    if (mainHand && mainHand.weaponDamage && spell.requires?.weaponType?.includes(mainHand.weaponType)) {
-                        damageToDeal = mainHand.weaponDamage;
-                    }
-                }
-
-                const originalDamage = damageToDeal;
+                let damageToDeal = spell.damage;
                 const defendingCharacter = players[targetPlayerState.name]?.character;
                 if (defendingCharacter && spell.damageType === 'Physical') {
                     const defendingBonuses = getBonusStatsForPlayer(defendingCharacter, targetPlayerState);
@@ -335,7 +325,7 @@ export async function processCastSpell(io, party, player, payload) {
 
                 targetPlayerState.health -= damageToDeal;
                 let damageMessage = `Dealt ${damageToDeal} ${spell.damageType} damage to ${targetPlayerState.name} [id:${targetPlayerState.playerId}].`;
-                if (damageToDeal < originalDamage) damageMessage += ` (${originalDamage - damageToDeal} resisted)`;
+                if (damageToDeal < spell.damage) damageMessage += ` (${spell.damage - damageToDeal} resisted)`;
                 encounter.log.push({ message: damageMessage, type: 'damage' });
 
                 if (spell.debuff) {
