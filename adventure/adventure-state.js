@@ -11,6 +11,12 @@ const PVP_ZONES = ['blighted_wastes'];
 export function handlePvpPlayerDeath(io, defeatedPlayer, encounter) {
     const character = defeatedPlayer.character;
 
+    // Skip loot stripping for duels
+    if (encounter.isDuel) {
+        encounter.log.push({ message: `${character.characterName} has been defeated!`, type: 'damage' });
+        return;
+    }
+
     const allLoot = [...character.inventory.filter(Boolean)];
     for (const slot in character.equipment) {
         if (character.equipment[slot]) {
@@ -38,10 +44,52 @@ function endPvpEncounter(io, winningParty, losingParty) {
         clearTimeout(encounter.turnTimerId);
     }
 
+    const isDuel = encounter?.isDuel || false;
+
     if (encounterId) {
         delete pvpEncounters[encounterId];
     }
 
+    // For duels, handle differently - gold reward and clean up both sides
+    if (isDuel) {
+        // Award gold to winning players
+        winningParty.members.forEach(memberName => {
+            const memberPlayer = players[memberName];
+            if (memberPlayer && memberPlayer.character) {
+                memberPlayer.character.gold = (memberPlayer.character.gold || 0) + 50;
+                if (memberPlayer.id) {
+                    io.to(memberPlayer.id).emit('duel:end', { outcome: 'win', reward: { gold: 50 } });
+                    io.to(memberPlayer.id).emit('characterUpdate', memberPlayer.character);
+                    io.to(memberPlayer.id).emit('party:adventureEnded');
+                }
+            }
+        });
+
+        // Notify losers
+        losingParty.members.forEach(memberName => {
+            const memberPlayer = players[memberName];
+            if (memberPlayer && memberPlayer.id) {
+                io.to(memberPlayer.id).emit('duel:end', { outcome: 'loss', reward: null });
+                io.to(memberPlayer.id).emit('party:adventureEnded');
+            }
+        });
+
+        // Clean up duel parties (they're always solo/temp)
+        [winningParty, losingParty].forEach(party => {
+            party.members.forEach(memberName => {
+                const memberPlayer = players[memberName];
+                if (memberPlayer?.character) {
+                    memberPlayer.character.partyId = null;
+                    memberPlayer.character.duelId = null;
+                }
+            });
+            delete parties[party.id];
+        });
+
+        return;
+    }
+
+    // Normal PvP handling (non-duel)
     losingParty.members.forEach(memberName => {
         const memberPlayer = players[memberName];
         if (memberPlayer && memberPlayer.id) {
@@ -71,7 +119,7 @@ function endPvpEncounter(io, winningParty, losingParty) {
     broadcastAdventureUpdate(io, winningParty);
 }
 
-function startPvpEncounter(io, partyA, partyB) {
+export function startPvpEncounter(io, partyA, partyB, isDuel = false) {
     if (!partyA.sharedState || !partyB.sharedState) {
         console.error("Attempted to start PvP encounter with a party that is missing a sharedState.");
         return;
@@ -115,8 +163,9 @@ function startPvpEncounter(io, partyA, partyB) {
         playerStates: [...playerStatesA, ...playerStatesB],
         activeTeam: startingTeam,
         groundLoot: [],
+        isDuel: isDuel,
         log: [
-            { message: `You have encountered an opposing party! Battle begins!`, type: 'damage' },
+            { message: isDuel ? `Duel has begun!` : `You have encountered an opposing party! Battle begins!`, type: 'damage' },
             { message: `Team ${startingTeam} will go first, but with only 1 AP!`, type: 'info' }
         ],
         turnTimerEndsAt: timerEndsAt,
