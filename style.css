@@ -215,6 +215,8 @@ body {
     gap: 15px;
     perspective: 1000px;
     min-height: 150px;
+    padding-bottom: 35px;
+    /* Make room for health/threat bars below cards */
 }
 
 #ground-loot-container {
@@ -348,13 +350,17 @@ body {
     color: #f39c12;
 }
 
-/* Card Health and Threat Bars */
+/* Card Health and Threat Bars - positioned below the card */
 .card-bars-container {
+    position: absolute;
+    bottom: -30px;
+    left: 0;
+    right: 0;
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin-top: 5px;
+    gap: 3px;
+    padding: 0 5px;
 }
 
 .card-health-bar-container {
