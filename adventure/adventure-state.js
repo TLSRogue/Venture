@@ -224,13 +224,19 @@ export function startPvpEncounter(io, partyA, partyB, isDuel = false) {
 
     const stateForClients = createStateForClient(partyA.sharedState, encounterState);
 
+    // ** BUG FIX: Include partyId in the state sent to each party's members **
+    // Without partyId, the client-side combat.js won't emit actions because it checks gameState.partyId
     partyA.members.forEach(memberName => {
         const member = players[memberName];
-        if (member && member.id) io.to(member.id).emit('party:adventureStarted', stateForClients);
+        if (member && member.id) {
+            io.to(member.id).emit('party:adventureStarted', { ...stateForClients, partyId: partyA.id });
+        }
     });
     partyB.members.forEach(memberName => {
         const member = players[memberName];
-        if (member && member.id) io.to(member.id).emit('party:adventureStarted', stateForClients);
+        if (member && member.id) {
+            io.to(member.id).emit('party:adventureStarted', { ...stateForClients, partyId: partyB.id });
+        }
     });
 }
 
