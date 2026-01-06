@@ -326,6 +326,13 @@ export const registerAdventureHandlers = (io, socket) => {
                     interactions.processLootPlayer(io, player, party, action.payload);
                     break;
                 case 'endTurn':
+                    // Reduce threat by leftover AP (PvE only - threat influences enemy targeting)
+                    if (!party.sharedState.pvpEncounterId && actingPlayerState.actionPoints > 0) {
+                        const threatReduction = actingPlayerState.actionPoints;
+                        actingPlayerState.threat = Math.max(0, (actingPlayerState.threat || 0) - threatReduction);
+                        party.sharedState.log.push({ message: `${player.character.characterName} reduces threat by ${threatReduction} (${actingPlayerState.actionPoints} unused AP).`, type: 'info' });
+                    }
+
                     actingPlayerState.turnEnded = true;
                     const logTarget = party.sharedState.pvpEncounterId ? pvpEncounters[party.sharedState.pvpEncounterId] : party.sharedState;
                     logTarget.log.push({ message: `${player.character.characterName} has ended their turn.`, type: 'info' });

@@ -41,8 +41,8 @@ function createHealthBarHTML(health, maxHealth, threat = null) {
             </div>`;
 
     if (threat !== null) {
-        // Threat bar for players - shows aggro level to enemies
-        const threatPercent = Math.min(100, threat);
+        // Threat bar for players - shows aggro level to enemies (max 10)
+        const threatPercent = Math.min(100, (threat / 10) * 100);
         html += `
             <div class="card-threat-bar-container" title="Threat: ${threat}">
                 <div class="card-threat-bar" style="width: ${threatPercent}%"></div>
