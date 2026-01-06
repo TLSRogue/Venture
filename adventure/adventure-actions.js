@@ -83,24 +83,12 @@ export async function processWeaponAttack(io, party, player, payload) {
 
     if (sharedState.pvpEncounterId) {
         const encounter = pvpEncounters[sharedState.pvpEncounterId];
-        if (!encounter) { console.log('[processWeaponAttack] No encounter found'); return; }
+        if (!encounter) return;
         const actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
         const weapon = character.equipment[weaponSlot];
         const defendingPlayerState = encounter.playerStates.find(p => p.playerId === targetIndex);
 
-        console.log(`[processWeaponAttack] PvP attack:`, {
-            playerId: player.id,
-            targetIndex,
-            weaponSlot,
-            hasWeapon: !!weapon,
-            hasDefender: !!defendingPlayerState,
-            defenderSearch: encounter.playerStates.map(p => p.playerId),
-            ap: actingPlayerState?.actionPoints,
-            weaponCost: weapon?.cost
-        });
-
         if (!weapon || weapon.type !== 'weapon' || !defendingPlayerState || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weaponSlot] || 0) > 0) {
-            console.log(`[processWeaponAttack] BLOCKED:`, { noWeapon: !weapon, wrongType: weapon?.type !== 'weapon', noDefender: !defendingPlayerState, lowAP: actingPlayerState?.actionPoints < weapon?.cost, onCooldown: (actingPlayerState?.weaponCooldowns?.[weaponSlot] || 0) > 0 });
             return;
         }
 
