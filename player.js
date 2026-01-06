@@ -122,7 +122,8 @@ export function resetToHomeState() {
     gameState.duelState = null;
     gameState.pvpEncounter = null;
 
-    if (gameState.partyId && gameState.partyId.startsWith('SOLO-')) {
+    // Clear temporary solo/duel parties - these were created just for this adventure
+    if (gameState.partyId && (gameState.partyId.startsWith('SOLO-') || gameState.partyId.startsWith('DUEL-PARTY-'))) {
         Network.emitLeaveParty();
         gameState.partyId = null;
         gameState.isPartyLeader = false;
