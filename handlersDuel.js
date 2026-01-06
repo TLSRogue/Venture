@@ -63,16 +63,17 @@ export const registerDuelHandlers = (io, socket) => {
 
         // Clean up stale duelIds (from previously broken duels)
         if (challenger.character.duelId && !duels[challenger.character.duelId]) {
-            console.log(`[duel:challenge] Clearing stale duelId ${challenger.character.duelId} for ${challengerName}`);
             challenger.character.duelId = null;
         }
         if (target.character.duelId && !duels[target.character.duelId]) {
-            console.log(`[duel:challenge] Clearing stale duelId ${target.character.duelId} for ${targetCharacterName}`);
             target.character.duelId = null;
         }
 
-        if (challenger.character.duelId || target.character.duelId) {
-            return socket.emit('partyError', 'One of the players is already in a duel.');
+        // Check if either player is already in a PvP encounter (including duels)
+        const challengerPartyCheck = challenger.character.partyId ? parties[challenger.character.partyId] : null;
+        const targetPartyCheck = target.character.partyId ? parties[target.character.partyId] : null;
+        if (challengerPartyCheck?.sharedState?.pvpEncounterId || targetPartyCheck?.sharedState?.pvpEncounterId) {
+            return socket.emit('partyError', 'One of the players is already in a duel or PvP encounter.');
         }
 
         console.log(`${challengerName} is challenging ${targetCharacterName} to a duel.`);
@@ -163,12 +164,7 @@ export const registerDuelHandlers = (io, socket) => {
         const newChallengerParty = createDuelParty(challenger);
         const newAcceptorParty = createDuelParty(acceptor);
 
-        // Mark as duel for both characters
-        const duelId = `DUEL-${Date.now()}`;
-        challenger.character.duelId = duelId;
-        acceptor.character.duelId = duelId;
-
-        console.log(`Duel ${duelId} starting between ${challengerName} and ${acceptorName} using PvP system.`);
+        console.log(`Duel starting between ${challengerName} and ${acceptorName} using PvP system.`);
 
         // Start the PvP encounter with isDuel flag
         startPvpEncounter(io, newChallengerParty, newAcceptorParty, true);

@@ -177,10 +177,11 @@ export function renderAdventureScreen() {
     ventureArrow.style.display = 'flex';
     homeArrow.style.display = 'flex';
 
-    if (gameState.inDuel) {
-        renderDuelScreen();
-    } else if (gameState.pvpEncounter) {
+    // Prioritize pvpEncounter over inDuel since duels now use the PvP system
+    if (gameState.pvpEncounter) {
         renderPvpScreen();
+    } else if (gameState.inDuel) {
+        renderDuelScreen();
     } else if (gameState.partyId && gameState.partyMemberStates) {
         renderPartyScreen();
     }

@@ -35,10 +35,7 @@ export const registerPlayerActionHandlers = (io, socket) => {
             console.log(`[playerAction] Blocked: ${name} is in active adventure (zone: ${party.sharedState.currentZone})`);
             return;
         }
-        if (character.duelId) {
-            console.log(`[playerAction] Blocked: ${name} is in duel ${character.duelId}`);
-            return;
-        }
+        // Note: duelId check removed - duels now use partyId with PvP encounters
 
         const { type, payload } = action;
 
