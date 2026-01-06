@@ -89,6 +89,28 @@ export const registerDuelHandlers = (io, socket) => {
 
         if (!challenger || !challenger.id || !acceptor) return;
 
+        // Block if either player is already in a party with an active adventure
+        const challengerParty = challenger.character.partyId ? parties[challenger.character.partyId] : null;
+        const acceptorParty = acceptor.character.partyId ? parties[acceptor.character.partyId] : null;
+
+        if (challengerParty?.sharedState || acceptorParty?.sharedState) {
+            return socket.emit('partyError', 'Cannot duel while in an active adventure.');
+        }
+
+        // If player is in a party (but no adventure), leave it first
+        if (challengerParty) {
+            challengerParty.members = challengerParty.members.filter(m => m !== challengerName);
+            if (challengerParty.members.length === 0) {
+                delete parties[challengerParty.id];
+            }
+        }
+        if (acceptorParty) {
+            acceptorParty.members = acceptorParty.members.filter(m => m !== acceptorName);
+            if (acceptorParty.members.length === 0) {
+                delete parties[acceptorParty.id];
+            }
+        }
+
         // Create temporary solo parties for both duelists
         const createDuelParty = (playerObj) => {
             const partyId = `DUEL-PARTY-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -138,8 +160,8 @@ export const registerDuelHandlers = (io, socket) => {
             return party;
         };
 
-        const challengerParty = createDuelParty(challenger);
-        const acceptorParty = createDuelParty(acceptor);
+        const newChallengerParty = createDuelParty(challenger);
+        const newAcceptorParty = createDuelParty(acceptor);
 
         // Mark as duel for both characters
         const duelId = `DUEL-${Date.now()}`;
@@ -149,7 +171,7 @@ export const registerDuelHandlers = (io, socket) => {
         console.log(`Duel ${duelId} starting between ${challengerName} and ${acceptorName} using PvP system.`);
 
         // Start the PvP encounter with isDuel flag
-        startPvpEncounter(io, challengerParty, acceptorParty, true);
+        startPvpEncounter(io, newChallengerParty, newAcceptorParty, true);
     });
 
     // Note: duel:playerAction is no longer needed - duels now use party:playerAction through adventure system

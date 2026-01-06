@@ -50,18 +50,14 @@ function endPvpEncounter(io, winningParty, losingParty) {
         delete pvpEncounters[encounterId];
     }
 
-    // For duels, handle differently - gold reward and clean up both sides
+    // For duels, handle differently - no loot/gold, just clean up both sides
     if (isDuel) {
-        // Award gold to winning players
+        // Notify winners (no gold reward)
         winningParty.members.forEach(memberName => {
             const memberPlayer = players[memberName];
-            if (memberPlayer && memberPlayer.character) {
-                memberPlayer.character.gold = (memberPlayer.character.gold || 0) + 50;
-                if (memberPlayer.id) {
-                    io.to(memberPlayer.id).emit('duel:end', { outcome: 'win', reward: { gold: 50 } });
-                    io.to(memberPlayer.id).emit('characterUpdate', memberPlayer.character);
-                    io.to(memberPlayer.id).emit('party:adventureEnded');
-                }
+            if (memberPlayer && memberPlayer.id) {
+                io.to(memberPlayer.id).emit('duel:end', { outcome: 'win', reward: null });
+                io.to(memberPlayer.id).emit('party:adventureEnded');
             }
         });
 
