@@ -25,6 +25,34 @@ const effectIcons = {
     'Magic Barrier': '💠'
 };
 
+/**
+ * Creates health bar HTML, optionally with a threat bar for PvE enemies.
+ * @param {number} health - Current health
+ * @param {number} maxHealth - Maximum health
+ * @param {number|null} threat - Threat value (only for PvE enemies, null for players/PvP)
+ * @returns {string} HTML string for the bars
+ */
+function createHealthBarHTML(health, maxHealth, threat = null) {
+    const healthPercent = Math.max(0, Math.min(100, (health / maxHealth) * 100));
+    let html = `
+        <div class="card-bars-container">
+            <div class="card-health-bar-container">
+                <div class="card-health-bar" style="width: ${healthPercent}%">${health}/${maxHealth}</div>
+            </div>`;
+
+    if (threat !== null) {
+        // Threat bar - scales from 0-100, capped at 100%
+        const threatPercent = Math.min(100, threat);
+        html += `
+            <div class="card-threat-bar-container" title="Threat: ${threat}">
+                <div class="card-threat-bar" style="width: ${threatPercent}%"></div>
+            </div>`;
+    }
+
+    html += `</div>`;
+    return html;
+}
+
 function addActionTooltipListener(element, itemOrSpell) {
     element.addEventListener('mousemove', (e) => {
         if (e.altKey) {
@@ -270,7 +298,7 @@ function renderPvpScreen() {
             cardEl.innerHTML = `
                 <div class="card-icon">${playerState.icon}</div>
                 <div class="card-title">${playerState.name}</div>
-                <div>❤️ ${playerState.health}/${playerState.maxHealth}</div>
+                ${createHealthBarHTML(playerState.health, playerState.maxHealth)}
             `;
             cardEl.appendChild(createEffectsContainer(playerState));
         }
@@ -315,7 +343,7 @@ function renderPartyScreen() {
             cardEl.innerHTML = `
                 <div class="card-icon">${playerState.icon}</div>
                 <div class="card-title">${playerState.name}</div>
-                <div>❤️ ${playerState.health}/${playerState.maxHealth}</div>
+                ${createHealthBarHTML(playerState.health, playerState.maxHealth)}
             `;
             cardEl.appendChild(createEffectsContainer(playerState));
         }
@@ -432,9 +460,10 @@ function renderZoneCards(cards) {
         `;
 
         if (card.type === 'enemy') {
-            const healthDiv = document.createElement('div');
-            healthDiv.textContent = `❤️ ${card.health}/${card.maxHealth}`;
-            cardEl.appendChild(healthDiv);
+            // Add health bar with threat bar for enemies
+            const barsDiv = document.createElement('div');
+            barsDiv.innerHTML = createHealthBarHTML(card.health, card.maxHealth, card.threat || 0);
+            cardEl.appendChild(barsDiv);
             cardEl.appendChild(createEffectsContainer(card));
         } else if (card.type === 'resource') {
             const chargesDiv = document.createElement('div');
@@ -450,11 +479,7 @@ function createEffectsContainer(stateObject) {
     const effectsContainer = document.createElement('div');
     effectsContainer.className = 'player-card-effects';
 
-    if (stateObject.threat !== undefined) {
-        const threatSpan = document.createElement('span');
-        threatSpan.textContent = `🎯 Threat: ${stateObject.threat || 0}`;
-        effectsContainer.appendChild(threatSpan);
-    }
+    // Threat is now shown as a bar on the card, so we skip it here
 
     if (stateObject.buffs) {
         stateObject.buffs.forEach(buff => {

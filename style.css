@@ -348,6 +348,53 @@ body {
     color: #f39c12;
 }
 
+/* Card Health and Threat Bars */
+.card-bars-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 5px;
+}
+
+.card-health-bar-container {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 6px;
+    padding: 2px;
+    border: 1px solid #c0392b;
+}
+
+.card-health-bar {
+    background: linear-gradient(to right, #e74c3c, #c0392b);
+    height: 14px;
+    border-radius: 4px;
+    transition: width 0.3s ease-out;
+    text-align: center;
+    line-height: 14px;
+    font-size: 0.7em;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 1px black;
+    min-width: 20px;
+}
+
+.card-threat-bar-container {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+    padding: 2px;
+    border: 1px solid #e67e22;
+}
+
+.card-threat-bar {
+    background: linear-gradient(to right, #f39c12, #e67e22);
+    height: 8px;
+    border-radius: 3px;
+    transition: width 0.3s ease-out;
+    min-width: 2px;
+}
+
 .inventory-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
