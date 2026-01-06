@@ -219,9 +219,16 @@ export const registerAdventureHandlers = (io, socket) => {
             let actingPlayerState;
             if (party.sharedState.pvpEncounterId) {
                 const encounter = pvpEncounters[party.sharedState.pvpEncounterId];
-                if (!encounter) return;
+                if (!encounter) {
+                    console.log(`[playerAction] BLOCKED: No encounter found for pvpEncounterId ${party.sharedState.pvpEncounterId}`);
+                    return;
+                }
                 actingPlayerState = encounter.playerStates.find(p => p.name === name);
-                if (encounter.activeTeam !== actingPlayerState?.team) return;
+                console.log(`[playerAction] Player ${name} found in encounter:`, !!actingPlayerState, `team: ${actingPlayerState?.team}, activeTeam: ${encounter.activeTeam}`);
+                if (encounter.activeTeam !== actingPlayerState?.team) {
+                    console.log(`[playerAction] BLOCKED: Not player's team turn. Active: ${encounter.activeTeam}, Player: ${actingPlayerState?.team}`);
+                    return;
+                }
             } else {
                 actingPlayerState = party.sharedState.partyMemberStates.find(p => p.name === name);
             }
@@ -282,6 +289,27 @@ export const registerAdventureHandlers = (io, socket) => {
                         const allTurnsEnded = party.sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
                         if (allTurnsEnded) {
                             await state.runEnemyPhaseForParty(io, partyId);
+                        }
+                    }
+                    break;
+                case 'surrender':
+                    // Surrender only works in duels (isPvp with isDuel flag)
+                    if (party.sharedState.pvpEncounterId) {
+                        const encounter = pvpEncounters[party.sharedState.pvpEncounterId];
+                        if (encounter && encounter.isDuel) {
+                            encounter.log.push({ message: `${name} has surrendered!`, type: 'damage' });
+
+                            // Find which team surrendered and declare the other team winner
+                            const surrenderingTeam = actingPlayerState.team;
+                            const winningTeam = surrenderingTeam === 'A' ? 'B' : 'A';
+
+                            const winningParty = parties[winningTeam === 'A' ? encounter.partyAId : encounter.partyBId];
+                            const losingParty = parties[surrenderingTeam === 'A' ? encounter.partyAId : encounter.partyBId];
+
+                            if (winningParty && losingParty) {
+                                state.endDuelEncounter(io, winningParty, losingParty, encounter);
+                            }
+                            return; // Don't broadcast after ending - it's handled in endDuelEncounter
                         }
                     }
                     break;

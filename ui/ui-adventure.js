@@ -224,8 +224,14 @@ function buildPlayerInspectTooltip(playerData) {
 function renderPvpScreen() {
     const partyContainer = document.getElementById('party-cards-container');
     const zoneContainer = document.getElementById('zone-cards');
+    const surrenderBtn = document.getElementById('surrender-btn');
     partyContainer.innerHTML = '';
     zoneContainer.innerHTML = '';
+
+    // Show surrender button for duels (currentZone === 'duel')
+    if (surrenderBtn) {
+        surrenderBtn.style.display = gameState.currentZone === 'duel' ? 'block' : 'none';
+    }
 
     const localPlayerState = gameState.pvpEncounter.playerStates.find(p => p.playerId === socket.id);
     if (!localPlayerState) return;

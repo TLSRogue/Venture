@@ -643,6 +643,7 @@ function addEventListeners() {
             if (button.id === 'info-ok-btn') return UIMain.hideModal();
             if (button.id === 'end-turn-btn') return gameState.inDuel ? Network.emitDuelAction({ type: 'endTurn' }) : Combat.endTurn();
             if (button.id === 'return-home-arrow') return Player.returnToHome();
+            if (button.id === 'surrender-btn') return Network.emitPlayerAction({ type: 'surrender' });
             if (button.id === 'venture-deeper-arrow') return ventureDeeper(button);
             if (button.id === 'backpack-btn') return UIAdventure.showBackpack();
             if (button.id === 'character-sheet-btn') return UIAdventure.showCharacterSheet();

@@ -115,6 +115,46 @@ function endPvpEncounter(io, winningParty, losingParty) {
     broadcastAdventureUpdate(io, winningParty);
 }
 
+// Exported version specifically for duel surrender - handles timer cleanup and ending
+export function endDuelEncounter(io, winningParty, losingParty, encounter) {
+    if (encounter && encounter.turnTimerId) {
+        clearTimeout(encounter.turnTimerId);
+    }
+
+    if (encounter?.id) {
+        delete pvpEncounters[encounter.id];
+    }
+
+    // Notify winners (no gold reward)
+    winningParty.members.forEach(memberName => {
+        const memberPlayer = players[memberName];
+        if (memberPlayer && memberPlayer.id) {
+            io.to(memberPlayer.id).emit('duel:end', { outcome: 'win', reward: null });
+            io.to(memberPlayer.id).emit('party:adventureEnded');
+        }
+    });
+
+    // Notify losers
+    losingParty.members.forEach(memberName => {
+        const memberPlayer = players[memberName];
+        if (memberPlayer && memberPlayer.id) {
+            io.to(memberPlayer.id).emit('duel:end', { outcome: 'loss', reward: null });
+            io.to(memberPlayer.id).emit('party:adventureEnded');
+        }
+    });
+
+    // Clean up duel parties
+    [winningParty, losingParty].forEach(party => {
+        party.members.forEach(memberName => {
+            const memberPlayer = players[memberName];
+            if (memberPlayer?.character) {
+                memberPlayer.character.partyId = null;
+                memberPlayer.character.duelId = null;
+            }
+        });
+        delete parties[party.id];
+    });
+}
 export function startPvpEncounter(io, partyA, partyB, isDuel = false) {
     if (!partyA.sharedState || !partyB.sharedState) {
         console.error("Attempted to start PvP encounter with a party that is missing a sharedState.");
