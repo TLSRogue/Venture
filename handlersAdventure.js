@@ -155,32 +155,46 @@ export const registerAdventureHandlers = (io, socket) => {
                     if (encounter.turnTimerId) clearTimeout(encounter.turnTimerId);
                     delete pvpEncounters[encounter.id];
 
-                    // **BUG FIX**: Also clean up the winning party (send them home too)
-                    party.members.forEach(memberName => {
-                        const memberPlayer = players[memberName];
-                        const memberCharacter = memberPlayer?.character;
-                        if (memberCharacter) {
-                            const memberState = party.sharedState.partyMemberStates.find(p => p.name === memberName);
-                            if (!memberState?.isDead) {
-                                const bonuses = getBonusStatsForPlayer(memberCharacter, null);
-                                memberCharacter.health = 10 + bonuses.maxHealth;
+                    // Check if this is a duel or world PvP
+                    if (encounter.isDuel) {
+                        // DUEL: Send the winning party home too (no loot in duels)
+                        party.members.forEach(memberName => {
+                            const memberPlayer = players[memberName];
+                            const memberCharacter = memberPlayer?.character;
+                            if (memberCharacter) {
+                                const memberState = party.sharedState.partyMemberStates.find(p => p.name === memberName);
+                                if (!memberState?.isDead) {
+                                    const bonuses = getBonusStatsForPlayer(memberCharacter, null);
+                                    memberCharacter.health = 10 + bonuses.maxHealth;
+                                }
+                                if (memberPlayer.id) {
+                                    io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
+                                    io.to(memberPlayer.id).emit('party:adventureEnded');
+                                }
                             }
-                            if (memberPlayer.id) {
-                                io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
-                                io.to(memberPlayer.id).emit('party:adventureEnded');
-                            }
-                        }
-                    });
+                        });
 
-                    // Clean up the winning duel party
-                    if (party.isSoloParty) {
-                        if (players[party.leaderId]?.character) {
-                            players[party.leaderId].character.partyId = null;
+                        // Clean up the winning duel party
+                        if (party.isSoloParty) {
+                            if (players[party.leaderId]?.character) {
+                                players[party.leaderId].character.partyId = null;
+                            }
+                            delete parties[party.id];
+                        } else {
+                            party.sharedState = null;
+                            broadcastPartyUpdate(io, party.id);
                         }
-                        delete parties[party.id];
                     } else {
-                        party.sharedState = null;
-                        broadcastPartyUpdate(io, party.id);
+                        // WORLD PVP: Winner stays in adventure to loot
+                        party.sharedState.pvpEncounterId = null;
+                        party.sharedState.log.push({ message: "Combat has ended! You may continue your adventure.", type: 'success' });
+                        party.sharedState.partyMemberStates.forEach(p => {
+                            if (!p.isDead) {
+                                p.actionPoints = 3;
+                                p.turnEnded = false;
+                            }
+                        });
+                        broadcastAdventureUpdate(io, party);
                     }
 
                 } else {
