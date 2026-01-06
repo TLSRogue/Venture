@@ -68,7 +68,8 @@ export const cardPools = {
                 guaranteedLoot: { items: ["Raw Chicken"] },
                 lootTable: [
                     { range: [1, 10], items: ["Egg"] },
-                    { range: [11, 20], items: ["Feather"] }
+                    { range: [11, 17], items: ["Feather"] },
+                    { range: [18, 20], items: ["Rotten Egg"] }
                 ]
             }, count: 8
         },

@@ -651,7 +651,26 @@ function addEventListeners() {
             if (button.dataset.action === 'takeGroundLoot') return Player.takeGroundLoot(parseInt(button.dataset.index, 10));
 
             if (button.dataset.inventoryAction) {
-                Player.handleItemAction(button.dataset.inventoryAction, parseInt(button.dataset.index, 10));
+                const action = button.dataset.inventoryAction;
+                const index = parseInt(button.dataset.index, 10);
+
+                // Check if this is a targeted consumable
+                if (action === 'useConsumable' && gameState.currentZone) {
+                    const item = gameState.inventory?.[index];
+                    if (item?.targetEnemy) {
+                        // Enter targeting mode for this consumable
+                        gameState.turnState.selectedAction = {
+                            type: 'consumable',
+                            index: index,
+                            data: item
+                        };
+                        UIMain.hideModal();
+                        UIAdventure.updateActionUI();
+                        return;
+                    }
+                }
+
+                Player.handleItemAction(action, index);
                 if (!button.closest('#ground-loot-modal')) UIMain.hideModal();
                 return;
             }

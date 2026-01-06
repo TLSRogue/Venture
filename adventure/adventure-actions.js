@@ -724,7 +724,7 @@ export async function processUseItemAbility(io, party, player, payload) {
 }
 
 export async function processUseConsumable(io, party, player, payload) {
-    const { inventoryIndex } = payload;
+    const { inventoryIndex, targetIndex } = payload;
     const character = player.character;
     const { sharedState } = party;
     const item = character.inventory[inventoryIndex];
@@ -748,18 +748,72 @@ export async function processUseConsumable(io, party, player, payload) {
     actingPlayerState.actionPoints -= cost;
     actingPlayerState.threat += cost;
 
-    if (item.heal) {
-        actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + item.heal);
-        logTarget.log.push({ message: `${character.characterName} used ${item.name}, healing for ${item.heal} HP.`, type: 'heal' });
-    }
-    if (item.buff) {
-        const buff = item.buff;
-        const existingIndex = actingPlayerState.buffs.findIndex(b => b.type === buff.type);
-        if (existingIndex !== -1) actingPlayerState.buffs.splice(existingIndex, 1);
-        actingPlayerState.buffs.push({ ...buff });
-        logTarget.log.push({ message: `${character.characterName} feels the effects of ${item.name}.`, type: 'heal' });
+    // Handle enemy-targeted consumables
+    if (item.targetEnemy) {
+        const targetCard = sharedState.zoneCards[targetIndex];
+        if (!targetCard || targetCard.type !== 'enemy' || targetCard.isDead) {
+            // Refund AP if no valid target
+            actingPlayerState.actionPoints += cost;
+            actingPlayerState.threat -= cost;
+            return;
+        }
+
+        const roll = Math.floor(Math.random() * 20) + 1;
+        const hitThreshold = item.hit || 10;
+        const isHit = roll >= hitThreshold;
+        const isCrit = roll === 20;
+
+        if (isHit) {
+            // Apply damage
+            if (item.damage) {
+                const damage = item.damage;
+                targetCard.health -= damage;
+                logTarget.log.push({
+                    message: `${character.characterName} throws ${item.name} at ${targetCard.name}! (🎲${roll}) Deals ${damage} damage!`,
+                    type: 'damage'
+                });
+            }
+
+            // Apply onHit debuffs
+            if (item.onHit?.debuff) {
+                const debuffToApply = { ...item.onHit.debuff };
+                const existingIndex = (targetCard.debuffs || []).findIndex(d => d.type === debuffToApply.type);
+                if (existingIndex !== -1) {
+                    targetCard.debuffs[existingIndex] = debuffToApply;
+                } else {
+                    targetCard.debuffs = targetCard.debuffs || [];
+                    targetCard.debuffs.push(debuffToApply);
+                }
+                logTarget.log.push({ message: `${targetCard.name} is affected by ${debuffToApply.type}!`, type: 'damage' });
+            }
+
+            // Check if target died
+            if (targetCard.health <= 0) {
+                targetCard.isDead = true;
+                handleEnemyDeath(io, party, sharedState, targetCard, player);
+            }
+        } else {
+            logTarget.log.push({
+                message: `${character.characterName} throws ${item.name} at ${targetCard.name}! (🎲${roll}) Miss!`,
+                type: 'info'
+            });
+        }
+    } else {
+        // Self-targeting consumables (potions, food, etc.)
+        if (item.heal) {
+            actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + item.heal);
+            logTarget.log.push({ message: `${character.characterName} used ${item.name}, healing for ${item.heal} HP.`, type: 'heal' });
+        }
+        if (item.buff) {
+            const buff = item.buff;
+            const existingIndex = actingPlayerState.buffs.findIndex(b => b.type === buff.type);
+            if (existingIndex !== -1) actingPlayerState.buffs.splice(existingIndex, 1);
+            actingPlayerState.buffs.push({ ...buff });
+            logTarget.log.push({ message: `${character.characterName} feels the effects of ${item.name}.`, type: 'heal' });
+        }
     }
 
+    // Consume the item
     if (item.charges) {
         item.charges--;
         if (item.charges <= 0) character.inventory[inventoryIndex] = null;

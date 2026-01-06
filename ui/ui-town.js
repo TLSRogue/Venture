@@ -167,7 +167,7 @@ export function renderMerchant() {
     const waresContainer = document.getElementById('merchant-wares-container');
     waresContainer.innerHTML = ''; // Clear previous content
 
-    const permanentStock = gameData.allItems.filter(item => item.type === 'tool' || item.name === 'Spices');
+    const permanentStock = gameData.allItems.filter(item => item.type === 'tool' || item.name === 'Spices' || item.name === 'Rotten Egg');
     const rotatingStock = gameState.merchantStock || [];
 
     // Permanent Stock

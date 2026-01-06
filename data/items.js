@@ -121,6 +121,21 @@ export const allItems = [
         rarity: "uncommon",
         canBeInMerchantWares: false, // Crafted only
     },
+    {
+        name: "Rotten Egg",
+        price: 1,
+        type: "consumable",
+        cost: 1,
+        targetEnemy: true, // New flag: this consumable requires an enemy target
+        hit: 11, // Roll needed to hit
+        damage: 1,
+        damageType: "Physical",
+        onHit: { debuff: { type: 'daze', duration: 2 } },
+        description: "A foul-smelling egg from a chicken past its prime. 1 AP | D20 (11+) | Deals 1 damage and Dazes.",
+        icon: "🥚",
+        rarity: "uncommon",
+        canBeInMerchantWares: false, // Chicken drop
+    },
 
     // --- Ammunition ---
     {

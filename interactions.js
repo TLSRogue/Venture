@@ -44,10 +44,16 @@ export function interactWithCard(targetIdentifier) {
             Combat.castSpell(selectedAction.index, targetIdentifier);
         } else if (selectedAction.type === 'weapon') {
             Combat.weaponAttack(targetIdentifier);
+        } else if (selectedAction.type === 'consumable') {
+            // Use the consumable with the target index
+            import('./player.js').then(Player => {
+                Player.handleItemAction('useConsumable', selectedAction.index, targetIdentifier);
+            });
+            clearSelection();
         }
         return;
     }
-    
+
     // BUG FIX: Only send a generic interact action for PvE cards (which use a numeric index).
     // This prevents sending malformed requests with playerID strings during PvP, which would crash the server.
     if (typeof targetIdentifier === 'number' && gameState.partyId) {
@@ -59,7 +65,7 @@ export function interactWithCard(targetIdentifier) {
 }
 
 export function interactWithPlayerCard() {
-    let localPlayerTargetIndex = 'player'; 
+    let localPlayerTargetIndex = 'player';
     if (gameState.pvpEncounter) {
         // Correctly use the socket.id for PvP self-targeting
         localPlayerTargetIndex = Network.socket.id;

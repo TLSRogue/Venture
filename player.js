@@ -39,11 +39,15 @@ export function getBonusStats() {
 
 // --- ITEM & INVENTORY MANAGEMENT (EMITS TO SERVER) ---
 
-export function handleItemAction(action, index) {
+export function handleItemAction(action, index, targetIndex = null) {
     if (gameState.currentZone || gameState.inDuel) {
+        const payload = { inventoryIndex: index };
+        if (targetIndex !== null) {
+            payload.targetIndex = targetIndex;
+        }
         Network.emitPartyAction({
             type: action,
-            payload: { inventoryIndex: index }
+            payload
         });
     } else {
         Network.emitPlayerAction(action, { index });
