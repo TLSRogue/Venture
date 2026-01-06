@@ -11,13 +11,13 @@ export function renderPartyManagement(party) {
         const membersList = party.members.map(member => {
             const isLocalPlayer = member.name === gameState.characterName;
             let memberHtml = `<li>${member.name} ${isLocalPlayer ? '(You)' : ''} ${member.isLeader ? '⭐' : ''}`;
-            
+
             if (!isLocalPlayer) {
                 const isAdventureActive = gameState.currentZone !== null || gameState.inDuel;
-                const duelButton = !isAdventureActive 
+                const duelButton = !isAdventureActive
                     ? `<button class="btn btn-danger btn-sm" data-action="duel" data-id="${member.name}" ${member.isInDuel ? 'disabled' : ''}>
                            ${member.isInDuel ? 'In Duel' : 'Duel'}
-                       </button>` 
+                       </button>`
                     : '';
                 memberHtml += `
                     <div style="display: inline-flex; gap: 5px; float: right;">
@@ -78,7 +78,10 @@ export function renderOnlinePlayers(onlinePlayers) {
     const playersList = otherPlayers.map(player => `
         <li class="party-member-list-item" style="display: flex; justify-content: space-between; align-items: center;">
             <span>${player.name}</span>
-            ${canInvite ? `<button class="btn btn-primary btn-sm" data-action="invite" data-id="${player.name}">Invite</button>` : ''}
+            <div style="display: flex; gap: 5px;">
+                ${canInvite ? `<button class="btn btn-primary btn-sm" data-action="invite" data-id="${player.name}">Invite</button>` : ''}
+                <button class="btn btn-danger btn-sm" data-action="duel" data-id="${player.name}">Duel</button>
+            </div>
         </li>
     `).join('');
     container.innerHTML = `<ul class="party-member-list">${playersList}</ul>`;
@@ -168,10 +171,10 @@ export function showNPCDialogueFromServer({ npcName, node, cardIndex }) {
             cardIndex: cardIndex,
             choice: option
         };
-        
+
         const safePayload = JSON.stringify(payload).replace(/'/g, "&#39;");
         let action = `data-action="choice" data-payload='${safePayload}'`;
-        
+
         if (option.next === 'farewell') {
             action = `data-action="hide"`;
         }

@@ -341,7 +341,24 @@ function handleDuelReceiveChallenge({ challengerName, challengerId }) {
 function handleDuelStart(duelState) {
     Object.assign(gameState, { inDuel: true, duelState, currentZone: null, groundLoot: [] });
     Player.resetPlayerCombatState();
-    // ... rest of duel start logic would go here if needed ...
+
+    // Show adventure UI (same as adventure start)
+    UIMain.setTabsDisabled(true);
+    document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+    document.getElementById('adventure-tab').style.display = 'flex';
+    document.querySelector('.header').style.display = 'none';
+    document.querySelector('.tabs').style.display = 'none';
+    document.getElementById('main-stats-display').style.display = 'none';
+    document.getElementById('adventure-hud').style.display = 'flex';
+    document.getElementById('player-action-bar').style.display = 'flex';
+    document.getElementById('adventure-log-container').style.display = 'block';
+
+    // Render duel
+    UIAdventure.renderAdventureScreen();
+    document.getElementById('adventure-log').innerHTML = '';
+    duelState.log.forEach(entry => UIMain.addToLog(entry.message, entry.type));
+    UIPlayer.updateDisplay();
+    UIAdventure.renderPlayerActionBars();
 }
 
 function handleDuelUpdate(duelState) {
