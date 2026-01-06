@@ -151,19 +151,37 @@ export const registerAdventureHandlers = (io, socket) => {
                     }
                     // **BUG FIX END**
 
-                    // Clean up the PvP state for the party that remains (`party`)
-                    party.sharedState.pvpEncounterId = null;
-                    delete pvpEncounters[encounter.id]; // Clean up the encounter object
-                    party.sharedState.zoneCards = [];
-                    party.sharedState.log.push({ message: "Combat has ended!", type: 'success' });
-                    party.sharedState.partyMemberStates.forEach(p => {
-                        if (!p.isDead) {
-                            p.actionPoints = 3;
-                            p.turnEnded = false;
+                    // Clean up the encounter
+                    if (encounter.turnTimerId) clearTimeout(encounter.turnTimerId);
+                    delete pvpEncounters[encounter.id];
+
+                    // **BUG FIX**: Also clean up the winning party (send them home too)
+                    party.members.forEach(memberName => {
+                        const memberPlayer = players[memberName];
+                        const memberCharacter = memberPlayer?.character;
+                        if (memberCharacter) {
+                            const memberState = party.sharedState.partyMemberStates.find(p => p.name === memberName);
+                            if (!memberState?.isDead) {
+                                const bonuses = getBonusStatsForPlayer(memberCharacter, null);
+                                memberCharacter.health = 10 + bonuses.maxHealth;
+                            }
+                            if (memberPlayer.id) {
+                                io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
+                                io.to(memberPlayer.id).emit('party:adventureEnded');
+                            }
                         }
                     });
 
-                    broadcastAdventureUpdate(io, party);
+                    // Clean up the winning duel party
+                    if (party.isSoloParty) {
+                        if (players[party.leaderId]?.character) {
+                            players[party.leaderId].character.partyId = null;
+                        }
+                        delete parties[party.id];
+                    } else {
+                        party.sharedState = null;
+                        broadcastPartyUpdate(io, party.id);
+                    }
 
                 } else {
                     party.sharedState.log.push({ message: `You have denied their request for mercy.`, type: 'damage' });
@@ -204,6 +222,28 @@ export const registerAdventureHandlers = (io, socket) => {
             if (action.type === 'resolveReaction') {
                 await state.handleResolveReaction(io, socket, action.payload);
                 return;
+            }
+
+            // **BUG FIX**: Handle surrender BEFORE the active team check so it works anytime
+            if (action.type === 'surrender' && party.sharedState?.pvpEncounterId) {
+                const encounter = pvpEncounters[party.sharedState.pvpEncounterId];
+                if (encounter && encounter.isDuel) {
+                    const surrenderingPlayerState = encounter.playerStates.find(p => p.name === name);
+                    if (surrenderingPlayerState && !surrenderingPlayerState.isDead) {
+                        encounter.log.push({ message: `${name} has surrendered!`, type: 'damage' });
+
+                        const surrenderingTeam = surrenderingPlayerState.team;
+                        const winningTeam = surrenderingTeam === 'A' ? 'B' : 'A';
+
+                        const winningParty = parties[winningTeam === 'A' ? encounter.partyAId : encounter.partyBId];
+                        const losingParty = parties[surrenderingTeam === 'A' ? encounter.partyAId : encounter.partyBId];
+
+                        if (winningParty && losingParty) {
+                            state.endDuelEncounter(io, winningParty, losingParty, encounter);
+                        }
+                        return;
+                    }
+                }
             }
 
             if (!party.sharedState || party.sharedState.pendingReaction) return;
@@ -292,27 +332,7 @@ export const registerAdventureHandlers = (io, socket) => {
                         }
                     }
                     break;
-                case 'surrender':
-                    // Surrender only works in duels (isPvp with isDuel flag)
-                    if (party.sharedState.pvpEncounterId) {
-                        const encounter = pvpEncounters[party.sharedState.pvpEncounterId];
-                        if (encounter && encounter.isDuel) {
-                            encounter.log.push({ message: `${name} has surrendered!`, type: 'damage' });
-
-                            // Find which team surrendered and declare the other team winner
-                            const surrenderingTeam = actingPlayerState.team;
-                            const winningTeam = surrenderingTeam === 'A' ? 'B' : 'A';
-
-                            const winningParty = parties[winningTeam === 'A' ? encounter.partyAId : encounter.partyBId];
-                            const losingParty = parties[surrenderingTeam === 'A' ? encounter.partyAId : encounter.partyBId];
-
-                            if (winningParty && losingParty) {
-                                state.endDuelEncounter(io, winningParty, losingParty, encounter);
-                            }
-                            return; // Don't broadcast after ending - it's handled in endDuelEncounter
-                        }
-                    }
-                    break;
+                // Note: 'surrender' is handled earlier (before active team check) so it works anytime
             }
 
             broadcastAdventureUpdate(io, party);
