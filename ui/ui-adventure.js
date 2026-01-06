@@ -26,11 +26,11 @@ const effectIcons = {
 };
 
 /**
- * Creates health bar HTML, optionally with a threat bar for PvE enemies.
+ * Creates health bar HTML for cards, with optional threat bar for players.
  * @param {number} health - Current health
  * @param {number} maxHealth - Maximum health
- * @param {number|null} threat - Threat value (only for PvE enemies, null for players/PvP)
- * @returns {string} HTML string for the bars
+ * @param {number|null} threat - Threat value (only for players in PvE, null otherwise)
+ * @returns {string} HTML string for the bar
  */
 function createHealthBarHTML(health, maxHealth, threat = null) {
     const healthPercent = Math.max(0, Math.min(100, (health / maxHealth) * 100));
@@ -41,7 +41,7 @@ function createHealthBarHTML(health, maxHealth, threat = null) {
             </div>`;
 
     if (threat !== null) {
-        // Threat bar - scales from 0-100, capped at 100%
+        // Threat bar for players - shows aggro level to enemies
         const threatPercent = Math.min(100, threat);
         html += `
             <div class="card-threat-bar-container" title="Threat: ${threat}">
@@ -296,8 +296,8 @@ function renderPvpScreen() {
             }
 
             cardEl.innerHTML = `
-                <div class="card-icon">${playerState.icon}</div>
                 <div class="card-title">${playerState.name}</div>
+                <div class="card-icon">${playerState.icon}</div>
                 ${createHealthBarHTML(playerState.health, playerState.maxHealth)}
             `;
             cardEl.appendChild(createEffectsContainer(playerState));
@@ -341,9 +341,9 @@ function renderPartyScreen() {
             }
 
             cardEl.innerHTML = `
-                <div class="card-icon">${playerState.icon}</div>
                 <div class="card-title">${playerState.name}</div>
-                ${createHealthBarHTML(playerState.health, playerState.maxHealth)}
+                <div class="card-icon">${playerState.icon}</div>
+                ${createHealthBarHTML(playerState.health, playerState.maxHealth, playerState.threat)}
             `;
             cardEl.appendChild(createEffectsContainer(playerState));
         }
@@ -455,14 +455,14 @@ function renderZoneCards(cards) {
         }
 
         cardEl.innerHTML = `
-            ${visualHTML}
             <div class="card-title">${card.name}</div>
+            ${visualHTML}
         `;
 
         if (card.type === 'enemy') {
-            // Add health bar with threat bar for enemies
+            // Add health bar for enemies
             const barsDiv = document.createElement('div');
-            barsDiv.innerHTML = createHealthBarHTML(card.health, card.maxHealth, card.threat || 0);
+            barsDiv.innerHTML = createHealthBarHTML(card.health, card.maxHealth);
             cardEl.appendChild(barsDiv);
             cardEl.appendChild(createEffectsContainer(card));
         } else if (card.type === 'resource') {
