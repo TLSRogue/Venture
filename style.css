@@ -288,6 +288,24 @@ body {
     border-color: var(--danger-color);
 }
 
+.card.targetable {
+    cursor: crosshair;
+    box-shadow: 0 0 15px rgba(255, 255, 0, 0.6);
+    animation: targetPulse 1s ease-in-out infinite;
+}
+
+@keyframes targetPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 10px rgba(255, 255, 0, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(255, 255, 0, 0.8);
+    }
+}
+
 .card.player {
     border-color: var(--success-color);
 }

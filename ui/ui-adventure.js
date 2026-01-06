@@ -670,14 +670,24 @@ export function updateActionUI() {
     document.querySelectorAll('.card').forEach(card => card.classList.remove('targetable'));
     if (gameState.turnState.selectedAction) {
         const action = gameState.turnState.selectedAction.data;
+        const actionType = gameState.turnState.selectedAction.type;
+
+        // Weapons and attack spells target enemies
         if (action.type === 'attack' || action.type === 'aoe' || action.weaponDamage) {
             document.querySelectorAll('#zone-cards .card.enemy').forEach(enemyCard => {
                 enemyCard.classList.add('targetable');
             });
         }
+        // Heal/buff spells target allies
         if (action.type === 'heal' || action.type === 'buff' || action.type === 'versatile') {
             document.querySelectorAll('#party-cards-container .card.player:not(.dead), #zone-cards .card.player:not(.dead)').forEach(playerCard => {
                 playerCard.classList.add('targetable');
+            });
+        }
+        // Targeted consumables (like Rotten Egg) target enemies
+        if (actionType === 'consumable' && action.targetEnemy) {
+            document.querySelectorAll('#zone-cards .card.enemy').forEach(enemyCard => {
+                enemyCard.classList.add('targetable');
             });
         }
     }

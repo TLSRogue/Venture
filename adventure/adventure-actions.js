@@ -119,7 +119,7 @@ export async function processWeaponAttack(io, party, player, payload) {
         const total = roll + statValue + dazeModifier;
         const hitTarget = weapon.hit || 15;
 
-        let logMessage = `${character.characterName} attacks ${defendingPlayerState.name} with ${weapon.name}: ${roll}(d20) + ${statValue} ${dazeModifier < 0 ? dazeModifier : ''} = ${total}. (Target: ${hitTarget}+)`;
+        let logMessage = `${character.characterName} attacks ${defendingPlayerState.name} with ${weapon.name}! (🎲${roll}+${statValue}${dazeModifier < 0 ? dazeModifier : ''} = ${total} vs ${hitTarget}+)`;
 
         if (roll === 1) {
             logMessage += ` Critical Failure! They miss!`;
@@ -177,7 +177,7 @@ export async function processWeaponAttack(io, party, player, payload) {
         const total = roll + statValue + dazeModifier;
         const hitTarget = weapon.hit || 15;
 
-        let logMessage = `${character.characterName} attacks ${target.name} with ${weapon.name}: ${roll}(d20) + ${statValue} ${dazeModifier < 0 ? dazeModifier : ''} = ${total}. (Target: ${hitTarget}+)`;
+        let logMessage = `${character.characterName} attacks ${target.name} with ${weapon.name}! (🎲${roll}+${statValue}${dazeModifier < 0 ? dazeModifier : ''} = ${total} vs ${hitTarget}+)`;
 
         if (roll === 1) {
             logMessage += ` Critical Failure! They miss!`;
@@ -277,7 +277,7 @@ export async function processCastSpell(io, party, player, payload) {
         const roll = Math.floor(Math.random() * 20) + 1;
         const total = roll + statValue + dazeModifier;
         const hitTarget = spell.hit || 15;
-        let description = `${character.characterName} casting ${spell.name}: ${roll}(d20) + ${statValue}${rollDescription}${dazeModifier !== 0 ? dazeModifier : ''} = ${total}. (Target: ${hitTarget}+)`;
+        let description = `${character.characterName} casts ${spell.name}! (🎲${roll}+${statValue}${rollDescription}${dazeModifier !== 0 ? dazeModifier : ''} = ${total} vs ${hitTarget}+)`;
 
         actingPlayerState.actionPoints -= cost;
         actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
@@ -428,7 +428,7 @@ export async function processCastSpell(io, party, player, payload) {
         const roll = Math.floor(Math.random() * 20) + 1;
         const total = roll + statValue + dazeModifier + focusModifier;
         const hitTarget = spell.hit || 15;
-        let description = `${character.characterName} casting ${spell.name}: ${roll}(d20) + ${statValue}${rollDescription}${dazeModifier !== 0 ? dazeModifier : ''}${focusModifier > 0 ? `+${focusModifier}` : ''} = ${total}. (Target: ${hitTarget}+)`;
+        let description = `${character.characterName} casts ${spell.name}! (🎲${roll}+${statValue}${rollDescription}${dazeModifier !== 0 ? dazeModifier : ''}${focusModifier > 0 ? `+${focusModifier}` : ''} = ${total} vs ${hitTarget}+)`;
 
         actingPlayerState.actionPoints -= cost;
         actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
