@@ -884,7 +884,7 @@ function renderGroundLootButton() {
         button.id = 'ground-loot-btn';
         button.title = `View items on the ground (${groundLoot.length})`;
         button.innerHTML = `
-            <div class="ground-loot-icon">💰 ${groundLoot.length}</div>
+            <div class="ground-loot-icon">💰</div>
         `;
         container.appendChild(button);
     }

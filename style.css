@@ -672,6 +672,29 @@ body.show-spell-details .spell-card .spell-details {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
+#ground-loot-btn {
+    background: linear-gradient(to bottom, #f1c40f, #d4a50a);
+    border: 2px solid #e6b800;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(241, 196, 15, 0.4);
+    transition: all 0.2s ease;
+}
+
+#ground-loot-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(241, 196, 15, 0.6);
+}
+
+.ground-loot-icon {
+    font-size: 1.8em;
+}
+
 .log {
     background: rgba(0, 0, 0, 0.7);
     padding: 15px;

@@ -42,6 +42,16 @@ try {
             }
             // --- BUG FIX END ---
 
+            // --- INVENTORY SIZE UPGRADE: Extend 24-slot inventories to 28 slots ---
+            if (character.inventory && character.inventory.length < 28) {
+                while (character.inventory.length < 28) {
+                    character.inventory.push(null);
+                }
+                console.log(`Extended inventory from ${character.inventory.length - (28 - character.inventory.length)} to 28 slots for ${characterName}.`);
+                dataWasMigrated = true;
+            }
+            // --- END INVENTORY SIZE UPGRADE ---
+
             if (newWarriorsMight) {
                 const equippedIndex = character.equippedSpells.findIndex(s => s && s.name === "Warrior's Might" && s.bonusThreat === undefined);
                 if (equippedIndex !== -1) {
