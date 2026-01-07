@@ -118,7 +118,7 @@ export function addToLog(message, type = 'info') {
     if (!log) return;
     const entry = document.createElement('div');
     entry.className = `log-entry ${type}`;
-    entry.textContent = message;
+    entry.innerHTML = message;
     log.prepend(entry);
 }
 
