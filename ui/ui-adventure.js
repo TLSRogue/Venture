@@ -465,10 +465,18 @@ function renderZoneCards(cards) {
             barsDiv.innerHTML = createHealthBarHTML(card.health, card.maxHealth);
             cardEl.appendChild(barsDiv);
             cardEl.appendChild(createEffectsContainer(card));
-        } else if (card.type === 'resource') {
-            const chargesDiv = document.createElement('div');
-            chargesDiv.textContent = `Charges: ${card.charges}`;
-            cardEl.appendChild(chargesDiv);
+        } else if (card.type === 'resource' && card.charges !== undefined) {
+            // Add green charge bar for resources
+            const maxCharges = card.maxCharges || 3;
+            const chargePercent = Math.max(0, Math.min(100, (card.charges / maxCharges) * 100));
+            const barsDiv = document.createElement('div');
+            barsDiv.innerHTML = `
+                <div class="card-bars-container">
+                    <div class="card-charge-bar-container">
+                        <div class="card-charge-bar" style="width: ${chargePercent}%">${card.charges}/${maxCharges}</div>
+                    </div>
+                </div>`;
+            cardEl.appendChild(barsDiv);
         }
 
         zoneContainer.appendChild(cardEl);

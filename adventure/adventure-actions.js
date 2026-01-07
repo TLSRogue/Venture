@@ -119,12 +119,15 @@ export async function processWeaponAttack(io, party, player, payload) {
         const total = roll + statValue + dazeModifier;
         const hitTarget = weapon.hit || 15;
 
-        let logMessage = `${character.characterName} attacks ${defendingPlayerState.name} with ${weapon.name}! (🎲${roll}+${statValue}${dazeModifier < 0 ? dazeModifier : ''} = ${total} vs ${hitTarget}+)`;
+        const isHit = roll !== 1 && total >= hitTarget;
+        const rollColor = isHit ? '#2ecc71' : '#e74c3c';
+        const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+        let logMessage = `${character.characterName} attacks ${defendingPlayerState.name} with ${weapon.name}! ${rollDisplay}`;
 
         if (roll === 1) {
-            logMessage += ` Critical Failure! They miss!`;
+            logMessage += ` Critical Failure!`;
             encounter.log.push({ message: logMessage, type: 'damage' });
-        } else if (total >= hitTarget) {
+        } else if (isHit) {
             let damageToDeal = weapon.weaponDamage;
             const defendingCharacter = players[defendingPlayerState.name]?.character;
             if (defendingCharacter && weapon.damageType === 'Physical') {
@@ -134,15 +137,14 @@ export async function processWeaponAttack(io, party, player, payload) {
             }
 
             defendingPlayerState.health -= damageToDeal;
-            logMessage += ` Hit! Dealt ${damageToDeal} ${weapon.damageType} damage to ${defendingPlayerState.name} [id:${defendingPlayerState.playerId}].`;
-            if (damageToDeal < weapon.weaponDamage) logMessage += ` (${weapon.weaponDamage - damageToDeal} resisted)`;
+            logMessage += ` Deals ${damageToDeal} ${weapon.damageType} damage!`;
 
             if ((roll === 20 && weapon.onCrit?.debuff) || weapon.onHit?.debuff) {
                 const debuff = (roll === 20 && weapon.onCrit?.debuff) ? weapon.onCrit.debuff : weapon.onHit.debuff;
                 const existingIndex = defendingPlayerState.debuffs.findIndex(d => d.type === debuff.type);
                 if (existingIndex !== -1) defendingPlayerState.debuffs.splice(existingIndex, 1);
                 defendingPlayerState.debuffs.push({ ...debuff });
-                logMessage += ` ${defendingPlayerState.name} is now ${debuff.type}!`;
+                logMessage += ` Applies ${debuff.type}!`;
             }
 
             encounter.log.push({ message: logMessage, type: 'damage' });
@@ -177,12 +179,15 @@ export async function processWeaponAttack(io, party, player, payload) {
         const total = roll + statValue + dazeModifier;
         const hitTarget = weapon.hit || 15;
 
-        let logMessage = `${character.characterName} attacks ${target.name} with ${weapon.name}! (🎲${roll}+${statValue}${dazeModifier < 0 ? dazeModifier : ''} = ${total} vs ${hitTarget}+)`;
+        const isHit = roll !== 1 && total >= hitTarget;
+        const rollColor = isHit ? '#2ecc71' : '#e74c3c';
+        const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+        let logMessage = `${character.characterName} attacks ${target.name} with ${weapon.name}! ${rollDisplay}`;
 
         if (roll === 1) {
-            logMessage += ` Critical Failure! They miss!`;
+            logMessage += ` Critical Failure!`;
             sharedState.log.push({ message: logMessage, type: 'damage' });
-        } else if (total >= hitTarget) {
+        } else if (isHit) {
             let damageToDeal = weapon.weaponDamage;
             if (weapon.damageType === 'Physical') {
                 const resistance = target.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
@@ -190,23 +195,21 @@ export async function processWeaponAttack(io, party, player, payload) {
             }
 
             target.health -= damageToDeal;
-            logMessage += ` Hit! Dealt ${damageToDeal} ${weapon.damageType} damage to ${target.name} [id:${target.id}].`;
-            if (damageToDeal < weapon.weaponDamage) logMessage += ` (${weapon.weaponDamage - damageToDeal} resisted)`;
-
+            logMessage += ` Deals ${damageToDeal} ${weapon.damageType} damage!`;
 
             if (roll === 20 && weapon.onCrit && weapon.onCrit.debuff) {
                 const debuff = weapon.onCrit.debuff;
                 const existingIndex = target.debuffs.findIndex(d => d.type === debuff.type);
                 if (existingIndex !== -1) target.debuffs.splice(existingIndex, 1);
                 target.debuffs.push({ ...debuff });
-                logMessage += ` CRITICAL HIT! ${target.name} is now ${debuff.type}!`;
+                logMessage += ` CRIT! Applies ${debuff.type}!`;
             }
             if (weapon.onHit && weapon.onHit.debuff) {
                 const debuff = weapon.onHit.debuff;
                 const existingIndex = target.debuffs.findIndex(d => d.type === debuff.type);
                 if (existingIndex !== -1) target.debuffs.splice(existingIndex, 1);
                 target.debuffs.push({ ...debuff });
-                logMessage += ` ${target.name} is now ${debuff.type}!`;
+                logMessage += ` Applies ${debuff.type}!`;
             }
 
             sharedState.log.push({ message: logMessage, type: 'damage' });
@@ -276,17 +279,18 @@ export async function processCastSpell(io, party, player, payload) {
         const dazeModifier = dazeDebuff ? -3 : 0;
         const roll = Math.floor(Math.random() * 20) + 1;
         const total = roll + statValue + dazeModifier;
-        const hitTarget = spell.hit || 15;
-        let description = `${character.characterName} casts ${spell.name}! (🎲${roll}+${statValue}${rollDescription}${dazeModifier !== 0 ? dazeModifier : ''} = ${total} vs ${hitTarget}+)`;
+        const isSuccess = roll !== 1 && total >= hitTarget;
+        const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
+        const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+        let description = `${character.characterName} casts ${spell.name}! ${rollDisplay}`;
 
         actingPlayerState.actionPoints -= cost;
         actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
 
-        if (roll === 1 || total < hitTarget) {
-            description += (roll === 1) ? ` Critical Failure! The spell fizzles!` : ` The spell fizzles!`;
+        if (!isSuccess) {
+            description += (roll === 1) ? ` Critical Failure!` : ` Fizzle!`;
             encounter.log.push({ message: description, type: 'damage' });
         } else {
-            description += ` Success!`;
             encounter.log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' ? 'heal' : 'damage' });
 
             if (spell.type === 'attack' || (spell.type === 'versatile' && targetPlayerState.team !== actingPlayerState.team)) {
@@ -428,16 +432,18 @@ export async function processCastSpell(io, party, player, payload) {
         const roll = Math.floor(Math.random() * 20) + 1;
         const total = roll + statValue + dazeModifier + focusModifier;
         const hitTarget = spell.hit || 15;
-        let description = `${character.characterName} casts ${spell.name}! (🎲${roll}+${statValue}${rollDescription}${dazeModifier !== 0 ? dazeModifier : ''}${focusModifier > 0 ? `+${focusModifier}` : ''} = ${total} vs ${hitTarget}+)`;
+        const isSuccess = roll !== 1 && total >= hitTarget;
+        const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
+        const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+        let description = `${character.characterName} casts ${spell.name}! ${rollDisplay}`;
 
         actingPlayerState.actionPoints -= cost;
         actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
 
-        if (roll === 1 || total < hitTarget) {
-            description += (roll === 1) ? ` Critical Failure! The spell fizzles!` : ` The spell fizzles!`;
+        if (!isSuccess) {
+            description += (roll === 1) ? ` Critical Failure!` : ` Fizzle!`;
             sharedState.log.push({ message: description, type: 'damage' });
         } else {
-            description += ` Success!`;
             sharedState.log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' ? 'heal' : 'damage' });
             actingPlayerState.threat += cost;
             if (spell.bonusThreat) {
@@ -764,12 +770,14 @@ export async function processUseConsumable(io, party, player, payload) {
         const isCrit = roll === 20;
 
         if (isHit) {
+            const rollColor = '#2ecc71';
+            const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
             // Apply damage
             if (item.damage) {
                 const damage = item.damage;
                 targetCard.health -= damage;
                 logTarget.log.push({
-                    message: `${character.characterName} throws ${item.name} at ${targetCard.name}! (🎲${roll}) Deals ${damage} damage!`,
+                    message: `${character.characterName} throws ${item.name} at ${targetCard.name}! ${rollDisplay} Deals ${damage} damage!`,
                     type: 'damage'
                 });
             }
@@ -793,8 +801,10 @@ export async function processUseConsumable(io, party, player, payload) {
                 handleEnemyDeath(io, party, sharedState, targetCard, player);
             }
         } else {
+            const rollColor = '#e74c3c';
+            const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
             logTarget.log.push({
-                message: `${character.characterName} throws ${item.name} at ${targetCard.name}! (🎲${roll}) Miss!`,
+                message: `${character.characterName} throws ${item.name} at ${targetCard.name}! ${rollDisplay} Miss!`,
                 type: 'info'
             });
         }

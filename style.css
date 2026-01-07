@@ -419,6 +419,28 @@ body {
     min-width: 2px;
 }
 
+.card-charge-bar-container {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 6px;
+    padding: 2px;
+    border: 1px solid #27ae60;
+}
+
+.card-charge-bar {
+    background: linear-gradient(to right, #2ecc71, #27ae60);
+    height: 14px;
+    border-radius: 4px;
+    transition: width 0.3s ease-out;
+    text-align: center;
+    line-height: 14px;
+    font-size: 0.7em;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 1px black;
+    min-width: 20px;
+}
+
 .inventory-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
