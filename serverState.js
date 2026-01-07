@@ -44,10 +44,11 @@ try {
 
             // --- INVENTORY SIZE UPGRADE: Extend 24-slot inventories to 28 slots ---
             if (character.inventory && character.inventory.length < 28) {
+                const originalLength = character.inventory.length;
                 while (character.inventory.length < 28) {
                     character.inventory.push(null);
                 }
-                console.log(`Extended inventory from ${character.inventory.length - (28 - character.inventory.length)} to 28 slots for ${characterName}.`);
+                console.log(`Extended inventory from ${originalLength} to 28 slots for ${characterName}.`);
                 dataWasMigrated = true;
             }
             // --- END INVENTORY SIZE UPGRADE ---

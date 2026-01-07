@@ -797,8 +797,7 @@ export async function processUseConsumable(io, party, player, payload) {
 
             // Check if target died
             if (targetCard.health <= 0) {
-                targetCard.isDead = true;
-                handleEnemyDeath(io, party, sharedState, targetCard, player);
+                defeatEnemyInParty(io, party, targetCard, targetIndex);
             }
         } else {
             const rollColor = '#e74c3c';
