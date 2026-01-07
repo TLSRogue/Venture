@@ -98,7 +98,7 @@ function createInitialCharacter(characterName, characterIcon) {
         questPoints: 0,
         actionPoints: 3,
         focus: 0,
-        inventory: Array(24).fill(null),
+        inventory: Array(28).fill(null),
         bank: [],
         buffs: [],
         debuffs: [],

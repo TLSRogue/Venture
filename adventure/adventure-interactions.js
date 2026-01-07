@@ -75,9 +75,12 @@ export async function processInteractWithCard(io, party, player, payload) {
         const roll = Math.floor(Math.random() * 20) + 1;
         const total = roll + skillValue;
         const hitTarget = 11;
-        let logMessage = `${character.characterName}'s gathering attempt: ${roll}(d20) + ${skillValue} = ${total}. (Target: ${hitTarget}+)`;
+        const isSuccess = roll > 1 && total >= hitTarget;
+        const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
+        const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+        let logMessage = `${character.characterName} gathers from ${card.name}! ${rollDisplay}`;
 
-        if (roll > 1 && total >= hitTarget) {
+        if (isSuccess) {
             let lootItemData = null;
             if (card.lootPool && card.lootPool.length > 0) {
                 const randomLootInfo = card.lootPool[Math.floor(Math.random() * card.lootPool.length)];
@@ -90,13 +93,13 @@ export async function processInteractWithCard(io, party, player, payload) {
                 if (!addItemToInventoryServer(character, lootItemData, 1, sharedState.groundLoot)) {
                     sharedState.log.push({ message: `Success! But their inventory is full. They dropped 1 ${lootItemData.name} on the ground.`, type: 'damage' });
                 } else {
-                    logMessage += ` Success! They gathered 1 ${lootItemData.name}.`;
+                    logMessage += ` Gathered 1 ${lootItemData.name}!`;
                     sharedState.log.push({ message: logMessage, type: 'success' });
                 }
                 io.to(player.id).emit('characterUpdate', character);
             }
         } else {
-            logMessage += ` Failure!`;
+            logMessage += ` Failed!`;
             sharedState.log.push({ message: logMessage, type: 'info' });
         }
 

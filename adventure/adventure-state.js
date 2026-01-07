@@ -946,14 +946,17 @@ export async function handleResolveReaction(io, socket, payload) {
             const statValue = reactingPlayer.character.agility + bonuses.agility;
             const roll = Math.floor(Math.random() * 20) + 1;
             const total = roll + statValue;
+            const isSuccess = roll !== 1 && total >= dodgeSpell.hit;
+            const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
+            const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
             if (roll === 1) {
-                logMessage = `${name}'s Dodge: ${roll}(d20) + ${statValue} = ${total}. Critical Failure!`;
-            } else if (total >= dodgeSpell.hit) {
+                logMessage = `${name}'s Dodge: ${rollDisplay} Critical Failure!`;
+            } else if (isSuccess) {
                 finalDamage = 0;
                 dodged = true;
-                logMessage = `${name}'s Dodge: ${roll}(d20) + ${statValue} = ${total}. Success! They avoid the attack!`;
+                logMessage = `${name}'s Dodge: ${rollDisplay} Avoided!`;
             } else {
-                logMessage = `${name}'s Dodge: ${roll}(d20) + ${statValue} = ${total}. Failure!`;
+                logMessage = `${name}'s Dodge: ${rollDisplay} Failed!`;
             }
         } else {
             logMessage = `${name} tries to Dodge, but fails!`;
@@ -966,15 +969,18 @@ export async function handleResolveReaction(io, socket, payload) {
             const statValue = reactingPlayer.character.defense + bonuses.defense;
             const roll = Math.floor(Math.random() * 20) + 1;
             const total = roll + statValue;
+            const isSuccess = roll !== 1 && total >= shield.reaction.hit;
+            const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
+            const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
             if (roll === 1) {
-                logMessage = `${name}'s Block: ${roll}(d20) + ${statValue} = ${total}. Critical Failure!`;
-            } else if (total >= shield.reaction.hit) {
+                logMessage = `${name}'s Block: ${rollDisplay} Critical Failure!`;
+            } else if (isSuccess) {
                 const damageReduction = shield.reaction.value;
                 finalDamage = Math.max(0, finalDamage - damageReduction);
                 blocked = true;
-                logMessage = `${name}'s Block: ${roll}(d20) + ${statValue} = ${total}. Success! They block ${damageReduction} damage.`;
+                logMessage = `${name}'s Block: ${rollDisplay} Blocked ${damageReduction} damage!`;
             } else {
-                logMessage = `${name}'s Block: ${roll}(d20) + ${statValue} = ${total}. Failure!`;
+                logMessage = `${name}'s Block: ${rollDisplay} Failed!`;
             }
         } else {
             logMessage = `${name} tries to Block, but fails!`;
@@ -993,12 +999,16 @@ export async function handleResolveReaction(io, socket, payload) {
             const total = roll + statValue;
             const { avoidHit, counterHit } = evasiveShotSpell.reactionDetails;
 
+            const isSuccess = roll !== 1 && total >= avoidHit;
+            const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
+            const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+
             if (roll === 1) {
-                logMessage = `${name}'s Evasive Shot: ${roll}(d20) + ${statValue} = ${total}. Critical Failure!`;
-            } else if (total >= avoidHit) {
+                logMessage = `${name}'s Evasive Shot: ${rollDisplay} Critical Failure!`;
+            } else if (isSuccess) {
                 finalDamage = 0;
                 dodged = true;
-                logMessage = `${name}'s Evasive Shot: ${roll}(d20) + ${statValue} = ${total}. Success! They avoid the attack!`;
+                logMessage = `${name}'s Evasive Shot: ${rollDisplay} Avoided!`;
 
                 if (total >= counterHit) {
                     let counterDamage = mainHand.weaponDamage;
@@ -1047,7 +1057,7 @@ export async function handleResolveReaction(io, socket, payload) {
                     }
                 }
             } else {
-                logMessage = `${name}'s Evasive Shot: ${roll}(d20) + ${statValue} = ${total}. Failure!`;
+                logMessage = `${name}'s Evasive Shot: ${rollDisplay} Failed!`;
             }
         } else {
             logMessage = `${name} tries to use Evasive Shot, but fails!`;

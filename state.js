@@ -40,7 +40,7 @@ export function getInitialGameState() {
         focus: 0,
         currentZone: null,
         zoneDeck: [],
-        inventory: Array(24).fill(null),
+        inventory: Array(28).fill(null),
         bank: [],
         buffs: [],
         debuffs: [],
