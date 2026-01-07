@@ -749,7 +749,7 @@ export function showBackpack() {
     itemsGrid.style.maxWidth = '650px';
     itemsGrid.style.margin = '20px auto 0 auto';
 
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < 28; i++) {
         const item = gameState.inventory[i];
         const slot = document.createElement('div');
         slot.className = 'inventory-item';
@@ -928,7 +928,7 @@ export function showGroundLootModal() {
     const inventoryGrid = document.createElement('div');
     inventoryGrid.className = 'inventory-grid';
 
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < 28; i++) {
         const item = gameState.inventory[i];
         const itemEl = document.createElement('div');
         itemEl.className = 'inventory-item';

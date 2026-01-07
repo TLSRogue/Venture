@@ -44,7 +44,7 @@ export function renderBankInterface() {
         </div>`;
 
     const bankItems = [...gameState.bank].sort((a, b) => a.name.localeCompare(b.name));
-    const itemsPerPage = 24;
+    const itemsPerPage = 28;
     const totalPages = Math.ceil(bankItems.length / itemsPerPage) || 1;
     if (bankCurrentPage > totalPages) bankCurrentPage = totalPages;
 
@@ -122,7 +122,7 @@ function renderStoragePanel(parentContainer, mode, storageSource = 'inventory') 
 
     const items = storageSource === 'inventory' ? gameState.inventory : gameState.bank;
     const isBank = storageSource === 'bank';
-    const slotsToShow = 24;
+    const slotsToShow = 28;
 
     for (let i = 0; i < slotsToShow; i++) {
         const slot = document.createElement('div');

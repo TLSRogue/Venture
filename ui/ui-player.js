@@ -175,7 +175,7 @@ export function renderInventory() {
     const container = document.getElementById('inventory-grid');
     container.innerHTML = '';
 
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < 28; i++) {
         const slot = document.createElement('div');
         slot.className = 'inventory-item';
 
