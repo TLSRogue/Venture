@@ -29,7 +29,7 @@ export function handlePvpPlayerDeath(io, defeatedPlayer, encounter) {
 
     encounter.groundLoot.push(...allLoot);
 
-    character.inventory = Array(24).fill(null);
+    character.inventory = Array(28).fill(null);
     character.equipment = { mainHand: null, offHand: null, helmet: null, armor: null, boots: null, accessory: null, ammo: null };
 
     io.to(defeatedPlayer.id).emit('characterUpdate', character);
@@ -860,7 +860,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 } else {
                     if (targetPlayerObject.character) {
                         targetPlayerState.lootableInventory = [...targetPlayerObject.character.inventory.filter(Boolean)];
-                        targetPlayerObject.character.inventory = Array(24).fill(null);
+                        targetPlayerObject.character.inventory = Array(28).fill(null);
                         if (targetPlayerObject.id) io.to(targetPlayerObject.id).emit('characterUpdate', targetPlayerObject.character);
                     }
                 }
@@ -1099,7 +1099,7 @@ export async function handleResolveReaction(io, socket, payload) {
         } else {
             if (reactingPlayer.character) {
                 reactingPlayerState.lootableInventory = [...reactingPlayer.character.inventory.filter(Boolean)];
-                reactingPlayer.character.inventory = Array(24).fill(null);
+                reactingPlayer.character.inventory = Array(28).fill(null);
                 if (reactingPlayer.id) io.to(reactingPlayer.id).emit('characterUpdate', reactingPlayer.character);
             }
         }
