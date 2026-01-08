@@ -135,6 +135,7 @@ export const cardPools = {
                 maxHealth: 30,
                 description: "The formidable king of the goblins.",
                 icon: "👺",
+                imageUrl: '/assets/goblincaves-gorbonking.png',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The King stumbles on his royal robes. Miss!" },
                     { range: [4, 10], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Royal Mace! Deals 4 Physical Damage!" },
@@ -154,6 +155,7 @@ export const cardPools = {
                 type: "npc",
                 description: "A rugged-looking adventurer.",
                 icon: "🕵️‍♂️",
+                imageUrl: '/assets/goblincaves-treasurehunter.png',
                 quests: [{ id: "LUCKY_CHARM_HUNT", title: "The Lucky Charm", turnInItems: { "Goblin Lucky Charm": 1 }, reward: { gold: 50, qp: 1, spellReward: { name: 'Stealth' } }, prerequisite: { qp: 2 } }],
                 dialogue: {
                     LUCKY_CHARM_HUNT_start: { text: "You look like you've seen a thing or two. I'm after a rare trinket—a Goblin Lucky Charm. Find one for me, and I'll teach you a trick for staying out of sight.", options: [{ text: "I'll keep an eye out.", questId: "LUCKY_CHARM_HUNT", next: "LUCKY_CHARM_HUNT_inProgress" }, { text: "I have other priorities.", next: "farewell" }] },
@@ -165,7 +167,7 @@ export const cardPools = {
                 }
             }, count: 1
         },
-        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", loot: [{ name: "Goblin Lucky Charm", type: "questItem", price: 0, description: "A strange, surprisingly shiny goblin trinket." }], icon: "📦" }, count: 1 },
+        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", loot: [{ name: "Goblin Lucky Charm", type: "questItem", price: 0, description: "A strange, surprisingly shiny goblin trinket." }], icon: "📦", imageUrl: '/assets/goblincaves-treasurechest.png' }, count: 1 },
         {
             card: {
                 name: "Goblin Shaman",
@@ -174,6 +176,7 @@ export const cardPools = {
                 maxHealth: 8,
                 description: "A mystical goblin shaman.",
                 icon: "👺",
+                imageUrl: '/assets/goblincaves-shaman.png',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The Shaman's hex fizzles. Miss!" },
                     { range: [4, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Nature', message: "Hex! Deals 3 Nature Damage!" },
@@ -196,6 +199,7 @@ export const cardPools = {
                 maxHealth: 8,
                 description: "A sneaky goblin archer.",
                 icon: "👺",
+                imageUrl: '/assets/goblincaves-archer.png',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The arrow whizzes past. Miss!" },
                     { range: [4, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Physical', message: "Barbed Arrow! Deals 3 Physical Damage!" },
@@ -218,6 +222,7 @@ export const cardPools = {
                 maxHealth: 10,
                 description: "A brutish goblin warrior.",
                 icon: "👺",
+                imageUrl: '/assets/goblincaves-warrior.png',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The warrior swings wildly. Miss!" },
                     { range: [4, 12], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Brutal Swing! Deals 4 Physical Damage!" },
@@ -232,8 +237,8 @@ export const cardPools = {
                 ]
             }, count: 7
         },
-        { card: { name: "Boulders", type: "resource", description: "A pile of impassable rocks.", charges: 0, icon: "🪨" }, count: 8 },
-        { card: { name: "Vines", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Axe (T1)", loot: { name: "Vines", type: "material", price: 5 }, tool: "Woodcutting Axe (T1)", icon: "🌿" }, count: 6 },
+        { card: { name: "Boulders", type: "resource", description: "A pile of impassable rocks.", charges: 0, icon: "🪨", imageUrl: '/assets/goblincaves-boulders.png' }, count: 8 },
+        { card: { name: "Vines", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Axe (T1)", loot: { name: "Vines", type: "material", price: 5 }, tool: "Woodcutting Axe (T1)", icon: "🌿", imageUrl: '/assets/goblincaves-vines.png' }, count: 6 },
         { card: { name: "Coal", type: "resource", skill: "mining", description: "Requires Mining Pickaxe (T1)", loot: { name: "Coal", type: "material", price: 5 }, tool: "Mining Pickaxe (T1)", icon: "⛏️" }, count: 6 },
     ],
 

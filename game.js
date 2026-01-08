@@ -13,6 +13,7 @@ import * as UIParty from './ui/ui-party.js';
 import * as UIPlayer from './ui/ui-player.js';
 import * as UITown from './ui/ui-town.js';
 import { ARENA_ENTRY_FEE } from './constants.js';
+import { preloadAllSounds, playSound } from './audio/sound-manager.js';
 
 
 // --- STATE VARIABLES ---
@@ -22,6 +23,7 @@ let pvpTurnTimerInterval = null;
 
 // --- INITIALIZATION ---
 function initGame() {
+    preloadAllSounds(); // Preload all game audio
     addEventListeners();
     Network.initSocketListeners({
         onConnect: handleConnect,
@@ -64,6 +66,7 @@ function getEffectsFromLog(logEntries) {
         match = entry.message.match(/Dealt (\d+) damage to (.+?) \[id:(.+?)\]/);
         if (match) {
             effects.push({ targetId: match[3], type: 'damage', text: `-${match[1]}` });
+            playSound('hit', 0.6);
             return;
         }
 
@@ -71,13 +74,23 @@ function getEffectsFromLog(logEntries) {
         match = entry.message.match(/dealt (\d+).*damage to .* \[id:(.+?)\]/i);
         if (match) {
             effects.push({ targetId: match[2], type: 'damage', text: `-${match[1]}` });
+            playSound('hit', 0.6);
             return;
         }
 
-        // PATTERN 3: Simple spell success
+        // PATTERN 3a: Punch spell (play punch sound instead of generic)
+        match = entry.message.match(/(.+) casting Punch:.* Success!/);
+        if (match) {
+            effects.push({ targetName: match[1], type: 'success', text: 'Success!' });
+            playSound('punch', 0.6);
+            return;
+        }
+
+        // PATTERN 3b: Simple spell success (generic)
         match = entry.message.match(/(.+) casting .*:.* Success!/);
         if (match) {
             effects.push({ targetName: match[1], type: 'success', text: 'Success!' });
+            playSound('spell_generic', 0.5);
             return;
         }
 
@@ -85,6 +98,7 @@ function getEffectsFromLog(logEntries) {
         match = entry.message.match(/^(.+?) attacks with .+:.*Hit!/);
         if (match) {
             effects.push({ targetName: match[1], type: 'success', text: 'Hit!' });
+            // Sound already played in damage pattern
             return;
         }
 
@@ -92,6 +106,7 @@ function getEffectsFromLog(logEntries) {
         match = entry.message.match(/^(.+?) attacks with .+:.*Miss!/);
         if (match) {
             effects.push({ targetName: match[1], type: 'fail', text: 'Miss!' });
+            playSound('miss', 0.4);
             return;
         }
 
@@ -99,6 +114,7 @@ function getEffectsFromLog(logEntries) {
         match = entry.message.match(/(.+?) (?:attacks|casting).*(?:Critical Failure|fizzles)!/);
         if (match) {
             effects.push({ targetName: match[1], type: 'fail', text: 'Fail!' });
+            playSound('miss', 0.4);
             return;
         }
 
@@ -106,6 +122,7 @@ function getEffectsFromLog(logEntries) {
         match = entry.message.match(/Healed (.+?) for (\d+) HP/);
         if (match) {
             effects.push({ targetName: match[1], type: 'heal', text: `+${match[2]}` });
+            playSound('spell_heal', 0.5);
             return;
         }
 
@@ -114,6 +131,30 @@ function getEffectsFromLog(logEntries) {
         if (match) {
             const debuffName = match[2].charAt(0).toUpperCase() + match[2].slice(1);
             effects.push({ targetName: match[1], type: 'debuff', text: debuffName + '!' });
+            return;
+        }
+
+        // PATTERN 9: Block (e.g., "blocked")
+        if (entry.message.includes('blocked')) {
+            playSound('block', 0.5);
+            return;
+        }
+
+        // PATTERN 10: Parry
+        if (entry.message.includes('parried') || entry.message.includes('Parry')) {
+            playSound('parry', 0.5);
+            return;
+        }
+
+        // PATTERN 11: Quest Accepted
+        if (entry.message.includes('accepted Quest:')) {
+            playSound('quest_accepted', 0.6);
+            return;
+        }
+
+        // PATTERN 12: Quest Completed
+        if (entry.message.includes('completed Quest:')) {
+            playSound('quest_complete', 0.7);
             return;
         }
     });
@@ -384,12 +425,15 @@ function handleDuelUpdate(duelState) {
 function handleDuelEnd({ outcome, reward }) {
     if (gameState.duelState) gameState.duelState.ended = true;
     const message = outcome === 'win' ? `You are victorious! You won ${reward?.gold || 0} gold.` : "You have been defeated!";
+    playSound(outcome === 'win' ? 'victory' : 'defeat', 0.6);
     UIMain.showInfoModal(message);
     setTimeout(Player.resetToHomeState, 3000);
 }
 
 function handleLootRollStarted(lootData) {
     if (lootRollInterval) clearInterval(lootRollInterval);
+
+    playSound('loot', 0.5); // Play loot sound when item drops
 
     const container = document.getElementById('loot-roll-container');
     const itemDisplay = document.getElementById('loot-item-display');
