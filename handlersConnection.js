@@ -49,6 +49,17 @@ export const registerConnectionHandlers = (io, socket) => {
             // Player is LOADING from localStorage or REGISTERING for the first time.
             // Trust the client's data to establish the session state.
             console.log(`Character ${name} is connecting for the first time or loading from save.`);
+
+            // --- INVENTORY SIZE FIX: Extend old 24-slot inventories to 28 slots ---
+            if (characterDataFromClient.inventory && characterDataFromClient.inventory.length < 28) {
+                const originalLength = characterDataFromClient.inventory.length;
+                while (characterDataFromClient.inventory.length < 28) {
+                    characterDataFromClient.inventory.push(null);
+                }
+                console.log(`Extended inventory from ${originalLength} to 28 slots for ${name} on login.`);
+            }
+            // --- END INVENTORY SIZE FIX ---
+
             players[name] = { id: socket.id, character: characterDataFromClient };
             socket.characterName = name;
             characterToUpdate = characterDataFromClient;
