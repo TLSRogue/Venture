@@ -78,16 +78,17 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-        // PATTERN 3a: Punch spell (play punch sound instead of generic)
-        match = entry.message.match(/(.+) casting Punch:.* Success!/);
+        // PATTERN 3a: Punch spell success (play punch sound instead of generic)
+        // Log format: "PlayerName casts Punch! <span style="color:#2ecc71">🎲15</span>"
+        match = entry.message.match(/(.+) casts Punch!.*color:#2ecc71/);
         if (match) {
-            effects.push({ targetName: match[1], type: 'success', text: 'Success!' });
+            effects.push({ targetName: match[1], type: 'success', text: 'Hit!' });
             playSound('punch', 0.6);
             return;
         }
 
-        // PATTERN 3b: Simple spell success (generic)
-        match = entry.message.match(/(.+) casting .*:.* Success!/);
+        // PATTERN 3b: Simple spell success (generic) - green color indicates success
+        match = entry.message.match(/(.+) casts (.+)!.*color:#2ecc71/);
         if (match) {
             effects.push({ targetName: match[1], type: 'success', text: 'Success!' });
             playSound('spell_generic', 0.5);
