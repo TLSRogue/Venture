@@ -70,8 +70,16 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-        // PATTERN 2: Complex player attack with damage and ID (e.g., "... Hit! Dealt 3 Physical damage to Goblin [id:12345].")
-        match = entry.message.match(/dealt (\d+).*damage to .* \[id:(.+?)\]/i);
+        // PATTERN 2: Complex player attack with damage and ID (e.g., "Deals 3 Physical damage!" or "Dealt 3 damage...")
+        match = entry.message.match(/[Dd]eal[ts]? (\d+).*damage.*\[id:(.+?)\]/i);
+        if (match) {
+            effects.push({ targetId: match[2], type: 'damage', text: `-${match[1]}` });
+            playSound('hit', 0.6);
+            return;
+        }
+
+        // PATTERN 2b: Weapon attack damage (e.g., "attacks ... Deals 3 Physical damage!")
+        match = entry.message.match(/attacks .+ with .+!.*[Dd]eals (\d+) .* damage.*\[id:(.+?)\]/);
         if (match) {
             effects.push({ targetId: match[2], type: 'damage', text: `-${match[1]}` });
             playSound('hit', 0.6);
@@ -79,7 +87,6 @@ function getEffectsFromLog(logEntries) {
         }
 
         // PATTERN 3a: Punch spell success (play punch sound instead of generic)
-        // Log format: "PlayerName casts Punch! <span style="color:#2ecc71">🎲15</span>"
         match = entry.message.match(/(.+) casts Punch!.*color:#2ecc71/);
         if (match) {
             effects.push({ targetName: match[1], type: 'success', text: 'Hit!' });
@@ -87,24 +94,44 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-        // PATTERN 3b: Simple spell success (generic) - green color indicates success
-        match = entry.message.match(/(.+) casts (.+)!.*color:#2ecc71/);
+        // PATTERN 3b: Buff spell success - show the buff name instead of "Success!"
+        // Matches: "PlayerName gains BuffType! [id:xxx]" or "PlayerName gains BuffType!"
+        match = entry.message.match(/(.+?) gains (.+?)!/);
         if (match) {
-            effects.push({ targetName: match[1], type: 'success', text: 'Success!' });
+            const targetName = match[1];
+            const buffName = match[2];
+            // Extract ID if present
+            const idMatch = entry.message.match(/\[id:(.+?)\]/);
+            if (idMatch) {
+                effects.push({ targetId: idMatch[1], type: 'buff', text: buffName + '!' });
+            } else {
+                effects.push({ targetName: targetName, type: 'buff', text: buffName + '!' });
+            }
             playSound('spell_generic', 0.5);
             return;
         }
 
-        // PATTERN 4: Weapon attack Hit! (e.g., "PlayerName attacks with Iron Dagger: (Roll 15) Hit!")
-        match = entry.message.match(/^(.+?) attacks with .+:.*Hit!/);
+        // PATTERN 3c: Attack spell success (shows Hit! for attack spells)
+        match = entry.message.match(/(.+) casts (.+)!.*color:#2ecc71/);
         if (match) {
-            effects.push({ targetName: match[1], type: 'success', text: 'Hit!' });
-            // Sound already played in damage pattern
+            const casterName = match[1];
+            const spellName = match[2];
+            // For attack spells, we'll show Hit! on the caster (damage shows on target separately)
+            effects.push({ targetName: casterName, type: 'success', text: 'Hit!' });
+            playSound('spell_generic', 0.5);
             return;
         }
 
-        // PATTERN 5: Weapon attack Miss! (e.g., "PlayerName attacks with Iron Dagger: (Roll 3) Miss!")
-        match = entry.message.match(/^(.+?) attacks with .+:.*Miss!/);
+        // PATTERN 4: Weapon attack Hit! (e.g., "PlayerName attacks TargetName with Iron Dagger! Deals...")
+        match = entry.message.match(/^(.+?) attacks (.+?) with .+!.*[Dd]eals (\d+)/);
+        if (match) {
+            // Show Hit! on attacker (damage already shown separately via pattern 2)
+            effects.push({ targetName: match[1], type: 'success', text: 'Hit!' });
+            return;
+        }
+
+        // PATTERN 5: Weapon attack Miss! (e.g., "PlayerName attacks TargetName with Iron Dagger! Miss!")
+        match = entry.message.match(/^(.+?) attacks .+ with .+!.*Miss!/);
         if (match) {
             effects.push({ targetName: match[1], type: 'fail', text: 'Miss!' });
             playSound('miss', 0.4);
@@ -112,7 +139,7 @@ function getEffectsFromLog(logEntries) {
         }
 
         // PATTERN 6: Spell fizzle / Critical Failure
-        match = entry.message.match(/(.+?) (?:attacks|casting).*(?:Critical Failure|fizzles)!/);
+        match = entry.message.match(/(.+?) casts .+!.*(?:Critical Failure|Fizzle)/i);
         if (match) {
             effects.push({ targetName: match[1], type: 'fail', text: 'Fail!' });
             playSound('miss', 0.4);
@@ -127,22 +154,41 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-        // PATTERN 8: Debuff application (e.g., "Target is now bleed!" or "Target is now daze!")
+        // PATTERN 8: Debuff application with ID (e.g., "Goblin is now bleed! [id:xxx]" or "Applies Burn!")
         match = entry.message.match(/(.+?) is now (\w+)!/);
         if (match) {
+            const targetName = match[1];
             const debuffName = match[2].charAt(0).toUpperCase() + match[2].slice(1);
-            effects.push({ targetName: match[1], type: 'debuff', text: debuffName + '!' });
+            // Check for ID in the message
+            const idMatch = entry.message.match(/\[id:(.+?)\]/);
+            if (idMatch) {
+                effects.push({ targetId: idMatch[1], type: 'debuff', text: debuffName + '!' });
+            } else {
+                effects.push({ targetName: targetName, type: 'debuff', text: debuffName + '!' });
+            }
+            return;
+        }
+
+        // PATTERN 8b: Applies debuff format (e.g., "Applies Bleed!" or "Applies Daze!")
+        match = entry.message.match(/Applies (\w+)!/);
+        if (match) {
+            const debuffName = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+            // Try to find target from earlier in the message
+            const targetMatch = entry.message.match(/to (.+?) \[id:(.+?)\]/);
+            if (targetMatch) {
+                effects.push({ targetId: targetMatch[2], type: 'debuff', text: debuffName + '!' });
+            }
             return;
         }
 
         // PATTERN 9: Block (e.g., "blocked")
-        if (entry.message.includes('blocked')) {
+        if (entry.message.includes('Blocked')) {
             playSound('block', 0.5);
             return;
         }
 
         // PATTERN 10: Parry
-        if (entry.message.includes('parried') || entry.message.includes('Parry')) {
+        if (entry.message.includes('Deflected') || entry.message.includes("Parry")) {
             playSound('parry', 0.5);
             return;
         }
