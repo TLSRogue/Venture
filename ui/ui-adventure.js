@@ -195,8 +195,26 @@ export function showCombatFeedback({ targetName, targetId, type, text }, cachedP
 
 
 export function renderAdventureScreen() {
+    const adventureTab = document.getElementById('adventure-tab');
     const ventureArrow = document.getElementById('venture-deeper-arrow');
     const homeArrow = document.getElementById('return-home-arrow');
+
+    // --- APPLY ZONE BACKGROUND ---
+    // Remove existing zone background classes
+    adventureTab.classList.remove('zone-bg', 'zone-farmlands', 'zone-goblinCaves', 'zone-town', 'zone-sewers', 'zone-arena', 'zone-blighted_wastes', 'zone-duel');
+
+    // Determine current zone and apply appropriate background
+    let currentZone = null;
+    if (gameState.inDuel || (gameState.pvpEncounter && gameState.pvpEncounter.isDuel)) {
+        currentZone = 'duel';
+    } else if (gameState.currentZone) {
+        currentZone = gameState.currentZone;
+    }
+
+    if (currentZone) {
+        adventureTab.classList.add('zone-bg', `zone-${currentZone}`);
+    }
+    // --- END ZONE BACKGROUND ---
 
     // ** FIX: Use the new isLoadingNextArea flag for consistent behavior **
     const shouldDisableVenture = gameState.pvpEncounter || gameState.isLoadingNextArea;

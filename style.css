@@ -35,6 +35,56 @@ body {
     gap: 15px;
 }
 
+/* --- ZONE BACKGROUND IMAGES --- */
+#adventure-tab.zone-bg {
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    position: relative;
+}
+
+#adventure-tab.zone-bg::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.7) 100%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+#adventure-tab.zone-farmlands {
+    background-image: url('/assets/backgrounds/farmlands.png');
+}
+
+#adventure-tab.zone-goblinCaves {
+    background-image: url('/assets/backgrounds/goblinCaves.png');
+}
+
+#adventure-tab.zone-town {
+    background-image: url('/assets/backgrounds/town.png');
+}
+
+#adventure-tab.zone-sewers {
+    background-image: url('/assets/backgrounds/sewers.png');
+}
+
+#adventure-tab.zone-arena {
+    background-image: url('/assets/backgrounds/arena.png');
+}
+
+#adventure-tab.zone-blighted_wastes {
+    background-image: url('/assets/backgrounds/blighted_wastes.png');
+}
+
+#adventure-tab.zone-duel {
+    background-image: url('/assets/backgrounds/duel.png');
+}
+
+/* --- END ZONE BACKGROUNDS --- */
+
 #player-action-bar {
     background: rgba(0, 0, 0, 0.8);
     padding: 10px;
