@@ -9,7 +9,7 @@ export const cardPools = {
                 maxHealth: 15,
                 description: "An enraged bull, kicking up dust.",
                 icon: "🐂",
-                imageUrl: '/assets/raging-bull.png', // <<< Add this line
+                imageUrl: '/assets/farmlands-ragingbull.png',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The bull snorts and misses!" },
                     { range: [4, 12], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Charge! Deals 3 Physical Damage!" },
@@ -24,6 +24,7 @@ export const cardPools = {
                 type: "npc",
                 description: "A friendly farmer.",
                 icon: "👨‍🌾",
+                imageUrl: '/assets/farmlands-farmer.png',
                 quests: [
                     { id: "FARMHAND_TROUBLE", title: "Farmhand Trouble", target: "Angry Farmhand", required: 2, reward: { gold: 20, qp: 1 }, prerequisite: null },
                     { id: "BULL_RAGE", title: "Kill the Raging Bull", target: "Raging Bull", required: 1, reward: { gold: 50, qp: 1, titleReward: "Bull-Slayer" }, prerequisite: "FARMHAND_TROUBLE" }
@@ -46,6 +47,7 @@ export const cardPools = {
                 type: "npc",
                 description: "She seems worried about something.",
                 icon: "👩‍🌾",
+                imageUrl: '/assets/farmlands-farmerswife.png',
                 quests: [{ id: "BAKERS_REQUEST", title: "A Birthday Surprise", turnInItems: { "Egg": 1, "Milk": 1, "Wheat": 1 }, reward: { gold: 25, qp: 1, recipeReward: "Birthday Cake" }, prerequisite: null }],
                 dialogue: {
                     BAKERS_REQUEST_start: { text: "Oh, hello there. My husband's birthday is soon, and I'd love to surprise him with a cake. Could you possibly gather the ingredients for one?", options: [{ text: "I'd be happy to help.", questId: "BAKERS_REQUEST", next: "BAKERS_REQUEST_inProgress" }, { text: "I'm not much of a baker.", next: "farewell" }] },
@@ -56,10 +58,10 @@ export const cardPools = {
                 }
             }, count: 1
         },
-        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", icon: "📦" }, count: 1 },
+        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", icon: "📦", imageUrl: '/assets/farmlands-treasurechest.png' }, count: 1 },
         {
             card: {
-                name: "Chicken", type: "enemy", health: 2, maxHealth: 2, description: "A feisty farm chicken", icon: "🐔",
+                name: "Chicken", type: "enemy", health: 2, maxHealth: 2, description: "A feisty farm chicken", icon: "🐔", imageUrl: '/assets/farmlands-chicken.png',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
                     { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 1, damageType: 'Physical', message: "Peck! Deals 1 Physical Damage!" },
@@ -75,7 +77,7 @@ export const cardPools = {
         },
         {
             card: {
-                name: "Pig", type: "enemy", health: 3, maxHealth: 3, description: "A muddy pig", icon: "🐷",
+                name: "Pig", type: "enemy", health: 3, maxHealth: 3, description: "A muddy pig", icon: "🐷", imageUrl: '/assets/farmlands-pig.png',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
                     { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 1, damageType: 'Physical', message: "Slam! Deals 1 Physical Damage!" },
@@ -90,7 +92,7 @@ export const cardPools = {
         },
         {
             card: {
-                name: "Cow", type: "enemy", health: 4, maxHealth: 4, description: "A gentle cow", icon: "🐮",
+                name: "Cow", type: "enemy", health: 4, maxHealth: 4, description: "A gentle cow", icon: "🐮", imageUrl: '/assets/farmlands-cow.png',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
                     { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Kick! Deals 2 Physical Damage!" },
@@ -105,7 +107,7 @@ export const cardPools = {
         },
         {
             card: {
-                name: "Angry Farmhand", type: "enemy", health: 4, maxHealth: 4, description: "An angry local. Wants you off his land.", icon: "🧑‍🌾",
+                name: "Angry Farmhand", type: "enemy", health: 4, maxHealth: 4, description: "An angry local. Wants you off his land.", icon: "🧑‍🌾", imageUrl: '/assets/farmlands-angryfarmhand.png',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
                     { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Stab! Deals 2 Physical Damage!" },
@@ -118,10 +120,10 @@ export const cardPools = {
                 ]
             }, count: 3
         },
-        { card: { name: "Iron Node", type: "resource", skill: "mining", description: "Requires Mining Pickaxe (T1)", loot: { name: "Iron", type: "material", price: 5 }, tool: "Mining Pickaxe (T1)", icon: "⛏️" }, count: 6 },
-        { card: { name: "Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Axe (T1)", loot: { name: "Wood", type: "material", price: 5 }, tool: "Woodcutting Axe (T1)", icon: "🌲" }, count: 6 },
-        { card: { name: "River", type: "resource", skill: "fishing", description: "Requires Fishing Rod (T1)", loot: { name: "Fish", type: "material", price: 5 }, tool: "Fishing Rod (T1)", icon: "🎣" }, count: 6 },
-        { card: { name: "Crops", type: "resource", skill: "harvesting", description: "Requires Harvesting Sickle (T1)", lootPool: [{ name: "Wheat" }, { name: "Carrot" }, { name: "Hemp" }], tool: "Harvesting Sickle (T1)", icon: "🌾" }, count: 5 },
+        { card: { name: "Iron Node", type: "resource", skill: "mining", description: "Requires Mining Pickaxe (T1)", loot: { name: "Iron", type: "material", price: 5 }, tool: "Mining Pickaxe (T1)", icon: "⛏️", imageUrl: '/assets/farmlands-ironnode.png' }, count: 6 },
+        { card: { name: "Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Axe (T1)", loot: { name: "Wood", type: "material", price: 5 }, tool: "Woodcutting Axe (T1)", icon: "🌲", imageUrl: '/assets/farmlands-tree.png' }, count: 6 },
+        { card: { name: "River", type: "resource", skill: "fishing", description: "Requires Fishing Rod (T1)", loot: { name: "Fish", type: "material", price: 5 }, tool: "Fishing Rod (T1)", icon: "🎣", imageUrl: '/assets/farmlands-river.png' }, count: 6 },
+        { card: { name: "Crops", type: "resource", skill: "harvesting", description: "Requires Harvesting Sickle (T1)", lootPool: [{ name: "Wheat" }, { name: "Carrot" }, { name: "Hemp" }], tool: "Harvesting Sickle (T1)", icon: "🌾", imageUrl: '/assets/farmlands-crops.png' }, count: 5 },
     ],
 
     goblinCaves: [
