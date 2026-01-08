@@ -27,8 +27,12 @@ function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlaye
     const evasiveShotSpell = defendingCharacter.equippedSpells.find(s => s.name === "Evasive Shot");
     if (evasiveShotSpell && (defendingPlayerState.spellCooldowns[evasiveShotSpell.name] || 0) <= 0) {
         const mainHand = defendingCharacter.equipment.mainHand;
-        if (mainHand && Array.isArray(evasiveShotSpell.requires?.weaponType) &&
-            evasiveShotSpell.requires.weaponType.includes(mainHand.weaponType)) {
+        const offHand = defendingCharacter.equipment.offHand;
+        const requiredTypes = evasiveShotSpell.requires?.weaponType || [];
+        const hasRangedWeapon = (mainHand && requiredTypes.includes(mainHand.weaponType)) ||
+            (offHand && requiredTypes.includes(offHand.weaponType));
+
+        if (hasRangedWeapon) {
             let isWearingHeavy = Object.values(defendingCharacter.equipment).some(
                 item => item && item.traits && item.traits.includes('Heavy')
             );
@@ -119,8 +123,10 @@ export async function processWeaponAttack(io, party, player, payload) {
         const dazeModifier = dazeDebuff ? -3 : 0;
         const focusBuff = actingPlayerState.buffs.find(b => b.type === 'Focus');
         const focusModifier = focusBuff ? focusBuff.bonus.rollBonus : 0;
+        const stealthBuff = defendingPlayerState.buffs.find(b => b.type === 'Stealth');
+        const stealthModifier = stealthBuff ? -5 : 0;
         const roll = Math.floor(Math.random() * 20) + 1;
-        const total = roll + statValue + dazeModifier + focusModifier;
+        const total = roll + statValue + dazeModifier + focusModifier + stealthModifier;
         const hitTarget = weapon.hit || 15;
 
         const isHit = roll !== 1 && total >= hitTarget;
@@ -299,8 +305,10 @@ export async function processCastSpell(io, party, player, payload) {
         const dazeModifier = dazeDebuff ? -3 : 0;
         const focusBuff = actingPlayerState.buffs.find(b => b.type === 'Focus');
         const focusModifier = focusBuff ? focusBuff.bonus.rollBonus : 0;
+        const stealthBuff = targetPlayerState.buffs.find(b => b.type === 'Stealth');
+        const stealthModifier = stealthBuff ? -5 : 0;
         const roll = Math.floor(Math.random() * 20) + 1;
-        const total = roll + statValue + dazeModifier + focusModifier;
+        const total = roll + statValue + dazeModifier + focusModifier + stealthModifier;
         const hitTarget = spell.hit || 15;
         const isSuccess = roll !== 1 && total >= hitTarget;
         const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';

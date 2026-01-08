@@ -710,10 +710,18 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             // Apply Daze modifier to enemy roll (-3 to attack roll)
             const dazeDebuff = enemy.debuffs.find(d => d.type === 'daze');
             const dazeModifier = dazeDebuff ? -3 : 0;
+            // Apply Stealth modifier (-5 to attack roll if target is stealthed)
+            const stealthBuff = targetPlayerState.buffs.find(b => b.type === 'Stealth');
+            const stealthModifier = stealthBuff ? -5 : 0;
+
             let roll = Math.floor(Math.random() * 20) + 1;
-            const modifiedRoll = Math.max(1, roll + dazeModifier); // Minimum roll of 1
+            const modifiedRoll = Math.max(1, roll + dazeModifier + stealthModifier); // Minimum roll of 1
+
             if (dazeDebuff && dazeModifier !== 0) {
                 sharedState.log.push({ message: `${enemy.name} is dazed! (-3 to attack roll)`, type: 'info' });
+            }
+            if (stealthBuff) {
+                sharedState.log.push({ message: `${enemy.name}'s attack is hindered by shadows! (-5 to hit)`, type: 'info' });
             }
             const attack = enemy.attackTable ? enemy.attackTable.find(a => modifiedRoll >= a.range[0] && modifiedRoll <= a.range[1]) : null;
             if (attack && attack.action === 'attack') {
@@ -750,7 +758,12 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     const evasiveShotSpell = targetCharacter.equippedSpells.find(s => s.name === "Evasive Shot");
                     if (evasiveShotSpell && (targetPlayerState.spellCooldowns[evasiveShotSpell.name] || 0) <= 0) {
                         const mainHand = targetCharacter.equipment.mainHand;
-                        if (mainHand && Array.isArray(evasiveShotSpell.requires?.weaponType) && evasiveShotSpell.requires.weaponType.includes(mainHand.weaponType)) {
+                        const offHand = targetCharacter.equipment.offHand;
+                        const requiredTypes = evasiveShotSpell.requires?.weaponType || [];
+                        const hasRangedWeapon = (mainHand && requiredTypes.includes(mainHand.weaponType)) ||
+                            (offHand && requiredTypes.includes(offHand.weaponType));
+
+                        if (hasRangedWeapon) {
                             if (isWearingHeavy) {
                                 sharedState.log.push({ message: `${targetPlayerState.name} could have used Evasive Shot, but their heavy gear prevented it!`, type: 'info' });
                             } else {
