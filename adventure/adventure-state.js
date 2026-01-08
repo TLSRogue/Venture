@@ -764,7 +764,10 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     if (parrySpell && (targetPlayerState.spellCooldowns[parrySpell.name] || 0) <= 0) {
                         const isMeleeAttack = attack.attackRange === 'melee';
                         const mainHand = targetCharacter.equipment.mainHand;
-                        const hasMeleeWeapon = mainHand && mainHand.type === 'weapon' && mainHand.range === 'melee';
+                        // Check for melee weapon: explicitly melee, or type weapon that isn't ranged (bow/staff)
+                        const rangedWeaponTypes = ['Two-Hand Bow', 'Two-Hand Staff'];
+                        const hasMeleeWeapon = mainHand && mainHand.type === 'weapon' &&
+                            (mainHand.range === 'melee' || (!mainHand.range && !rangedWeaponTypes.includes(mainHand.weaponType)));
                         if (isMeleeAttack && hasMeleeWeapon) {
                             availableReactions.push({ name: 'Parry' });
                         } else if (!isMeleeAttack && hasMeleeWeapon) {
@@ -1137,8 +1140,11 @@ export async function handleResolveReaction(io, socket, payload) {
     else if (reactionType === 'Parry') {
         const parrySpell = reactingPlayer.character.equippedSpells.find(s => s.name === "Parry");
         const mainHand = reactingPlayer.character.equipment.mainHand;
+        const rangedWeaponTypes = ['Two-Hand Bow', 'Two-Hand Staff'];
+        const hasMeleeWeapon = mainHand && mainHand.type === 'weapon' &&
+            (mainHand.range === 'melee' || (!mainHand.range && !rangedWeaponTypes.includes(mainHand.weaponType)));
 
-        if (parrySpell && mainHand && mainHand.range === 'melee' && (reactingPlayerState.spellCooldowns[parrySpell.name] || 0) <= 0) {
+        if (parrySpell && hasMeleeWeapon && (reactingPlayerState.spellCooldowns[parrySpell.name] || 0) <= 0) {
             reactingPlayerState.spellCooldowns[parrySpell.name] = parrySpell.cooldown;
             const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
 
