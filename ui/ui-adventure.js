@@ -367,6 +367,7 @@ function renderPartyScreen() {
         }
 
         cardEl.dataset.index = `p${index}`;
+        if (playerState.playerId) cardEl.dataset.playerId = playerState.playerId;
         partyContainer.appendChild(cardEl);
     });
     renderZoneCards(gameState.zoneCards);
@@ -392,6 +393,7 @@ function renderDuelScreen() {
         playerCardEl.classList.add('active-turn');
     }
     playerCardEl.dataset.target = 'player';
+    if (localPlayer.id) playerCardEl.dataset.playerId = localPlayer.id;
 
     const pIcon = document.createElement('div'); pIcon.className = 'card-icon'; pIcon.textContent = localPlayer.icon;
     const pTitle = document.createElement('div'); pTitle.className = 'card-title'; pTitle.textContent = localPlayer.name;
@@ -405,6 +407,7 @@ function renderDuelScreen() {
         opponentCardEl.classList.add('active-turn');
     }
     opponentCardEl.dataset.index = 0;
+    if (opponent.id) opponentCardEl.dataset.playerId = opponent.id;
 
     if (opponent.health <= 0) {
         opponentCardEl.classList.add('dead');

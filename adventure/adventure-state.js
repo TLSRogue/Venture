@@ -833,7 +833,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     return;
                 } else {
                     targetPlayerState.health -= damageToDeal;
-                    let attackMessage = `${enemy.name} ${attack.message} It hits ${targetPlayerState.name} for ${damageToDeal} damage!`;
+                    let attackMessage = `${enemy.name} ${attack.message} It hits ${targetPlayerState.name} for ${damageToDeal} damage! [id:${targetPlayerState.playerId}]`;
                     if (damageToDeal < attack.damage) {
                         attackMessage += ` (${attack.damage - damageToDeal} resisted)`;
                     }
@@ -1338,7 +1338,7 @@ export async function handleResolveReaction(io, socket, payload) {
             damageToDeal = Math.max(0, finalDamage - resistance);
         }
         reactingPlayerState.health -= damageToDeal;
-        let damageMessage = `${reaction.attackerName} ${reaction.message} It hits ${name} for ${damageToDeal} damage!`;
+        let damageMessage = `${reaction.attackerName} ${reaction.message} It hits ${name} for ${damageToDeal} damage! [id:${reactingPlayerState.playerId}]`;
         if (damageToDeal < finalDamage) {
             damageMessage += ` (${finalDamage - damageToDeal} resisted)`;
         }

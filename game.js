@@ -63,17 +63,18 @@ function getEffectsFromLog(logEntries) {
         let match;
 
         // PATTERN 1: Damage with unique ID (e.g., "Dealt 2 damage to Pig [id:12345].")
-        match = entry.message.match(/Dealt (\d+) damage to (.+?) \[id:(.+?)\]/);
+        // Also matches "Deals 3 Physical damage! [id:123]"
+        match = entry.message.match(/[Dd]eal[ts]? (\d+).*damage.*\[id:(.+?)\]/i);
         if (match) {
-            effects.push({ targetId: match[3], type: 'damage', text: `-${match[1]}` });
+            effects.push({ targetId: match[2].replace(']', ''), type: 'damage', text: `-${match[1]}` });
             playSound('hit', 0.6);
             return;
         }
 
-        // PATTERN 2: Complex player attack with damage and ID (e.g., "Deals 3 Physical damage!" or "Dealt 3 damage...")
-        match = entry.message.match(/[Dd]eal[ts]? (\d+).*damage.*\[id:(.+?)\]/i);
+        // PATTERN 2: Enemy hit on player (e.g., "It hits TargetName for 3 damage! [id:xxx]")
+        match = entry.message.match(/hits .+? for (\d+) damage.*\[id:(.+?)\]/i);
         if (match) {
-            effects.push({ targetId: match[2], type: 'damage', text: `-${match[1]}` });
+            effects.push({ targetId: match[2].replace(']', ''), type: 'damage', text: `-${match[1]}` });
             playSound('hit', 0.6);
             return;
         }
@@ -81,7 +82,7 @@ function getEffectsFromLog(logEntries) {
         // PATTERN 2b: Weapon attack damage (e.g., "attacks ... Deals 3 Physical damage!")
         match = entry.message.match(/attacks .+ with .+!.*[Dd]eals (\d+) .* damage.*\[id:(.+?)\]/);
         if (match) {
-            effects.push({ targetId: match[2], type: 'damage', text: `-${match[1]}` });
+            effects.push({ targetId: match[2].replace(']', ''), type: 'damage', text: `-${match[1]}` });
             playSound('hit', 0.6);
             return;
         }

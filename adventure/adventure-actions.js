@@ -160,7 +160,7 @@ export async function processWeaponAttack(io, party, player, payload) {
             }
 
             defendingPlayerState.health -= damageToDeal;
-            logMessage += ` Deals ${damageToDeal} ${weapon.damageType} damage!`;
+            logMessage += ` Deals ${damageToDeal} ${weapon.damageType} damage! [id:${defendingPlayerState.playerId}]`;
 
             if ((roll === 20 && weapon.onCrit?.debuff) || weapon.onHit?.debuff) {
                 const debuff = (roll === 20 && weapon.onCrit?.debuff) ? weapon.onCrit.debuff : weapon.onHit.debuff;
@@ -218,7 +218,7 @@ export async function processWeaponAttack(io, party, player, payload) {
             }
 
             target.health -= damageToDeal;
-            logMessage += ` Deals ${damageToDeal} ${weapon.damageType} damage!`;
+            logMessage += ` Deals ${damageToDeal} ${weapon.damageType} damage! [id:${target.id}]`;
 
             if (roll === 20 && weapon.onCrit && weapon.onCrit.debuff) {
                 const debuff = weapon.onCrit.debuff;
@@ -894,7 +894,7 @@ export async function processUseConsumable(io, party, player, payload) {
                 const damage = item.damage;
                 targetCard.health -= damage;
                 logTarget.log.push({
-                    message: `${character.characterName} throws ${item.name} at ${targetCard.name}! ${rollDisplay} Deals ${damage} damage!`,
+                    message: `${character.characterName} throws ${item.name} at ${targetCard.name}! ${rollDisplay} Deals ${damage} damage! [id:${targetCard.id}]`,
                     type: 'damage'
                 });
             }
