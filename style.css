@@ -1203,6 +1203,9 @@ hr {
     flex-wrap: wrap;
     margin-top: 5px;
     min-height: 20px;
+    z-index: 1;
+    position: relative;
+    padding: 5px;
 }
 
 .player-card-effect {
