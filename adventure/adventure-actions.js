@@ -42,6 +42,19 @@ function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlaye
         }
     }
 
+    // Check for Parry reaction (requires melee weapon, melee attack only)
+    const parrySpell = defendingCharacter.equippedSpells.find(s => s.name === "Parry");
+    if (parrySpell && (defendingPlayerState.spellCooldowns[parrySpell.name] || 0) <= 0) {
+        const isMeleeAttack = actionDetails.attackRange === 'melee';
+        const mainHand = defendingCharacter.equipment.mainHand;
+        const rangedWeaponTypes = ['Two-Hand Bow', 'Two-Hand Staff'];
+        const hasMeleeWeapon = mainHand && mainHand.type === 'weapon' &&
+            (mainHand.range === 'melee' || (!mainHand.range && !rangedWeaponTypes.includes(mainHand.weaponType)));
+
+        if (isMeleeAttack && hasMeleeWeapon) {
+            availableReactions.push({ name: 'Parry' });
+        }
+    }
     if (availableReactions.length > 0) {
         const timeRemaining = encounter.turnTimerEndsAt - Date.now();
         clearTimeout(encounter.turnTimerId);
@@ -271,7 +284,13 @@ export async function processCastSpell(io, party, player, payload) {
             }
         }
 
-        let targetPlayerState = encounter.playerStates.find(p => p.playerId === targetIndex);
+        // Handle self-targeting (e.g., 'player' or caster's own ID)
+        let targetPlayerState;
+        if (targetIndex === 'player' || targetIndex === player.id) {
+            targetPlayerState = actingPlayerState;
+        } else {
+            targetPlayerState = encounter.playerStates.find(p => p.playerId === targetIndex);
+        }
         if (!targetPlayerState) return;
 
         const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
