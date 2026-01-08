@@ -37,51 +37,65 @@ body {
 
 /* --- ZONE BACKGROUND IMAGES --- */
 #adventure-tab.zone-bg {
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
     position: relative;
 }
 
+/* Background image layer - covers entire viewport */
 #adventure-tab.zone-bg::before {
     content: '';
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.7) 100%);
+    width: 100vw;
+    height: 100vh;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: -2;
+}
+
+/* Dark overlay for readability */
+#adventure-tab.zone-bg::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.6) 100%);
     pointer-events: none;
     z-index: -1;
 }
 
-#adventure-tab.zone-farmlands {
+#adventure-tab.zone-farmlands::before {
     background-image: url('/assets/backgrounds/farmlands.png');
 }
 
-#adventure-tab.zone-goblinCaves {
+#adventure-tab.zone-goblinCaves::before {
     background-image: url('/assets/backgrounds/goblinCaves.png');
 }
 
-#adventure-tab.zone-town {
+#adventure-tab.zone-town::before {
     background-image: url('/assets/backgrounds/town.png');
 }
 
-#adventure-tab.zone-sewers {
+#adventure-tab.zone-sewers::before {
     background-image: url('/assets/backgrounds/sewers.png');
 }
 
-#adventure-tab.zone-arena {
+#adventure-tab.zone-arena::before {
     background-image: url('/assets/backgrounds/arena.png');
 }
 
-#adventure-tab.zone-blighted_wastes {
+#adventure-tab.zone-blighted_wastes::before {
     background-image: url('/assets/backgrounds/blighted_wastes.png');
 }
 
-#adventure-tab.zone-duel {
+#adventure-tab.zone-duel::before {
     background-image: url('/assets/backgrounds/duel.png');
 }
+
+/* --- END ZONE BACKGROUNDS --- */
 
 /* --- END ZONE BACKGROUNDS --- */
 
