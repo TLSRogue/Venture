@@ -321,20 +321,20 @@ body {
     background: linear-gradient(135deg, #34495e, #2c3e50);
     border: 2px solid var(--primary-color);
     border-radius: 12px;
-    padding: 15px;
+    padding: 0;
     cursor: pointer;
     transition: transform 0.4s ease, box-shadow 0.4s ease;
     text-align: center;
-    min-height: 120px;
+    min-height: 160px;
     position: relative;
     width: 220px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     transform-style: preserve-3d;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    /* Ensures content is centered */
+    justify-content: flex-start;
+    align-items: stretch;
+    overflow: hidden;
 }
 
 .card.empty {
@@ -407,13 +407,25 @@ body {
     font-size: 2.5em;
     margin-bottom: 10px;
     line-height: 1;
+    z-index: 1;
+    padding: 10px;
+}
+
+/* Hide icon when card has an image */
+.card:has(.card-image) .card-icon {
+    display: none;
 }
 
 .card-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
-    margin-bottom: 10px;
-    color: var(--primary-color);
+    padding: 8px 10px;
+    margin: 0;
+    color: #fff;
+    z-index: 1;
+    position: relative;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 100%);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 .card.enemy .card-title {
@@ -1561,11 +1573,14 @@ hr {
 
 /* Added for custom card images */
 .card-image {
-    width: 64px;
-    height: 64px;
-    object-fit: contain;
-    /* Ensures the image fits without being distorted */
-    margin-bottom: 10px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    border-radius: 10px;
 }
 
 /* --- Merchant Buy/Sell Tabs --- */
