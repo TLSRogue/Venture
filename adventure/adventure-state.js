@@ -470,6 +470,14 @@ export async function processEndAdventure(io, player, party) {
     const { sharedState } = party;
     if (!sharedState) return;
 
+    // Check if any party member is trapped - cannot flee while trapped
+    const trappedPlayer = sharedState.partyMemberStates?.find(p => !p.isDead && p.debuffs?.some(d => d.type === 'trap'));
+    if (trappedPlayer) {
+        sharedState.log.push({ message: `${trappedPlayer.name} is trapped and cannot flee!`, type: 'reaction' });
+        broadcastAdventureUpdate(io, party);
+        return;
+    }
+
     if (sharedState.pvpEncounterId) {
         const encounter = pvpEncounters[sharedState.pvpEncounterId];
         if (!encounter) return;
@@ -543,6 +551,14 @@ export async function processVentureDeeper(io, player, party) {
     if (player.character.characterName !== party.leaderId || !party.sharedState) return;
     const { sharedState } = party;
     const zoneName = sharedState.currentZone;
+
+    // Check if any party member is trapped - cannot flee while trapped
+    const trappedPlayer = sharedState.partyMemberStates?.find(p => !p.isDead && p.debuffs?.some(d => d.type === 'trap'));
+    if (trappedPlayer) {
+        sharedState.log.push({ message: `${trappedPlayer.name} is trapped and cannot flee!`, type: 'reaction' });
+        broadcastAdventureUpdate(io, party);
+        return;
+    }
     const proceedToNextArea = () => {
         sharedState.isLoadingNextArea = false;
         sharedState.zoneCards = [];
@@ -631,21 +647,30 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             await new Promise(resolve => setTimeout(resolve, 1000));
             let tookDotDamage = false;
 
-            // Process burn damage
+            // Process burn damage (Fire)
             const burnDebuff = enemy.debuffs.find(d => d.type === 'burn');
             if (burnDebuff) {
                 enemy.health -= burnDebuff.damage;
-                sharedState.log.push({ message: `${enemy.name} takes ${burnDebuff.damage} damage from Burn.`, type: 'damage' });
+                sharedState.log.push({ message: `${enemy.name} takes ${burnDebuff.damage} Fire damage from Burn.`, type: 'damage' });
                 burnDebuff.duration--;
                 tookDotDamage = true;
             }
 
-            // Process bleed damage
+            // Process bleed damage (Physical)
             const bleedDebuff = enemy.debuffs.find(d => d.type === 'bleed');
             if (bleedDebuff) {
                 enemy.health -= bleedDebuff.damage;
-                sharedState.log.push({ message: `${enemy.name} takes ${bleedDebuff.damage} damage from Bleed.`, type: 'damage' });
+                sharedState.log.push({ message: `${enemy.name} takes ${bleedDebuff.damage} Physical damage from Bleed.`, type: 'damage' });
                 bleedDebuff.duration--;
+                tookDotDamage = true;
+            }
+
+            // Process poison damage (Nature)
+            const poisonDebuff = enemy.debuffs.find(d => d.type === 'poison');
+            if (poisonDebuff) {
+                enemy.health -= poisonDebuff.damage;
+                sharedState.log.push({ message: `${enemy.name} takes ${poisonDebuff.damage} Nature damage from Poison.`, type: 'damage' });
+                poisonDebuff.duration--;
                 tookDotDamage = true;
             }
 
@@ -681,8 +706,16 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             }
             const targetPlayerObject = players[targetPlayerState.name];
             if (!targetPlayerObject) continue;
-            const roll = Math.floor(Math.random() * 20) + 1;
-            const attack = enemy.attackTable ? enemy.attackTable.find(a => roll >= a.range[0] && roll <= a.range[1]) : null;
+
+            // Apply Daze modifier to enemy roll (-3 to attack roll)
+            const dazeDebuff = enemy.debuffs.find(d => d.type === 'daze');
+            const dazeModifier = dazeDebuff ? -3 : 0;
+            let roll = Math.floor(Math.random() * 20) + 1;
+            const modifiedRoll = Math.max(1, roll + dazeModifier); // Minimum roll of 1
+            if (dazeDebuff && dazeModifier !== 0) {
+                sharedState.log.push({ message: `${enemy.name} is dazed! (-3 to attack roll)`, type: 'info' });
+            }
+            const attack = enemy.attackTable ? enemy.attackTable.find(a => modifiedRoll >= a.range[0] && modifiedRoll <= a.range[1]) : null;
             if (attack && attack.action === 'attack') {
                 const targetCharacter = targetPlayerObject.character;
                 let damageToDeal = attack.damage;
@@ -892,15 +925,35 @@ export function startNextPlayerTurn(io, partyId) {
             const bleedDebuff = p.debuffs.find(d => d.type === 'bleed');
             if (bleedDebuff) {
                 p.health -= bleedDebuff.damage;
-                sharedState.log.push({ message: `${p.name} takes ${bleedDebuff.damage} damage from Bleed.`, type: 'damage' });
+                sharedState.log.push({ message: `${p.name} takes ${bleedDebuff.damage} Physical damage from Bleed.`, type: 'damage' });
             }
             const burnDebuff = p.debuffs.find(d => d.type === 'burn');
             if (burnDebuff) {
                 p.health -= burnDebuff.damage;
-                sharedState.log.push({ message: `${p.name} takes ${burnDebuff.damage} damage from Burn.`, type: 'damage' });
+                sharedState.log.push({ message: `${p.name} takes ${burnDebuff.damage} Fire damage from Burn.`, type: 'damage' });
+            }
+            const poisonDebuff = p.debuffs.find(d => d.type === 'poison');
+            if (poisonDebuff) {
+                p.health -= poisonDebuff.damage;
+                sharedState.log.push({ message: `${p.name} takes ${poisonDebuff.damage} Nature damage from Poison.`, type: 'damage' });
             }
 
-            p.actionPoints = 3;
+            // Check if DOT killed the player
+            if (p.health <= 0) {
+                p.isDead = true;
+                p.turnEnded = true;
+                sharedState.log.push({ message: `${p.name} has succumbed to their wounds!`, type: 'damage' });
+                return;
+            }
+
+            // Check for Stun - reduces AP by 1
+            const stunDebuff = p.debuffs.find(d => d.type === 'stun');
+            if (stunDebuff) {
+                p.actionPoints = 2; // 3 - 1 = 2 AP due to stun
+                sharedState.log.push({ message: `${p.name} is stunned and starts with reduced Action Points!`, type: 'reaction' });
+            } else {
+                p.actionPoints = 3;
+            }
             p.turnEnded = false;
         }
         p.buffs.forEach(b => b.duration--);
