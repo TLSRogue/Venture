@@ -2,6 +2,7 @@
 export const craftingRecipes = [
     { result: { name: "Iron Arrows", quantity: 10 }, materials: { "Iron": 1, "Feather": 1, "Wood": 1 }, category: "Fletching" },
     { result: { name: "Longbow" }, materials: { "Cow Hide": 1, "Wood": 2 }, category: "Fletching" },
+    { result: { name: "Iron Crossbow" }, materials: { "Wood": 1, "Iron": 2 }, category: "Fletching" },
     { result: { name: "Cooked Fish" }, materials: { "Fish": 1, "Spices": 1 }, category: "Cooking" },
     { result: { name: "Cooked Pork" }, materials: { "Pork": 1, "Spices": 1 }, category: "Cooking" },
     { result: { name: "Cooked Chicken" }, materials: { "Raw Chicken": 1, "Spices": 1 }, category: "Cooking" },
