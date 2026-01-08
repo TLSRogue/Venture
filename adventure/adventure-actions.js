@@ -49,6 +49,7 @@ function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlaye
             targetName: defendingPlayerState.name,
             damage: actionDetails.damage,
             damageType: actionDetails.damageType,
+            attackRange: actionDetails.attackRange,
             message: actionDetails.message,
             debuff: actionDetails.debuff || null,
             isFleeing: false
@@ -95,6 +96,7 @@ export async function processWeaponAttack(io, party, player, payload) {
         const actionDetails = {
             damage: weapon.weaponDamage,
             damageType: weapon.damageType,
+            attackRange: weapon.range,
             message: `attacks with ${weapon.name}.`,
             debuff: null,
         };
@@ -279,6 +281,7 @@ export async function processCastSpell(io, party, player, payload) {
         const dazeModifier = dazeDebuff ? -3 : 0;
         const roll = Math.floor(Math.random() * 20) + 1;
         const total = roll + statValue + dazeModifier;
+        const hitTarget = spell.hit || 15;
         const isSuccess = roll !== 1 && total >= hitTarget;
         const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
         const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
@@ -297,6 +300,7 @@ export async function processCastSpell(io, party, player, payload) {
                 const actionDetails = {
                     damage: spell.damage || (spell.baseEffect ? spell.baseEffect + statValue : 0),
                     damageType: spell.damageType,
+                    attackRange: spell.range,
                     message: `is targeted by ${spell.name}.`,
                     debuff: spell.debuff || null,
                 };

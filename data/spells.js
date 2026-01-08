@@ -274,11 +274,11 @@ export const allSpells = [
         cooldown: 2,
         school: "Physical",
         range: "ranged",
-        description: "Leap back to evade an attack while loosing an arrow at your attacker. Requires Bow. 2 CD | D20+Agi (10+ dodge, 15+ counter) | Avoid attack and counter.",
+        description: "Leap back to evade an attack while loosing a shot at your attacker. Requires Bow or Crossbow. 2 CD | D20+Agi (10+ dodge, 15+ counter) | Avoid attack and counter.",
         type: "reaction",
         stat: "agility",
         damageType: 'Physical',
-        requires: { weaponType: ["Two-Hand Bow"] },
+        requires: { weaponType: ["Two-Hand Bow", "One-Hand Crossbow"] },
         reactionDetails: {
             avoidHit: 10,
             counterHit: 15,
