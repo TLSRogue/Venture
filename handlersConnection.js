@@ -10,6 +10,7 @@ import { players, parties, duels, pvpEncounters, createInitialCharacter } from '
 import { broadcastOnlinePlayers, broadcastPartyUpdate, broadcastDuelUpdate, broadcastAdventureUpdate } from './utilsBroadcast.js';
 import { endDuel } from './handlersDuel.js';
 import { handlePvpPlayerDeath } from './adventure/adventure-state.js';
+import { gameData } from './data/index.js';
 import fs from 'fs';
 import { DUEL_DISCONNECT_MS } from './constants.js';
 
@@ -59,6 +60,28 @@ export const registerConnectionHandlers = (io, socket) => {
                 console.log(`Extended inventory from ${originalLength} to 28 slots for ${name} on login.`);
             }
             // --- END INVENTORY SIZE FIX ---
+
+            // --- SPELL MIGRATION FIX: Refresh spells from server data ---
+            // This ensures players don't have broken/outdated versions of spells (like Evasive Shot)
+            // stored in their localStorage.
+            const refreshSpells = (spellList) => {
+                if (!spellList) return [];
+                return spellList.map(oldSpell => {
+                    const latestSpell = gameData.spells.find(s => s.name === oldSpell.name);
+                    // If we find the latest version, verify it works. If not (removed spell?), keep old one or filter?
+                    // Ideally keep old one to avoid data loss, but replace if found.
+                    return latestSpell ? { ...latestSpell } : oldSpell;
+                });
+            };
+
+            if (characterDataFromClient.learnedSpells) {
+                characterDataFromClient.learnedSpells = refreshSpells(characterDataFromClient.learnedSpells);
+            }
+            if (characterDataFromClient.equippedSpells) {
+                characterDataFromClient.equippedSpells = refreshSpells(characterDataFromClient.equippedSpells);
+            }
+            console.log(`Refreshed definitions for ${characterDataFromClient.learnedSpells?.length || 0} learned spells for ${name}.`);
+            // --- END SPELL MIGRATION FIX ---
 
             players[name] = { id: socket.id, character: characterDataFromClient };
             socket.characterName = name;
