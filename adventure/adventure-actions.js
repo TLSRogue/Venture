@@ -117,8 +117,10 @@ export async function processWeaponAttack(io, party, player, payload) {
         const statValue = (character[stat] || 0) + (bonuses[stat] || 0);
         const dazeDebuff = actingPlayerState.debuffs.find(d => d.type === 'daze');
         const dazeModifier = dazeDebuff ? -3 : 0;
+        const focusBuff = actingPlayerState.buffs.find(b => b.type === 'Focus');
+        const focusModifier = focusBuff ? focusBuff.bonus.rollBonus : 0;
         const roll = Math.floor(Math.random() * 20) + 1;
-        const total = roll + statValue + dazeModifier;
+        const total = roll + statValue + dazeModifier + focusModifier;
         const hitTarget = weapon.hit || 15;
 
         const isHit = roll !== 1 && total >= hitTarget;
@@ -247,6 +249,22 @@ export async function processCastSpell(io, party, player, payload) {
             return;
         }
 
+        if (spell.requires && spell.requires.weaponType) {
+            const mainHand = character.equipment.mainHand;
+            const offHand = character.equipment.offHand;
+
+            const hasRequiredWeapon = (hand) => {
+                if (!hand) return false;
+                return Array.isArray(spell.requires.weaponType) && spell.requires.weaponType.includes(hand.weaponType);
+            };
+
+            if (spell.requires.hand) {
+                if (!hasRequiredWeapon(character.equipment[spell.requires.hand])) return;
+            } else {
+                if (!hasRequiredWeapon(mainHand) && !hasRequiredWeapon(offHand)) return;
+            }
+        }
+
         let targetPlayerState = encounter.playerStates.find(p => p.playerId === targetIndex);
         if (!targetPlayerState) return;
 
@@ -279,8 +297,10 @@ export async function processCastSpell(io, party, player, payload) {
 
         const dazeDebuff = actingPlayerState.debuffs.find(d => d.type === 'daze');
         const dazeModifier = dazeDebuff ? -3 : 0;
+        const focusBuff = actingPlayerState.buffs.find(b => b.type === 'Focus');
+        const focusModifier = focusBuff ? focusBuff.bonus.rollBonus : 0;
         const roll = Math.floor(Math.random() * 20) + 1;
-        const total = roll + statValue + dazeModifier;
+        const total = roll + statValue + dazeModifier + focusModifier;
         const hitTarget = spell.hit || 15;
         const isSuccess = roll !== 1 && total >= hitTarget;
         const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
@@ -295,6 +315,27 @@ export async function processCastSpell(io, party, player, payload) {
             encounter.log.push({ message: description, type: 'damage' });
         } else {
             encounter.log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' ? 'heal' : 'damage' });
+
+            actingPlayerState.threat += cost;
+            if (spell.bonusThreat) {
+                actingPlayerState.threat += spell.bonusThreat;
+                encounter.log.push({ message: `${character.characterName} generates ${spell.bonusThreat} bonus threat!`, type: 'reaction' });
+            }
+
+            if (spell.name === "Monk's Training") {
+                const focusAmount = actingPlayerState.focus || 0;
+                if (focusAmount > 0) {
+                    actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + focusAmount);
+                    const buff = { type: 'Focus', duration: 2, bonus: { rollBonus: focusAmount } };
+                    const existingIndex = actingPlayerState.buffs.findIndex(b => b.type === buff.type);
+                    if (existingIndex !== -1) actingPlayerState.buffs.splice(existingIndex, 1);
+                    actingPlayerState.buffs.push(buff);
+                    encounter.log.push({ message: `${character.characterName} spends ${focusAmount} Focus to heal for ${focusAmount} and gain +${focusAmount} to rolls this turn.`, type: 'heal' });
+                    actingPlayerState.focus = 0;
+                } else {
+                    encounter.log.push({ message: `${character.characterName} has no Focus to spend!`, type: 'info' });
+                }
+            }
 
             if (spell.type === 'attack' || (spell.type === 'versatile' && targetPlayerState.team !== actingPlayerState.team)) {
                 const actionDetails = {
@@ -325,12 +366,49 @@ export async function processCastSpell(io, party, player, payload) {
             } else if (spell.type === 'attack') {
                 let damageToDeal = spell.damage || 0;
 
+                if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
+                    const mainHand = character.equipment.mainHand;
+                    const offHand = character.equipment.offHand;
+                    let highestFireWeaponDamage = 0;
+                    if (mainHand && mainHand.weaponDamage && mainHand.damageType === 'Fire') {
+                        highestFireWeaponDamage = mainHand.weaponDamage;
+                    }
+                    if (offHand && offHand.weaponDamage && offHand.damageType === 'Fire' && mainHand !== offHand) {
+                        if (offHand.weaponDamage > highestFireWeaponDamage) {
+                            highestFireWeaponDamage = offHand.weaponDamage;
+                        }
+                    }
+                    damageToDeal = 1 + highestFireWeaponDamage;
+                }
                 // Special handling for bow spells that use weapon damage
-                if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
+                else if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
                     const mainHand = character.equipment.mainHand;
                     if (mainHand && mainHand.weaponDamage && spell.requires?.weaponType?.includes(mainHand.weaponType)) {
                         damageToDeal = mainHand.weaponDamage;
                     }
+                }
+                // Ambush Logic
+                else if (spell.name === 'Ambush') {
+                    const hands = ['mainHand', 'offHand'];
+                    let totalDaggerDamage = 0;
+                    hands.forEach(hand => {
+                        const weapon = character.equipment[hand];
+                        if (weapon && weapon.weaponType === 'Dagger') {
+                            totalDaggerDamage += weapon.weaponDamage || 0;
+                        }
+                    });
+                    damageToDeal = totalDaggerDamage;
+                    if (!spell.debuff) {
+                        spell.debuff = { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' };
+                    }
+                }
+                // Monk Logic
+                else if (spell.name === 'Punch' || spell.name === 'Kick') {
+                    if (character.equippedSpells.some(s => s.name === "Monk's Training") && !character.equipment.mainHand && !character.equipment.offHand) {
+                        damageToDeal += 1;
+                    }
+                } else if (spell.name === 'Crushing Blow') {
+                    damageToDeal = character.equipment.mainHand.weaponDamage + (spell.damageBonus || 0);
                 }
 
                 const originalDamage = damageToDeal;
@@ -351,6 +429,14 @@ export async function processCastSpell(io, party, player, payload) {
                     const existingIndex = targetPlayerState.debuffs.findIndex(d => d.type === debuff.type);
                     if (existingIndex !== -1) targetPlayerState.debuffs.splice(existingIndex, 1);
                     targetPlayerState.debuffs.push({ ...debuff });
+                }
+
+                // Monk Focus Gain on hit
+                if ((spell.name === 'Punch' || spell.name === 'Kick') && character.equippedSpells.some(s => s.name === "Monk's Training") && !character.equipment.mainHand && !character.equipment.offHand) {
+                    if ((actingPlayerState.focus || 0) < 3) {
+                        actingPlayerState.focus = (actingPlayerState.focus || 0) + 1;
+                        encounter.log.push({ message: `${character.characterName} gains 1 Focus.`, type: 'heal' });
+                    }
                 }
             }
             if (targetPlayerState.health <= 0) {
