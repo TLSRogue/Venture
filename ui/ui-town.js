@@ -8,6 +8,7 @@ import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js'; /
 // --- LOCAL STATE & HELPERS ---
 
 let activeCraftingCategory = 'Blacksmithing';
+let activeCraftingSubtab = null;
 let activeTrainerCategory = 'Physical';
 let merchantTimerInterval = null;
 let bankCurrentPage = 1;
@@ -308,60 +309,89 @@ export function renderCrafting() {
         categoriesContainer.appendChild(tab);
     });
 
-    const recipesToDisplay = gameData.craftingRecipes.filter(r => r.category === activeCraftingCategory);
+    // Get recipes for active category
+    const recipesInCategory = gameData.craftingRecipes.filter(r => r.category === activeCraftingCategory);
 
-    recipesToDisplay.forEach((recipe, index) => {
+    // Determine subtabs based on result item types
+    const subtabMap = {};
+    recipesInCategory.forEach(recipe => {
         if (recipe.requiresDiscovery && !gameState.knownRecipes.includes(recipe.result.name)) {
-            return;
+            return; // Skip hidden recipes
         }
+        const resultItem = gameData.allItems.find(i => i.name === recipe.result.name);
+        let subtab = 'Other';
+        if (resultItem) {
+            if (resultItem.type === 'weapon') subtab = 'Weapons';
+            else if (resultItem.type === 'armor' || resultItem.type === 'shield') subtab = 'Armor';
+            else if (resultItem.type === 'arrows') subtab = 'Ammo';
+            else if (resultItem.type === 'consumable') subtab = 'Food';
+            else if (resultItem.type === 'material') subtab = 'Materials';
+        }
+        if (!subtabMap[subtab]) subtabMap[subtab] = [];
+        subtabMap[subtab].push(recipe);
+    });
 
+    const subtabNames = Object.keys(subtabMap);
+
+    // If no active subtab or it doesn't exist, select the first one
+    if (!activeCraftingSubtab || !subtabMap[activeCraftingSubtab]) {
+        activeCraftingSubtab = subtabNames[0] || null;
+    }
+
+    // Render subtabs
+    if (subtabNames.length > 1) {
+        const subtabContainer = document.createElement('div');
+        subtabContainer.className = 'crafting-subtabs';
+        subtabNames.forEach(subtab => {
+            const btn = document.createElement('button');
+            btn.className = `subtab-btn ${activeCraftingSubtab === subtab ? 'active' : ''}`;
+            btn.dataset.subtab = subtab;
+            btn.textContent = subtab;
+            subtabContainer.appendChild(btn);
+        });
+        gridContainer.appendChild(subtabContainer);
+    }
+
+    // Render recipes as compact rows
+    const recipesToDisplay = subtabMap[activeCraftingSubtab] || [];
+
+    recipesToDisplay.forEach((recipe) => {
         const recipeEl = document.createElement('div');
-        recipeEl.className = 'crafting-item';
-
-        let materialsList = '<ul>';
-        for (const material in recipe.materials) {
-            materialsList += `<li>${recipe.materials[material]}x ${material}</li>`;
-        }
-        materialsList += '</ul>';
+        recipeEl.className = 'crafting-row';
 
         const canCraft = hasMaterials(recipe.materials);
         const resultItem = gameData.allItems.find(i => i.name === recipe.result.name);
+        const recipeIndex = gameData.craftingRecipes.indexOf(recipe);
 
         recipeEl.innerHTML = `
-            <div class="crafting-item-header">
-                <div class="item-icon">${resultItem.icon || '❓'}</div>
-                <h4>${recipe.result.quantity || 1}x ${recipe.result.name}</h4>
+            <div class="crafting-row-info">
+                <span class="crafting-row-icon">${resultItem?.icon || '❓'}</span>
+                <span class="crafting-row-name">${recipe.result.quantity > 1 ? recipe.result.quantity + 'x ' : ''}${recipe.result.name}</span>
             </div>
-            <p>Requires:</p>
-            ${materialsList}
-            <button class="btn btn-success" data-craft-index="${gameData.craftingRecipes.indexOf(recipe)}" ${!canCraft ? 'disabled' : ''}>Craft</button>
+            <button class="btn btn-sm btn-success" data-craft-index="${recipeIndex}" ${!canCraft ? 'disabled' : ''}>Craft</button>
         `;
 
-        recipeEl.addEventListener('mousemove', (e) => {
-            if (e.altKey) {
-                let breakdown = `<strong>${resultItem.name}</strong><br>${resultItem.description}`;
-                if (resultItem.bonus) {
-                    breakdown += '<hr style="margin: 5px 0;"><strong>Bonuses:</strong><br>';
-                    for (const stat in resultItem.bonus) {
-                        breakdown += `${stat.charAt(0).toUpperCase() + stat.slice(1)}: +${resultItem.bonus[stat]}<br>`;
-                    }
-                }
-                if (resultItem.type === 'weapon') {
-                    breakdown += `<hr style="margin: 5px 0;"><strong>Ability:</strong><br>`;
-                    breakdown += `Cost: ${resultItem.cost} AP | CD: ${resultItem.cooldown}<br>`;
-                    const statName = (resultItem.stat || 'strength').charAt(0).toUpperCase() + (resultItem.stat || 'strength').slice(1);
-                    breakdown += `Roll: D20 + ${statName} (${resultItem.hit}+)<br>`;
-                    breakdown += `Deals ${resultItem.weaponDamage} ${resultItem.damageType} Damage.`;
-                    if (resultItem.onCrit && resultItem.onCrit.debuff) {
-                        breakdown += `<br>On Crit (20): Apply ${resultItem.onCrit.debuff.type}.`;
-                    }
-                }
-                if (resultItem.traits) {
-                    breakdown += `<hr style="margin: 5px 0;"><strong>Traits:</strong> ${resultItem.traits.join(', ')}`;
-                }
-                showTooltip(breakdown);
+        // Build tooltip content
+        let tooltipContent = `<strong>${resultItem?.name || recipe.result.name}</strong>`;
+        if (resultItem?.description) {
+            tooltipContent += `<br>${resultItem.description}`;
+        }
+        tooltipContent += `<hr style="margin: 5px 0;"><strong>Materials:</strong><br>`;
+        for (const material in recipe.materials) {
+            tooltipContent += `• ${recipe.materials[material]}x ${material}<br>`;
+        }
+        if (resultItem?.bonus) {
+            tooltipContent += `<hr style="margin: 5px 0;"><strong>Bonuses:</strong><br>`;
+            for (const stat in resultItem.bonus) {
+                tooltipContent += `${stat.charAt(0).toUpperCase() + stat.slice(1)}: +${resultItem.bonus[stat]}<br>`;
             }
-        });
+        }
+        if (resultItem?.type === 'weapon') {
+            tooltipContent += `<hr style="margin: 5px 0;"><strong>Weapon:</strong><br>`;
+            tooltipContent += `${resultItem.weaponDamage} ${resultItem.damageType} Dmg`;
+        }
+
+        recipeEl.addEventListener('mouseenter', () => showTooltip(tooltipContent));
         recipeEl.addEventListener('mouseleave', () => hideTooltip());
 
         gridContainer.appendChild(recipeEl);
@@ -437,27 +467,52 @@ export function renderTrainer() {
 
     spellsToDisplay.forEach(spell => {
         const spellEl = document.createElement('div');
-        spellEl.className = 'trainer-item';
+        spellEl.className = 'trainer-row';
 
         const knowsSpell = gameState.spellbook.some(s => s.name === spell.name) || gameState.equippedSpells.some(s => s.name === spell.name);
         const canAfford = gameState.gold >= spell.price;
 
-        let buttonHTML = `<button class="btn btn-success" data-spell-name="${spell.name}" ${knowsSpell || !canAfford ? 'disabled' : ''}>Learn (${spell.price}g)</button>`;
+        let buttonHTML = `<button class="btn btn-sm btn-success" data-spell-name="${spell.name}" ${knowsSpell || !canAfford ? 'disabled' : ''}>Learn (${spell.price}g)</button>`;
         if (knowsSpell) {
-            buttonHTML = `<button class="btn" disabled>Already Known</button>`;
+            buttonHTML = `<button class="btn btn-sm" disabled>Known</button>`;
         }
 
         spellEl.innerHTML = `
-            <h4>${spell.icon || '✨'} ${spell.name}</h4>
-            <p>${spell.description}</p>
+            <div class="trainer-row-info">
+                <span class="trainer-row-icon">${spell.icon || '✨'}</span>
+                <span class="trainer-row-name">${spell.name}</span>
+            </div>
             ${buttonHTML}
         `;
+
+        // Build tooltip content
+        let tooltipContent = `<strong>${spell.name}</strong>`;
+        tooltipContent += `<br>${spell.description}`;
+        if (spell.cost !== undefined) {
+            tooltipContent += `<hr style="margin: 5px 0;">`;
+            tooltipContent += `<strong>Cost:</strong> ${spell.cost} AP`;
+        }
+        if (spell.cooldown !== undefined) {
+            tooltipContent += ` | <strong>CD:</strong> ${spell.cooldown}`;
+        }
+        if (spell.type) {
+            tooltipContent += `<br><strong>Type:</strong> ${spell.type}`;
+        }
+
+        spellEl.addEventListener('mouseenter', () => showTooltip(tooltipContent));
+        spellEl.addEventListener('mouseleave', () => hideTooltip());
+
         gridContainer.appendChild(spellEl);
     });
 }
 
 export function setActiveCraftingCategory(category) {
     activeCraftingCategory = category;
+    activeCraftingSubtab = null; // Reset subtab when category changes
+}
+
+export function setActiveCraftingSubtab(subtab) {
+    activeCraftingSubtab = subtab;
 }
 
 export function setActiveTrainerCategory(category) {

@@ -530,6 +530,86 @@ body {
     border-color: #1abc9c;
 }
 
+/* --- COMPACT ROW LAYOUTS FOR CRAFTING & TRAINER --- */
+.crafting-subtabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.subtab-btn {
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ccc;
+    cursor: pointer;
+    border-radius: 15px;
+    font-size: 0.85em;
+    transition: all 0.2s ease;
+}
+
+.subtab-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.subtab-btn.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+}
+
+.crafting-row,
+.trainer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    transition: background 0.2s ease;
+}
+
+.crafting-row {
+    background: rgba(155, 89, 182, 0.2);
+    border: 1px solid rgba(155, 89, 182, 0.4);
+}
+
+.crafting-row:hover {
+    background: rgba(155, 89, 182, 0.35);
+}
+
+.trainer-row {
+    background: rgba(26, 188, 156, 0.15);
+    border: 1px solid rgba(26, 188, 156, 0.3);
+}
+
+.trainer-row:hover {
+    background: rgba(26, 188, 156, 0.3);
+}
+
+.crafting-row-info,
+.trainer-row-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.crafting-row-icon,
+.trainer-row-icon {
+    font-size: 1.6em;
+    line-height: 1;
+}
+
+.crafting-row-name,
+.trainer-row-name {
+    font-weight: 600;
+    font-size: 1em;
+}
+
+/* --- END COMPACT ROW LAYOUTS --- */
+
 .spell-card.reaction {
     border-color: var(--accent-color);
 }

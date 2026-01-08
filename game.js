@@ -639,6 +639,12 @@ function addEventListeners() {
                 UIPlayer.renderAll();
                 return;
             }
+            if (button.matches('.subtab-btn')) {
+                const subtab = button.dataset.subtab;
+                UITown.setActiveCraftingSubtab(subtab);
+                UIPlayer.renderAll();
+                return;
+            }
 
             if (button.id === 'info-ok-btn') return UIMain.hideModal();
             if (button.id === 'end-turn-btn') return gameState.inDuel ? Network.emitDuelAction({ type: 'endTurn' }) : Combat.endTurn();
