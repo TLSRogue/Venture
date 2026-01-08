@@ -12,7 +12,7 @@ export const cardPools = {
                 imageUrl: '/assets/raging-bull.png', // <<< Add this line
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The bull snorts and misses!" },
-                    { range: [4, 12], action: 'attack', damage: 3, damageType: 'Physical', message: "Charge! Deals 3 Physical Damage!" },
+                    { range: [4, 12], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Charge! Deals 3 Physical Damage!" },
                     { range: [13, 20], action: 'special', message: "Thick Hide! Gain 1 Physical Resistance until the next Zone Turn then make another action!" }
                 ],
                 guaranteedLoot: { items: ["Bull Horn", "Cow Hide", "Cow Hide"] }
@@ -62,8 +62,8 @@ export const cardPools = {
                 name: "Chicken", type: "enemy", health: 2, maxHealth: 2, description: "A feisty farm chicken", icon: "🐔",
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
-                    { range: [4, 15], action: 'attack', damage: 1, damageType: 'Physical', message: "Peck! Deals 1 Physical Damage!" },
-                    { range: [16, 20], action: 'attack', damage: 2, damageType: 'Physical', message: "Eye Gouge! Deals 2 Physical Damage!" }
+                    { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 1, damageType: 'Physical', message: "Peck! Deals 1 Physical Damage!" },
+                    { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Eye Gouge! Deals 2 Physical Damage!" }
                 ],
                 guaranteedLoot: { items: ["Raw Chicken"] },
                 lootTable: [
@@ -78,8 +78,8 @@ export const cardPools = {
                 name: "Pig", type: "enemy", health: 3, maxHealth: 3, description: "A muddy pig", icon: "🐷",
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
-                    { range: [4, 15], action: 'attack', damage: 1, damageType: 'Physical', message: "Slam! Deals 1 Physical Damage!" },
-                    { range: [16, 20], action: 'attack', damage: 2, damageType: 'Physical', message: "Headbutt! Deals 2 Physical Damage!" }
+                    { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 1, damageType: 'Physical', message: "Slam! Deals 1 Physical Damage!" },
+                    { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Headbutt! Deals 2 Physical Damage!" }
                 ],
                 guaranteedLoot: { items: ["Pork"] },
                 lootTable: [
@@ -93,8 +93,8 @@ export const cardPools = {
                 name: "Cow", type: "enemy", health: 4, maxHealth: 4, description: "A gentle cow", icon: "🐮",
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
-                    { range: [4, 15], action: 'attack', damage: 2, damageType: 'Physical', message: "Kick! Deals 2 Physical Damage!" },
-                    { range: [16, 20], action: 'attack', damage: 2, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Press! Deals 2 Physical Damage and applies Daze!" }
+                    { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Kick! Deals 2 Physical Damage!" },
+                    { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Press! Deals 2 Physical Damage and applies Daze!" }
                 ],
                 guaranteedLoot: { items: ["Cow Hide"] },
                 lootTable: [
@@ -108,8 +108,8 @@ export const cardPools = {
                 name: "Angry Farmhand", type: "enemy", health: 4, maxHealth: 4, description: "An angry local. Wants you off his land.", icon: "🧑‍🌾",
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
-                    { range: [4, 15], action: 'attack', damage: 2, damageType: 'Physical', message: "Stab! Deals 2 Physical Damage!" },
-                    { range: [16, 20], action: 'attack', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Slash! Deals 2 Physical Damage and applies Bleed!" }
+                    { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Stab! Deals 2 Physical Damage!" },
+                    { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Slash! Deals 2 Physical Damage and applies Bleed!" }
                 ],
                 guaranteedLoot: { gold: true, items: ["Cloth"] },
                 lootTable: [
@@ -135,8 +135,8 @@ export const cardPools = {
                 icon: "👺",
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The King stumbles on his royal robes. Miss!" },
-                    { range: [4, 10], action: 'attack', damage: 4, damageType: 'Physical', message: "Royal Mace! Deals 4 Physical Damage!" },
-                    { range: [11, 15], action: 'attack', damage: 5, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Crushing Blow! Deals 5 Physical Damage and Dazes!" },
+                    { range: [4, 10], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Royal Mace! Deals 4 Physical Damage!" },
+                    { range: [11, 15], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Crushing Blow! Deals 5 Physical Damage and Dazes!" },
                     { range: [16, 20], action: 'special', message: "FOR THE HORDE! Gorbon rallies his minions!" }
                 ],
                 guaranteedLoot: { gold: true, items: ["Gold Nugget", "Gold Nugget", "Gold Nugget"] },
@@ -174,8 +174,8 @@ export const cardPools = {
                 icon: "👺",
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The Shaman's hex fizzles. Miss!" },
-                    { range: [4, 12], action: 'attack', damage: 3, damageType: 'Nature', message: "Hex! Deals 3 Nature Damage!" },
-                    { range: [13, 17], action: 'attack', damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Toxic Curse! Deals 2 Nature Damage and Poisons!" },
+                    { range: [4, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Nature', message: "Hex! Deals 3 Nature Damage!" },
+                    { range: [13, 17], action: 'attack', attackRange: 'ranged', damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Toxic Curse! Deals 2 Nature Damage and Poisons!" },
                     { range: [18, 20], action: 'special', message: "The Shaman chants and heals an ally!" }
                 ],
                 guaranteedLoot: { gold: true },
@@ -196,9 +196,9 @@ export const cardPools = {
                 icon: "👺",
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The arrow whizzes past. Miss!" },
-                    { range: [4, 12], action: 'attack', damage: 3, damageType: 'Physical', message: "Barbed Arrow! Deals 3 Physical Damage!" },
-                    { range: [13, 17], action: 'attack', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Serrated Arrow! Deals 2 Physical Damage and causes Bleed!" },
-                    { range: [18, 20], action: 'attack', damage: 4, damageType: 'Physical', debuff: { type: 'trap', duration: 1 }, message: "Net Trap! Deals 4 Physical Damage and Traps you!" }
+                    { range: [4, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Physical', message: "Barbed Arrow! Deals 3 Physical Damage!" },
+                    { range: [13, 17], action: 'attack', attackRange: 'ranged', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Serrated Arrow! Deals 2 Physical Damage and causes Bleed!" },
+                    { range: [18, 20], action: 'attack', attackRange: 'ranged', damage: 4, damageType: 'Physical', debuff: { type: 'trap', duration: 1 }, message: "Net Trap! Deals 4 Physical Damage and Traps you!" }
                 ],
                 guaranteedLoot: { gold: true },
                 lootTable: [
@@ -218,9 +218,9 @@ export const cardPools = {
                 icon: "👺",
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The warrior swings wildly. Miss!" },
-                    { range: [4, 12], action: 'attack', damage: 4, damageType: 'Physical', message: "Brutal Swing! Deals 4 Physical Damage!" },
-                    { range: [13, 17], action: 'attack', damage: 3, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Headbutt! Deals 3 Physical Damage and Dazes!" },
-                    { range: [18, 20], action: 'attack', damage: 5, damageType: 'Physical', message: "Overhead Smash! Deals 5 Physical Damage!" }
+                    { range: [4, 12], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Brutal Swing! Deals 4 Physical Damage!" },
+                    { range: [13, 17], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Headbutt! Deals 3 Physical Damage and Dazes!" },
+                    { range: [18, 20], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', message: "Overhead Smash! Deals 5 Physical Damage!" }
                 ],
                 guaranteedLoot: { gold: true },
                 lootTable: [
@@ -282,7 +282,7 @@ export const cardPools = {
                 name: "Mugger", type: "enemy", health: 6, maxHealth: 6, description: "A shady figure eyes your coin purse.", icon: "👤",
                 attackTable: [
                     { range: [1, 6], action: 'miss', message: "Miss!" },
-                    { range: [7, 15], action: 'attack', damage: 1, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Stab! Deals 1 Physical Damage and Bleed!" },
+                    { range: [7, 15], action: 'attack', attackRange: 'melee', damage: 1, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Stab! Deals 1 Physical Damage and Bleed!" },
                     { range: [16, 20], action: 'special', message: "The mugger offers you a deal..." }
                 ],
                 lootTable: [
@@ -300,7 +300,7 @@ export const cardPools = {
             card: {
                 name: "Rat", type: "enemy", health: 3, maxHealth: 3, icon: "🐀", attackTable: [
                     { range: [1, 10], action: 'miss', message: "Miss!" },
-                    { range: [11, 20], action: 'attack', damage: 1, damageType: 'Physical', message: "Bite! Deals 1 Physical Damage!" }
+                    { range: [11, 20], action: 'attack', attackRange: 'melee', damage: 1, damageType: 'Physical', message: "Bite! Deals 1 Physical Damage!" }
                 ]
             }, count: 10
         },
@@ -308,7 +308,7 @@ export const cardPools = {
             card: {
                 name: "Large Rat", type: "enemy", health: 5, maxHealth: 5, icon: "🐀", attackTable: [
                     { range: [1, 10], action: 'miss', message: "Miss!" },
-                    { range: [11, 20], action: 'attack', damage: 2, damageType: 'Physical', message: "Maul! Deals 2 Physical Damage!" }
+                    { range: [11, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Maul! Deals 2 Physical Damage!" }
                 ]
             }, count: 5
         },
@@ -317,8 +317,8 @@ export const cardPools = {
                 name: "The Rat King", type: "enemy", health: 20, maxHealth: 20, description: "A horrifying amalgamation of rats.", icon: "👑",
                 attackTable: [
                     { range: [1, 5], action: 'miss', message: "Miss!" },
-                    { range: [6, 10], action: 'attack', damage: 3, damageType: 'Physical', message: "Gnaw! Deals 3 Physical Damage!" },
-                    { range: [11, 15], action: 'attack', damage: 2, damageType: 'Physical', debuff: { type: 'poison', duration: 3, damage: 2, damageType: 'Nature' }, message: "Diseased Bite! Deals 2 Physical Damage and Poisons you!" },
+                    { range: [6, 10], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Gnaw! Deals 3 Physical Damage!" },
+                    { range: [11, 15], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', debuff: { type: 'poison', duration: 3, damage: 2, damageType: 'Nature' }, message: "Diseased Bite! Deals 2 Physical Damage and Poisons you!" },
                     { range: [16, 20], action: 'special', message: "The Rat King shrieks and another rat appears!" }
                 ],
                 guaranteedLoot: { gold: true, items: ["Rat Tail Cloak"] }
@@ -333,8 +333,8 @@ export const cardPools = {
                 arenaReward: 100,
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
-                    { range: [4, 7], action: 'attack', damage: 3, damageType: 'Fire', message: "Bomb Toss! Deals 3 Fire Damage!" },
-                    { range: [8, 12], action: 'attack', damage: 3, damageType: 'Arcane', debuff: { type: 'daze', duration: 2 }, message: "Flash Bang! Deals 3 Arcane Damage and Dazes you!" },
+                    { range: [4, 7], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Fire', message: "Bomb Toss! Deals 3 Fire Damage!" },
+                    { range: [8, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Arcane', debuff: { type: 'daze', duration: 2 }, message: "Flash Bang! Deals 3 Arcane Damage and Dazes you!" },
                     { range: [13, 15], action: 'special', message: "A Quick Fix! Pulvis Cadus heals and prepares his next move." },
                     { range: [16, 20], action: 'special', message: "Pulvis Cadus throws out some unstable kegs!" }
                 ],
@@ -369,8 +369,8 @@ export const cardPools = {
                 name: "Ashfang Stalker", type: "enemy", health: 18, maxHealth: 18, description: "A shadowy beast that moves through the ash.", icon: "🐺",
                 attackTable: [
                     { range: [1, 5], action: 'miss', message: "Misses!" },
-                    { range: [6, 15], action: 'attack', damage: 4, damageType: 'Physical', message: "Claw! Deals 4 Physical Damage!" },
-                    { range: [16, 20], action: 'attack', damage: 3, damageType: 'Physical', debuff: { type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' }, message: "Hamstring! Deals 3 Physical Damage and applies a heavy Bleed!" }
+                    { range: [6, 15], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Claw! Deals 4 Physical Damage!" },
+                    { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', debuff: { type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' }, message: "Hamstring! Deals 3 Physical Damage and applies a heavy Bleed!" }
                 ],
                 lootTable: [{ range: [1, 20], randomItems: { pool: ['Drake Scale', 'Obsidian Chunk'], count: 1 } }]
             }, count: 6
@@ -380,8 +380,8 @@ export const cardPools = {
                 name: "Cinderhulk", type: "enemy", health: 25, maxHealth: 25, description: "A hulking elemental of magma and rock.", icon: "👹",
                 attackTable: [
                     { range: [1, 5], action: 'miss', message: "Misses!" },
-                    { range: [6, 15], action: 'attack', damage: 5, damageType: 'Physical', message: "Slam! Deals 5 Physical Damage!" },
-                    { range: [16, 20], action: 'attack', damage: 4, damageType: 'Fire', debuff: { type: 'burn', duration: 2, damage: 2, damageType: 'Fire' }, message: "Immolate! Deals 4 Fire Damage and applies Burn!" }
+                    { range: [6, 15], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', message: "Slam! Deals 5 Physical Damage!" },
+                    { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Fire', debuff: { type: 'burn', duration: 2, damage: 2, damageType: 'Fire' }, message: "Immolate! Deals 4 Fire Damage and applies Burn!" }
                 ],
                 lootTable: [{ range: [1, 20], items: ["Obsidian Chunk", "Obsidian Chunk"] }]
             }, count: 4
@@ -391,8 +391,8 @@ export const cardPools = {
                 name: "Lava Drake", type: "enemy", health: 22, maxHealth: 22, description: "A lesser drake that breathes searing flames.", icon: "🐲",
                 attackTable: [
                     { range: [1, 5], action: 'miss', message: "Misses!" },
-                    { range: [6, 15], action: 'attack', damage: 6, damageType: 'Fire', message: "Fire Breath! Deals 6 Fire Damage!" },
-                    { range: [16, 20], action: 'special', message: "Tail Swipe! Hits all party members for 3 damage!" }
+                    { range: [6, 15], action: 'attack', attackRange: 'ranged', damage: 6, damageType: 'Fire', message: "Fire Breath! Deals 6 Fire Damage!" },
+                    { range: [16, 20], action: 'special', attackRange: 'melee', message: "Tail Swipe! Hits all party members for 3 damage!" }
                 ],
                 lootTable: [{ range: [1, 20], items: ["Drake Scale", "Drake Scale"] }]
             }, count: 2

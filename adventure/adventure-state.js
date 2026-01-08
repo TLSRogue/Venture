@@ -758,6 +758,21 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                             }
                         }
                     }
+
+                    // Check for Parry - only works against melee attacks and requires melee weapon
+                    const parrySpell = targetCharacter.equippedSpells.find(s => s.name === "Parry");
+                    if (parrySpell && (targetPlayerState.spellCooldowns[parrySpell.name] || 0) <= 0) {
+                        const isMeleeAttack = attack.attackRange === 'melee';
+                        const mainHand = targetCharacter.equipment.mainHand;
+                        const hasMeleeWeapon = mainHand && mainHand.type === 'weapon' && mainHand.range === 'melee';
+                        if (isMeleeAttack && hasMeleeWeapon) {
+                            availableReactions.push({ name: 'Parry' });
+                        } else if (!isMeleeAttack && hasMeleeWeapon) {
+                            // Don't show message for ranged attacks, just don't offer
+                        } else if (isMeleeAttack && !hasMeleeWeapon) {
+                            sharedState.log.push({ message: `${targetPlayerState.name} could have Parried, but needs a melee weapon!`, type: 'info' });
+                        }
+                    }
                 }
 
                 if (targetCharacter.equipment) {
@@ -774,6 +789,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         targetName: targetPlayerState.name,
                         damage: attack.damage,
                         damageType: attack.damageType,
+                        attackRange: attack.attackRange || 'melee',
                         debuff: attack.debuff || null,
                         message: attack.message,
                         isFleeing: isFleeing
@@ -1117,6 +1133,87 @@ export async function handleResolveReaction(io, socket, payload) {
         }
     }
     // --- END OF NEW LOGIC ---
+    // --- PARRY REACTION LOGIC ---
+    else if (reactionType === 'Parry') {
+        const parrySpell = reactingPlayer.character.equippedSpells.find(s => s.name === "Parry");
+        const mainHand = reactingPlayer.character.equipment.mainHand;
+
+        if (parrySpell && mainHand && mainHand.range === 'melee' && (reactingPlayerState.spellCooldowns[parrySpell.name] || 0) <= 0) {
+            reactingPlayerState.spellCooldowns[parrySpell.name] = parrySpell.cooldown;
+            const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
+
+            // Use defense stat
+            const statValue = reactingPlayer.character.defense + (bonuses.defense || 0);
+
+            const roll = Math.floor(Math.random() * 20) + 1;
+            const total = roll + statValue;
+            const { avoidHit, counterHit } = parrySpell.reactionDetails;
+
+            const isSuccess = roll !== 1 && total >= avoidHit;
+            const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
+            const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+
+            if (roll === 1) {
+                logMessage = `${name}'s Parry: ${rollDisplay} Critical Failure!`;
+            } else if (isSuccess) {
+                finalDamage = 0;
+                dodged = true;
+                logMessage = `${name}'s Parry: ${rollDisplay} Deflected!`;
+
+                if (total >= counterHit) {
+                    let counterDamage = mainHand.weaponDamage;
+
+                    if (isPvp) {
+                        // PVP counter-attack - target is another player
+                        const attackerPlayerState = encounter.playerStates.find(p => p.playerId === reaction.attackerPlayerId);
+                        if (attackerPlayerState && !attackerPlayerState.isDead) {
+                            const attackerCharacter = players[attackerPlayerState.name]?.character;
+                            let damageToDeal = counterDamage;
+
+                            if (attackerCharacter) {
+                                const attackerBonuses = getBonusStatsForPlayer(attackerCharacter, attackerPlayerState);
+                                const resistance = attackerBonuses.physicalResistance || 0;
+                                damageToDeal = Math.max(0, counterDamage - resistance);
+                            }
+
+                            attackerPlayerState.health -= damageToDeal;
+
+                            let counterLog = ` They riposte, dealing ${damageToDeal} damage to ${attackerPlayerState.name}!`;
+                            if (damageToDeal < counterDamage) counterLog += ` (${counterDamage - damageToDeal} resisted)`;
+                            stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
+
+                            if (attackerPlayerState.health <= 0) {
+                                defeatEnemyInParty(io, party, { playerId: attackerPlayerState.playerId }, null);
+                            }
+                            logMessage = ''; // Clear message to prevent double logging
+                        }
+                    } else {
+                        // PVE counter-attack - target is an enemy card
+                        const attackerEnemy = stateObject.zoneCards[reaction.attackerIndex];
+                        if (attackerEnemy && attackerEnemy.health > 0) {
+                            const resistance = attackerEnemy.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
+                            let damageToDeal = Math.max(0, counterDamage - resistance);
+
+                            attackerEnemy.health -= damageToDeal;
+
+                            let counterLog = ` They riposte, dealing ${damageToDeal} damage to ${attackerEnemy.name}!`;
+                            stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
+
+                            if (attackerEnemy.health <= 0) {
+                                defeatEnemyInParty(io, party, attackerEnemy, reaction.attackerIndex);
+                            }
+                            logMessage = ''; // Clear message to prevent double logging
+                        }
+                    }
+                }
+            } else {
+                logMessage = `${name}'s Parry: ${rollDisplay} Failed!`;
+            }
+        } else {
+            logMessage = `${name} tries to Parry, but fails!`;
+        }
+    }
+    // --- END PARRY LOGIC ---
     else {
         logMessage = `${name} braces for the attack!`;
     }

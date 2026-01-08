@@ -285,5 +285,24 @@ export const allSpells = [
         },
         icon: "↪️🏹",
         rarity: "uncommon",
+    },
+    {
+        name: "Parry",
+        price: 100,
+        cooldown: 3,
+        school: "Physical",
+        range: "melee",
+        description: "Deflect an incoming melee attack and strike back. Requires Melee Weapon. 3 CD | D20+Def (10+ parry, 15+ counter) | Avoid melee attack and counter with weapon damage.",
+        type: "reaction",
+        stat: "defense",
+        damageType: 'Physical',
+        requires: { meleeWeapon: true },
+        meleeOnly: true,
+        reactionDetails: {
+            avoidHit: 10,
+            counterHit: 15,
+        },
+        icon: "⚔️🛡️",
+        rarity: "uncommon",
     }
 ];
