@@ -727,10 +727,17 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             if (attack && attack.action === 'attack') {
                 const targetCharacter = targetPlayerObject.character;
                 let damageToDeal = attack.damage;
+
+                // Apply Rallied buff damage bonus (from Gorbon's rally)
+                const ralliedBuff = enemy.buffs?.find(b => b.type === 'Rallied' && b.bonus?.damageBonus);
+                if (ralliedBuff) {
+                    damageToDeal += ralliedBuff.bonus.damageBonus;
+                }
+
                 if (attack.damageType === 'Physical') {
                     const bonuses = getBonusStatsForPlayer(targetCharacter, targetPlayerState);
                     const resistance = bonuses.physicalResistance || 0;
-                    damageToDeal = Math.max(0, attack.damage - resistance);
+                    damageToDeal = Math.max(0, damageToDeal - resistance);
                 }
                 const availableReactions = [];
                 // --- REACTION LOGIC MODIFIED FOR EVASIVE SHOT ---
@@ -912,6 +919,90 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         sharedState.log.push({ message: `A rat scurries into the battle!`, type: 'reaction' });
                     } else {
                         sharedState.log.push({ message: `The Rat King shrieks, but there's no room for more rats!`, type: 'info' });
+                    }
+                }
+                // --- GOBLIN KING GORBON: Rally ---
+                if (enemy.name === 'Gorbon the Goblin King' && attack.message.includes('rallies his minions')) {
+                    // Buff all other goblins in the zone
+                    const goblins = sharedState.zoneCards.filter(c => c && c.type === 'enemy' && c.name.includes('Goblin') && c !== enemy);
+                    if (goblins.length > 0) {
+                        goblins.forEach(goblin => {
+                            if (!goblin.buffs) goblin.buffs = [];
+                            // Remove existing rally buff and add fresh one
+                            goblin.buffs = goblin.buffs.filter(b => b.type !== 'Rallied');
+                            goblin.buffs.push({ type: 'Rallied', duration: 2, bonus: { damageBonus: 2 } });
+                        });
+                        sharedState.log.push({ message: `All goblins gain +2 damage for 2 turns!`, type: 'reaction' });
+                    } else {
+                        // No goblins to rally - spawn a random goblin reinforcement
+                        const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+                        if (emptySlotIndex !== -1) {
+                            const goblinTypes = [
+                                {
+                                    name: "Goblin Warrior", health: 10, maxHealth: 10, icon: "👺", attackTable: [
+                                        { range: [1, 3], action: 'miss', message: "The warrior swings wildly. Miss!" },
+                                        { range: [4, 12], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Brutal Swing! Deals 4 Physical Damage!" },
+                                        { range: [13, 17], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Headbutt! Deals 3 Physical Damage and Dazes!" },
+                                        { range: [18, 20], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', message: "Overhead Smash! Deals 5 Physical Damage!" }
+                                    ]
+                                },
+                                {
+                                    name: "Goblin Archer", health: 8, maxHealth: 8, icon: "👺", attackTable: [
+                                        { range: [1, 3], action: 'miss', message: "The arrow whizzes past. Miss!" },
+                                        { range: [4, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Physical', message: "Barbed Arrow! Deals 3 Physical Damage!" },
+                                        { range: [13, 17], action: 'attack', attackRange: 'ranged', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Serrated Arrow! Deals 2 Physical Damage and causes Bleed!" },
+                                        { range: [18, 20], action: 'attack', attackRange: 'ranged', damage: 4, damageType: 'Physical', debuff: { type: 'trap', duration: 1 }, message: "Net Trap! Deals 4 Physical Damage and Traps you!" }
+                                    ]
+                                },
+                                {
+                                    name: "Goblin Shaman", health: 8, maxHealth: 8, icon: "👺", attackTable: [
+                                        { range: [1, 3], action: 'miss', message: "The Shaman's hex fizzles. Miss!" },
+                                        { range: [4, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Nature', message: "Hex! Deals 3 Nature Damage!" },
+                                        { range: [13, 17], action: 'attack', attackRange: 'ranged', damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Toxic Curse! Deals 2 Nature Damage and Poisons!" },
+                                        { range: [18, 20], action: 'special', message: "The Shaman chants and heals an ally!" }
+                                    ]
+                                }
+                            ];
+                            const randomGoblin = goblinTypes[Math.floor(Math.random() * goblinTypes.length)];
+                            const newGoblin = {
+                                ...randomGoblin,
+                                type: 'enemy',
+                                debuffs: [],
+                                buffs: [{ type: 'Rallied', duration: 2, bonus: { damageBonus: 2 } }],
+                                id: Date.now()
+                            };
+                            sharedState.zoneCards[emptySlotIndex] = newGoblin;
+                            sharedState.log.push({ message: `Gorbon roars "FOR THE HORDE!" and a ${randomGoblin.name} answers his call!`, type: 'reaction' });
+                        } else {
+                            sharedState.log.push({ message: `Gorbon roars, but there's no room for reinforcements!`, type: 'info' });
+                        }
+                    }
+                }
+                // --- GOBLIN SHAMAN: Heal Ally ---
+                if (enemy.name === 'Goblin Shaman' && attack.message.includes('heals an ally')) {
+                    // Find the most wounded goblin ally (excluding self)
+                    const woundedAllies = sharedState.zoneCards
+                        .filter(c => c && c.type === 'enemy' && c !== enemy && c.health < c.maxHealth)
+                        .sort((a, b) => (a.health / a.maxHealth) - (b.health / b.maxHealth));
+
+                    if (woundedAllies.length > 0) {
+                        const healTarget = woundedAllies[0];
+                        const healAmount = 5;
+                        const oldHealth = healTarget.health;
+                        healTarget.health = Math.min(healTarget.maxHealth, healTarget.health + healAmount);
+                        const actualHeal = healTarget.health - oldHealth;
+                        sharedState.log.push({ message: `The Shaman heals ${healTarget.name} for ${actualHeal} HP!`, type: 'heal' });
+                    } else {
+                        // No wounded allies, heal self
+                        if (enemy.health < enemy.maxHealth) {
+                            const healAmount = 5;
+                            const oldHealth = enemy.health;
+                            enemy.health = Math.min(enemy.maxHealth, enemy.health + healAmount);
+                            const actualHeal = enemy.health - oldHealth;
+                            sharedState.log.push({ message: `The Shaman heals itself for ${actualHeal} HP!`, type: 'heal' });
+                        } else {
+                            sharedState.log.push({ message: `Goblin Shaman searches for wounded allies but finds none!`, type: 'info' });
+                        }
                     }
                 }
             } else {
