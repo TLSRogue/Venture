@@ -755,7 +755,7 @@ export async function processCastSpell(io, party, player, payload) {
                 // Apply debuffs
                 if (spell.debuff) {
                     if (!target.state.debuffs) target.state.debuffs = [];
-                    const existingIndex = target.state.debuffs.findIndex(d => d.type === spell.debuff.type);
+                    const existingIndex = target.state.debuffs.findIndex(d => d.type.toLowerCase() === spell.debuff.type.toLowerCase());
                     if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
                     let debuffToApply = { ...spell.debuff };
                     if (spell.debuff.scaling === 'wisdom') {

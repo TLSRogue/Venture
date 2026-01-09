@@ -272,7 +272,7 @@ export function startNextPvpTeamTurn(io, encounterId) {
                     p.health -= poisonDebuff.damage;
                     encounter.log.push({ message: `${p.name} takes ${poisonDebuff.damage} Nature damage from Poison. [id:${p.playerId}]`, type: 'damage' });
                 }
-                const rootDebuff = p.debuffs.find(d => d.type === 'entangling roots');
+                const rootDebuff = p.debuffs.find(d => d.type.toLowerCase() === 'entangling roots');
                 if (rootDebuff) {
                     p.health -= rootDebuff.damage;
                     const dmgType = rootDebuff.damageType || 'Nature';
@@ -693,7 +693,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             const processEndOfTurn = () => {
                 let damageTaken = false;
                 ['bleed', 'burn', 'poison', 'entangling roots'].forEach(type => {
-                    const debuff = enemy.debuffs.find(d => d.type === type);
+                    const debuff = enemy.debuffs.find(d => d.type.toLowerCase() === type);
                     if (debuff) {
                         enemy.health -= debuff.damage;
                         let typeName = type.charAt(0).toUpperCase() + type.slice(1);
@@ -1316,7 +1316,7 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
     // 1. Process DoT Damage
     let tookDotDamage = false;
     ['bleed', 'burn', 'poison', 'entangling roots'].forEach(type => {
-        const debuff = playerState.debuffs.find(d => d.type === type);
+        const debuff = playerState.debuffs.find(d => d.type.toLowerCase() === type);
         if (debuff) {
             playerState.health -= debuff.damage;
             let typeName = type.charAt(0).toUpperCase() + type.slice(1);
@@ -1624,7 +1624,7 @@ export async function handleResolveReaction(io, socket, payload) {
 
         if (reaction.debuff && !dodged) {
             const debuff = reaction.debuff;
-            const existingIndex = reactingPlayerState.debuffs.findIndex(d => d.type === debuff.type);
+            const existingIndex = reactingPlayerState.debuffs.findIndex(d => d.type.toLowerCase() === debuff.type.toLowerCase());
             if (existingIndex !== -1) reactingPlayerState.debuffs.splice(existingIndex, 1);
             reactingPlayerState.debuffs.push({ ...debuff });
             damageMessage += ` ${name} is now ${debuff.type}!`;
