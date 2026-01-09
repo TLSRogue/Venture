@@ -81,6 +81,7 @@ export function showTab(tabName) {
 
 export function renderHeader() {
     const charInfo = document.getElementById('character-info');
+    const avatarEl = document.getElementById('character-avatar-display');
     const nameEl = document.getElementById('character-name-display');
     const titleEl = document.getElementById('character-title-display');
     const defaultTitleEl = document.getElementById('default-header-title');
@@ -88,8 +89,15 @@ export function renderHeader() {
     if (gameState.characterName) {
         nameEl.textContent = gameState.characterName;
         titleEl.textContent = gameState.title;
-        charInfo.style.display = 'block';
+        charInfo.style.display = 'flex';
         defaultTitleEl.style.display = 'none';
+
+        if (gameState.characterIcon && gameState.characterIcon.includes('/')) {
+            avatarEl.src = gameState.characterIcon;
+            avatarEl.style.display = 'block';
+        } else {
+            avatarEl.style.display = 'none';
+        }
     } else {
         charInfo.style.display = 'none';
         defaultTitleEl.style.display = 'block';
@@ -409,4 +417,17 @@ export function renderTitleSelection() {
         btn.dataset.title = title;
         container.appendChild(btn);
     });
+
+    const divider = document.createElement('hr');
+    divider.style.width = '100%';
+    divider.style.margin = '10px 0';
+    container.appendChild(divider);
+
+    const avatarBtn = document.createElement('button');
+    avatarBtn.className = 'btn btn-primary';
+    avatarBtn.textContent = 'Change Avatar';
+    avatarBtn.addEventListener('click', () => {
+        UIParty.showAvatarSelectionModal();
+    });
+    container.appendChild(avatarBtn);
 }

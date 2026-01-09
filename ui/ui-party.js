@@ -88,6 +88,13 @@ export function renderOnlinePlayers(onlinePlayers) {
     container.innerHTML = `<ul class="party-member-list">${playersList}</ul>`;
 }
 
+const AVAILABLE_AVATARS = [
+    '/assets/avatars/avatar-male-1.jpg',
+    '/assets/avatars/avatar-female-1.jpg',
+    '/assets/avatars/avatar-male-2.jpg',
+    '/assets/avatars/avatar-female-2.jpg'
+];
+
 export function showCharacterSelectScreen() {
     document.querySelector('.game-container').style.display = 'none';
     const characterSlots = JSON.parse(localStorage.getItem('ventureCharacterSlots') || '[null, null, null]');
@@ -96,9 +103,14 @@ export function showCharacterSelectScreen() {
     characterSlots.forEach((char, index) => {
         slotsHTML += '<div class="character-slot">';
         if (char) {
+            const isImage = char.characterIcon && char.characterIcon.includes('/');
+            const iconHtml = isImage
+                ? `<img src="${char.characterIcon}" class="char-icon-img">`
+                : `<span class="char-icon">${char.characterIcon || '👤'}</span>`;
+
             slotsHTML += `
                 <div class="char-info">
-                    <span class="char-icon">${char.characterIcon}</span>
+                    ${iconHtml}
                     <div>
                         <span class="char-name">${char.characterName}</span>
                         <span class="char-title">${char.title}</span>
@@ -128,6 +140,7 @@ export function showCharacterSelectScreen() {
             .character-slot { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; }
             .char-info { display: flex; align-items: center; gap: 15px; }
             .char-icon { font-size: 2.5em; }
+            .char-icon-img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; }
             .char-name { font-size: 1.2em; font-weight: bold; display: block; }
             .char-title { font-style: italic; color: var(--accent-color); }
         </style>
@@ -136,25 +149,60 @@ export function showCharacterSelectScreen() {
 }
 
 export function showNewGameModal(slotIndex) {
-    const icons = ['🧑', '👩', '👨‍🚀', '🦸', '🦹', '🧙', '🧝', '🧛', '🧟'];
+    const icons = AVAILABLE_AVATARS;
     let iconSelectionHTML = '';
     icons.forEach((icon, index) => {
-        iconSelectionHTML += `<div class="icon-option ${index === 0 ? 'selected' : ''}" data-icon="${icon}">${icon}</div>`;
+        iconSelectionHTML += `<div class="icon-option ${index === 0 ? 'selected' : ''}" data-icon="${icon}"><img src="${icon}"></div>`;
     });
 
     const modalContent = `
         <h2>Create Your Character</h2>
         <p>Enter your adventurer's name:</p>
         <input type="text" id="character-name-input" placeholder="e.g., Sir Reginald" style="width: 80%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #7f8c8d; background: #34495e; color: white;">
-        <p>Choose your icon:</p>
+        <p>Choose your avatar:</p>
         <div class="icon-selection">${iconSelectionHTML}</div>
         <div class="action-buttons">
             <button class="btn btn-success" id="finalize-char-btn" data-slot="${slotIndex}">Begin Adventure</button>
             <button class="btn" id="cancel-creation-btn">Cancel</button>
         </div>
+        <style>
+            .icon-selection { display: flex; gap: 15px; justify-content: center; margin: 20px 0; flex-wrap: wrap; }
+            .icon-option { cursor: pointer; padding: 5px; border-radius: 50%; transition: transform 0.2s; border: 3px solid transparent; }
+            .icon-option:hover { transform: scale(1.1); }
+            .icon-option img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; display: block; }
+            .icon-option.selected { border-color: var(--accent-color); box-shadow: 0 0 10px var(--accent-color); }
+        </style>
     `;
     showModal(modalContent);
     document.getElementById('character-name-input').focus();
+}
+
+export function showAvatarSelectionModal() {
+    const icons = AVAILABLE_AVATARS;
+    let iconSelectionHTML = '';
+    const currentIcon = gameState.characterIcon;
+    icons.forEach((icon) => {
+        const isSelected = icon === currentIcon;
+        iconSelectionHTML += `<div class="icon-option ${isSelected ? 'selected' : ''}" data-icon="${icon}"><img src="${icon}"></div>`;
+    });
+
+    const modalContent = `
+        <h2>Change Avatar</h2>
+        <p>Select a new appearance:</p>
+        <div class="icon-selection">${iconSelectionHTML}</div>
+        <div class="action-buttons">
+            <button class="btn btn-success" id="confirm-avatar-change-btn">Confirm Change</button>
+            <button class="btn" onclick="document.getElementById('modal').classList.add('hidden')">Cancel</button>
+        </div>
+        <style>
+            .icon-selection { display: flex; gap: 15px; justify-content: center; margin: 20px 0; flex-wrap: wrap; }
+            .icon-option { cursor: pointer; padding: 5px; border-radius: 50%; transition: transform 0.2s; border: 3px solid transparent; }
+            .icon-option:hover { transform: scale(1.1); }
+            .icon-option img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; display: block; }
+            .icon-option.selected { border-color: var(--accent-color); box-shadow: 0 0 10px var(--accent-color); }
+        </style>
+    `;
+    showModal(modalContent);
 }
 
 export function showNPCDialogueFromServer({ npcName, node, cardIndex }) {

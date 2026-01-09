@@ -800,6 +800,16 @@ function addEventListeners() {
             }
 
             if (button.id === 'info-ok-btn') return UIMain.hideModal();
+            if (button.id === 'confirm-avatar-change-btn') {
+                const selectedIconEl = document.querySelector('.icon-option.selected');
+                if (selectedIconEl && selectedIconEl.dataset.icon) {
+                    gameState.characterIcon = selectedIconEl.dataset.icon;
+                    UIPlayer.renderHeader();
+                    Network.emitUpdateCharacter(gameState);
+                    UIMain.hideModal();
+                }
+                return;
+            }
             if (button.id === 'end-turn-btn') return gameState.inDuel ? Network.emitDuelAction({ type: 'endTurn' }) : Combat.endTurn();
             if (button.id === 'return-home-arrow') return Player.returnToHome();
             if (button.id === 'surrender-btn') return Network.emitPartyAction({ type: 'surrender' });
