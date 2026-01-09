@@ -398,8 +398,54 @@ export async function processCastSpell(io, party, player, payload) {
         }
         // --- PvP REACTION CHECK for attack spells ---
         else if (isPvP && targetState && (spell.type === 'attack' || (spell.type === 'versatile' && targetState.team !== actingPlayerState.team))) {
+            // Calculate damage using the same logic as the damage application
+            let reactionDamage = spell.damage || 0;
+
+            if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
+                const mainHand = character.equipment.mainHand;
+                const offHand = character.equipment.offHand;
+                let highestFireWeaponDamage = 0;
+                if (mainHand?.weaponDamage && mainHand.damageType === 'Fire') {
+                    highestFireWeaponDamage = mainHand.weaponDamage;
+                }
+                if (offHand?.weaponDamage && offHand.damageType === 'Fire' && offHand !== mainHand) {
+                    highestFireWeaponDamage = Math.max(highestFireWeaponDamage, offHand.weaponDamage);
+                }
+                reactionDamage = 1 + highestFireWeaponDamage;
+            }
+            else if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
+                const mainHand = character.equipment.mainHand;
+                if (mainHand?.weaponDamage && spell.requires?.weaponType?.includes(mainHand.weaponType)) {
+                    reactionDamage = mainHand.weaponDamage;
+                }
+            }
+            else if (spell.name === 'Ambush') {
+                let totalDaggerDamage = 0;
+                ['mainHand', 'offHand'].forEach(hand => {
+                    const weapon = character.equipment[hand];
+                    if (weapon?.weaponType === 'Dagger') {
+                        totalDaggerDamage += weapon.weaponDamage || 0;
+                    }
+                });
+                reactionDamage = totalDaggerDamage;
+            }
+            else if (spell.name === 'Punch' || spell.name === 'Kick') {
+                reactionDamage = spell.damage || 1;
+                const hasMonkTraining = character.equippedSpells.some(s => s.name === "Monk's Training");
+                const isUnarmed = !character.equipment.mainHand && !character.equipment.offHand;
+                if (hasMonkTraining && isUnarmed) {
+                    reactionDamage += 1;
+                }
+            }
+            else if (spell.name === 'Crushing Blow' || spell.name === 'Dagger Throw') {
+                reactionDamage = (character.equipment.mainHand?.weaponDamage || 0) + (spell.damageBonus || 0);
+            }
+            else if (spell.baseEffect) {
+                reactionDamage = spell.baseEffect + statValue;
+            }
+
             const actionDetails = {
-                damage: spell.damage || (spell.baseEffect ? spell.baseEffect + statValue : 0),
+                damage: reactionDamage,
                 damageType: spell.damageType,
                 attackRange: spell.range,
                 message: `is targeted by ${spell.name}.`,
