@@ -249,6 +249,7 @@ export const cardPools = {
                 type: "npc",
                 description: "A stoic knight in shining armor.",
                 icon: "⚔️",
+                imageUrl: '/assets/town-knight.jpg',
                 quests: [
                     { id: "GOBLIN_MENACE", title: "Goblin Menace", target: "Goblin", required: 4, reward: { gold: 100, qp: 1 }, prerequisite: null },
                     { id: "SLAY_THE_KING", title: "Slay Their King!", target: "Gorbon the Goblin King", required: 1, reward: { gold: 100, qp: 1 }, prerequisite: "GOBLIN_MENACE" }
@@ -286,20 +287,23 @@ export const cardPools = {
         },
         {
             card: {
-                name: "Mugger", type: "enemy", health: 6, maxHealth: 6, description: "A shady figure eyes your coin purse.", icon: "👤",
+                name: "Mugger", type: "enemy", health: 6, maxHealth: 6, description: "A shady figure eyes your coin purse.", icon: "👤", imageUrl: '/assets/town-mugger.jpg',
                 attackTable: [
-                    { range: [1, 6], action: 'miss', message: "Miss!" },
-                    { range: [7, 15], action: 'attack', attackRange: 'melee', damage: 1, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Stab! Deals 1 Physical Damage and Bleed!" },
-                    { range: [16, 20], action: 'special', message: "The mugger offers you a deal..." }
+                    { range: [1, 5], action: 'miss', message: "Miss!" },
+                    { range: [6, 15], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Stab! Deals 3 Physical Damage and Bleed!" },
+                    { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Slash! Deals 3 Physical Damage and Bleed!" }
                 ],
+                guaranteedLoot: { gold: true, minGold: 5, maxGold: 25 },
                 lootTable: [
-                    { range: [1, 10], items: [], gold: true },
-                    { range: [11, 20], items: ["Mugger's Knife"], gold: true }
+                    { range: [1, 10], items: [] },
+                    { range: [11, 20], items: ["Mugger's Knife"] }
                 ]
             }, count: 1
         },
-        { card: { name: "Townsfolk", type: "npc", description: "A local resident enjoying the day.", icon: "🧑" }, count: 8 },
-        { card: { name: "Sewer Grate", type: "resource", description: "A rusty grate leading down into the darkness.", icon: "🕳️" }, count: 1 },
+        { card: { name: "Townsfolk", type: "npc", description: "A local man enjoying the day.", icon: "🧑", imageUrl: '/assets/town-citizen-m.jpg' }, count: 4 },
+        { card: { name: "Townsfolk", type: "npc", description: "A local woman enjoying the day.", icon: "👩", imageUrl: '/assets/town-citizen-f.jpg' }, count: 4 },
+        { card: { name: "Sewer Grate", type: "treasure", description: "A dark opening leading down to the sewers.", icon: "🕳️", imageUrl: '/assets/town-sewer-grate.jpg', loot: [{ name: "Rat Tail", type: "material", price: 1 }] }, count: 1 },
+
     ],
 
     sewers: [

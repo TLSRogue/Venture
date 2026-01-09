@@ -922,8 +922,13 @@ export async function processUseConsumable(io, party, player, payload) {
         logTarget = encounter;
     } else {
         actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
+        if (!actingPlayerState) {
+            actingPlayerState = sharedState.partyMemberStates.find(p => p.name === character.characterName);
+        }
         logTarget = sharedState;
     }
+
+    if (!actingPlayerState) return;
 
     const cost = item.cost || 0;
     if (!item || item.type !== 'consumable' || actingPlayerState.actionPoints < cost) {

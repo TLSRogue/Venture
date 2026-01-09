@@ -481,7 +481,12 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
             }
         });
         if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
-            const goldAmount = (Math.floor(Math.random() * 20) + 1) + (Math.floor(Math.random() * 20) + 1);
+            let goldAmount;
+            if (enemy.guaranteedLoot.minGold !== undefined && enemy.guaranteedLoot.maxGold !== undefined) {
+                goldAmount = Math.floor(Math.random() * (enemy.guaranteedLoot.maxGold - enemy.guaranteedLoot.minGold + 1)) + enemy.guaranteedLoot.minGold;
+            } else {
+                goldAmount = (Math.floor(Math.random() * 20) + 1) + (Math.floor(Math.random() * 20) + 1);
+            }
             const goldPerPlayer = Math.floor(goldAmount / party.members.length);
             character.gold += goldPerPlayer;
         }
@@ -675,53 +680,39 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
 
         if (!enemy || enemy.health <= 0) continue;
         try {
+
             await new Promise(resolve => setTimeout(resolve, 1000));
-            let tookDotDamage = false;
 
-            // Process burn damage (Fire)
-            const burnDebuff = enemy.debuffs.find(d => d.type === 'burn');
-            if (burnDebuff) {
-                enemy.health -= burnDebuff.damage;
-                sharedState.log.push({ message: `${enemy.name} takes ${burnDebuff.damage} Fire damage from Burn.`, type: 'damage' });
-                burnDebuff.duration--;
-                tookDotDamage = true;
-            }
+            // Helper for End of Turn (Damage + Decrement)
+            const processEndOfTurn = () => {
+                let damageTaken = false;
+                ['bleed', 'burn', 'poison'].forEach(type => {
+                    const debuff = enemy.debuffs.find(d => d.type === type);
+                    if (debuff) {
+                        enemy.health -= debuff.damage;
+                        let typeName = type.charAt(0).toUpperCase() + type.slice(1);
+                        let dmgType = type === 'burn' ? 'Fire' : (type === 'poison' ? 'Nature' : 'Physical');
+                        sharedState.log.push({ message: `${enemy.name} takes ${debuff.damage} ${dmgType} damage from ${typeName}.`, type: 'damage' });
+                        damageTaken = true;
+                    }
+                });
 
-            // Process bleed damage (Physical)
-            const bleedDebuff = enemy.debuffs.find(d => d.type === 'bleed');
-            if (bleedDebuff) {
-                enemy.health -= bleedDebuff.damage;
-                sharedState.log.push({ message: `${enemy.name} takes ${bleedDebuff.damage} Physical damage from Bleed.`, type: 'damage' });
-                bleedDebuff.duration--;
-                tookDotDamage = true;
-            }
+                if (enemy.health <= 0) {
+                    defeatEnemyInParty(io, party, enemy, enemyIndex);
+                    broadcastAdventureUpdate(io, party);
+                    return true; // Dead
+                }
 
-            // Process poison damage (Nature)
-            const poisonDebuff = enemy.debuffs.find(d => d.type === 'poison');
-            if (poisonDebuff) {
-                enemy.health -= poisonDebuff.damage;
-                sharedState.log.push({ message: `${enemy.name} takes ${poisonDebuff.damage} Nature damage from Poison.`, type: 'damage' });
-                poisonDebuff.duration--;
-                tookDotDamage = true;
-            }
+                if (enemy.buffs) { enemy.buffs.forEach(b => b.duration--); enemy.buffs = enemy.buffs.filter(b => b.duration > 0); }
+                if (enemy.debuffs) { enemy.debuffs.forEach(d => d.duration--); enemy.debuffs = enemy.debuffs.filter(d => d.duration > 0); }
 
-            if (enemy.health <= 0) {
-                defeatEnemyInParty(io, party, enemy, enemyIndex);
-                broadcastAdventureUpdate(io, party);
-                continue;
-            }
-            enemy.debuffs = enemy.debuffs.filter(d => d.duration > 0);
+                if (damageTaken) broadcastAdventureUpdate(io, party);
+                return false;
+            };
 
-            // Decrement enemy buff durations and filter expired buffs
-            if (enemy.buffs && enemy.buffs.length > 0) {
-                enemy.buffs.forEach(b => b.duration--);
-                enemy.buffs = enemy.buffs.filter(b => b.duration > 0);
-            }
-
-            if (tookDotDamage) broadcastAdventureUpdate(io, party);
             if (enemy.debuffs.some(d => d.type === 'stun')) {
                 sharedState.log.push({ message: `${enemy.name} is stunned and cannot act!`, type: 'reaction' });
-                enemy.debuffs = enemy.debuffs.filter(d => d.type !== 'stun');
+                processEndOfTurn();
                 broadcastAdventureUpdate(io, party);
                 continue;
             }
@@ -1230,19 +1221,8 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 sharedState.log.push({ message: `${targetPlayerState.name} has been defeated!`, type: 'damage' });
             }
 
-            // --- DECREMENT ENEMY BUFFS/DEBUFFS ---
-            if (enemy.buffs) {
-                enemy.buffs.forEach(b => b.duration--);
-                enemy.buffs = enemy.buffs.filter(b => b.duration > 0);
-            }
-            if (enemy.debuffs) {
-                enemy.debuffs.forEach(d => {
-                    // Skip DoTs that were already processed/decremented
-                    if (['bleed', 'burn', 'poison'].includes(d.type)) return;
-                    d.duration--;
-                });
-                enemy.debuffs = enemy.debuffs.filter(d => d.duration > 0);
-            }
+            // --- END OF TURN PROCESSING (DoT + Decrement) ---
+            if (processEndOfTurn()) continue;
 
             broadcastAdventureUpdate(io, party);
         } catch (error) {
@@ -1266,22 +1246,7 @@ export function startNextPlayerTurn(io, partyId) {
         if (p.isDead) {
             p.turnEnded = true;
         } else {
-            // Process DOT damage at start of turn (before debuff duration decrements)
-            const bleedDebuff = p.debuffs.find(d => d.type === 'bleed');
-            if (bleedDebuff) {
-                p.health -= bleedDebuff.damage;
-                sharedState.log.push({ message: `${p.name} takes ${bleedDebuff.damage} Physical damage from Bleed.`, type: 'damage' });
-            }
-            const burnDebuff = p.debuffs.find(d => d.type === 'burn');
-            if (burnDebuff) {
-                p.health -= burnDebuff.damage;
-                sharedState.log.push({ message: `${p.name} takes ${burnDebuff.damage} Fire damage from Burn.`, type: 'damage' });
-            }
-            const poisonDebuff = p.debuffs.find(d => d.type === 'poison');
-            if (poisonDebuff) {
-                p.health -= poisonDebuff.damage;
-                sharedState.log.push({ message: `${p.name} takes ${poisonDebuff.damage} Nature damage from Poison.`, type: 'damage' });
-            }
+            // DoT Damage processed at END of turn now.
 
             // Check if DOT killed the player
             if (p.health <= 0) {
@@ -1301,15 +1266,70 @@ export function startNextPlayerTurn(io, partyId) {
             }
             p.turnEnded = false;
         }
-        p.buffs.forEach(b => b.duration--);
-        p.debuffs.forEach(d => d.duration--);
-        p.buffs = p.buffs.filter(b => b.duration > 0);
-        p.debuffs = p.debuffs.filter(d => d.duration > 0);
+        // Buff/Debuff decrement processed at END of turn now.
         Object.keys(p.weaponCooldowns).forEach(k => { if (p.weaponCooldowns[k] > 0) p.weaponCooldowns[k]--; });
         Object.keys(p.spellCooldowns).forEach(k => { if (p.spellCooldowns[k] > 0) p.spellCooldowns[k]--; });
         Object.keys(p.itemCooldowns).forEach(k => { if (p.itemCooldowns[k] > 0) p.itemCooldowns[k]--; });
     });
     broadcastAdventureUpdate(io, party);
+}
+
+export async function processPlayerEndTurn(io, partyId, playerName) {
+    const party = parties[partyId];
+    if (!party || !party.sharedState) return;
+    const { sharedState } = party;
+    const playerState = sharedState.partyMemberStates.find(p => p.name === playerName);
+    if (!playerState) return;
+
+    // 1. Process DoT Damage
+    let tookDotDamage = false;
+    ['bleed', 'burn', 'poison'].forEach(type => {
+        const debuff = playerState.debuffs.find(d => d.type === type);
+        if (debuff) {
+            playerState.health -= debuff.damage;
+            let typeName = type.charAt(0).toUpperCase() + type.slice(1);
+            let dmgType = type === 'burn' ? 'Fire' : (type === 'poison' ? 'Nature' : 'Physical');
+            sharedState.log.push({ message: `${playerState.name} takes ${debuff.damage} ${dmgType} damage from ${typeName}.`, type: 'damage' });
+            tookDotDamage = true;
+        }
+    });
+
+    if (playerState.health <= 0) {
+        playerState.health = 0;
+        playerState.isDead = true;
+        sharedState.log.push({ message: `${playerState.name} has succumbed to their wounds!`, type: 'damage' });
+    }
+
+    // 2. Decrement Buffs/Debuffs (Tick duration)
+    // Note: Decrement happens AFTER damage, or same tick.
+    if (playerState.buffs) {
+        playerState.buffs.forEach(b => b.duration--);
+        playerState.buffs = playerState.buffs.filter(b => b.duration > 0);
+    }
+    if (playerState.debuffs) {
+        playerState.debuffs.forEach(d => d.duration--);
+        playerState.debuffs = playerState.debuffs.filter(d => d.duration > 0);
+    }
+
+    // 3. Set turnEnded
+    playerState.turnEnded = true;
+
+    // 4. Reduce Threat if unused AP (PvE Logic)
+    if (!party.sharedState.pvpEncounterId && playerState.actionPoints > 0) {
+        const threatReduction = playerState.actionPoints;
+        playerState.threat = Math.max(0, (playerState.threat || 0) - threatReduction);
+        // Log optional? Handler did it. We can do it here.
+        // Get character name? playerState.name is character name.
+        sharedState.log.push({ message: `${playerState.name} reduces threat by ${threatReduction} (${playerState.actionPoints} unused AP).`, type: 'info' });
+    }
+
+    // 5. Check All Ends
+    broadcastAdventureUpdate(io, party);
+
+    const allTurnsEnded = sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
+    if (allTurnsEnded) {
+        await runEnemyPhaseForParty(io, partyId);
+    }
 }
 
 export async function handleResolveReaction(io, socket, payload) {

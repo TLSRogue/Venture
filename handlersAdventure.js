@@ -358,19 +358,11 @@ export const registerAdventureHandlers = (io, socket) => {
                     interactions.processLootPlayer(io, player, party, action.payload);
                     break;
                 case 'endTurn':
-                    // Reduce threat by leftover AP (PvE only - threat influences enemy targeting)
-                    if (!party.sharedState.pvpEncounterId && actingPlayerState.actionPoints > 0) {
-                        const threatReduction = actingPlayerState.actionPoints;
-                        actingPlayerState.threat = Math.max(0, (actingPlayerState.threat || 0) - threatReduction);
-                        party.sharedState.log.push({ message: `${player.character.characterName} reduces threat by ${threatReduction} (${actingPlayerState.actionPoints} unused AP).`, type: 'info' });
-                    }
-
-                    actingPlayerState.turnEnded = true;
-                    const logTarget = party.sharedState.pvpEncounterId ? pvpEncounters[party.sharedState.pvpEncounterId] : party.sharedState;
-                    logTarget.log.push({ message: `${player.character.characterName} has ended their turn.`, type: 'info' });
-
                     if (party.sharedState.pvpEncounterId) {
+                        actingPlayerState.turnEnded = true;
                         const encounter = pvpEncounters[party.sharedState.pvpEncounterId];
+                        encounter.log.push({ message: `${player.character.characterName} has ended their turn.`, type: 'info' });
+
                         if (encounter) {
                             const teamMembers = encounter.playerStates.filter(p => p.team === encounter.activeTeam);
                             const allTurnsEnded = teamMembers.every(p => p.turnEnded || p.isDead);
@@ -379,10 +371,8 @@ export const registerAdventureHandlers = (io, socket) => {
                             }
                         }
                     } else {
-                        const allTurnsEnded = party.sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
-                        if (allTurnsEnded) {
-                            await state.runEnemyPhaseForParty(io, partyId);
-                        }
+                        party.sharedState.log.push({ message: `${player.character.characterName} has ended their turn.`, type: 'info' });
+                        await state.processPlayerEndTurn(io, partyId, player.character.characterName);
                     }
                     break;
                 // Note: 'surrender' is handled earlier (before active team check) so it works anytime
