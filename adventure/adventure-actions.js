@@ -428,6 +428,10 @@ export async function processCastSpell(io, party, player, payload) {
                     }
                 });
                 reactionDamage = totalDaggerDamage;
+                // Set bleed debuff for Ambush
+                if (!spell.debuff) {
+                    spell.debuff = { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' };
+                }
             }
             else if (spell.name === 'Punch' || spell.name === 'Kick') {
                 reactionDamage = spell.damage || 1;
