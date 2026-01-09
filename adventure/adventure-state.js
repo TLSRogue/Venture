@@ -272,6 +272,12 @@ export function startNextPvpTeamTurn(io, encounterId) {
                     p.health -= poisonDebuff.damage;
                     encounter.log.push({ message: `${p.name} takes ${poisonDebuff.damage} Nature damage from Poison. [id:${p.playerId}]`, type: 'damage' });
                 }
+                const rootDebuff = p.debuffs.find(d => d.type === 'entangling roots');
+                if (rootDebuff) {
+                    p.health -= rootDebuff.damage;
+                    const dmgType = rootDebuff.damageType || 'Nature';
+                    encounter.log.push({ message: `${p.name} takes ${rootDebuff.damage} ${dmgType} damage from Entangling Roots. [id:${p.playerId}]`, type: 'damage' });
+                }
 
                 // Check if DOT killed the player
                 if (p.health <= 0) {
@@ -686,12 +692,12 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             // Helper for End of Turn (Damage + Decrement)
             const processEndOfTurn = () => {
                 let damageTaken = false;
-                ['bleed', 'burn', 'poison'].forEach(type => {
+                ['bleed', 'burn', 'poison', 'entangling roots'].forEach(type => {
                     const debuff = enemy.debuffs.find(d => d.type === type);
                     if (debuff) {
                         enemy.health -= debuff.damage;
                         let typeName = type.charAt(0).toUpperCase() + type.slice(1);
-                        let dmgType = type === 'burn' ? 'Fire' : (type === 'poison' ? 'Nature' : 'Physical');
+                        let dmgType = debuff.damageType || (type === 'burn' ? 'Fire' : (type === 'poison' ? 'Nature' : 'Physical'));
                         sharedState.log.push({ message: `${enemy.name} takes ${debuff.damage} ${dmgType} damage from ${typeName}.`, type: 'damage' });
                         damageTaken = true;
                     }
@@ -1309,12 +1315,12 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
 
     // 1. Process DoT Damage
     let tookDotDamage = false;
-    ['bleed', 'burn', 'poison'].forEach(type => {
+    ['bleed', 'burn', 'poison', 'entangling roots'].forEach(type => {
         const debuff = playerState.debuffs.find(d => d.type === type);
         if (debuff) {
             playerState.health -= debuff.damage;
             let typeName = type.charAt(0).toUpperCase() + type.slice(1);
-            let dmgType = type === 'burn' ? 'Fire' : (type === 'poison' ? 'Nature' : 'Physical');
+            let dmgType = debuff.damageType || (type === 'burn' ? 'Fire' : (type === 'poison' ? 'Nature' : 'Physical'));
             sharedState.log.push({ message: `${playerState.name} takes ${debuff.damage} ${dmgType} damage from ${typeName}.`, type: 'damage' });
             tookDotDamage = true;
         }

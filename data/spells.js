@@ -347,7 +347,7 @@ export const allSpells = [
         stat: "wisdom",
         hit: 10,
         damageType: 'Nature',
-        debuff: { type: 'Entangling Roots', duration: 2, scaling: 'wisdom', baseDamage: 1, damageType: 'Nature' },
+        debuff: { type: 'entangling roots', duration: 2, scaling: 'wisdom', baseDamage: 1, damageType: 'Nature' },
         icon: "🌿",
         rarity: "uncommon",
     }
