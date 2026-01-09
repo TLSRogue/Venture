@@ -805,6 +805,7 @@ function addEventListeners() {
             if (button.id === 'surrender-btn') return Network.emitPartyAction({ type: 'surrender' });
             if (button.id === 'venture-deeper-arrow') return ventureDeeper(button);
             if (button.id === 'backpack-btn') return UIAdventure.showBackpack();
+            if (button.id === 'quest-log-btn') return UIPlayer.showQuestLogModal();
             if (button.id === 'character-sheet-btn') return UIAdventure.showCharacterSheet();
 
             if (button.dataset.action === 'takeGroundLoot') return Player.takeGroundLoot(parseInt(button.dataset.index, 10));

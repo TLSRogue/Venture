@@ -65,7 +65,9 @@ export function showTab(tabName) {
     if (tabName === 'party') UIParty.renderPartyManagement(null);
     if (tabName === 'bank') TownUI.renderBankInterface();
     if (tabName === 'crafting') TownUI.renderCrafting();
+    if (tabName === 'crafting') TownUI.renderCrafting();
     if (tabName === 'trainer') TownUI.renderTrainer();
+    if (tabName === 'quest-log') renderQuestLog();
     if (tabName === 'character') {
         renderInventory();
         renderSpells();
@@ -334,32 +336,32 @@ export function renderEquipment() {
     });
 }
 
-export function renderQuestLog() {
-    const container = document.getElementById('quest-log-tab');
-    if (!container) return;
+function generateQuestLogHTML() {
     const activeQuests = gameState.quests.filter(q => q.status === 'active' || q.status === 'readyToTurnIn');
-    container.innerHTML = '<h2>Quest Log</h2>';
+    let html = '<h2>Quest Log</h2>';
+
     if (activeQuests.length === 0) {
-        container.innerHTML += '<p>You have no active quests.</p>';
-        return;
+        html += '<p>You have no active quests.</p>';
+        return html;
     }
 
     const questGiverMap = new Map();
-    Object.values(gameData.cardPools).flat().forEach(poolItem => {
-        if (poolItem.card.quests) {
-            poolItem.card.quests.forEach(quest => {
-                questGiverMap.set(quest.id, poolItem.card.name);
-            });
-        }
-    });
+    // Safely iterate cardPools
+    if (gameData.cardPools) {
+        Object.values(gameData.cardPools).flat().forEach(poolItem => {
+            if (poolItem && poolItem.card && poolItem.card.quests) {
+                poolItem.card.quests.forEach(quest => {
+                    questGiverMap.set(quest.id, poolItem.card.name);
+                });
+            }
+        });
+    }
 
     activeQuests.forEach(quest => {
-        const questEl = document.createElement('div');
-        questEl.className = 'quest-entry';
         let progressText = '';
         if (quest.status === 'readyToTurnIn') {
             const giver = questGiverMap.get(quest.details.id) || 'Quest Giver';
-            progressText = `(Ready to turn in to ${giver})`;
+            progressText = `<span style="color: var(--success-color);">(Ready to turn in to ${giver})</span>`;
         } else if (quest.details.target) {
             progressText = `(${quest.progress} / ${quest.details.required} ${quest.details.target}s defeated)`;
         } else if (quest.details.turnInItems) {
@@ -368,9 +370,24 @@ export function renderQuestLog() {
             const currentAmount = gameState.inventory.filter(i => i && i.name === itemName).reduce((total, item) => total + (item.quantity || 1), 0);
             progressText = `(${currentAmount} / ${requiredAmount} ${itemName}s collected)`;
         }
-        questEl.innerHTML = `<strong>${quest.details.title}</strong><br><small>${progressText}</small>`;
-        container.appendChild(questEl);
+
+        html += `<div class="quest-entry" style="margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+            <strong>${quest.details.title}</strong><br>
+            <small>${progressText}</small>
+        </div>`;
     });
+
+    return html;
+}
+
+export function renderQuestLog() {
+    const container = document.getElementById('quest-log-tab');
+    if (container) container.innerHTML = generateQuestLogHTML();
+}
+
+export function showQuestLogModal() {
+    const content = generateQuestLogHTML() + `<div class="action-buttons" style="margin-top: 20px;"><button class="btn" onclick="document.getElementById('modal').classList.add('hidden')">Close</button></div>`;
+    showModal(content);
 }
 
 export function renderTitleSelection() {
