@@ -191,15 +191,27 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-        // PATTERN 9: Block (e.g., "blocked")
-        if (entry.message.includes('Blocked')) {
+        // PATTERN 9: Block (e.g., "Name's Block: ... Blocked")
+        match = entry.message.match(/(.+?)'s Block: .+ Blocked/);
+        if (match) {
+            effects.push({ targetName: match[1], type: 'success', text: 'Blocked!' });
             playSound('block', 0.5);
             return;
         }
 
-        // PATTERN 10: Parry
-        if (entry.message.includes('Deflected') || entry.message.includes("Parry")) {
+        // PATTERN 10: Parry (e.g., "Name's Parry: ... Deflected")
+        match = entry.message.match(/(.+?)'s Parry: .+ Deflected!/);
+        if (match) {
+            effects.push({ targetName: match[1], type: 'success', text: 'Parried!' });
             playSound('parry', 0.5);
+            return;
+        }
+
+        // PATTERN 13: Dodge / Evasive Shot (e.g., "Name's Dodge: ... Avoided!")
+        match = entry.message.match(/(.+?)'s (?:Dodge|Evasive Shot): .+ Avoided!/);
+        if (match) {
+            effects.push({ targetName: match[1], type: 'success', text: 'Dodged!' });
+            playSound('miss', 0.5); // Use miss sound for dodge
             return;
         }
 
