@@ -359,11 +359,10 @@ export const registerAdventureHandlers = (io, socket) => {
                     break;
                 case 'endTurn':
                     if (party.sharedState.pvpEncounterId) {
-                        actingPlayerState.turnEnded = true;
                         const encounter = pvpEncounters[party.sharedState.pvpEncounterId];
-                        encounter.log.push({ message: `${player.character.characterName} has ended their turn.`, type: 'info' });
-
                         if (encounter) {
+                            await state.processPvpPlayerEndTurn(io, encounter, actingPlayerState);
+
                             const teamMembers = encounter.playerStates.filter(p => p.team === encounter.activeTeam);
                             const allTurnsEnded = teamMembers.every(p => p.turnEnded || p.isDead);
                             if (allTurnsEnded) {

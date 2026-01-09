@@ -249,58 +249,31 @@ export function startNextPvpTeamTurn(io, encounterId) {
         encounter.turnTimerId = null;
     }
 
+    // 1. Force End Turn for Stragglers (Timeout)
+    encounter.playerStates.forEach(p => {
+        if (p.team === encounter.activeTeam && !p.turnEnded && !p.isDead) {
+            processPvpPlayerEndTurn(io, encounter, p);
+        }
+    });
+
     const nextTeam = encounter.activeTeam === 'A' ? 'B' : 'A';
     encounter.activeTeam = nextTeam;
     encounter.log.push({ message: `--- Team ${nextTeam}'s Turn ---`, type: 'info' });
-    encounter.log.push({ message: `[DEBUG-PvP] Team ${nextTeam} Turn Start.`, type: 'info' });
 
     encounter.playerStates.forEach(p => {
         if (p.team === nextTeam) {
             if (!p.isDead) {
-                // Process DOT damage at start of turn (before debuff duration decrements)
-                const bleedDebuff = p.debuffs.find(d => d.type === 'bleed');
-                if (bleedDebuff) {
-                    p.health -= bleedDebuff.damage;
-                    encounter.log.push({ message: `${p.name} takes ${bleedDebuff.damage} Physical damage from Bleed. [id:${p.playerId}]`, type: 'damage' });
-                }
-                const burnDebuff = p.debuffs.find(d => d.type === 'burn');
-                if (burnDebuff) {
-                    p.health -= burnDebuff.damage;
-                    encounter.log.push({ message: `${p.name} takes ${burnDebuff.damage} Fire damage from Burn. [id:${p.playerId}]`, type: 'damage' });
-                }
-                const poisonDebuff = p.debuffs.find(d => d.type === 'poison');
-                if (poisonDebuff) {
-                    p.health -= poisonDebuff.damage;
-                    encounter.log.push({ message: `${p.name} takes ${poisonDebuff.damage} Nature damage from Poison. [id:${p.playerId}]`, type: 'damage' });
-                }
-                const rootDebuff = p.debuffs.find(d => d.type.toLowerCase() === 'entangling roots');
-                if (rootDebuff) {
-                    p.health -= rootDebuff.damage;
-                    const dmgType = rootDebuff.damageType || 'Nature';
-                    encounter.log.push({ message: `${p.name} takes ${rootDebuff.damage} ${dmgType} damage from Entangling Roots. [id:${p.playerId}]`, type: 'damage' });
-                }
-
-                // Check if DOT killed the player
-                if (p.health <= 0) {
-                    p.isDead = true;
-                    p.turnEnded = true;
-                    encounter.log.push({ message: `${p.name} has succumbed to their wounds!`, type: 'damage' });
+                p.turnEnded = false;
+                // Check for Stun - reduces AP by 1
+                const stunDebuff = p.debuffs.find(d => d.type === 'stun');
+                if (stunDebuff) {
+                    p.actionPoints = 2; // 3 - 1 = 2 AP due to stun
+                    encounter.log.push({ message: `${p.name} is stunned and starts with reduced Action Points!`, type: 'reaction' });
                 } else {
-                    // Check for Stun - reduces AP by 1
-                    const stunDebuff = p.debuffs.find(d => d.type === 'stun');
-                    if (stunDebuff) {
-                        p.actionPoints = 2; // 3 - 1 = 2 AP due to stun
-                        encounter.log.push({ message: `${p.name} is stunned and starts with reduced Action Points!`, type: 'reaction' });
-                    } else {
-                        p.actionPoints = 3;
-                    }
-                    p.turnEnded = false;
+                    p.actionPoints = 3;
                 }
             }
-            p.buffs.forEach(b => b.duration--);
-            p.debuffs.forEach(d => d.duration--);
-            p.buffs = p.buffs.filter(b => b.duration > 0);
-            p.debuffs = p.debuffs.filter(d => d.duration > 0);
+            // Cooldowns decrement at Start of Turn
             Object.keys(p.weaponCooldowns).forEach(k => { if (p.weaponCooldowns[k] > 0) p.weaponCooldowns[k]--; });
             Object.keys(p.spellCooldowns).forEach(k => { if (p.spellCooldowns[k] > 0) p.spellCooldowns[k]--; });
             Object.keys(p.itemCooldowns).forEach(k => { if (p.itemCooldowns[k] > 0) p.itemCooldowns[k]--; });
@@ -1364,6 +1337,48 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
     if (allTurnsEnded) {
         await runEnemyPhaseForParty(io, partyId);
     }
+}
+
+function applyDoTEffects(playerState, logTarget) {
+    if (playerState.isDead) return false;
+    let tookDamage = false;
+    ['bleed', 'burn', 'poison', 'entangling roots'].forEach(type => {
+        const debuff = playerState.debuffs.find(d => d.type.toLowerCase() === type);
+        if (debuff) {
+            playerState.health -= debuff.damage;
+            let typeName = type.charAt(0).toUpperCase() + type.slice(1);
+            let dmgType = debuff.damageType || (type === 'burn' ? 'Fire' : (type === 'poison' ? 'Nature' : 'Physical'));
+            logTarget.push({ message: `${playerState.name} takes ${debuff.damage} ${dmgType} damage from ${typeName}.`, type: 'damage' });
+            tookDamage = true;
+        }
+    });
+    return tookDamage;
+}
+
+export async function processPvpPlayerEndTurn(io, encounter, playerState) {
+    if (!playerState || playerState.turnEnded) return;
+
+    // Apply DoT
+    applyDoTEffects(playerState, encounter.log);
+
+    // Check Death
+    if (playerState.health <= 0) {
+        playerState.health = 0;
+        playerState.isDead = true;
+        encounter.log.push({ message: `${playerState.name} has succumbed to their wounds!`, type: 'damage' });
+    }
+
+    // Decrement Durations
+    if (playerState.buffs) {
+        playerState.buffs.forEach(b => b.duration--);
+        playerState.buffs = playerState.buffs.filter(b => b.duration > 0);
+    }
+    if (playerState.debuffs) {
+        playerState.debuffs.forEach(d => d.duration--);
+        playerState.debuffs = playerState.debuffs.filter(d => d.duration > 0);
+    }
+
+    playerState.turnEnded = true;
 }
 
 export async function handleResolveReaction(io, socket, payload) {
