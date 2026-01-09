@@ -453,7 +453,7 @@ export const specialCards = {
     },
     stoneColumn: {
         name: "Stone Column",
-        type: "object", // Using object type if supported, or enemy with no attacks
+        type: "enemy",
         health: 8,
         maxHealth: 8,
         description: "A sturdy stone column. Vexor uses these for cover.",
