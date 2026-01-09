@@ -305,30 +305,50 @@ export const cardPools = {
     sewers: [
         {
             card: {
-                name: "Rat", type: "enemy", health: 3, maxHealth: 3, icon: "🐀", attackTable: [
-                    { range: [1, 10], action: 'miss', message: "Miss!" },
-                    { range: [11, 20], action: 'attack', attackRange: 'melee', damage: 1, damageType: 'Physical', message: "Bite! Deals 1 Physical Damage!" }
+                name: "Sewer Rat", type: "enemy", health: 6, maxHealth: 6, icon: "🐀",
+                imageUrl: '/assets/sewer-rat.jpg',
+                attackTable: [
+                    { range: [1, 8], action: 'miss', message: "Miss!" },
+                    { range: [9, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Bite! Deals 2 Physical Damage!" }
+                ],
+                lootTable: [
+                    { range: [1, 10], items: ["Rat Meat"] },
+                    { range: [11, 18], items: ["Rat Tail"] },
+                    { range: [19, 20], items: ["Rat Eye"] }
                 ]
             }, count: 10
         },
         {
             card: {
-                name: "Large Rat", type: "enemy", health: 5, maxHealth: 5, icon: "🐀", attackTable: [
-                    { range: [1, 10], action: 'miss', message: "Miss!" },
-                    { range: [11, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Maul! Deals 2 Physical Damage!" }
+                name: "Plague Rat", type: "enemy", health: 10, maxHealth: 10, icon: "🐀",
+                imageUrl: '/assets/plague-rat.jpg',
+                attackTable: [
+                    { range: [1, 8], action: 'miss', message: "Miss!" },
+                    { range: [9, 16], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Maul! Deals 3 Physical Damage!" },
+                    { range: [17, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Infectious Bite! Deals 2 Nature Damage and Poisons!" }
+                ],
+                lootTable: [
+                    { range: [1, 10], items: ["Rat Meat", "Rat Eye"] },
+                    { range: [11, 18], items: ["Rat Tail"] },
+                    { range: [19, 20], items: ["Plague Essence"] }
                 ]
             }, count: 5
         },
         {
             card: {
-                name: "The Rat King", type: "enemy", health: 20, maxHealth: 20, description: "A horrifying amalgamation of rats.", icon: "👑",
+                name: "The Rat King", type: "enemy", health: 30, maxHealth: 30, description: "A horrifying amalgamation of rats.", icon: "👑",
+                imageUrl: '/assets/rat-king.jpg',
                 attackTable: [
                     { range: [1, 5], action: 'miss', message: "Miss!" },
                     { range: [6, 10], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Gnaw! Deals 3 Physical Damage!" },
                     { range: [11, 15], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', debuff: { type: 'poison', duration: 3, damage: 2, damageType: 'Nature' }, message: "Diseased Bite! Deals 2 Physical Damage and Poisons you!" },
                     { range: [16, 20], action: 'special', message: "The Rat King shrieks and another rat appears!" }
                 ],
-                guaranteedLoot: { gold: true, items: ["Rat Tail Cloak"] }
+                guaranteedLoot: { gold: true, items: ["Rat Tail Cloak"] },
+                lootTable: [
+                    { range: [1, 15], items: ["Rat Tail", "Plague Essence"] },
+                    { range: [16, 20], items: ["Rat King's Crown"] }
+                ]
             }, count: 1
         },
     ],

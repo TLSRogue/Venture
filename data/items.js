@@ -762,6 +762,24 @@ export const allItems = [
     { name: "Carrot", type: "material", price: 5, description: "A crunchy, orange root vegetable.", icon: "🥕", rarity: "common", canBeInMerchantWares: false, },
     { name: "Feather", type: "material", price: 2, description: "A small, light feather.", icon: "🪶", rarity: "common", canBeInMerchantWares: false, },
     { name: "Goblin Lucky Charm", type: "questItem", price: 0, description: "A strange, surprisingly shiny goblin trinket.", icon: "🍀", rarity: "quest", canBeInMerchantWares: false, },
+
+    // --- Rat Loot Items ---
+    { name: "Rat Meat", type: "material", price: 5, description: "Chewy but edible.", icon: "🥩", rarity: "common", canBeInMerchantWares: false, },
+    { name: "Rat Eye", type: "material", price: 10, description: "A beady red eye.", icon: "👁️", rarity: "common", canBeInMerchantWares: false, },
+    { name: "Rat Tail", type: "material", price: 8, description: "A long, pink tail.", icon: "🐀", rarity: "common", canBeInMerchantWares: false, },
+    { name: "Plague Essence", type: "material", price: 50, description: "A vial of green, glowing ooze.", icon: "🧪", rarity: "rare", canBeInMerchantWares: false, },
+    {
+        name: "Rat King's Crown",
+        type: "armor",
+        slot: "helmet",
+        price: 300,
+        bonus: { strength: 1, agility: 2, maxHealth: 2 },
+        description: "A jagged crown worn by the Rat King. +1 Str, +2 Agi, +2 Max HP.",
+        tier: 1,
+        icon: "👑",
+        rarity: "rare",
+        canBeInMerchantWares: false,
+    },
 ];
 
 export const genericTreasureLoot = [
