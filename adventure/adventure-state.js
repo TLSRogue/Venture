@@ -256,8 +256,39 @@ export function startNextPvpTeamTurn(io, encounterId) {
     encounter.playerStates.forEach(p => {
         if (p.team === nextTeam) {
             if (!p.isDead) {
-                p.actionPoints = 3;
-                p.turnEnded = false;
+                // Process DOT damage at start of turn (before debuff duration decrements)
+                const bleedDebuff = p.debuffs.find(d => d.type === 'bleed');
+                if (bleedDebuff) {
+                    p.health -= bleedDebuff.damage;
+                    encounter.log.push({ message: `${p.name} takes ${bleedDebuff.damage} Physical damage from Bleed. [id:${p.playerId}]`, type: 'damage' });
+                }
+                const burnDebuff = p.debuffs.find(d => d.type === 'burn');
+                if (burnDebuff) {
+                    p.health -= burnDebuff.damage;
+                    encounter.log.push({ message: `${p.name} takes ${burnDebuff.damage} Fire damage from Burn. [id:${p.playerId}]`, type: 'damage' });
+                }
+                const poisonDebuff = p.debuffs.find(d => d.type === 'poison');
+                if (poisonDebuff) {
+                    p.health -= poisonDebuff.damage;
+                    encounter.log.push({ message: `${p.name} takes ${poisonDebuff.damage} Nature damage from Poison. [id:${p.playerId}]`, type: 'damage' });
+                }
+
+                // Check if DOT killed the player
+                if (p.health <= 0) {
+                    p.isDead = true;
+                    p.turnEnded = true;
+                    encounter.log.push({ message: `${p.name} has succumbed to their wounds!`, type: 'damage' });
+                } else {
+                    // Check for Stun - reduces AP by 1
+                    const stunDebuff = p.debuffs.find(d => d.type === 'stun');
+                    if (stunDebuff) {
+                        p.actionPoints = 2; // 3 - 1 = 2 AP due to stun
+                        encounter.log.push({ message: `${p.name} is stunned and starts with reduced Action Points!`, type: 'reaction' });
+                    } else {
+                        p.actionPoints = 3;
+                    }
+                    p.turnEnded = false;
+                }
             }
             p.buffs.forEach(b => b.duration--);
             p.debuffs.forEach(d => d.duration--);

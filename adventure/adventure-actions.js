@@ -372,7 +372,6 @@ export async function processCastSpell(io, party, player, payload) {
         description += (roll === 1) ? ` Critical Failure!` : ` Fizzle!`;
         log.push({ message: description, type: 'damage' });
     } else {
-        console.log(`[SPELL DEBUG] Success! spell.type=${spell.type}, isPvP=${isPvP}, targetState=${targetState?.name || 'null'}`);
         log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' ? 'heal' : 'damage' });
 
         actingPlayerState.threat += cost;
@@ -503,10 +502,7 @@ export async function processCastSpell(io, party, player, payload) {
             // --- UNIFIED: Build target list ---
             let targets = [];
 
-            console.log(`[SPELL DEBUG] ${spell.name} - isPvP: ${isPvP}, targetState: ${targetState ? targetState.name : 'null'}, enemyTarget: ${enemyTarget ? enemyTarget.name : 'null'}`);
-
             if (isPvP && targetState) {
-                console.log(`[SPELL DEBUG] Adding PvP target: ${targetState.name}`);
                 targets.push({
                     state: targetState,
                     id: targetState.playerId,
