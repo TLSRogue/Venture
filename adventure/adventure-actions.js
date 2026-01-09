@@ -99,17 +99,67 @@ export async function processWeaponAttack(io, party, player, payload) {
     const character = player.character;
     const { sharedState } = party;
 
-    if (sharedState.pvpEncounterId) {
-        const encounter = pvpEncounters[sharedState.pvpEncounterId];
-        if (!encounter) return;
-        const actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
-        const weapon = character.equipment[weaponSlot];
+    // Determine if this is a PvP encounter
+    const encounter = sharedState.pvpEncounterId ? pvpEncounters[sharedState.pvpEncounterId] : null;
+    const isPvP = !!encounter;
+
+    // Get acting player state (unified lookup)
+    const actingPlayerState = isPvP
+        ? encounter.playerStates.find(p => p.playerId === player.id)
+        : sharedState.partyMemberStates.find(p => p.playerId === player.id);
+
+    const weapon = character.equipment[weaponSlot];
+
+    // Validate weapon and action points
+    if (!weapon || weapon.type !== 'weapon') return;
+    if (actingPlayerState.actionPoints < weapon.cost) return;
+    if ((actingPlayerState.weaponCooldowns[weaponSlot] || 0) > 0) return;
+
+    // Get target (unified for PvE/PvP)
+    let target;
+    if (isPvP) {
         const defendingPlayerState = encounter.playerStates.find(p => p.playerId === targetIndex);
+        if (!defendingPlayerState) return;
+        target = {
+            isPvP: true,
+            id: defendingPlayerState.playerId,
+            name: defendingPlayerState.name,
+            state: defendingPlayerState,
+            buffs: defendingPlayerState.buffs,
+            debuffs: defendingPlayerState.debuffs,
+            getResistance: (damageType) => {
+                if (damageType === 'Physical') {
+                    const defChar = players[defendingPlayerState.name]?.character;
+                    if (defChar) {
+                        const defBonuses = getBonusStatsForPlayer(defChar, defendingPlayerState);
+                        return defBonuses.physicalResistance || 0;
+                    }
+                }
+                return 0;
+            }
+        };
+    } else {
+        const enemyCard = sharedState.zoneCards[targetIndex];
+        if (!enemyCard || enemyCard.type !== 'enemy') return;
+        target = {
+            isPvP: false,
+            id: enemyCard.id,
+            name: enemyCard.name,
+            state: enemyCard,
+            buffs: enemyCard.buffs || [],
+            debuffs: enemyCard.debuffs || [],
+            cardIndex: targetIndex,
+            getResistance: (damageType) => {
+                if (damageType === 'Physical') {
+                    return enemyCard.buffs?.find(b => b.bonus?.physicalResistance)?.bonus.physicalResistance || 0;
+                }
+                return 0;
+            }
+        };
+    }
 
-        if (!weapon || weapon.type !== 'weapon' || !defendingPlayerState || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weaponSlot] || 0) > 0) {
-            return;
-        }
-
+    // --- PvP Reaction Check (only for PvP) ---
+    if (isPvP) {
         const actionDetails = {
             damage: weapon.weaponDamage,
             damageType: weapon.damageType,
@@ -118,132 +168,87 @@ export async function processWeaponAttack(io, party, player, payload) {
             debuff: null,
         };
 
+        // Consume resources before reaction check
         actingPlayerState.actionPoints -= weapon.cost;
         actingPlayerState.threat += weapon.cost;
         actingPlayerState.weaponCooldowns[weaponSlot] = weapon.cooldown;
 
-        const reactionInitiated = handlePvpReactionCheck(io, encounter, actingPlayerState, defendingPlayerState, actionDetails);
-
+        const reactionInitiated = handlePvpReactionCheck(io, encounter, actingPlayerState, target.state, actionDetails);
         if (reactionInitiated) {
             broadcastAdventureUpdate(io, party);
             return;
         }
-
-        const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
-        const stat = weapon.stat || 'strength';
-        const statValue = (character[stat] || 0) + (bonuses[stat] || 0);
-        const dazeDebuff = actingPlayerState.debuffs.find(d => d.type === 'daze');
-        const dazeModifier = dazeDebuff ? -3 : 0;
-        const focusBuff = actingPlayerState.buffs.find(b => b.type === 'Focus');
-        const focusModifier = focusBuff ? focusBuff.bonus.rollBonus : 0;
-        const stealthBuff = defendingPlayerState.buffs.find(b => b.type === 'Stealth');
-        const stealthModifier = stealthBuff ? -5 : 0;
-        const roll = Math.floor(Math.random() * 20) + 1;
-        const total = roll + statValue + dazeModifier + focusModifier + stealthModifier;
-        const hitTarget = weapon.hit || 15;
-
-        const isHit = roll !== 1 && total >= hitTarget;
-        const rollColor = isHit ? '#2ecc71' : '#e74c3c';
-        const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
-        let logMessage = `${character.characterName} attacks ${defendingPlayerState.name} with ${weapon.name}! ${rollDisplay}`;
-
-        if (roll === 1) {
-            logMessage += ` Critical Failure!`;
-            encounter.log.push({ message: logMessage, type: 'damage' });
-        } else if (isHit) {
-            let damageToDeal = weapon.weaponDamage;
-            const defendingCharacter = players[defendingPlayerState.name]?.character;
-            if (defendingCharacter && weapon.damageType === 'Physical') {
-                const defendingBonuses = getBonusStatsForPlayer(defendingCharacter, defendingPlayerState);
-                const resistance = defendingBonuses.physicalResistance || 0;
-                damageToDeal = Math.max(0, damageToDeal - resistance);
-            }
-
-            defendingPlayerState.health -= damageToDeal;
-            logMessage += ` Deals ${damageToDeal} ${weapon.damageType} damage! [id:${defendingPlayerState.playerId}]`;
-
-            if ((roll === 20 && weapon.onCrit?.debuff) || weapon.onHit?.debuff) {
-                const debuff = (roll === 20 && weapon.onCrit?.debuff) ? weapon.onCrit.debuff : weapon.onHit.debuff;
-                const existingIndex = defendingPlayerState.debuffs.findIndex(d => d.type === debuff.type);
-                if (existingIndex !== -1) defendingPlayerState.debuffs.splice(existingIndex, 1);
-                defendingPlayerState.debuffs.push({ ...debuff });
-                logMessage += ` Applies ${debuff.type}!`;
-            }
-
-            encounter.log.push({ message: logMessage, type: 'damage' });
-
-            if (defendingPlayerState.health <= 0) {
-                defeatEnemyInParty(io, party, { playerId: defendingPlayerState.playerId }, null);
-            }
-        } else {
-            logMessage += ` Miss!`;
-            encounter.log.push({ message: logMessage, type: 'info' });
-        }
-
     } else {
-        const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
-        const target = sharedState.zoneCards[targetIndex];
-        const weapon = character.equipment[weaponSlot];
-
-        if (!weapon || weapon.type !== 'weapon' || !target || target.type !== 'enemy' || actingPlayerState.actionPoints < weapon.cost || (actingPlayerState.weaponCooldowns[weaponSlot] || 0) > 0) {
-            return;
-        }
-
+        // Consume resources for PvE
         actingPlayerState.actionPoints -= weapon.cost;
         actingPlayerState.threat += weapon.cost;
         actingPlayerState.weaponCooldowns[weaponSlot] = weapon.cooldown;
+    }
 
-        const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
-        const stat = weapon.stat || 'strength';
-        const statValue = (character[stat] || 0) + (bonuses[stat] || 0);
-        const dazeDebuff = actingPlayerState.debuffs.find(d => d.type === 'daze');
-        const dazeModifier = dazeDebuff ? -3 : 0;
-        const roll = Math.floor(Math.random() * 20) + 1;
-        const total = roll + statValue + dazeModifier;
-        const hitTarget = weapon.hit || 15;
+    // --- UNIFIED ROLL RESOLUTION ---
+    const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+    const stat = weapon.stat || 'strength';
+    const statValue = (character[stat] || 0) + (bonuses[stat] || 0);
 
-        const isHit = roll !== 1 && total >= hitTarget;
-        const rollColor = isHit ? '#2ecc71' : '#e74c3c';
-        const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
-        let logMessage = `${character.characterName} attacks ${target.name} with ${weapon.name}! ${rollDisplay}`;
+    // Modifiers (unified)
+    const dazeDebuff = actingPlayerState.debuffs.find(d => d.type === 'daze');
+    const dazeModifier = dazeDebuff ? -3 : 0;
+    const focusBuff = actingPlayerState.buffs.find(b => b.type === 'Focus');
+    const focusModifier = focusBuff ? (focusBuff.bonus?.rollBonus || 0) : 0;
+    const stealthBuff = target.buffs.find(b => b.type === 'Stealth');
+    const stealthModifier = stealthBuff ? -5 : 0;
 
-        if (roll === 1) {
-            logMessage += ` Critical Failure!`;
-            sharedState.log.push({ message: logMessage, type: 'damage' });
-        } else if (isHit) {
-            let damageToDeal = weapon.weaponDamage;
-            if (weapon.damageType === 'Physical') {
-                const resistance = target.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
-                damageToDeal = Math.max(0, damageToDeal - resistance);
-            }
+    const roll = Math.floor(Math.random() * 20) + 1;
+    const total = roll + statValue + dazeModifier + focusModifier + stealthModifier;
+    const hitTarget = weapon.hit || 15;
 
-            target.health -= damageToDeal;
-            logMessage += ` Deals ${damageToDeal} ${weapon.damageType} damage! [id:${target.id}]`;
+    const isHit = roll !== 1 && total >= hitTarget;
+    const isCriticalHit = roll === 20;
+    const rollColor = isHit ? '#2ecc71' : '#e74c3c';
+    const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
 
-            if (roll === 20 && weapon.onCrit && weapon.onCrit.debuff) {
-                const debuff = weapon.onCrit.debuff;
-                const existingIndex = target.debuffs.findIndex(d => d.type === debuff.type);
-                if (existingIndex !== -1) target.debuffs.splice(existingIndex, 1);
-                target.debuffs.push({ ...debuff });
-                logMessage += ` CRIT! Applies ${debuff.type}!`;
-            }
-            if (weapon.onHit && weapon.onHit.debuff) {
-                const debuff = weapon.onHit.debuff;
-                const existingIndex = target.debuffs.findIndex(d => d.type === debuff.type);
-                if (existingIndex !== -1) target.debuffs.splice(existingIndex, 1);
-                target.debuffs.push({ ...debuff });
-                logMessage += ` Applies ${debuff.type}!`;
-            }
+    // Get the appropriate log
+    const log = isPvP ? encounter.log : sharedState.log;
+    let logMessage = `${character.characterName} attacks ${target.name} with ${weapon.name}! ${rollDisplay}`;
 
-            sharedState.log.push({ message: logMessage, type: 'damage' });
+    if (roll === 1) {
+        // Critical Failure
+        logMessage += ` Critical Failure!`;
+        log.push({ message: logMessage, type: 'damage' });
+    } else if (isHit) {
+        // --- UNIFIED DAMAGE CALCULATION ---
+        let baseDamage = weapon.weaponDamage;
+        const resistance = target.getResistance(weapon.damageType);
+        const damageToDeal = Math.max(0, baseDamage - resistance);
 
-            if (target.health <= 0) {
-                defeatEnemyInParty(io, party, target, targetIndex);
-            }
-        } else {
-            logMessage += ` Miss!`;
-            sharedState.log.push({ message: logMessage, type: 'info' });
+        // Apply damage
+        target.state.health -= damageToDeal;
+        logMessage += ` Deals ${damageToDeal} ${weapon.damageType} damage! [id:${target.id}]`;
+
+        // Apply debuffs (on-crit or on-hit)
+        if ((isCriticalHit && weapon.onCrit?.debuff) || weapon.onHit?.debuff) {
+            const debuff = (isCriticalHit && weapon.onCrit?.debuff) ? weapon.onCrit.debuff : weapon.onHit.debuff;
+            if (!target.state.debuffs) target.state.debuffs = [];
+            const existingIndex = target.state.debuffs.findIndex(d => d.type === debuff.type);
+            if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
+            target.state.debuffs.push({ ...debuff });
+            logMessage += isCriticalHit && weapon.onCrit?.debuff ? ` CRIT! Applies ${debuff.type}!` : ` Applies ${debuff.type}!`;
         }
+
+        log.push({ message: logMessage, type: 'damage' });
+
+        // Check for death
+        if (target.state.health <= 0) {
+            if (isPvP) {
+                defeatEnemyInParty(io, party, { playerId: target.id }, null);
+            } else {
+                defeatEnemyInParty(io, party, target.state, target.cardIndex);
+            }
+        }
+    } else {
+        // Miss
+        logMessage += ` Miss!`;
+        log.push({ message: logMessage, type: 'info' });
     }
 
     broadcastAdventureUpdate(io, party);
@@ -259,254 +264,58 @@ export async function processCastSpell(io, party, player, payload) {
     if (!spell) return;
     const cost = spell.cost || 0;
 
-    if (sharedState.pvpEncounterId) {
-        const encounter = pvpEncounters[sharedState.pvpEncounterId];
-        if (!encounter) return;
-        const actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
+    // --- UNIFIED: Determine encounter type ---
+    const encounter = sharedState.pvpEncounterId ? pvpEncounters[sharedState.pvpEncounterId] : null;
+    const isPvP = !!encounter;
+    const log = isPvP ? encounter.log : sharedState.log;
 
-        if (actingPlayerState.actionPoints < cost || (actingPlayerState.spellCooldowns[spell.name] || 0) > 0) {
-            return;
+    // --- UNIFIED: Get acting player state ---
+    const actingPlayerState = isPvP
+        ? encounter.playerStates.find(p => p.playerId === player.id)
+        : sharedState.partyMemberStates.find(p => p.playerId === player.id);
+
+    // Validate action points and cooldowns
+    if (actingPlayerState.actionPoints < cost) return;
+    if ((actingPlayerState.spellCooldowns[spell.name] || 0) > 0) return;
+
+    // --- UNIFIED: Check weapon requirements ---
+    if (spell.requires?.weaponType) {
+        const mainHand = character.equipment.mainHand;
+        const offHand = character.equipment.offHand;
+        const hasRequiredWeapon = (hand) => {
+            if (!hand) return false;
+            return Array.isArray(spell.requires.weaponType) && spell.requires.weaponType.includes(hand.weaponType);
+        };
+
+        if (spell.requires.hand) {
+            if (!hasRequiredWeapon(character.equipment[spell.requires.hand])) return;
+        } else {
+            if (!hasRequiredWeapon(mainHand) && !hasRequiredWeapon(offHand)) return;
         }
+    }
 
-        if (spell.requires && spell.requires.weaponType) {
-            const mainHand = character.equipment.mainHand;
-            const offHand = character.equipment.offHand;
+    // --- UNIFIED: Determine target ---
+    let targetState = null;
+    let enemyTarget = null;
+    let isSelfTarget = false;
 
-            const hasRequiredWeapon = (hand) => {
-                if (!hand) return false;
-                return Array.isArray(spell.requires.weaponType) && spell.requires.weaponType.includes(hand.weaponType);
-            };
-
-            if (spell.requires.hand) {
-                if (!hasRequiredWeapon(character.equipment[spell.requires.hand])) return;
-            } else {
-                if (!hasRequiredWeapon(mainHand) && !hasRequiredWeapon(offHand)) return;
-            }
-        }
-
-        // Handle self-targeting (e.g., 'player' or caster's own ID)
-        let targetPlayerState;
+    if (isPvP) {
         if (targetIndex === 'player' || targetIndex === player.id) {
-            targetPlayerState = actingPlayerState;
-        } else {
-            targetPlayerState = encounter.playerStates.find(p => p.playerId === targetIndex);
-        }
-        if (!targetPlayerState) return;
-
-        const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
-        let statValue = 0;
-        let rollDescription = "";
-
-        if (Array.isArray(spell.stat)) {
-            let highestStatValue = -Infinity;
-            let highestStatName = '';
-            spell.stat.forEach(statName => {
-                const currentStatValue = (character[statName] || 0) + (bonuses[statName] || 0);
-                if (currentStatValue > highestStatValue) {
-                    highestStatValue = currentStatValue;
-                    highestStatName = statName;
-                }
-            });
-            statValue = highestStatValue;
-            rollDescription = `(${highestStatName.slice(0, 3)})`;
-        } else {
-            const statName = spell.stat;
-            if (statName) {
-                statValue = (character[statName] || 0) + (bonuses[statName] || 0);
-                rollDescription = `(${statName.slice(0, 3)})`;
-            } else {
-                statValue = 0;
-                rollDescription = '';
-            }
-        }
-
-        const dazeDebuff = actingPlayerState.debuffs.find(d => d.type === 'daze');
-        const dazeModifier = dazeDebuff ? -3 : 0;
-        const focusBuff = actingPlayerState.buffs.find(b => b.type === 'Focus');
-        const focusModifier = focusBuff ? focusBuff.bonus.rollBonus : 0;
-        const stealthBuff = targetPlayerState.buffs.find(b => b.type === 'Stealth');
-        const stealthModifier = stealthBuff ? -5 : 0;
-        const roll = Math.floor(Math.random() * 20) + 1;
-        const total = roll + statValue + dazeModifier + focusModifier + stealthModifier;
-        const hitTarget = spell.hit || 15;
-        const isSuccess = roll !== 1 && total >= hitTarget;
-        const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
-        const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
-        let description = `${character.characterName} casts ${spell.name}! ${rollDisplay}`;
-
-        actingPlayerState.actionPoints -= cost;
-        actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
-
-        if (!isSuccess) {
-            description += (roll === 1) ? ` Critical Failure!` : ` Fizzle!`;
-            encounter.log.push({ message: description, type: 'damage' });
-        } else {
-            encounter.log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' ? 'heal' : 'damage' });
-
-            actingPlayerState.threat += cost;
-            if (spell.bonusThreat) {
-                actingPlayerState.threat += spell.bonusThreat;
-                encounter.log.push({ message: `${character.characterName} generates ${spell.bonusThreat} bonus threat!`, type: 'reaction' });
-            }
-
-            if (spell.name === "Monk's Training") {
-                const focusAmount = actingPlayerState.focus || 0;
-                if (focusAmount > 0) {
-                    actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + focusAmount);
-                    const buff = { type: 'Focus', duration: 2, bonus: { rollBonus: focusAmount } };
-                    const existingIndex = actingPlayerState.buffs.findIndex(b => b.type === buff.type);
-                    if (existingIndex !== -1) actingPlayerState.buffs.splice(existingIndex, 1);
-                    actingPlayerState.buffs.push(buff);
-                    encounter.log.push({ message: `${character.characterName} spends ${focusAmount} Focus to heal for ${focusAmount} and gain +${focusAmount} to rolls this turn.`, type: 'heal' });
-                    actingPlayerState.focus = 0;
-                } else {
-                    encounter.log.push({ message: `${character.characterName} has no Focus to spend!`, type: 'info' });
-                }
-            }
-
-            if (spell.type === 'attack' || (spell.type === 'versatile' && targetPlayerState.team !== actingPlayerState.team)) {
-                const actionDetails = {
-                    damage: spell.damage || (spell.baseEffect ? spell.baseEffect + statValue : 0),
-                    damageType: spell.damageType,
-                    attackRange: spell.range,
-                    message: `is targeted by ${spell.name}.`,
-                    debuff: spell.debuff || null,
-                };
-
-                const reactionInitiated = handlePvpReactionCheck(io, encounter, actingPlayerState, targetPlayerState, actionDetails);
-
-                if (reactionInitiated) {
-                    broadcastAdventureUpdate(io, party);
-                    return;
-                }
-            }
-
-            if (spell.type === 'heal') {
-                targetPlayerState.health = Math.min(targetPlayerState.maxHealth, targetPlayerState.health + spell.heal);
-                encounter.log.push({ message: `Healed ${targetPlayerState.name} for ${spell.heal} HP. [id:${targetPlayerState.playerId}]`, type: 'heal' });
-            } else if (spell.type === 'buff') {
-                const buff = spell.buff;
-                const existingIndex = targetPlayerState.buffs.findIndex(b => b.type === buff.type);
-                if (existingIndex !== -1) targetPlayerState.buffs.splice(existingIndex, 1);
-                targetPlayerState.buffs.push({ ...buff });
-                encounter.log.push({ message: `${targetPlayerState.name} gains ${buff.type}! [id:${targetPlayerState.playerId}]`, type: 'heal' });
-            } else if (spell.type === 'attack') {
-                let damageToDeal = spell.damage || 0;
-
-                if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
-                    const mainHand = character.equipment.mainHand;
-                    const offHand = character.equipment.offHand;
-                    let highestFireWeaponDamage = 0;
-                    if (mainHand && mainHand.weaponDamage && mainHand.damageType === 'Fire') {
-                        highestFireWeaponDamage = mainHand.weaponDamage;
-                    }
-                    if (offHand && offHand.weaponDamage && offHand.damageType === 'Fire' && mainHand !== offHand) {
-                        if (offHand.weaponDamage > highestFireWeaponDamage) {
-                            highestFireWeaponDamage = offHand.weaponDamage;
-                        }
-                    }
-                    damageToDeal = 1 + highestFireWeaponDamage;
-                }
-                // Special handling for bow spells that use weapon damage
-                else if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
-                    const mainHand = character.equipment.mainHand;
-                    if (mainHand && mainHand.weaponDamage && spell.requires?.weaponType?.includes(mainHand.weaponType)) {
-                        damageToDeal = mainHand.weaponDamage;
-                    }
-                }
-                // Ambush Logic
-                else if (spell.name === 'Ambush') {
-                    const hands = ['mainHand', 'offHand'];
-                    let totalDaggerDamage = 0;
-                    hands.forEach(hand => {
-                        const weapon = character.equipment[hand];
-                        if (weapon && weapon.weaponType === 'Dagger') {
-                            totalDaggerDamage += weapon.weaponDamage || 0;
-                        }
-                    });
-                    damageToDeal = totalDaggerDamage;
-                    if (!spell.debuff) {
-                        spell.debuff = { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' };
-                    }
-                }
-                // Monk Logic
-                else if (spell.name === 'Punch' || spell.name === 'Kick') {
-                    if (character.equippedSpells.some(s => s.name === "Monk's Training") && !character.equipment.mainHand && !character.equipment.offHand) {
-                        damageToDeal += 1;
-                    }
-                } else if (spell.name === 'Crushing Blow') {
-                    damageToDeal = character.equipment.mainHand.weaponDamage + (spell.damageBonus || 0);
-                }
-
-                const originalDamage = damageToDeal;
-                const defendingCharacter = players[targetPlayerState.name]?.character;
-                if (defendingCharacter && spell.damageType === 'Physical') {
-                    const defendingBonuses = getBonusStatsForPlayer(defendingCharacter, targetPlayerState);
-                    const resistance = defendingBonuses.physicalResistance || 0;
-                    damageToDeal = Math.max(0, damageToDeal - resistance);
-                }
-
-                targetPlayerState.health -= damageToDeal;
-                let damageMessage = `Dealt ${damageToDeal} ${spell.damageType} damage to ${targetPlayerState.name} [id:${targetPlayerState.playerId}].`;
-                if (damageToDeal < originalDamage) damageMessage += ` (${originalDamage - damageToDeal} resisted)`;
-                encounter.log.push({ message: damageMessage, type: 'damage' });
-
-                if (spell.debuff) {
-                    const debuff = spell.debuff;
-                    const existingIndex = targetPlayerState.debuffs.findIndex(d => d.type === debuff.type);
-                    if (existingIndex !== -1) targetPlayerState.debuffs.splice(existingIndex, 1);
-                    targetPlayerState.debuffs.push({ ...debuff });
-                }
-
-                // Monk Focus Gain on hit
-                if ((spell.name === 'Punch' || spell.name === 'Kick') && character.equippedSpells.some(s => s.name === "Monk's Training") && !character.equipment.mainHand && !character.equipment.offHand) {
-                    if ((actingPlayerState.focus || 0) < 3) {
-                        actingPlayerState.focus = (actingPlayerState.focus || 0) + 1;
-                        encounter.log.push({ message: `${character.characterName} gains 1 Focus.`, type: 'heal' });
-                    }
-                }
-            }
-            if (targetPlayerState.health <= 0) {
-                defeatEnemyInParty(io, party, { playerId: targetPlayerState.playerId }, null);
-            }
-        }
-
-    } else {
-        const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
-        if (actingPlayerState.actionPoints < cost || (actingPlayerState.spellCooldowns[spell.name] || 0) > 0) {
-            return;
-        }
-
-        if (spell.requires && spell.requires.weaponType) {
-            const mainHand = character.equipment.mainHand;
-            const offHand = character.equipment.offHand;
-
-            const hasRequiredWeapon = (hand) => {
-                if (!hand) return false;
-                // Ensure spell.requires.weaponType is an array before calling .includes()
-                return Array.isArray(spell.requires.weaponType) && spell.requires.weaponType.includes(hand.weaponType);
-            };
-
-            if (spell.requires.hand) {
-                // Requires a specific hand (e.g., offHand for Shield Bash)
-                if (!hasRequiredWeapon(character.equipment[spell.requires.hand])) return;
-            } else {
-                // Requires the weapon type in either hand
-                if (!hasRequiredWeapon(mainHand) && !hasRequiredWeapon(offHand)) return;
-            }
-        }
-
-        let isSelfTarget = false;
-        let friendlyTarget = null;
-        let enemyTarget = null;
-
-        if (targetIndex === 'player' || (String(targetIndex).startsWith('p') && sharedState.partyMemberStates[parseInt(targetIndex.slice(1))].playerId === player.id)) {
+            targetState = actingPlayerState;
             isSelfTarget = true;
-            friendlyTarget = actingPlayerState;
+        } else {
+            targetState = encounter.playerStates.find(p => p.playerId === targetIndex);
+        }
+        if (!targetState) return;
+    } else {
+        if (targetIndex === 'player') {
+            targetState = actingPlayerState;
+            isSelfTarget = true;
         } else if (String(targetIndex).startsWith('p')) {
             const playerIdx = parseInt(targetIndex.substring(1));
             if (!isNaN(playerIdx) && sharedState.partyMemberStates[playerIdx]) {
-                friendlyTarget = sharedState.partyMemberStates[playerIdx];
+                targetState = sharedState.partyMemberStates[playerIdx];
+                if (targetState.playerId === player.id) isSelfTarget = true;
             }
         } else {
             const enemyIdx = parseInt(targetIndex);
@@ -514,203 +323,320 @@ export async function processCastSpell(io, party, player, payload) {
                 enemyTarget = sharedState.zoneCards[enemyIdx];
             }
         }
+    }
 
-        const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
-        let statValue = 0;
-        let rollDescription = "";
+    // --- UNIFIED: Calculate roll modifiers ---
+    const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+    let statValue = 0;
 
-        if (Array.isArray(spell.stat)) {
-            let highestStatValue = -Infinity;
-            let highestStatName = '';
-            spell.stat.forEach(statName => {
-                const currentStatValue = (character[statName] || 0) + (bonuses[statName] || 0);
-                if (currentStatValue > highestStatValue) {
-                    highestStatValue = currentStatValue;
-                    highestStatName = statName;
-                }
-            });
-            statValue = highestStatValue;
-            rollDescription = `(${highestStatName.slice(0, 3)})`;
-        } else {
-            const statName = spell.stat;
-            if (statName) {
-                statValue = (character[statName] || 0) + (bonuses[statName] || 0);
-                rollDescription = `(${statName.slice(0, 3)})`;
+    if (Array.isArray(spell.stat)) {
+        let highestStatValue = -Infinity;
+        spell.stat.forEach(statName => {
+            const currentStatValue = (character[statName] || 0) + (bonuses[statName] || 0);
+            if (currentStatValue > highestStatValue) {
+                highestStatValue = currentStatValue;
+            }
+        });
+        statValue = highestStatValue;
+    } else if (spell.stat) {
+        statValue = (character[spell.stat] || 0) + (bonuses[spell.stat] || 0);
+    }
+
+    // UNIFIED: All modifiers apply to both modes
+    const dazeDebuff = actingPlayerState.debuffs.find(d => d.type === 'daze');
+    const dazeModifier = dazeDebuff ? -3 : 0;
+    const focusBuff = actingPlayerState.buffs.find(b => b.type === 'Focus');
+    const focusModifier = focusBuff ? (focusBuff.bonus?.rollBonus || 0) : 0;
+
+    // Stealth modifier (applies when targeting enemies/opposing players)
+    let stealthModifier = 0;
+    if (isPvP && targetState && targetState.team !== actingPlayerState.team) {
+        const stealthBuff = targetState.buffs.find(b => b.type === 'Stealth');
+        stealthModifier = stealthBuff ? -5 : 0;
+    }
+
+    const roll = Math.floor(Math.random() * 20) + 1;
+    const total = roll + statValue + dazeModifier + focusModifier + stealthModifier;
+    const hitTarget = spell.hit || 15;
+    const isSuccess = roll !== 1 && total >= hitTarget;
+    const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
+    const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+
+    // Consume resources
+    actingPlayerState.actionPoints -= cost;
+    actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
+
+    let description = `${character.characterName} casts ${spell.name}! ${rollDisplay}`;
+
+    if (!isSuccess) {
+        description += (roll === 1) ? ` Critical Failure!` : ` Fizzle!`;
+        log.push({ message: description, type: 'damage' });
+    } else {
+        log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' ? 'heal' : 'damage' });
+
+        actingPlayerState.threat += cost;
+        if (spell.bonusThreat) {
+            actingPlayerState.threat += spell.bonusThreat;
+            log.push({ message: `${character.characterName} generates ${spell.bonusThreat} bonus threat!`, type: 'reaction' });
+        }
+
+        // --- SPECIAL SPELL: Monk's Training ---
+        if (spell.name === "Monk's Training") {
+            const focusAmount = actingPlayerState.focus || 0;
+            if (focusAmount > 0) {
+                actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + focusAmount);
+                const buff = { type: 'Focus', duration: 2, bonus: { rollBonus: focusAmount } };
+                const existingIndex = actingPlayerState.buffs.findIndex(b => b.type === buff.type);
+                if (existingIndex !== -1) actingPlayerState.buffs.splice(existingIndex, 1);
+                actingPlayerState.buffs.push(buff);
+                log.push({ message: `${character.characterName} spends ${focusAmount} Focus to heal for ${focusAmount} and gain +${focusAmount} to rolls this turn.`, type: 'heal' });
+                actingPlayerState.focus = 0;
             } else {
-                statValue = 0;
-                rollDescription = '';
+                log.push({ message: `${character.characterName} has no Focus to spend!`, type: 'info' });
+            }
+        }
+        // --- PvP REACTION CHECK for attack spells ---
+        else if (isPvP && targetState && (spell.type === 'attack' || (spell.type === 'versatile' && targetState.team !== actingPlayerState.team))) {
+            const actionDetails = {
+                damage: spell.damage || (spell.baseEffect ? spell.baseEffect + statValue : 0),
+                damageType: spell.damageType,
+                attackRange: spell.range,
+                message: `is targeted by ${spell.name}.`,
+                debuff: spell.debuff || null,
+            };
+
+            const reactionInitiated = handlePvpReactionCheck(io, encounter, actingPlayerState, targetState, actionDetails);
+
+            if (reactionInitiated) {
+                broadcastAdventureUpdate(io, party);
+                return;
             }
         }
 
-        const dazeDebuff = actingPlayerState.debuffs.find(d => d.type === 'daze');
-        const dazeModifier = dazeDebuff ? -3 : 0;
-        const focusBuff = actingPlayerState.buffs.find(b => b.type === 'Focus');
-        const focusModifier = focusBuff ? focusBuff.bonus.rollBonus : 0;
-        const roll = Math.floor(Math.random() * 20) + 1;
-        const total = roll + statValue + dazeModifier + focusModifier;
-        const hitTarget = spell.hit || 15;
-        const isSuccess = roll !== 1 && total >= hitTarget;
-        const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
-        const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
-        let description = `${character.characterName} casts ${spell.name}! ${rollDisplay}`;
-
-        actingPlayerState.actionPoints -= cost;
-        actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
-
-        if (!isSuccess) {
-            description += (roll === 1) ? ` Critical Failure!` : ` Fizzle!`;
-            sharedState.log.push({ message: description, type: 'damage' });
-        } else {
-            sharedState.log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' ? 'heal' : 'damage' });
-            actingPlayerState.threat += cost;
-            if (spell.bonusThreat) {
-                actingPlayerState.threat += spell.bonusThreat;
-                sharedState.log.push({ message: `${character.characterName} generates ${spell.bonusThreat} bonus threat!`, type: 'reaction' });
+        // --- UNIFIED SPELL EFFECTS ---
+        if (spell.type === 'heal') {
+            const healTarget = targetState || actingPlayerState;
+            healTarget.health = Math.min(healTarget.maxHealth, healTarget.health + spell.heal);
+            const targetId = isPvP ? healTarget.playerId : (healTarget.playerId || healTarget.id);
+            log.push({ message: `Healed ${healTarget.name} for ${spell.heal} HP. [id:${targetId}]`, type: 'heal' });
+        }
+        else if (spell.type === 'buff') {
+            const buffTarget = targetState || actingPlayerState;
+            const buff = spell.buff;
+            const existingIndex = buffTarget.buffs.findIndex(b => b.type === buff.type);
+            if (existingIndex !== -1) buffTarget.buffs.splice(existingIndex, 1);
+            buffTarget.buffs.push({ ...buff });
+            const targetId = isPvP ? buffTarget.playerId : (buffTarget.playerId || buffTarget.id);
+            log.push({ message: `${buffTarget.name} gains ${buff.type}! [id:${targetId}]`, type: 'heal' });
+        }
+        else if (spell.type === 'versatile') {
+            const effectValue = spell.baseEffect + statValue;
+            if (targetState && !targetState.isDead) {
+                targetState.health = Math.min(targetState.maxHealth, targetState.health + effectValue);
+                log.push({ message: `Healed ${targetState.name} for ${effectValue} HP.`, type: 'heal' });
+            } else if (enemyTarget) {
+                enemyTarget.health -= effectValue;
+                log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${enemyTarget.name} [id:${enemyTarget.id}].`, type: 'damage' });
+                if (enemyTarget.health <= 0) {
+                    defeatEnemyInParty(io, party, enemyTarget, parseInt(targetIndex));
+                }
+            } else if (isPvP && targetState && targetState.team !== actingPlayerState.team) {
+                targetState.health -= effectValue;
+                log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${targetState.name} [id:${targetState.playerId}].`, type: 'damage' });
+                if (targetState.health <= 0) {
+                    defeatEnemyInParty(io, party, { playerId: targetState.playerId }, null);
+                }
             }
-            if (spell.name === "Monk's Training") {
-                const focusAmount = actingPlayerState.focus || 0;
-                if (focusAmount > 0) {
-                    actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + focusAmount);
-                    const buff = { type: 'Focus', duration: 2, bonus: { rollBonus: focusAmount } };
-                    const existingIndex = actingPlayerState.buffs.findIndex(b => b.type === buff.type);
-                    if (existingIndex !== -1) actingPlayerState.buffs.splice(existingIndex, 1);
-                    actingPlayerState.buffs.push(buff);
-                    sharedState.log.push({ message: `${character.characterName} spends ${focusAmount} Focus to heal for ${focusAmount} and gain +${focusAmount} to rolls this turn.`, type: 'heal' });
-                    actingPlayerState.focus = 0;
-                } else {
-                    sharedState.log.push({ message: `${character.characterName} has no Focus to spend!`, type: 'info' });
-                }
-            } else if (spell.type === 'heal' || spell.type === 'buff') {
-                const target = isSelfTarget ? actingPlayerState : friendlyTarget;
-                if (target && !target.isDead) {
-                    if (spell.heal) {
-                        target.health = Math.min(target.maxHealth, target.health + spell.heal);
-                        sharedState.log.push({ message: `Healed ${target.name} for ${spell.heal} HP.`, type: 'heal' });
-                    }
-                    if (spell.buff) {
-                        const buff = spell.buff;
-                        const existingIndex = target.buffs.findIndex(b => b.type === buff.type);
-                        if (existingIndex !== -1) target.buffs.splice(existingIndex, 1);
-                        target.buffs.push({ ...buff });
-                        sharedState.log.push({ message: `${target.name} gains ${buff.type}!`, type: 'heal' });
-                    }
-                }
-            } else if (spell.type === 'versatile') {
-                const effectValue = spell.baseEffect + statValue;
-                const target = isSelfTarget ? actingPlayerState : friendlyTarget;
-                if (target && !target.isDead) {
-                    target.health = Math.min(target.maxHealth, target.health + effectValue);
-                    sharedState.log.push({ message: `Healed ${target.name} for ${effectValue} HP.`, type: 'heal' });
-                } else if (enemyTarget) {
-                    enemyTarget.health -= effectValue;
-                    sharedState.log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${enemyTarget.name} [id:${enemyTarget.id}].`, type: 'damage' });
-                    if (enemyTarget.health <= 0) {
-                        defeatEnemyInParty(io, party, enemyTarget, parseInt(targetIndex));
-                    }
-                }
-            } else if (spell.type === 'attack' || spell.type === 'aoe') {
-                let targets = [];
-                if (spell.aoeTargeting === 'all') {
-                    targets = sharedState.zoneCards.map((card, idx) => ({ card, index: idx })).filter(e => e.card && e.card.type === 'enemy');
-                } else if (spell.aoeTargeting === 'adjacent') {
-                    const enemyIdx = parseInt(targetIndex);
-                    if (enemyTarget) targets.push({ card: enemyTarget, index: enemyIdx });
-                    if (enemyIdx > 0 && sharedState.zoneCards[enemyIdx - 1]?.type === 'enemy') targets.push({ card: sharedState.zoneCards[enemyIdx - 1], index: enemyIdx - 1 });
-                    if (enemyIdx < sharedState.zoneCards.length - 1 && sharedState.zoneCards[enemyIdx + 1]?.type === 'enemy') targets.push({ card: sharedState.zoneCards[enemyIdx + 1], index: enemyIdx + 1 });
-                } else {
-                    if (enemyTarget) targets.push({ card: enemyTarget, index: parseInt(targetIndex) });
-                }
+        }
+        else if (spell.type === 'attack' || spell.type === 'aoe') {
+            // --- UNIFIED: Build target list ---
+            let targets = [];
 
-                const uniqueTargets = [...new Map(targets.map(item => [item.card.id, item])).values()];
-                uniqueTargets.forEach(({ card: aoeTarget, index: aoeIndex }) => {
-                    if (aoeTarget && aoeTarget.health > 0) {
-                        let damage = spell.damage || 0;
-
-                        if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
-                            const mainHand = character.equipment.mainHand;
-                            const offHand = character.equipment.offHand;
-                            let bonusDamage = 0;
-                            let highestFireWeaponDamage = 0;
-                            if (mainHand && mainHand.weaponDamage && mainHand.damageType === 'Fire') {
-                                highestFireWeaponDamage = mainHand.weaponDamage;
-                            }
-                            if (offHand && offHand.weaponDamage && offHand.damageType === 'Fire' && mainHand !== offHand) {
-                                if (offHand.weaponDamage > highestFireWeaponDamage) {
-                                    highestFireWeaponDamage = offHand.weaponDamage;
-                                }
-                            }
-                            bonusDamage = highestFireWeaponDamage;
-                            damage = 1 + bonusDamage;
-                        }
-                        // --- NEW LOGIC FOR BOW SPELLS ---
-                        else if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
-                            const mainHand = character.equipment.mainHand;
-                            if (mainHand && mainHand.weaponDamage && spell.requires?.weaponType?.includes(mainHand.weaponType)) {
-                                damage = mainHand.weaponDamage;
+            if (isPvP && targetState) {
+                targets.push({
+                    state: targetState,
+                    id: targetState.playerId,
+                    name: targetState.name,
+                    isPvP: true,
+                    getResistance: (damageType) => {
+                        if (damageType === 'Physical') {
+                            const defChar = players[targetState.name]?.character;
+                            if (defChar) {
+                                const defBonuses = getBonusStatsForPlayer(defChar, targetState);
+                                return defBonuses.physicalResistance || 0;
                             }
                         }
-                        // --- AMBUSH SPELL LOGIC ---
-                        else if (spell.name === 'Ambush') {
-                            const hands = ['mainHand', 'offHand'];
-                            let totalDaggerDamage = 0;
-                            hands.forEach(hand => {
-                                const weapon = character.equipment[hand];
-                                if (weapon && weapon.weaponType === 'Dagger') {
-                                    totalDaggerDamage += weapon.weaponDamage || 0;
-                                }
-                            });
-                            damage = totalDaggerDamage;
-                            // Apply bleed debuff on hit
-                            if (!spell.debuff) {
-                                spell.debuff = { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' };
-                            }
-                        }
-                        // --- END AMBUSH LOGIC ---
-                        else if (spell.name === 'Punch' || spell.name === 'Kick') {
-                            if (character.equippedSpells.some(s => s.name === "Monk's Training") && !character.equipment.mainHand && !character.equipment.offHand) {
-                                damage += 1;
-                            }
-                        } else if (spell.name === 'Crushing Blow') {
-                            damage = character.equipment.mainHand.weaponDamage + (spell.damageBonus || 0);
-                        }
-
-                        let damageToDeal = damage;
-                        if (spell.damageType === 'Physical') {
-                            const resistance = aoeTarget.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
-                            damageToDeal = Math.max(0, damageToDeal - resistance);
-                        }
-
-                        aoeTarget.health -= damageToDeal;
-                        let hitDescription = `Dealt ${damageToDeal} damage to ${aoeTarget.name} [id:${aoeTarget.id}].`;
-                        if (damageToDeal < damage) hitDescription += ` (${damage - damageToDeal} resisted)`;
-
-                        if (spell.debuff) {
-                            const debuff = spell.debuff;
-                            const existingIndex = aoeTarget.debuffs.findIndex(d => d.type === debuff.type);
-                            if (existingIndex !== -1) aoeTarget.debuffs.splice(existingIndex, 1);
-                            aoeTarget.debuffs.push({ ...debuff });
-                            hitDescription += ` ${aoeTarget.name} is now ${debuff.type}!`;
-                        }
-                        if (spell.onHit && total >= (spell.onHit.threshold || hitTarget) && spell.onHit.debuff) {
-                            const debuff = spell.onHit.debuff;
-                            const existingIndex = aoeTarget.debuffs.findIndex(d => d.type === debuff.type);
-                            if (existingIndex !== -1) aoeTarget.debuffs.splice(existingIndex, 1);
-                            aoeTarget.debuffs.push({ ...debuff });
-                            hitDescription += ` ${aoeTarget.name} is now ${debuff.type}!`;
-                        }
-                        sharedState.log.push({ message: hitDescription, type: 'damage' });
-                        if ((spell.name === 'Punch' || spell.name === 'Kick') && character.equippedSpells.some(s => s.name === "Monk's Training") && !character.equipment.mainHand && !character.equipment.offHand) {
-                            if ((actingPlayerState.focus || 0) < 3) {
-                                actingPlayerState.focus = (actingPlayerState.focus || 0) + 1;
-                                sharedState.log.push({ message: `${character.characterName} gains 1 Focus.`, type: 'heal' });
-                            }
-                        }
-                        if (aoeTarget.health <= 0) {
-                            defeatEnemyInParty(io, party, aoeTarget, aoeIndex);
-                        }
+                        return 0;
                     }
                 });
+            } else if (!isPvP) {
+                if (spell.aoeTargeting === 'all') {
+                    sharedState.zoneCards.forEach((card, idx) => {
+                        if (card && card.type === 'enemy') {
+                            targets.push({
+                                state: card,
+                                id: card.id,
+                                name: card.name,
+                                index: idx,
+                                isPvP: false,
+                                getResistance: (damageType) => {
+                                    if (damageType === 'Physical') {
+                                        return card.buffs?.find(b => b.bonus?.physicalResistance)?.bonus.physicalResistance || 0;
+                                    }
+                                    return 0;
+                                }
+                            });
+                        }
+                    });
+                } else if (spell.aoeTargeting === 'adjacent' && enemyTarget) {
+                    const enemyIdx = parseInt(targetIndex);
+                    targets.push({
+                        state: enemyTarget,
+                        id: enemyTarget.id,
+                        name: enemyTarget.name,
+                        index: enemyIdx,
+                        isPvP: false,
+                        getResistance: (damageType) => {
+                            if (damageType === 'Physical') {
+                                return enemyTarget.buffs?.find(b => b.bonus?.physicalResistance)?.bonus.physicalResistance || 0;
+                            }
+                            return 0;
+                        }
+                    });
+                    [-1, 1].forEach(offset => {
+                        const adjIdx = enemyIdx + offset;
+                        const adjCard = sharedState.zoneCards[adjIdx];
+                        if (adjCard?.type === 'enemy') {
+                            targets.push({
+                                state: adjCard,
+                                id: adjCard.id,
+                                name: adjCard.name,
+                                index: adjIdx,
+                                isPvP: false,
+                                getResistance: (damageType) => {
+                                    if (damageType === 'Physical') {
+                                        return adjCard.buffs?.find(b => b.bonus?.physicalResistance)?.bonus.physicalResistance || 0;
+                                    }
+                                    return 0;
+                                }
+                            });
+                        }
+                    });
+                } else if (enemyTarget) {
+                    targets.push({
+                        state: enemyTarget,
+                        id: enemyTarget.id,
+                        name: enemyTarget.name,
+                        index: parseInt(targetIndex),
+                        isPvP: false,
+                        getResistance: (damageType) => {
+                            if (damageType === 'Physical') {
+                                return enemyTarget.buffs?.find(b => b.bonus?.physicalResistance)?.bonus.physicalResistance || 0;
+                            }
+                            return 0;
+                        }
+                    });
+                }
             }
+
+            // Deduplicate targets
+            const uniqueTargets = [...new Map(targets.map(t => [t.id, t])).values()];
+
+            // --- UNIFIED: Calculate and apply damage to each target ---
+            uniqueTargets.forEach(target => {
+                if (target.state.health <= 0) return;
+
+                let baseDamage = spell.damage || 0;
+
+                // Special spell damage calculations
+                if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
+                    const mainHand = character.equipment.mainHand;
+                    const offHand = character.equipment.offHand;
+                    let highestFireWeaponDamage = 0;
+                    if (mainHand?.weaponDamage && mainHand.damageType === 'Fire') {
+                        highestFireWeaponDamage = mainHand.weaponDamage;
+                    }
+                    if (offHand?.weaponDamage && offHand.damageType === 'Fire' && offHand !== mainHand) {
+                        highestFireWeaponDamage = Math.max(highestFireWeaponDamage, offHand.weaponDamage);
+                    }
+                    baseDamage = 1 + highestFireWeaponDamage;
+                }
+                else if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
+                    const mainHand = character.equipment.mainHand;
+                    if (mainHand?.weaponDamage && spell.requires?.weaponType?.includes(mainHand.weaponType)) {
+                        baseDamage = mainHand.weaponDamage;
+                    }
+                }
+                else if (spell.name === 'Ambush') {
+                    let totalDaggerDamage = 0;
+                    ['mainHand', 'offHand'].forEach(hand => {
+                        const weapon = character.equipment[hand];
+                        if (weapon?.weaponType === 'Dagger') {
+                            totalDaggerDamage += weapon.weaponDamage || 0;
+                        }
+                    });
+                    baseDamage = totalDaggerDamage;
+                    if (!spell.debuff) {
+                        spell.debuff = { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' };
+                    }
+                }
+                else if (spell.name === 'Punch' || spell.name === 'Kick') {
+                    const hasMonkTraining = character.equippedSpells.some(s => s.name === "Monk's Training");
+                    const isUnarmed = !character.equipment.mainHand && !character.equipment.offHand;
+                    if (hasMonkTraining && isUnarmed) {
+                        baseDamage += 1;
+                    }
+                }
+                else if (spell.name === 'Crushing Blow') {
+                    baseDamage = (character.equipment.mainHand?.weaponDamage || 0) + (spell.damageBonus || 0);
+                }
+
+                // Apply resistance
+                const resistance = target.getResistance(spell.damageType);
+                const damageToDeal = Math.max(0, baseDamage - resistance);
+
+                target.state.health -= damageToDeal;
+                let hitDescription = `Dealt ${damageToDeal} ${spell.damageType || 'Magic'} damage to ${target.name} [id:${target.id}].`;
+                if (damageToDeal < baseDamage) hitDescription += ` (${baseDamage - damageToDeal} resisted)`;
+
+                // Apply debuffs
+                if (spell.debuff) {
+                    if (!target.state.debuffs) target.state.debuffs = [];
+                    const existingIndex = target.state.debuffs.findIndex(d => d.type === spell.debuff.type);
+                    if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
+                    target.state.debuffs.push({ ...spell.debuff });
+                    hitDescription += ` ${target.name} is now ${spell.debuff.type}!`;
+                }
+
+                if (spell.onHit?.debuff && total >= (spell.onHit.threshold || hitTarget)) {
+                    if (!target.state.debuffs) target.state.debuffs = [];
+                    const existingIndex = target.state.debuffs.findIndex(d => d.type === spell.onHit.debuff.type);
+                    if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
+                    target.state.debuffs.push({ ...spell.onHit.debuff });
+                    hitDescription += ` ${target.name} is now ${spell.onHit.debuff.type}!`;
+                }
+
+                log.push({ message: hitDescription, type: 'damage' });
+
+                // Monk Focus Gain
+                if ((spell.name === 'Punch' || spell.name === 'Kick')) {
+                    const hasMonkTraining = character.equippedSpells.some(s => s.name === "Monk's Training");
+                    const isUnarmed = !character.equipment.mainHand && !character.equipment.offHand;
+                    if (hasMonkTraining && isUnarmed && (actingPlayerState.focus || 0) < 3) {
+                        actingPlayerState.focus = (actingPlayerState.focus || 0) + 1;
+                        log.push({ message: `${character.characterName} gains 1 Focus.`, type: 'heal' });
+                    }
+                }
+
+                // Check for death
+                if (target.state.health <= 0) {
+                    if (target.isPvP) {
+                        defeatEnemyInParty(io, party, { playerId: target.id }, null);
+                    } else {
+                        defeatEnemyInParty(io, party, target.state, target.index);
+                    }
+                }
+            });
         }
     }
 
