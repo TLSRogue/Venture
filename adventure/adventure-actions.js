@@ -209,6 +209,18 @@ export async function processWeaponAttack(io, party, player, payload) {
 
     // Get the appropriate log
     const log = isPvP ? encounter.log : sharedState.log;
+
+    // Log modifier messages
+    if (dazeModifier !== 0) {
+        log.push({ message: `${character.characterName} is dazed! (-3 to attack roll)`, type: 'info' });
+    }
+    if (stealthModifier !== 0) {
+        log.push({ message: `${target.name} is hidden in shadows! (-5 to hit)`, type: 'info' });
+    }
+    if (focusModifier !== 0) {
+        log.push({ message: `${character.characterName} is focused! (+${focusModifier} to attack roll)`, type: 'info' });
+    }
+
     let logMessage = `${character.characterName} attacks ${target.name} with ${weapon.name}! ${rollDisplay}`;
 
     if (roll === 1) {
@@ -365,6 +377,17 @@ export async function processCastSpell(io, party, player, payload) {
     // Consume resources
     actingPlayerState.actionPoints -= cost;
     actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
+
+    // Log modifier messages for spell casts
+    if (dazeModifier !== 0) {
+        log.push({ message: `${character.characterName} is dazed! (-3 to spell roll)`, type: 'info' });
+    }
+    if (stealthModifier !== 0 && targetState) {
+        log.push({ message: `${targetState.name} is hidden in shadows! (-5 to hit)`, type: 'info' });
+    }
+    if (focusModifier !== 0) {
+        log.push({ message: `${character.characterName} is focused! (+${focusModifier} to spell roll)`, type: 'info' });
+    }
 
     let description = `${character.characterName} casts ${spell.name}! ${rollDisplay}`;
 
