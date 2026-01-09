@@ -233,7 +233,7 @@ export const allSpells = [
         hit: 10,
         damageType: 'Physical',
         requires: { weaponType: ["Mace", "Two-Hand Mace"], hand: "mainHand" },
-        onHit: { debuff: { type: 'daze', duration: 2 } },
+        onHit: { debuff: { type: 'daze', duration: 1 } },
         icon: "🔨",
         rarity: "uncommon",
     },

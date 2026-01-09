@@ -929,25 +929,50 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     continue;
                 }
                 // --- RAT KING: Summon Rat ---
+                // --- RAT KING: Summon Rat ---
                 if (enemy.name === 'The Rat King' && attack.message.includes('rat appears')) {
+                    // Randomly choose Sewer Rat or Plague Rat
+                    const ratTypes = [
+                        {
+                            name: "Sewer Rat", type: "enemy", health: 6, maxHealth: 6, icon: "🐀",
+                            imageUrl: '/assets/sewer-rat.jpg',
+                            attackTable: [
+                                { range: [1, 8], action: 'miss', message: "Miss!" },
+                                { range: [9, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Bite! Deals 2 Physical Damage!" }
+                            ],
+                            lootTable: [
+                                { range: [1, 10], items: ["Rat Meat"] },
+                                { range: [11, 18], items: ["Rat Tail"] },
+                                { range: [19, 20], items: ["Rat Eye"] }
+                            ]
+                        },
+                        {
+                            name: "Plague Rat", type: "enemy", health: 10, maxHealth: 10, icon: "🐀",
+                            imageUrl: '/assets/plague-rat.jpg',
+                            attackTable: [
+                                { range: [1, 8], action: 'miss', message: "Miss!" },
+                                { range: [9, 16], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Maul! Deals 3 Physical Damage!" },
+                                { range: [17, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Infectious Bite! Deals 2 Nature Damage and Poisons!" }
+                            ],
+                            lootTable: [
+                                { range: [1, 10], items: ["Rat Meat", "Rat Eye"] },
+                                { range: [11, 18], items: ["Rat Tail"] },
+                                { range: [19, 20], items: ["Plague Essence"] }
+                            ]
+                        }
+                    ];
+                    const randomRat = ratTypes[Math.floor(Math.random() * ratTypes.length)];
                     const ratCard = {
-                        name: "Rat",
-                        type: "enemy",
-                        health: 3,
-                        maxHealth: 3,
-                        icon: "🐀",
-                        debuffs: [],
+                        ...randomRat,
                         id: Date.now(),
-                        attackTable: [
-                            { range: [1, 10], action: 'miss', message: "Miss!" },
-                            { range: [11, 20], action: 'attack', damage: 1, damageType: 'Physical', message: "Bite! Deals 1 Physical Damage!" }
-                        ]
+                        debuffs: []
                     };
+
                     // Find an empty slot to place the rat
                     const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
                     if (emptySlotIndex !== -1) {
                         sharedState.zoneCards[emptySlotIndex] = ratCard;
-                        sharedState.log.push({ message: `A rat scurries into the battle!`, type: 'reaction' });
+                        sharedState.log.push({ message: `A ${randomRat.name} scurries into the battle!`, type: 'reaction' });
                     } else {
                         sharedState.log.push({ message: `The Rat King shrieks, but there's no room for more rats!`, type: 'info' });
                     }
@@ -1204,6 +1229,21 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 }
                 sharedState.log.push({ message: `${targetPlayerState.name} has been defeated!`, type: 'damage' });
             }
+
+            // --- DECREMENT ENEMY BUFFS/DEBUFFS ---
+            if (enemy.buffs) {
+                enemy.buffs.forEach(b => b.duration--);
+                enemy.buffs = enemy.buffs.filter(b => b.duration > 0);
+            }
+            if (enemy.debuffs) {
+                enemy.debuffs.forEach(d => {
+                    // Skip DoTs that were already processed/decremented
+                    if (['bleed', 'burn', 'poison'].includes(d.type)) return;
+                    d.duration--;
+                });
+                enemy.debuffs = enemy.debuffs.filter(d => d.duration > 0);
+            }
+
             broadcastAdventureUpdate(io, party);
         } catch (error) {
             console.error(`Error processing turn for enemy ${enemy.name}:`, error);
