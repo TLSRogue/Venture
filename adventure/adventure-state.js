@@ -1288,18 +1288,7 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
     if (!playerState) return;
 
     // 1. Process DoT Damage
-    sharedState.log.push({ message: `[DEBUG-PvE] EndTurn DoT Check for ${playerName}`, type: 'info' });
-    let tookDotDamage = false;
-    ['bleed', 'burn', 'poison', 'entangling roots'].forEach(type => {
-        const debuff = playerState.debuffs.find(d => d.type.toLowerCase() === type);
-        if (debuff) {
-            playerState.health -= debuff.damage;
-            let typeName = type.charAt(0).toUpperCase() + type.slice(1);
-            let dmgType = debuff.damageType || (type === 'burn' ? 'Fire' : (type === 'poison' ? 'Nature' : 'Physical'));
-            sharedState.log.push({ message: `${playerState.name} takes ${debuff.damage} ${dmgType} damage from ${typeName}.`, type: 'damage' });
-            tookDotDamage = true;
-        }
-    });
+    const tookDotDamage = applyDoTEffects(playerState, sharedState.log);
 
     if (playerState.health <= 0) {
         playerState.health = 0;
