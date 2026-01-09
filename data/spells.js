@@ -334,5 +334,21 @@ export const allSpells = [
         onHit: { debuff: { type: 'daze', duration: 1 } },
         icon: "❄️",
         rarity: "uncommon",
+    },
+    {
+        name: "Entangling Roots",
+        price: 150,
+        cost: 1,
+        cooldown: 3,
+        school: "Nature",
+        range: "ranged",
+        description: "Roots the target. 1 AP, 3 CD | D20+Wis (10+) | Roots (2 Turns). 1+Wis Nature Dmg/Turn.",
+        type: "attack",
+        stat: "wisdom",
+        hit: 10,
+        damageType: 'Nature',
+        debuff: { type: 'Entangling Roots', duration: 2, scaling: 'wisdom', baseDamage: 1, damageType: 'Nature' },
+        icon: "🌿",
+        rarity: "uncommon",
     }
 ];

@@ -110,12 +110,12 @@ export const cardPools = {
                 name: "Angry Farmhand", type: "enemy", health: 4, maxHealth: 4, description: "An angry local. Wants you off his land.", icon: "🧑‍🌾", imageUrl: '/assets/farmlands-angryfarmhand.png',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
-                    { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Stab! Deals 2 Physical Damage!" },
-                    { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Slash! Deals 2 Physical Damage and applies Bleed!" }
+                    { range: [4, 13], action: 'special', message: "The Farmhand weighs his options..." },
+                    { range: [14, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Fire', debuff: { type: 'burn', duration: 2, damage: 1, damageType: 'Fire' }, message: "Torch Throw! Deals 2 Fire Damage and Burns!" }
                 ],
-                guaranteedLoot: { gold: true, items: ["Cloth"] },
+                guaranteedLoot: { gold: true, minGold: 1, maxGold: 3, items: ["Cloth"] },
                 lootTable: [
-                    { range: [1, 19], randomItems: { pool: ['Iron', 'Wood', 'Wheat', 'Fish'], count: 2 } },
+                    { range: [1, 19], randomItems: { pool: ['Wheat', 'Carrot', 'Apple', 'Seeds'], count: 1 } },
                     { range: [20, 20], items: ["Pitchfork"] }
                 ]
             }, count: 3

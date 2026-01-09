@@ -1132,6 +1132,31 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     }
                 }
 
+
+                // --- ANGRY FARMHAND: Pitchfork Tactics ---
+                if (enemy.name === 'Angry Farmhand' && attack.message.includes('weighs his options')) {
+                    const isTrapped = enemy.buffs && enemy.buffs.some(b => ['trapped', 'root', 'stun', 'daze', 'entangling roots'].includes(b.type.toLowerCase()));
+                    if (enemy.health <= 2 && !isTrapped) {
+                        sharedState.log.push({ message: "The Farmhand panics and runs away!", type: 'reaction' });
+                        sharedState.zoneCards.splice(enemyIndex, 1);
+                        return;
+                    } else {
+                        const targetCharacter = targetPlayerObject.character;
+                        const bonuses = getBonusStatsForPlayer(targetCharacter, targetPlayerState);
+                        const resistance = bonuses.physicalResistance || 0;
+                        const damageToDeal = Math.max(1, 2 - resistance);
+
+                        targetPlayerState.health -= damageToDeal;
+                        if (!targetPlayerState.debuffs) targetPlayerState.debuffs = [];
+                        targetPlayerState.debuffs.push({ type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' });
+
+                        let msg = `Pitchfork Jab: Deals ${damageToDeal} Physical Damage and Bleeds!`;
+                        if (enemy.health <= 2 && isTrapped) msg = `Trapped! The Farmhand fights in desperation! ${msg}`;
+
+                        sharedState.log.push({ message: msg, type: 'damage' });
+                    }
+                }
+
                 // --- VEXOR: Slash (High Threat) ---
                 if (enemy.name === 'Vexor, Lord of the Arena' && attack.message.includes('biggest threat')) {
                     const sortedPlayers = [...sharedState.partyMemberStates].filter(p => !p.isDead).sort((a, b) => (b.threat || 0) - (a.threat || 0));

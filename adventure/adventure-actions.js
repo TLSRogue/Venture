@@ -747,7 +747,13 @@ export async function processCastSpell(io, party, player, payload) {
                     if (!target.state.debuffs) target.state.debuffs = [];
                     const existingIndex = target.state.debuffs.findIndex(d => d.type === spell.debuff.type);
                     if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
-                    target.state.debuffs.push({ ...spell.debuff });
+                    let debuffToApply = { ...spell.debuff };
+                    if (spell.debuff.scaling === 'wisdom') {
+                        const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+                        const wis = (character.wisdom || 0) + (bonuses.wisdom || 0);
+                        debuffToApply.damage = (spell.debuff.baseDamage || 0) + wis;
+                    }
+                    target.state.debuffs.push(debuffToApply);
                     hitDescription += ` ${target.name} is now ${spell.debuff.type}!`;
                 }
 
