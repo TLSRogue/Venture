@@ -587,7 +587,7 @@ export async function processCastSpell(io, party, player, payload) {
                         baseDamage += 1;
                     }
                 }
-                else if (spell.name === 'Crushing Blow') {
+                else if (spell.name === 'Crushing Blow' || spell.name === 'Dagger Throw') {
                     baseDamage = (character.equipment.mainHand?.weaponDamage || 0) + (spell.damageBonus || 0);
                 }
 
