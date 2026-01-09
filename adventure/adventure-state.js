@@ -1115,6 +1115,78 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         sharedState.log.push({ message: `The Powder Keg fizzes ominously... (${enemy.kegTimer} turns remaining)`, type: 'reaction' });
                     }
                 }
+
+                // --- VEXOR: Slash (High Threat) ---
+                if (enemy.name === 'Vexor, Lord of the Arena' && attack.message.includes('biggest threat')) {
+                    const sortedPlayers = [...sharedState.partyMemberStates].filter(p => !p.isDead).sort((a, b) => (b.threat || 0) - (a.threat || 0));
+                    if (sortedPlayers.length > 0) {
+                        const target = sortedPlayers[0];
+                        const playerObj = players[target.name];
+                        if (playerObj) {
+                            const bonuses = getBonusStatsForPlayer(playerObj.character, target);
+                            const resistance = bonuses.physicalResistance || 0;
+                            const damage = Math.max(0, 5 - resistance);
+                            target.health -= damage;
+                            sharedState.log.push({ message: `Vexor slashes ${target.name} for ${damage} Physical damage!`, type: 'damage' });
+                            if (target.health <= 0) { target.isDead = true; target.health = 0; }
+                        }
+                    }
+                }
+
+                // --- VEXOR: Shield Bash (Low Threat + Stun) ---
+                if (enemy.name === 'Vexor, Lord of the Arena' && attack.message.includes('weakest foe')) {
+                    const sortedPlayers = [...sharedState.partyMemberStates].filter(p => !p.isDead).sort((a, b) => (a.threat || 0) - (b.threat || 0));
+                    if (sortedPlayers.length > 0) {
+                        const target = sortedPlayers[0];
+                        const playerObj = players[target.name];
+                        if (playerObj) {
+                            const bonuses = getBonusStatsForPlayer(playerObj.character, target);
+                            const resistance = bonuses.physicalResistance || 0;
+                            const damage = Math.max(0, 4 - resistance);
+                            target.health -= damage;
+
+                            if (!target.debuffs) target.debuffs = [];
+                            target.debuffs.push({ type: 'stun', duration: 1 });
+
+                            sharedState.log.push({ message: `Vexor bashes ${target.name} for ${damage} damage and Stuns them!`, type: 'damage' });
+                            if (target.health <= 0) { target.isDead = true; target.health = 0; }
+                        }
+                    }
+                }
+
+                // --- VEXOR: Heal/Taunt ---
+                if (enemy.name === 'Vexor, Lord of the Arena' && attack.message.includes('taunts his enemies')) {
+                    enemy.health = Math.min(enemy.maxHealth, enemy.health + 5);
+                    sharedState.log.push({ message: `Vexor heals for 5 HP!`, type: 'heal' });
+
+                    const sortedPlayers = [...sharedState.partyMemberStates].filter(p => !p.isDead).sort((a, b) => (a.threat || 0) - (b.threat || 0));
+                    if (sortedPlayers.length > 0) {
+                        const target = sortedPlayers[0];
+                        target.threat = 10;
+                        sharedState.log.push({ message: `${target.name} is taunted! Threat increased to 10!`, type: 'info' });
+                    }
+                }
+
+                // --- VEXOR: Whirlwind ---
+                if (enemy.name === 'Vexor, Lord of the Arena' && attack.message.includes('Whirlwind')) {
+                    sharedState.partyMemberStates.forEach(p => {
+                        if (!p.isDead) {
+                            const playerObj = players[p.name];
+                            if (playerObj) {
+                                const bonuses = getBonusStatsForPlayer(playerObj.character, p);
+                                const resistance = bonuses.physicalResistance || 0;
+                                const damage = Math.max(0, 5 - resistance);
+                                p.health -= damage;
+
+                                if (!p.debuffs) p.debuffs = [];
+                                p.debuffs.push({ type: 'bleed', duration: 2, damage: 2 });
+
+                                sharedState.log.push({ message: `Vexor hits ${p.name} for ${damage} damage and applies Bleed!`, type: 'damage' });
+                                if (p.health <= 0) { p.isDead = true; p.health = 0; }
+                            }
+                        }
+                    });
+                }
             } else {
                 sharedState.log.push({ message: `${enemy.name} misses its attack.`, type: 'info' });
             }

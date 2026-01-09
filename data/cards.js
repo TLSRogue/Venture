@@ -353,6 +353,24 @@ export const cardPools = {
                 ]
             }, count: 1
         },
+        {
+            card: {
+                name: "Vexor, Lord of the Arena", type: "enemy", health: 40, maxHealth: 40, description: "The brutal champion of the arena.", icon: "🛡️",
+                imageUrl: '/assets/arena-vexor.jpg',
+                bonuses: { physicalResistance: 1 },
+                arenaReward: 100,
+                attackTable: [
+                    { range: [1, 3], action: 'miss', message: "Miss!" },
+                    { range: [4, 8], action: 'special', message: "Vexor swings his massive axe at the biggest threat!" },
+                    { range: [9, 12], action: 'special', message: "Vexor bashes the weakest foe with his shield!" },
+                    { range: [13, 16], action: 'special', message: "Vexor catches his breath and taunts his enemies!" },
+                    { range: [17, 20], action: 'special', message: "Whirlwind! Vexor spins wildly, hitting everyone!" }
+                ],
+                lootTable: [
+                    { range: [1, 20], items: ["Champion's Belt"] } // Placeholder loot
+                ]
+            }, count: 1
+        },
     ],
 
     // --- NEW: PvP Zone Card Pool ---
@@ -431,6 +449,19 @@ export const specialCards = {
             { range: [1, 10], action: 'special', message: "The Loot Goblin dances around, taunting you!" },
             { range: [11, 15], action: 'special', message: "Pickpocket! The goblin quickly snatches some of your gold!" },
             { range: [16, 20], action: 'special', message: "The Loot Goblin opens a portal and escapes!" }
+        ]
+    },
+    stoneColumn: {
+        name: "Stone Column",
+        type: "object", // Using object type if supported, or enemy with no attacks
+        health: 8,
+        maxHealth: 8,
+        description: "A sturdy stone column. Vexor uses these for cover.",
+        icon: "🏛️",
+        imageUrl: '/assets/arena-column.jpg',
+        isTargetable: true,
+        attackTable: [
+            { range: [1, 20], action: 'miss', message: "The column stands firm." }
         ]
     }
 };

@@ -4,6 +4,7 @@ import { players, parties, duels, pvpEncounters } from './serverState.js';
 import { gameData } from './data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from './utilsBroadcast.js';
 import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer } from './utilsHelpers.js';
+import { ARENA_ENTRY_FEE } from './constants.js';
 
 import * as actions from './adventure/adventure-actions.js';
 import * as interactions from './adventure/adventure-interactions.js';
@@ -76,12 +77,41 @@ export const registerAdventureHandlers = (io, socket) => {
         };
 
         if (zoneName === 'arena') {
-            const bossIndex = party.sharedState.zoneDeck.findIndex(card => card.name === 'Pulvis Cadus');
-            if (bossIndex !== -1) {
-                const [bossCard] = party.sharedState.zoneDeck.splice(bossIndex, 1);
+            if (player.character.gold < ARENA_ENTRY_FEE) {
+                return socket.emit('partyError', `You need ${ARENA_ENTRY_FEE} gold to enter the Arena.`);
+            }
+            // Deduct gold from leader (player initiating)
+            player.character.gold -= ARENA_ENTRY_FEE;
+            socket.emit('characterUpdate', player.character);
+
+            // Boss Selection
+            const bossIndices = [];
+            party.sharedState.zoneDeck.forEach((card, idx) => {
+                if (card.arenaReward) bossIndices.push(idx); // Identify bosses by arenaReward property
+            });
+
+            if (bossIndices.length > 0) {
+                const rnd = Math.floor(Math.random() * bossIndices.length);
+                const selectedIndex = bossIndices[rnd];
+                const [bossCard] = party.sharedState.zoneDeck.splice(selectedIndex, 1); // remove chosen boss
+
+                // Remove OTHER bosses from the deck so you don't fight two
+                party.sharedState.zoneDeck = party.sharedState.zoneDeck.filter(c => !c.arenaReward);
+
                 bossCard.id = Date.now();
                 bossCard.debuffs = [];
-                party.sharedState.zoneCards = [null, bossCard, null];
+                party.sharedState.zoneCards = [null, bossCard, null]; // Boss in center
+
+                // Special Setup for Vexor
+                if (bossCard.name === 'Vexor, Lord of the Arena') {
+                    const columnCard = gameData.specialCards.stoneColumn;
+                    // Clone columns for left (0) and right (2) slots
+                    if (columnCard) {
+                        party.sharedState.zoneCards[0] = { ...columnCard, id: Date.now() + 1, debuffs: [] };
+                        party.sharedState.zoneCards[2] = { ...columnCard, id: Date.now() + 2, debuffs: [] };
+                    }
+                }
+
             } else {
                 drawCardsForServer(party.sharedState, 1);
             }

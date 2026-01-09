@@ -233,6 +233,16 @@ export async function processWeaponAttack(io, party, player, payload) {
         const resistance = target.getResistance(weapon.damageType);
         const damageToDeal = Math.max(0, baseDamage - resistance);
 
+        // --- VEXOR DODGE ---
+        if (target.state.name === 'Vexor, Lord of the Arena') {
+            const columns = sharedState.zoneCards.filter(c => c && c.name === 'Stone Column');
+            if (columns.length > 0 && Math.floor(Math.random() * 20) + 1 >= 10) {
+                log.push({ message: `Vexor, Lord of the Arena's Dodge: Jumps behind a Stone Column! Avoided!`, type: 'reaction' });
+                log.push({ message: `(Tip: Destroy the Stone Columns!)`, type: 'info' });
+                return;
+            }
+        }
+
         // Apply damage
         target.state.health -= damageToDeal;
         logMessage += ` Deals ${damageToDeal} ${weapon.damageType} damage! [id:${target.id}]`;
@@ -542,6 +552,15 @@ export async function processCastSpell(io, party, player, payload) {
                 targetState.health = Math.min(targetState.maxHealth, targetState.health + effectValue);
                 log.push({ message: `Healed ${targetState.name} for ${effectValue} HP.`, type: 'heal' });
             } else if (enemyTarget) {
+                // --- VEXOR DODGE ---
+                if (enemyTarget.name === 'Vexor, Lord of the Arena') {
+                    const columns = sharedState.zoneCards.filter(c => c && c.name === 'Stone Column');
+                    if (columns.length > 0 && Math.floor(Math.random() * 20) + 1 >= 10) {
+                        log.push({ message: `Vexor, Lord of the Arena's Dodge: Jumps behind a Stone Column! Avoided!`, type: 'reaction' });
+                        log.push({ message: `(Tip: Destroy the Stone Columns!)`, type: 'info' });
+                        return;
+                    }
+                }
                 enemyTarget.health -= effectValue;
                 log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${enemyTarget.name} [id:${enemyTarget.id}].`, type: 'damage' });
                 if (enemyTarget.health <= 0) {
@@ -701,6 +720,16 @@ export async function processCastSpell(io, party, player, payload) {
                 // Apply resistance
                 const resistance = target.getResistance(spell.damageType);
                 const damageToDeal = Math.max(0, baseDamage - resistance);
+
+                // --- VEXOR DODGE ---
+                if (target.name === 'Vexor, Lord of the Arena') {
+                    const columns = sharedState.zoneCards.filter(c => c && c.name === 'Stone Column');
+                    if (columns.length > 0 && Math.floor(Math.random() * 20) + 1 >= 10) {
+                        log.push({ message: `Vexor, Lord of the Arena's Dodge: Jumps behind a Stone Column! Avoided!`, type: 'reaction' });
+                        log.push({ message: `(Tip: Destroy the Stone Columns!)`, type: 'info' });
+                        return;
+                    }
+                }
 
                 target.state.health -= damageToDeal;
                 let hitDescription = `Dealt ${damageToDeal} ${spell.damageType || 'Magic'} damage to ${target.name} [id:${target.id}].`;
