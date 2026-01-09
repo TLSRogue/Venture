@@ -738,9 +738,12 @@ export async function processCastSpell(io, party, player, payload) {
                     }
                 }
 
-                target.state.health -= damageToDeal;
-                let hitDescription = `Dealt ${damageToDeal} ${spell.damageType || 'Magic'} damage to ${target.name} [id:${target.id}].`;
-                if (damageToDeal < baseDamage) hitDescription += ` (${baseDamage - damageToDeal} resisted)`;
+                let hitDescription = '';
+                if (baseDamage > 0) {
+                    target.state.health -= damageToDeal;
+                    hitDescription = `Dealt ${damageToDeal} ${spell.damageType || 'Magic'} damage to ${target.name} [id:${target.id}].`;
+                    if (damageToDeal < baseDamage) hitDescription += ` (${baseDamage - damageToDeal} resisted)`;
+                }
 
                 // Apply debuffs
                 if (spell.debuff) {
@@ -765,7 +768,7 @@ export async function processCastSpell(io, party, player, payload) {
                     hitDescription += ` ${target.name} is now ${spell.onHit.debuff.type}!`;
                 }
 
-                log.push({ message: hitDescription, type: 'damage' });
+                log.push({ message: hitDescription.trim(), type: 'damage' });
 
                 // Monk Focus Gain
                 if ((spell.name === 'Punch' || spell.name === 'Kick')) {
