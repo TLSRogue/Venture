@@ -402,6 +402,19 @@ body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
+/* Dead cards become clickable when targetable (e.g., for Revive spell) */
+.card.player.dead.targetable {
+    cursor: crosshair;
+    filter: grayscale(0.5);
+    box-shadow: 0 0 15px rgba(255, 255, 0, 0.6);
+    animation: targetPulse 1s ease-in-out infinite;
+}
+
+.card.player.dead.targetable:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0 20px rgba(255, 255, 0, 0.8);
+}
+
 .card-icon {
     font-size: 2.5em;
     margin-bottom: 10px;

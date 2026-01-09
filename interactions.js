@@ -30,7 +30,7 @@ export function interactWithCard(targetIdentifier) {
     if (targetIdentifier.toString().startsWith('p')) {
         if (selectedAction && selectedAction.type === 'spell') {
             const spell = selectedAction.data;
-            if (spell.type === 'heal' || spell.type === 'buff' || spell.type === 'versatile') {
+            if (spell.type === 'heal' || spell.type === 'buff' || spell.type === 'versatile' || spell.type === 'revive') {
                 Combat.castSpell(selectedAction.index, targetIdentifier);
             }
         }
@@ -79,7 +79,7 @@ export function interactWithPlayerCard() {
     const selectedAction = gameState.turnState.selectedAction;
     if (selectedAction && selectedAction.type === 'spell') {
         const spell = selectedAction.data;
-        if (spell.type === 'heal' || spell.type === 'buff' || spell.type === 'versatile') {
+        if (spell.type === 'heal' || spell.type === 'buff' || spell.type === 'versatile' || spell.type === 'revive') {
             Combat.castSpell(selectedAction.index, localPlayerTargetIndex);
         } else {
             UIMain.addToLog("You can't use that on yourself.", "info");
