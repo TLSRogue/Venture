@@ -23,7 +23,7 @@ export function createStateForClient(sharedState, encounterState = null) {
         // For PvE, we still need to remove the (now unused in PvP) _playerStateRef just in case.
         finalState.zoneCards = finalState.zoneCards.map(card => {
             if (card && card._playerStateRef) {
-                const { _playerStateRef, ...safeCard } = card; 
+                const { _playerStateRef, ...safeCard } = card;
                 return safeCard;
             }
             return card;
@@ -43,10 +43,10 @@ export function createStateForClient(sharedState, encounterState = null) {
  */
 function generateMerchantStock(character) {
     // Filter all items to find only those eligible for the merchant's rotating wares.
-    const stockPool = gameData.allItems.filter(item => 
+    const stockPool = gameData.allItems.filter(item =>
         item.canBeInMerchantWares === true && item.price > 0
     );
-    
+
     // Shuffle the eligible items to ensure variety
     for (let i = stockPool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -54,7 +54,7 @@ function generateMerchantStock(character) {
     }
 
     // Assign a random quantity to the selected stock
-    character.merchantStock = stockPool.slice(0, 5).map(item => ({
+    character.merchantStock = stockPool.slice(0, 10).map(item => ({
         ...item,
         quantity: Math.floor(Math.random() * 10) + 1
     }));
@@ -80,7 +80,7 @@ export function buildZoneDeckForServer(zoneName) {
     let npcs = [];
     let otherCards = [];
     let cardPool = gameData.cardPools[zoneName] ? [...gameData.cardPools[zoneName]] : [];
-    
+
     cardPool.forEach(poolItem => {
         for (let i = 0; i < poolItem.count; i++) {
             const card = { ...poolItem.card };
@@ -95,23 +95,23 @@ export function buildZoneDeckForServer(zoneName) {
     if (Math.random() < 0.33) {
         otherCards.push({ ...gameData.specialCards.lootGoblin, stolenGold: 0 });
     }
-    
+
     // Shuffle only the non-NPC cards
     for (let i = otherCards.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [otherCards[i], otherCards[j]] = [otherCards[j], otherCards[i]];
     }
-    
+
     return [...npcs, ...otherCards];
 }
 
 export function drawCardsForServer(sharedState, amount) {
-    for(let i = 0; i < amount; i++) {
+    for (let i = 0; i < amount; i++) {
         if (sharedState.zoneDeck.length === 0) {
             sharedState.log.push({ message: "The zone's deck is empty!", type: 'info' });
             break;
         }
-        
+
         const [card] = sharedState.zoneDeck.splice(0, 1);
 
         if (card.type === 'enemy') {
@@ -181,14 +181,14 @@ export function addItemToInventoryServer(character, itemData, quantity = 1, grou
         if (emptySlotIndex === -1) {
             break;
         }
-        
+
         const amountToAdd = baseItem.stackable ? Math.min(remainingQuantity, baseItem.stackable) : 1;
         character.inventory[emptySlotIndex] = { ...baseItem, quantity: amountToAdd };
         remainingQuantity -= amountToAdd;
         addedToInventory = true;
         if (!baseItem.stackable && remainingQuantity > 0) continue;
     }
-    
+
     if (remainingQuantity > 0 && groundLoot !== null) {
         for (let i = 0; i < remainingQuantity; i++) {
             groundLoot.push({ ...baseItem, quantity: 1 });
@@ -228,7 +228,7 @@ export function consumeMaterials(character, materials) {
             }
         }
         if (requiredCount > 0) {
-             for (let i = character.bank.length - 1; i >= 0 && requiredCount > 0; i--) {
+            for (let i = character.bank.length - 1; i >= 0 && requiredCount > 0; i--) {
                 const item = character.bank[i];
                 if (item && item.name === material) {
                     const toConsume = Math.min(requiredCount, item.quantity || 1);
