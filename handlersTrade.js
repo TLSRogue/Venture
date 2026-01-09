@@ -156,6 +156,19 @@ export const registerTradeHandlers = (io, socket) => {
             finalizeTrade(io, trade);
         }
     });
+
+    socket.on('trade:chat', ({ tradeId, message }) => {
+        const trade = trades[tradeId];
+        if (!trade) return;
+
+        const senderName = socket.characterName;
+        // Verify sender is in trade
+        if (trade.player1.name !== senderName && trade.player2.name !== senderName) return;
+
+        // Send to both players
+        io.to(trade.player1.socketId).emit('trade:chat', { senderName, message });
+        io.to(trade.player2.socketId).emit('trade:chat', { senderName, message });
+    });
 };
 
 function finalizeTrade(io, trade) {

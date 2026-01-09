@@ -57,6 +57,7 @@ export function initSocketListeners(handlers) {
     socket.on('trade:complete', handlers.onTradeComplete);
     socket.on('trade:error', handlers.onTradeError);
     socket.on('trade:ended', handlers.onTradeEnded);
+    socket.on('trade:chat', handlers.onTradeChat);
 
 }
 
@@ -152,4 +153,8 @@ export function emitTradeConfirm(tradeId) {
 
 export function emitTradeCancel(tradeId) {
     socket.emit('trade:cancel', { tradeId });
+}
+
+export function emitTradeChat(tradeId, message) {
+    socket.emit('trade:chat', { tradeId, message });
 }

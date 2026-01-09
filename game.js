@@ -61,6 +61,7 @@ function initGame() {
         onTradeComplete: handleTradeComplete,
         onTradeError: handleTradeError,
         onTradeEnded: handleTradeEnded,
+        onTradeChat: handleTradeChat,
     });
     UIParty.showCharacterSelectScreen();
 }
@@ -460,6 +461,10 @@ function handleTradeError(message) {
 
 function handleTradeEnded(message) {
     UIMain.showInfoModal(message);
+}
+
+function handleTradeChat({ senderName, message }) {
+    UITrade.appendChatMessage(senderName, message);
 }
 
 // --- DUEL, LOOT, & PVP HANDLERS ---

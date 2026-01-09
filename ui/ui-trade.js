@@ -6,8 +6,16 @@ import * as Network from '../network.js';
 
 let currentTradeId = null;
 
+// Store chat history locally while the modal is open
+let tradeChatHistory = [];
+
 export function renderTradeModal(tradeState, isPlayer1) {
-    currentTradeId = tradeState.id;
+    // If it's a new trade session (or re-render), store ID
+    // If ID changed, clear chat
+    if (currentTradeId !== tradeState.id) {
+        currentTradeId = tradeState.id;
+        tradeChatHistory = [];
+    }
 
     // Determine which side is local player
     const localState = isPlayer1 ? tradeState.player1 : tradeState.player2;
@@ -42,9 +50,19 @@ export function renderTradeModal(tradeState, isPlayer1) {
                     </div>
                 </div>
                 
-                <!-- Center Divider -->
-                <div class="trade-divider">
-                    <div class="arrow-icon">⇄</div>
+                <!-- Center Divider with Chat -->
+                <div class="trade-center-column">
+                    <div class="trade-divider-icon">⇄</div>
+                    
+                    <div class="trade-chat-container">
+                        <div class="trade-chat-log" id="trade-chat-log">
+                            ${renderChatLog()}
+                        </div>
+                        <div class="trade-chat-input-area">
+                            <input type="text" id="trade-chat-input" placeholder="Chat..." maxlength="100">
+                            <button id="trade-chat-send-btn">➤</button>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Remote Player Column -->
@@ -111,9 +129,71 @@ export function renderTradeModal(tradeState, isPlayer1) {
 
             .trade-main-area {
                 display: flex;
-                gap: 20px;
+                gap: 15px;
                 align-items: stretch;
-                min-height: 250px;
+                min-height: 350px;
+            }
+
+            .trade-center-column {
+                width: 200px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .trade-divider-icon {
+                font-size: 2em;
+                color: #7f8c8d;
+                margin-bottom: 10px;
+            }
+            
+            .trade-chat-container {
+                width: 100%;
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+                background: rgba(0,0,0,0.5);
+                border: 1px solid #555;
+                border-radius: 6px;
+                overflow: hidden;
+            }
+            
+            .trade-chat-log {
+                flex-grow: 1;
+                padding: 8px;
+                font-size: 0.85em;
+                overflow-y: auto;
+                max-height: 200px;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            
+            .chat-msg { word-wrap: break-word; }
+            .chat-msg .name { font-weight: bold; color: #3498db; }
+            .chat-msg.self .name { color: #2ecc71; }
+            
+            .trade-chat-input-area {
+                display: flex;
+                border-top: 1px solid #555;
+            }
+            #trade-chat-input {
+                flex-grow: 1;
+                background: transparent;
+                border: none;
+                color: white;
+                padding: 5px;
+                font-size: 0.9em;
+                min-width: 0;
+            }
+            #trade-chat-send-btn {
+                background: #3498db;
+                border: none;
+                color: white;
+                cursor: pointer;
+                padding: 0 10px;
             }
 
             .trade-column {
@@ -126,8 +206,10 @@ export function renderTradeModal(tradeState, isPlayer1) {
                 flex-direction: column;
                 gap: 15px;
                 transition: all 0.3s ease;
+                min-width: 0; /* Important for flex child with scrollable content */
             }
 
+            /* ... [Status styles same as before] ... */
             .trade-column.locked {
                 border-color: #f1c40f;
                 background: rgba(241, 196, 15, 0.05);
@@ -181,12 +263,15 @@ export function renderTradeModal(tradeState, isPlayer1) {
                 background: rgba(0,0,0,0.2);
                 border-radius: 6px;
                 padding: 5px;
+                overflow-y: auto; /* Enable scrolling for items */
+                min-height: 100px;
             }
             
             .offer-slots {
                 display: grid;
                 grid-template-columns: repeat(4, 1fr);
                 gap: 5px;
+                /* No fixed height, let it grow and scroll in parent */
             }
 
             .trade-slot {
@@ -216,15 +301,8 @@ export function renderTradeModal(tradeState, isPlayer1) {
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                z-index: 5;
             }
-
-            .trade-divider {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: #7f8c8d;
-            }
-            .arrow-icon { font-size: 2em; }
 
             .trade-actions {
                 display: flex;
@@ -269,21 +347,22 @@ export function renderTradeModal(tradeState, isPlayer1) {
 
     showModal(modalContent);
 
-    // HACK: Force the modal to be wide for trading
     const modalEl = document.getElementById('modal-content');
     if (modalEl) {
-        modalEl.style.maxWidth = '850px';
+        modalEl.style.maxWidth = '900px';
         modalEl.style.width = '95%';
     }
 
-    // Attach local listeners
+    // --- Listeners ---
+
+    // Gold Input
     if (document.getElementById('trade-gold-input')) {
         document.getElementById('trade-gold-input').addEventListener('change', (e) => {
             updateOffer(currentTradeId, localState.offer.items, parseInt(e.target.value) || 0);
         });
     }
 
-    // Inventory click listener
+    // Inventory Picker
     const invList = document.getElementById('trade-inventory-list');
     if (invList) {
         invList.addEventListener('click', (e) => {
@@ -291,18 +370,20 @@ export function renderTradeModal(tradeState, isPlayer1) {
             if (itemEl && !itemEl.classList.contains('disabled')) {
                 const index = parseInt(itemEl.dataset.index);
                 const item = gameState.inventory[index];
+                const newItems = [...localState.offer.items, { Type: 'inventory', index, item }]; // Note: Capital 'Type' might be safer if used elsewhere, but stick to lowercase 'type' for consistency
+                // Oops, previous code used 'type', stick to that.
+                const newItemsClean = [...localState.offer.items, { type: 'inventory', index, item }];
 
-                const newItems = [...localState.offer.items, { type: 'inventory', index, item }];
-                updateOffer(currentTradeId, newItems, parseInt(document.getElementById('trade-gold-input').value) || 0);
+                updateOffer(currentTradeId, newItemsClean, parseInt(document.getElementById('trade-gold-input').value) || 0);
             }
         });
     }
 
-    // Remove item listener
+    // Remove Item
     const offerList = document.getElementById('local-offer-slots');
     if (offerList && !localState.locked) {
         offerList.addEventListener('click', (e) => {
-            if (e.target.classList.contains('remove-btn')) {
+            if (e.target.closest('.remove-btn')) {
                 const slotEl = e.target.closest('.trade-slot');
                 const removeIdx = parseInt(slotEl.dataset.offerIndex);
                 const newItems = [...localState.offer.items];
@@ -312,17 +393,61 @@ export function renderTradeModal(tradeState, isPlayer1) {
         });
     }
 
+    // Chat
+    const chatInput = document.getElementById('trade-chat-input');
+    const sendBtn = document.getElementById('trade-chat-send-btn');
+    if (chatInput && sendBtn) {
+        const sendChat = () => {
+            const msg = chatInput.value.trim();
+            if (msg) {
+                Network.emitTradeChat(currentTradeId, msg);
+                chatInput.value = '';
+            }
+        };
+        sendBtn.addEventListener('click', sendChat);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChat();
+        });
+
+        // Auto-scroll chat to bottom
+        const log = document.getElementById('trade-chat-log');
+        log.scrollTop = log.scrollHeight;
+
+        // Refocus input if we just rendered and aren't typing elsewhere
+        // (Optional: might be annoying if updating frequently)
+    }
+
+
     document.getElementById('trade-lock-btn')?.addEventListener('click', () => Network.emitTradeLock(tradeState.id, true));
     document.getElementById('trade-unlock-btn')?.addEventListener('click', () => Network.emitTradeLock(tradeState.id, false));
     document.getElementById('trade-confirm-btn')?.addEventListener('click', () => Network.emitTradeConfirm(tradeState.id));
-    // Use the Cancel handler which will close the modal locally too
     document.getElementById('trade-cancel-btn')?.addEventListener('click', () => Network.emitTradeCancel(tradeState.id));
 }
 
 function updateOffer(tradeId, items, gold) {
     if (gold < 0) gold = 0;
-    if (gold > gameState.gold) gold = gameState.gold; // Cap at max gold locally
+    if (gold > gameState.gold) gold = gameState.gold;
     Network.emitTradeUpdate(tradeId, { items, gold });
+}
+
+export function appendChatMessage(senderName, message) {
+    tradeChatHistory.push({ senderName, message });
+    // If trade modal is open, update the log div
+    const log = document.getElementById('trade-chat-log');
+    if (log) {
+        log.innerHTML = renderChatLog();
+        log.scrollTop = log.scrollHeight;
+    }
+}
+
+function renderChatLog() {
+    return tradeChatHistory.map(entry => {
+        const isSelf = entry.senderName === gameState.characterName;
+        return `<div class="chat-msg ${isSelf ? 'self' : ''}">
+            <span class="name">${isSelf ? 'You' : entry.senderName}:</span>
+            <span class="text">${entry.message}</span>
+        </div>`;
+    }).join('');
 }
 
 function getStatusText(state) {
@@ -339,9 +464,13 @@ function getStatusText(state) {
 }
 
 function renderOfferSlots(items, isLocal, isLocked) {
-    // Ensure we have at least 8 slots visually
+    // Dynamic slots, no fixed limit in loop
+    // But we still want to show at least a few empty squares for aesthetics if it's empty
+    const minSlots = 12;
+    const totalSlots = Math.max(minSlots, items.length + 1); // allow growing
+
     const slots = [];
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < totalSlots; i++) {
         if (i < items.length) {
             const wrapper = items[i];
             const item = wrapper.item;
@@ -352,6 +481,8 @@ function renderOfferSlots(items, isLocal, isLocked) {
                 </div>
             `);
         } else {
+            // Render empty slot
+            // If we are showing more than items.length, these are fillers
             slots.push(`<div class="trade-slot empty"></div>`);
         }
     }
@@ -361,9 +492,7 @@ function renderOfferSlots(items, isLocal, isLocked) {
 function renderInventoryForTrade(inventory, offeredItems) {
     return inventory.map((item, idx) => {
         if (!item) return '';
-        // Check if item is already offered
         const isOffered = offeredItems.some(off => off.index === idx && off.type === 'inventory');
-
         return `
         <div class="inv-item ${isOffered ? 'disabled' : ''}" data-index="${idx}" title="${item.name}">
             ${item.icon || '📦'}
