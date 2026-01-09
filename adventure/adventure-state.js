@@ -252,6 +252,7 @@ export function startNextPvpTeamTurn(io, encounterId) {
     const nextTeam = encounter.activeTeam === 'A' ? 'B' : 'A';
     encounter.activeTeam = nextTeam;
     encounter.log.push({ message: `--- Team ${nextTeam}'s Turn ---`, type: 'info' });
+    encounter.log.push({ message: `[DEBUG-PvP] Team ${nextTeam} Turn Start.`, type: 'info' });
 
     encounter.playerStates.forEach(p => {
         if (p.team === nextTeam) {
@@ -1314,6 +1315,7 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
     if (!playerState) return;
 
     // 1. Process DoT Damage
+    sharedState.log.push({ message: `[DEBUG-PvE] EndTurn DoT Check for ${playerName}`, type: 'info' });
     let tookDotDamage = false;
     ['bleed', 'burn', 'poison', 'entangling roots'].forEach(type => {
         const debuff = playerState.debuffs.find(d => d.type.toLowerCase() === type);
