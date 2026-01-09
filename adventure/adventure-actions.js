@@ -372,6 +372,7 @@ export async function processCastSpell(io, party, player, payload) {
         description += (roll === 1) ? ` Critical Failure!` : ` Fizzle!`;
         log.push({ message: description, type: 'damage' });
     } else {
+        console.log(`[SPELL DEBUG] Success! spell.type=${spell.type}, isPvP=${isPvP}, targetState=${targetState?.name || 'null'}`);
         log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' ? 'heal' : 'damage' });
 
         actingPlayerState.threat += cost;
