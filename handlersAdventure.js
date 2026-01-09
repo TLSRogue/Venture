@@ -290,7 +290,9 @@ export const registerAdventureHandlers = (io, socket) => {
                 }
             }
 
-            if (!party.sharedState || party.sharedState.pendingReaction) return;
+            if (!party.sharedState) return;
+            // Block normal actions if a reaction is pending, but allow 'returnHome' (Flee) and 'surrender'
+            if (party.sharedState.pendingReaction && action.type !== 'returnHome' && action.type !== 'surrender' && action.type !== 'resolvePvpFlee') return;
 
             if (action.type === 'returnHome' || action.type === 'ventureDeeper') {
                 if (name === party.leaderId) {
