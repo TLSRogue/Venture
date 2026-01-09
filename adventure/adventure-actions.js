@@ -150,10 +150,10 @@ export async function processWeaponAttack(io, party, player, payload) {
             debuffs: enemyCard.debuffs || [],
             cardIndex: targetIndex,
             getResistance: (damageType) => {
-                if (damageType === 'Physical') {
-                    return enemyCard.buffs?.find(b => b.bonus?.physicalResistance)?.bonus.physicalResistance || 0;
-                }
-                return 0;
+                const resistanceKey = damageType.toLowerCase() + 'Resistance';
+                const innate = enemyCard.bonuses?.[resistanceKey] || 0;
+                const buff = enemyCard.buffs?.find(b => b.bonus?.[resistanceKey])?.bonus[resistanceKey] || 0;
+                return innate + buff;
             }
         };
     }
@@ -587,10 +587,10 @@ export async function processCastSpell(io, party, player, payload) {
                                 index: idx,
                                 isPvP: false,
                                 getResistance: (damageType) => {
-                                    if (damageType === 'Physical') {
-                                        return card.buffs?.find(b => b.bonus?.physicalResistance)?.bonus.physicalResistance || 0;
-                                    }
-                                    return 0;
+                                    const resistanceKey = damageType.toLowerCase() + 'Resistance';
+                                    const innate = card.bonuses?.[resistanceKey] || 0;
+                                    const buff = card.buffs?.find(b => b.bonus?.[resistanceKey])?.bonus[resistanceKey] || 0;
+                                    return innate + buff;
                                 }
                             });
                         }

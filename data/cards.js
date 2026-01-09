@@ -336,13 +336,15 @@ export const cardPools = {
     arena: [
         {
             card: {
-                name: "Pulvis Cadus", type: "enemy", health: 30, maxHealth: 30, description: "A master of strange concoctions and explosives.", icon: "⚗️",
+                name: "Pulvis Cadus", type: "enemy", health: 40, maxHealth: 40, description: "A master of strange concoctions and explosives.", icon: "⚗️",
+                imageUrl: '/assets/arena-pulvis.jpg',
+                bonuses: { fireResistance: 2, physicalResistance: 2 },
                 arenaReward: 100,
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
-                    { range: [4, 7], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Fire', message: "Bomb Toss! Deals 3 Fire Damage!" },
-                    { range: [8, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Arcane', debuff: { type: 'daze', duration: 2 }, message: "Flash Bang! Deals 3 Arcane Damage and Dazes you!" },
-                    { range: [13, 15], action: 'special', message: "A Quick Fix! Pulvis Cadus heals and prepares his next move." },
+                    { range: [4, 7], action: 'attack', attackRange: 'ranged', damage: 5, damageType: 'Fire', message: "Bomb Toss! Deals 5 Fire Damage!" },
+                    { range: [8, 12], action: 'attack', attackRange: 'ranged', damage: 5, damageType: 'Arcane', debuff: { type: 'daze', duration: 2 }, message: "Flash Bang! Deals 5 Arcane Damage and Dazes you!" },
+                    { range: [13, 15], action: 'special', message: "A Quick Fix! Pulvis Cadus heals and repairs his chassis." },
                     { range: [16, 20], action: 'special', message: "Pulvis Cadus throws out some unstable kegs!" }
                 ],
                 lootTable: [
@@ -412,7 +414,7 @@ export const cardPools = {
 
 export const specialCards = {
     powderKeg: {
-        name: "Powder Keg", type: "enemy", health: 2, maxHealth: 2, description: "It's fizzing ominously.", charges: 0, icon: "💣",
+        name: "Powder Keg", type: "enemy", health: 4, maxHealth: 4, description: "It's fizzing ominously.", charges: 0, icon: "💣",
         attackTable: [
             { range: [1, 20], action: 'special', message: "The Powder Keg fizzes..." }
         ]

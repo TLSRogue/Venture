@@ -1036,6 +1036,23 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         }
                     }
                 }
+                // --- PULVIS CADUS: A Quick Fix! ---
+                if (enemy.name === 'Pulvis Cadus' && attack.message.includes('A Quick Fix!')) {
+                    if (enemy.health < enemy.maxHealth) {
+                        const healAmount = 8;
+                        const oldHealth = enemy.health;
+                        enemy.health = Math.min(enemy.maxHealth, enemy.health + healAmount);
+                        const actualHeal = enemy.health - oldHealth;
+                        sharedState.log.push({ message: `Pulvis Cadus patches up his armor, restoring ${actualHeal} HP!`, type: 'heal' });
+                    } else {
+                        // Enrage if full health
+                        if (!enemy.buffs) enemy.buffs = [];
+                        // Remove existing rage if any
+                        enemy.buffs = enemy.buffs.filter(b => b.type !== 'Enraged');
+                        enemy.buffs.push({ type: 'Enraged', duration: 2, bonus: { rollBonus: 3, damageBonus: 2 } });
+                        sharedState.log.push({ message: `Pulvis Cadus is fully repaired and becomes ENRAGED! (+3 to rolls, +2 damage)`, type: 'reaction' });
+                    }
+                }
             } else {
                 sharedState.log.push({ message: `${enemy.name} misses its attack.`, type: 'info' });
             }
