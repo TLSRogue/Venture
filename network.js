@@ -50,6 +50,14 @@ export function initSocketListeners(handlers) {
     socket.on('chat:globalHistory', handlers.onGlobalChatHistory);
     socket.on('chat:zoneMessage', handlers.onZoneChatMessage);
 
+    // Trade Listeners
+    socket.on('trade:receiveOffer', handlers.onTradeReceiveOffer);
+    socket.on('trade:start', handlers.onTradeStart);
+    socket.on('trade:update', handlers.onTradeUpdate);
+    socket.on('trade:complete', handlers.onTradeComplete);
+    socket.on('trade:error', handlers.onTradeError);
+    socket.on('trade:ended', handlers.onTradeEnded);
+
 }
 
 // --- EMITTER FUNCTIONS ---
@@ -118,4 +126,30 @@ export function emitZoneChatMessage(message) {
 
 export function requestGlobalChatHistory() {
     socket.emit('chat:requestGlobalHistory');
+}
+
+// --- TRADE EMITTERS ---
+
+export function emitTradeOffer(targetName) {
+    socket.emit('trade:offer', targetName);
+}
+
+export function emitTradeAccept(offererName) {
+    socket.emit('trade:accept', offererName);
+}
+
+export function emitTradeUpdate(tradeId, offer) {
+    socket.emit('trade:updateOffer', { tradeId, offer });
+}
+
+export function emitTradeLock(tradeId, locked) {
+    socket.emit('trade:lock', { tradeId, locked });
+}
+
+export function emitTradeConfirm(tradeId) {
+    socket.emit('trade:confirm', { tradeId });
+}
+
+export function emitTradeCancel(tradeId) {
+    socket.emit('trade:cancel', { tradeId });
 }

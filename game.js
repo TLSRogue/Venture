@@ -12,6 +12,7 @@ import * as UIAdventure from './ui/ui-adventure.js';
 import * as UIParty from './ui/ui-party.js';
 import * as UIPlayer from './ui/ui-player.js';
 import * as UITown from './ui/ui-town.js';
+import * as UITrade from './ui/ui-trade.js';
 import { ARENA_ENTRY_FEE } from './constants.js';
 import { preloadAllSounds, playSound } from './audio/sound-manager.js';
 
@@ -53,6 +54,13 @@ function initGame() {
         onGlobalChatMessage: handleGlobalChatMessage,
         onGlobalChatHistory: handleGlobalChatHistory,
         onZoneChatMessage: handleZoneChatMessage,
+        // Trade Listeners
+        onTradeReceiveOffer: handleTradeReceiveOffer,
+        onTradeStart: handleTradeStart,
+        onTradeUpdate: handleTradeUpdate,
+        onTradeComplete: handleTradeComplete,
+        onTradeError: handleTradeError,
+        onTradeEnded: handleTradeEnded,
     });
     UIParty.showCharacterSelectScreen();
 }
@@ -419,6 +427,41 @@ function updateWaitingBannerUI() {
     }
 }
 
+// --- TRADE HANDLERS ---
+function handleTradeReceiveOffer({ offererName }) {
+    UIMain.showConfirmationModal(`${offererName} wants to trade with you. Accept?`, () => {
+        Network.emitTradeAccept(offererName);
+        UIMain.hideModal();
+    });
+}
+
+function handleTradeStart({ tradeId, otherPlayer, isPlayer1 }) {
+    const initialTradeState = {
+        id: tradeId,
+        player1: { name: isPlayer1 ? gameState.characterName : otherPlayer, offer: { gold: 0, items: [] }, locked: false, confirmed: false },
+        player2: { name: isPlayer1 ? otherPlayer : gameState.characterName, offer: { gold: 0, items: [] }, locked: false, confirmed: false }
+    };
+    UITrade.renderTradeModal(initialTradeState, isPlayer1);
+}
+
+function handleTradeUpdate(tradeState) {
+    const isPlayer1 = tradeState.player1.name === gameState.characterName;
+    UITrade.renderTradeModal(tradeState, isPlayer1);
+}
+
+function handleTradeComplete(message) {
+    UIMain.showInfoModal(message);
+    playSound('coins', 0.6);
+}
+
+function handleTradeError(message) {
+    UIMain.showInfoModal(message);
+}
+
+function handleTradeEnded(message) {
+    UIMain.showInfoModal(message);
+}
+
 // --- DUEL, LOOT, & PVP HANDLERS ---
 function handleDuelReceiveChallenge({ challengerName, challengerId }) {
     UIMain.showConfirmationModal(`${challengerName} has challenged you to a duel! Accept?`, () => {
@@ -714,6 +757,7 @@ function addEventListeners() {
                 return;
             }
             if (button.dataset.action === 'invite') return Network.emitSendPartyInvite(button.dataset.id);
+            if (button.dataset.action === 'trade') return Network.emitTradeOffer(button.dataset.id);
             if (button.dataset.action === 'duel') return Network.emitDuelChallenge(button.dataset.id);
 
             if (button.matches('.tab, [data-tab-target]')) return UIPlayer.showTab(button.dataset.tab || button.dataset.tabTarget);

@@ -147,3 +147,4 @@ export let duels = {};
 export let pvpZoneQueues = {};
 export let pvpEncounters = {};
 export let globalChatHistory = [];
+export let trades = {};

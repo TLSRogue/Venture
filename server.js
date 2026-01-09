@@ -14,6 +14,7 @@ import { registerAdventureHandlers } from './handlersAdventure.js';
 import { registerDuelHandlers } from './handlersDuel.js';
 import { registerPlayerActionHandlers } from './handlersPlayerAction.js';
 import { registerChatHandlers } from './handlersChat.js';
+import { registerTradeHandlers } from './handlersTrade.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -43,6 +44,7 @@ io.on('connection', (socket) => {
   registerDuelHandlers(io, socket);
   registerPlayerActionHandlers(io, socket);
   registerChatHandlers(io, socket);
+  registerTradeHandlers(io, socket);
 });
 
 // 4. START THE SERVER

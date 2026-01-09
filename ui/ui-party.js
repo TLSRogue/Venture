@@ -80,6 +80,7 @@ export function renderOnlinePlayers(onlinePlayers) {
             <span>${player.name}</span>
             <div style="display: flex; gap: 5px;">
                 ${canInvite ? `<button class="btn btn-primary btn-sm" data-action="invite" data-id="${player.name}">Invite</button>` : ''}
+                <button class="btn btn-success btn-sm" data-action="trade" data-id="${player.name}">Trade</button>
                 <button class="btn btn-danger btn-sm" data-action="duel" data-id="${player.name}">Duel</button>
             </div>
         </li>
