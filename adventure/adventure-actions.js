@@ -61,7 +61,7 @@ function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlaye
         encounter.turnTimeRemaining = timeRemaining;
 
         encounter.pendingReaction = {
-            attackerName: attackerCharacter.characterName,
+            attackerName: attackerCharacter.characterName || attackerCharacter.name,
             attackerPlayerId: attackerCharacter.playerId,
             targetName: defendingPlayerState.name,
             damage: actionDetails.damage,
@@ -74,7 +74,7 @@ function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlaye
 
         const reactionPayload = {
             damage: actionDetails.damage,
-            attacker: attackerCharacter.characterName,
+            attacker: attackerCharacter.characterName || attackerCharacter.name,
             availableReactions: availableReactions,
             timer: 10000
         };
@@ -514,12 +514,19 @@ export async function processCastSpell(io, party, player, payload) {
                 reactionDamage = spell.baseEffect + statValue;
             }
 
+            let debuffToUse = spell.debuff ? { ...spell.debuff } : null;
+            if (debuffToUse && debuffToUse.scaling === 'wisdom') {
+                const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+                const wis = (character.wisdom || 0) + (bonuses.wisdom || 0);
+                debuffToUse.damage = Math.max(1, (debuffToUse.baseDamage || 0) + wis);
+            }
+
             const actionDetails = {
                 damage: reactionDamage,
                 damageType: spell.damageType,
                 attackRange: spell.range,
                 message: `is targeted by ${spell.name}.`,
-                debuff: spell.debuff || null,
+                debuff: debuffToUse,
             };
 
             const reactionInitiated = handlePvpReactionCheck(io, encounter, actingPlayerState, targetState, actionDetails);

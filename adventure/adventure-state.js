@@ -1604,18 +1604,24 @@ export async function handleResolveReaction(io, socket, payload) {
 
     if (logMessage) stateObject.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
 
-    if (finalDamage > 0) {
-        let damageToDeal = finalDamage;
-        if (reaction.damageType === 'Physical') {
-            const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
-            const resistance = bonuses.physicalResistance || 0;
-            damageToDeal = Math.max(1, finalDamage - resistance);
+    if ((finalDamage > 0 || (reaction.debuff && !dodged))) {
+        let damageToDeal = 0;
+        let damageMessage = `${reaction.attackerName} ${reaction.message}`;
+
+        if (finalDamage > 0) {
+            damageToDeal = finalDamage;
+            if (reaction.damageType === 'Physical') {
+                const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
+                const resistance = bonuses.physicalResistance || 0;
+                damageToDeal = Math.max(1, finalDamage - resistance);
+            }
+            reactingPlayerState.health -= damageToDeal;
+            damageMessage += ` It hits ${name} for ${damageToDeal} damage! [id:${reactingPlayerState.playerId}]`;
+            if (damageToDeal < finalDamage) {
+                damageMessage += ` (${finalDamage - damageToDeal} resisted)`;
+            }
         }
-        reactingPlayerState.health -= damageToDeal;
-        let damageMessage = `${reaction.attackerName} ${reaction.message} It hits ${name} for ${damageToDeal} damage! [id:${reactingPlayerState.playerId}]`;
-        if (damageToDeal < finalDamage) {
-            damageMessage += ` (${finalDamage - damageToDeal} resisted)`;
-        }
+
         if (reaction.debuff && !dodged) {
             const debuff = reaction.debuff;
             const existingIndex = reactingPlayerState.debuffs.findIndex(d => d.type === debuff.type);
