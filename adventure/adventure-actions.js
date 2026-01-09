@@ -231,7 +231,7 @@ export async function processWeaponAttack(io, party, player, payload) {
         // --- UNIFIED DAMAGE CALCULATION ---
         let baseDamage = weapon.weaponDamage;
         const resistance = target.getResistance(weapon.damageType);
-        const damageToDeal = Math.max(0, baseDamage - resistance);
+        const damageToDeal = Math.max(1, baseDamage - resistance);
 
         // --- VEXOR DODGE ---
         if (target.state.name === 'Vexor, Lord of the Arena') {
@@ -726,7 +726,7 @@ export async function processCastSpell(io, party, player, payload) {
 
                 // Apply resistance
                 const resistance = target.getResistance(spell.damageType);
-                const damageToDeal = Math.max(0, baseDamage - resistance);
+                const damageToDeal = baseDamage > 0 ? Math.max(1, baseDamage - resistance) : 0;
 
                 // --- VEXOR DODGE ---
                 if (target.name === 'Vexor, Lord of the Arena') {

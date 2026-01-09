@@ -759,7 +759,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 if (attack.damageType === 'Physical') {
                     const bonuses = getBonusStatsForPlayer(targetCharacter, targetPlayerState);
                     const resistance = bonuses.physicalResistance || 0;
-                    damageToDeal = Math.max(0, damageToDeal - resistance);
+                    damageToDeal = Math.max(1, damageToDeal - resistance);
                 }
                 const availableReactions = [];
                 // --- REACTION LOGIC MODIFIED FOR EVASIVE SHOT ---
@@ -897,7 +897,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         let damageToDeal = 3;
                         const bonuses = getBonusStatsForPlayer(targetCharacter, targetPlayerState);
                         const resistance = bonuses.physicalResistance || 0;
-                        damageToDeal = Math.max(0, damageToDeal - resistance);
+                        damageToDeal = Math.max(1, damageToDeal - resistance);
 
                         targetPlayerState.health -= damageToDeal;
                         let attackMessage = `${enemy.name} hits ${targetPlayerState.name} for ${damageToDeal} damage!`;
@@ -1107,7 +1107,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                                 if (playerObj) {
                                     const bonuses = getBonusStatsForPlayer(playerObj.character, p);
                                     const resistance = bonuses.fireResistance || 0;
-                                    const damage = Math.max(0, 4 - resistance);
+                                    const damage = Math.max(1, 4 - resistance);
 
                                     p.health -= damage;
                                     let msg = `${p.name} takes ${damage} Fire damage!`;
@@ -1141,7 +1141,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         if (playerObj) {
                             const bonuses = getBonusStatsForPlayer(playerObj.character, target);
                             const resistance = bonuses.physicalResistance || 0;
-                            const damage = Math.max(0, 5 - resistance);
+                            const damage = Math.max(1, 5 - resistance);
                             target.health -= damage;
                             sharedState.log.push({ message: `Vexor slashes ${target.name} for ${damage} Physical damage!`, type: 'damage' });
                             if (target.health <= 0) { target.isDead = true; target.health = 0; }
@@ -1158,7 +1158,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         if (playerObj) {
                             const bonuses = getBonusStatsForPlayer(playerObj.character, target);
                             const resistance = bonuses.physicalResistance || 0;
-                            const damage = Math.max(0, 4 - resistance);
+                            const damage = Math.max(1, 4 - resistance);
                             target.health -= damage;
 
                             if (!target.debuffs) target.debuffs = [];
@@ -1191,7 +1191,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                             if (playerObj) {
                                 const bonuses = getBonusStatsForPlayer(playerObj.character, p);
                                 const resistance = bonuses.physicalResistance || 0;
-                                const damage = Math.max(0, 5 - resistance);
+                                const damage = Math.max(1, 5 - resistance);
                                 p.health -= damage;
 
                                 if (!p.debuffs) p.debuffs = [];
@@ -1394,7 +1394,7 @@ export async function handleResolveReaction(io, socket, payload) {
                 logMessage = `${name}'s Block: ${rollDisplay} Critical Failure!`;
             } else if (isSuccess) {
                 const damageReduction = shield.reaction.value;
-                finalDamage = Math.max(0, finalDamage - damageReduction);
+                finalDamage = Math.max(1, finalDamage - damageReduction);
                 blocked = true;
                 logMessage = `${name}'s Block: ${rollDisplay} Blocked ${damageReduction} damage!`;
             } else {
@@ -1441,7 +1441,7 @@ export async function handleResolveReaction(io, socket, payload) {
                             if (attackerCharacter) {
                                 const attackerBonuses = getBonusStatsForPlayer(attackerCharacter, attackerPlayerState);
                                 const resistance = attackerBonuses.physicalResistance || 0;
-                                damageToDeal = Math.max(0, counterDamage - resistance);
+                                damageToDeal = Math.max(1, counterDamage - resistance);
                             }
 
                             attackerPlayerState.health -= damageToDeal;
@@ -1460,7 +1460,7 @@ export async function handleResolveReaction(io, socket, payload) {
                         const attackerEnemy = stateObject.zoneCards[reaction.attackerIndex];
                         if (attackerEnemy && attackerEnemy.health > 0) {
                             const resistance = attackerEnemy.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
-                            let damageToDeal = Math.max(0, counterDamage - resistance);
+                            let damageToDeal = Math.max(1, counterDamage - resistance);
 
                             attackerEnemy.health -= damageToDeal;
 
@@ -1525,7 +1525,7 @@ export async function handleResolveReaction(io, socket, payload) {
                             if (attackerCharacter) {
                                 const attackerBonuses = getBonusStatsForPlayer(attackerCharacter, attackerPlayerState);
                                 const resistance = attackerBonuses.physicalResistance || 0;
-                                damageToDeal = Math.max(0, counterDamage - resistance);
+                                damageToDeal = Math.max(1, counterDamage - resistance);
                             }
 
                             attackerPlayerState.health -= damageToDeal;
@@ -1544,7 +1544,7 @@ export async function handleResolveReaction(io, socket, payload) {
                         const attackerEnemy = stateObject.zoneCards[reaction.attackerIndex];
                         if (attackerEnemy && attackerEnemy.health > 0) {
                             const resistance = attackerEnemy.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
-                            let damageToDeal = Math.max(0, counterDamage - resistance);
+                            let damageToDeal = Math.max(1, counterDamage - resistance);
 
                             attackerEnemy.health -= damageToDeal;
 
@@ -1577,7 +1577,7 @@ export async function handleResolveReaction(io, socket, payload) {
         if (reaction.damageType === 'Physical') {
             const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
             const resistance = bonuses.physicalResistance || 0;
-            damageToDeal = Math.max(0, finalDamage - resistance);
+            damageToDeal = Math.max(1, finalDamage - resistance);
         }
         reactingPlayerState.health -= damageToDeal;
         let damageMessage = `${reaction.attackerName} ${reaction.message} It hits ${name} for ${damageToDeal} damage! [id:${reactingPlayerState.playerId}]`;
