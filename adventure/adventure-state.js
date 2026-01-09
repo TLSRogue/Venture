@@ -1135,7 +1135,8 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
 
                 // --- ANGRY FARMHAND: Pitchfork Tactics ---
                 if (enemy.name === 'Angry Farmhand' && attack.message.includes('weighs his options')) {
-                    const isTrapped = enemy.buffs && enemy.buffs.some(b => ['trapped', 'root', 'stun', 'daze', 'entangling roots'].includes(b.type.toLowerCase()));
+                    const allEffects = (enemy.buffs || []).concat(enemy.debuffs || []);
+                    const isTrapped = allEffects.some(b => ['trapped', 'root', 'stun', 'daze', 'entangling roots'].includes(b.type.toLowerCase()));
                     if (enemy.health <= 2 && !isTrapped) {
                         sharedState.log.push({ message: "The Farmhand panics and runs away!", type: 'reaction' });
                         sharedState.zoneCards.splice(enemyIndex, 1);

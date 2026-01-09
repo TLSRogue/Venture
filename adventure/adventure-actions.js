@@ -751,7 +751,7 @@ export async function processCastSpell(io, party, player, payload) {
                     if (spell.debuff.scaling === 'wisdom') {
                         const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
                         const wis = (character.wisdom || 0) + (bonuses.wisdom || 0);
-                        debuffToApply.damage = (spell.debuff.baseDamage || 0) + wis;
+                        debuffToApply.damage = Math.max(1, (spell.debuff.baseDamage || 0) + wis);
                     }
                     target.state.debuffs.push(debuffToApply);
                     hitDescription += ` ${target.name} is now ${spell.debuff.type}!`;
