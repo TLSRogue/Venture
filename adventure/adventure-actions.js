@@ -687,6 +687,13 @@ export async function processCastSpell(io, party, player, payload) {
                     }
                     baseDamage = 1 + highestFireWeaponDamage;
                 }
+                else if (spell.name === 'Cone of Cold') {
+                    if (total >= (spell.hit || 10)) {
+                        baseDamage = (spell.damage || 0) + statValue;
+                    } else {
+                        baseDamage = 0;
+                    }
+                }
                 else if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
                     const mainHand = character.equipment.mainHand;
                     if (mainHand?.weaponDamage && spell.requires?.weaponType?.includes(mainHand.weaponType)) {

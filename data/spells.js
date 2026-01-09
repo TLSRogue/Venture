@@ -316,5 +316,23 @@ export const allSpells = [
         type: "revive",
         icon: "💫",
         rarity: "rare",
+    },
+    {
+        name: "Cone of Cold",
+        price: 150,
+        cost: 1,
+        cooldown: 3,
+        school: "Frost",
+        range: "melee",
+        description: "Blast nearby enemies with freezing air. 1 AP, 3 CD | D20+Wis (10+) | Hits all enemies. Deals 1+Wis Frost Damage and Dazes.",
+        type: "aoe",
+        aoeTargeting: "all",
+        stat: "wisdom",
+        damage: 1,
+        hit: 10,
+        damageType: 'Frost',
+        onHit: { debuff: { type: 'daze', duration: 1 } },
+        icon: "❄️",
+        rarity: "uncommon",
     }
 ];
