@@ -661,7 +661,7 @@ export function renderPlayerActionBars() {
                 <div class="cooldown-overlay" style="height: ${cooldown > 0 ? '100' : '0'}%">${cooldown}</div>
             `;
 
-            if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile') {
+            if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile' || spell.type === 'revive') {
                 slotEl.dataset.action = 'select';
                 slotEl.dataset.actionData = JSON.stringify({ type: 'spell', data: spell, index: i });
             } else if (spell.type === 'heal' || spell.type === 'buff' || spell.type === 'utility') {
@@ -711,6 +711,12 @@ export function updateActionUI() {
         if (action.type === 'heal' || action.type === 'buff' || action.type === 'versatile') {
             document.querySelectorAll('#party-cards-container .card.player:not(.dead), #zone-cards .card.player:not(.dead)').forEach(playerCard => {
                 playerCard.classList.add('targetable');
+            });
+        }
+        // Revive spells target dead allies
+        if (action.type === 'revive') {
+            document.querySelectorAll('#party-cards-container .card.player.dead').forEach(deadCard => {
+                deadCard.classList.add('targetable');
             });
         }
         // Targeted consumables (like Rotten Egg) target enemies

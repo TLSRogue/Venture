@@ -304,5 +304,17 @@ export const allSpells = [
         },
         icon: "⚔️🛡️",
         rarity: "uncommon",
+    },
+    {
+        name: "Revive",
+        price: 250,
+        cost: 3,
+        cooldown: 10,
+        school: "Holy",
+        range: "ranged",
+        description: "Call upon divine power to restore a fallen ally to life. 3 AP, 10 CD | Target dead party member is revived with 1 HP remaining.",
+        type: "revive",
+        icon: "💫",
+        rarity: "rare",
     }
 ];

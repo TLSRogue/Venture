@@ -367,6 +367,40 @@ export async function processCastSpell(io, party, player, payload) {
         stealthModifier = stealthBuff ? -5 : 0;
     }
 
+    // --- REVIVE SPELL: Guaranteed success, special targeting ---
+    if (spell.type === 'revive') {
+        // Consume resources
+        actingPlayerState.actionPoints -= cost;
+        actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
+
+        // Find the dead party member target
+        let reviveTarget = null;
+        if (!isPvP && String(targetIndex).startsWith('p')) {
+            const playerIdx = parseInt(targetIndex.substring(1));
+            if (!isNaN(playerIdx) && sharedState.partyMemberStates[playerIdx]) {
+                reviveTarget = sharedState.partyMemberStates[playerIdx];
+            }
+        }
+
+        if (!reviveTarget || !reviveTarget.isDead) {
+            log.push({ message: `${character.characterName} casts ${spell.name}, but there is no valid target!`, type: 'info' });
+        } else {
+            // Revive the target with 1 HP
+            reviveTarget.isDead = false;
+            reviveTarget.health = 1;
+            reviveTarget.turnEnded = true; // They can't act this turn
+            reviveTarget.buffs = [];
+            reviveTarget.debuffs = [];
+
+            log.push({ message: `${character.characterName} casts ${spell.name}!`, type: 'heal' });
+            log.push({ message: `${reviveTarget.name} has been revived with 1 HP! [id:${reviveTarget.playerId}]`, type: 'heal' });
+        }
+
+        broadcastAdventureUpdate(io, party);
+        await checkAndEndTurnForPlayer(io, party, player);
+        return; // Exit early - revive spell is complete
+    }
+
     const roll = Math.floor(Math.random() * 20) + 1;
     const total = roll + statValue + dazeModifier + focusModifier + stealthModifier;
     const hitTarget = spell.hit || 15;
@@ -395,7 +429,7 @@ export async function processCastSpell(io, party, player, payload) {
         description += (roll === 1) ? ` Critical Failure!` : ` Fizzle!`;
         log.push({ message: description, type: 'damage' });
     } else {
-        log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' ? 'heal' : 'damage' });
+        log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' || spell.type === 'revive' ? 'heal' : 'damage' });
 
         actingPlayerState.threat += cost;
         if (spell.bonusThreat) {
