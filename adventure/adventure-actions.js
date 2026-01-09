@@ -452,7 +452,10 @@ export async function processCastSpell(io, party, player, payload) {
             // --- UNIFIED: Build target list ---
             let targets = [];
 
+            console.log(`[SPELL DEBUG] ${spell.name} - isPvP: ${isPvP}, targetState: ${targetState ? targetState.name : 'null'}, enemyTarget: ${enemyTarget ? enemyTarget.name : 'null'}`);
+
             if (isPvP && targetState) {
+                console.log(`[SPELL DEBUG] Adding PvP target: ${targetState.name}`);
                 targets.push({
                     state: targetState,
                     id: targetState.playerId,
