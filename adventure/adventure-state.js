@@ -1053,6 +1053,68 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         sharedState.log.push({ message: `Pulvis Cadus is fully repaired and becomes ENRAGED! (+3 to rolls, +2 damage)`, type: 'reaction' });
                     }
                 }
+                // --- PULVIS CADUS: Unstable Kegs ---
+                if (enemy.name === 'Pulvis Cadus' && attack.message.includes('unstable kegs')) {
+                    const kegCount = 2;
+                    let spawned = 0;
+                    for (let k = 0; k < kegCount; k++) {
+                        const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+                        if (emptySlotIndex !== -1) {
+                            const kegCard = {
+                                ...gameData.specialCards.powderKeg,
+                                id: Date.now() + k,
+                                kegTimer: 2,
+                                maxHealth: 4,
+                                health: 4
+                            };
+                            sharedState.zoneCards[emptySlotIndex] = kegCard;
+                            spawned++;
+                        }
+                    }
+                    if (spawned > 0) {
+                        sharedState.log.push({ message: `${spawned} Powder Keg(s) land in the arena! They look like they're about to blow!`, type: 'reaction' });
+                    }
+                }
+
+                // --- POWDER KEG: Detonation Logic ---
+                if (enemy.name === 'Powder Keg' && attack.message.includes('fizzes')) {
+                    if (typeof enemy.kegTimer === 'undefined') enemy.kegTimer = 2;
+                    enemy.kegTimer--;
+
+                    if (enemy.kegTimer <= 0) {
+                        sharedState.log.push({ message: `BOOM! The Powder Keg DETONATES!`, type: 'damage' });
+
+                        // Damage all players
+                        sharedState.partyMemberStates.forEach(p => {
+                            if (!p.isDead) {
+                                const playerObj = players[p.name];
+                                if (playerObj) {
+                                    const bonuses = getBonusStatsForPlayer(playerObj.character, p);
+                                    const resistance = bonuses.fireResistance || 0;
+                                    const damage = Math.max(0, 4 - resistance);
+
+                                    p.health -= damage;
+                                    let msg = `${p.name} takes ${damage} Fire damage!`;
+                                    if (damage < 4) msg += ` (${4 - damage} resisted)`;
+                                    sharedState.log.push({ message: msg, type: 'damage' });
+
+                                    if (p.health <= 0) {
+                                        p.health = 0;
+                                        p.isDead = true;
+                                        sharedState.log.push({ message: `${p.name} has been defeated by the explosion!`, type: 'damage' });
+                                    }
+                                }
+                            }
+                        });
+                        // Retrieve the current index to remove the keg
+                        const currentKegIndex = sharedState.zoneCards.findIndex(c => c && c.id === enemy.id);
+                        if (currentKegIndex !== -1) {
+                            defeatEnemyInParty(io, party, enemy, currentKegIndex);
+                        }
+                    } else {
+                        sharedState.log.push({ message: `The Powder Keg fizzes ominously... (${enemy.kegTimer} turns remaining)`, type: 'reaction' });
+                    }
+                }
             } else {
                 sharedState.log.push({ message: `${enemy.name} misses its attack.`, type: 'info' });
             }
