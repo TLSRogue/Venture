@@ -313,9 +313,16 @@ function renderPvpScreen() {
                 cardEl.classList.add('active-turn');
             }
 
+            let visualHTML;
+            if (playerState.icon && playerState.icon.includes('/')) {
+                visualHTML = `<img src="${playerState.icon}" class="card-image" style="border-radius: 4px;">`;
+            } else {
+                visualHTML = `<div class="card-icon">${playerState.icon || '👤'}</div>`;
+            }
+
             cardEl.innerHTML = `
                 <div class="card-title">${playerState.name}</div>
-                <div class="card-icon">${playerState.icon}</div>
+                ${visualHTML}
                 ${createHealthBarHTML(playerState.health, playerState.maxHealth)}
             `;
             cardEl.appendChild(createEffectsContainer(playerState));
@@ -358,9 +365,16 @@ function renderPartyScreen() {
                 cardEl.style.opacity = '0.6';
             }
 
+            let visualHTML;
+            if (playerState.icon && playerState.icon.includes('/')) {
+                visualHTML = `<img src="${playerState.icon}" class="card-image" style="border-radius: 4px;">`;
+            } else {
+                visualHTML = `<div class="card-icon">${playerState.icon || '👤'}</div>`;
+            }
+
             cardEl.innerHTML = `
                 <div class="card-title">${playerState.name}</div>
-                <div class="card-icon">${playerState.icon}</div>
+                ${visualHTML}
                 ${createHealthBarHTML(playerState.health, playerState.maxHealth, playerState.threat)}
             `;
             cardEl.appendChild(createEffectsContainer(playerState));
@@ -395,10 +409,21 @@ function renderDuelScreen() {
     playerCardEl.dataset.target = 'player';
     if (localPlayer.id) playerCardEl.dataset.playerId = localPlayer.id;
 
-    const pIcon = document.createElement('div'); pIcon.className = 'card-icon'; pIcon.textContent = localPlayer.icon;
+    let pVisual;
+    if (localPlayer.icon && localPlayer.icon.includes('/')) {
+        pVisual = document.createElement('img');
+        pVisual.className = 'card-image';
+        pVisual.src = localPlayer.icon;
+        pVisual.style.borderRadius = '4px';
+    } else {
+        pVisual = document.createElement('div');
+        pVisual.className = 'card-icon';
+        pVisual.textContent = localPlayer.icon || '👤';
+    }
+
     const pTitle = document.createElement('div'); pTitle.className = 'card-title'; pTitle.textContent = localPlayer.name;
     const pHealth = document.createElement('div'); pHealth.textContent = `❤️ ${localPlayer.health}/${localPlayer.maxHealth}`;
-    playerCardEl.append(pIcon, pTitle, pHealth, createEffectsContainer(localPlayer));
+    playerCardEl.append(pVisual, pTitle, pHealth, createEffectsContainer(localPlayer));
     partyContainer.appendChild(playerCardEl);
 
     const opponentCardEl = document.createElement('div');
@@ -417,10 +442,21 @@ function renderDuelScreen() {
             <div>DEFEATED</div>
         `;
     } else {
-        const oIcon = document.createElement('div'); oIcon.className = 'card-icon'; oIcon.textContent = opponent.icon;
+        let oVisual;
+        if (opponent.icon && opponent.icon.includes('/')) {
+            oVisual = document.createElement('img');
+            oVisual.className = 'card-image';
+            oVisual.src = opponent.icon;
+            oVisual.style.borderRadius = '4px';
+        } else {
+            oVisual = document.createElement('div');
+            oVisual.className = 'card-icon';
+            oVisual.textContent = opponent.icon || '👤';
+        }
+
         const oTitle = document.createElement('div'); oTitle.className = 'card-title'; oTitle.textContent = opponent.name;
         const oHealth = document.createElement('div'); oHealth.textContent = `❤️ ${opponent.health}/${opponent.maxHealth}`;
-        opponentCardEl.append(oIcon, oTitle, oHealth, createEffectsContainer(opponent));
+        opponentCardEl.append(oVisual, oTitle, oHealth, createEffectsContainer(opponent));
     }
     zoneContainer.appendChild(opponentCardEl);
 }
