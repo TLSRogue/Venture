@@ -5,6 +5,7 @@ import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
 import { checkAndEndTurnForPlayer, defeatEnemyInParty, handleResolveReaction } from './adventure-state.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
+import { applyDamage } from './adventure-utils.js';
 
 function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlayerState, actionDetails) {
     const defendingPlayerObject = players[defendingPlayerState.name];
