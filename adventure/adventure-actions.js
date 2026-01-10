@@ -358,6 +358,19 @@ export async function processCastSpell(io, party, player, payload) {
 
     // --- Spell Effect Resolution ---
 
+    // Monk Focus Gain (Pre-Reaction)
+    if ((spell.name === 'Punch' || spell.name === 'Kick')) {
+        const hasMonkTraining = character.equippedSpells.some(s => s.name === "Monk's Training");
+        const isUnarmed = !character.equipment.mainHand && !character.equipment.offHand;
+        // Ensure focus is initialized
+        if (actingPlayerState.focus === undefined) actingPlayerState.focus = 0;
+
+        if (hasMonkTraining && isUnarmed && actingPlayerState.focus < 3) {
+            actingPlayerState.focus += 1;
+            log.push({ message: `${character.characterName} gains 1 Focus.`, type: 'heal' });
+        }
+    }
+
     // Check PvP Reaction for Attack Spells
     if (isPvP && target && (spell.type === 'attack' || (spell.type === 'versatile' && target.team !== actingPlayerState.team))) {
         let specialBase = getSpecialSpellDamage(spell, character, actingPlayerState);
@@ -586,17 +599,7 @@ export async function processCastSpell(io, party, player, payload) {
 
             log.push({ message: hitDescription.trim(), type: 'damage' });
 
-            // Monk Focus Gain
-            if ((spell.name === 'Punch' || spell.name === 'Kick')) {
-                const hasMonkTraining = character.equippedSpells.some(s => s.name === "Monk's Training");
-                const isUnarmed = !character.equipment.mainHand && !character.equipment.offHand;
-                // Ensure focus is initialized
-                actingPlayerState.focus = actingPlayerState.focus || 0;
-                if (hasMonkTraining && isUnarmed && actingPlayerState.focus < 3) {
-                    actingPlayerState.focus += 1;
-                    log.push({ message: `${character.characterName} gains 1 Focus.`, type: 'heal' });
-                }
-            }
+            log.push({ message: hitDescription.trim(), type: 'damage' });
 
             // Check for death
             if (target.state.health <= 0) {
