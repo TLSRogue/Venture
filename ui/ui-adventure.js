@@ -233,6 +233,7 @@ export function renderAdventureScreen() {
         renderPartyScreen();
     }
     renderGroundLootButton();
+    renderPlayerActionBars();
     updateActionUI();
 }
 
