@@ -7,22 +7,23 @@ import { getBonusStats } from '../player.js';
 
 let reactionTimerInterval = null;
 
-const effectIcons = {
-    'bleed': '🩸',
-    'burn': '🔥',
-    'stun': '💫',
-    'daze': '😵',
-    'poison': '☠️',
-    'Stealth': '🤫',
-    "Warrior's Might": '💪',
-    'War Cry': '🗣️',
-    'Thick Hide': '🛡️',
-    'Well Fed (Str)': '🍖',
-    'Well Fed (Agi)': '🐟',
-    'Well Fed (Wis)': '🥣',
-    'Light Source': '🔥',
-    'Focus': '🧘',
-    'Magic Barrier': '💠'
+const effectDefinitions = {
+    'bleed': { icon: '🩸', description: 'Taking Physical damage over time.' },
+    'burn': { icon: '🔥', description: 'Taking Fire damage over time.' },
+    'poison': { icon: '☠️', description: 'Taking Nature damage over time.' },
+    'entangling roots': { icon: '🌿', description: 'Rooted and taking Nature damage over time.' },
+    'stun': { icon: '💫', description: 'Stunned. Cannot act and AP reduced.' },
+    'daze': { icon: '😵', description: 'Dazed. -3 penalty to Attack Rolls.' },
+    'stealth': { icon: '🤫', description: 'Stealthed. Untargetable by most attacks.' },
+    'warrior\'s might': { icon: '💪', description: 'Increased Strength.' },
+    'war cry': { icon: '🗣️', description: 'Morale boosted. Increased stats.' },
+    'thick hide': { icon: '🛡️', description: 'Increased Armor.' },
+    'well fed (str)': { icon: '🍖', description: 'Well Fed (+Strength).' },
+    'well fed (agi)': { icon: '🐟', description: 'Well Fed (+Agility).' },
+    'well fed (wis)': { icon: '🥣', description: 'Well Fed (+Wisdom).' },
+    'light source': { icon: '🔥', description: 'Illuminating the area.' },
+    'focus': { icon: '🧘', description: 'Focused. Next ability is empowered.' },
+    'magic barrier': { icon: '💠', description: 'Protected by a magical barrier.' }
 };
 
 /**
@@ -544,15 +545,15 @@ function createEffectsContainer(stateObject) {
     const effectsContainer = document.createElement('div');
     effectsContainer.className = 'player-card-effects';
 
-    // Threat is now shown as a bar on the card, so we skip it here
-
     if (stateObject.buffs) {
         stateObject.buffs.forEach(buff => {
             const buffSpan = document.createElement('span');
-            const icon = effectIcons[buff.type] || '✨';
+            const lowerType = buff.type.toLowerCase();
+            const def = effectDefinitions[lowerType] || { icon: '✨', description: 'Beneficial effect' };
+
             buffSpan.className = 'player-card-effect buff';
-            buffSpan.textContent = icon;
-            buffSpan.addEventListener('mouseover', () => showTooltip(`<strong>${buff.type}</strong><br>Turns Remaining: ${buff.duration - 1}`));
+            buffSpan.textContent = def.icon;
+            buffSpan.addEventListener('mouseover', () => showTooltip(`<strong>${buff.type}</strong><br>${def.description}<br>Turns Remaining: ${buff.duration}`));
             buffSpan.addEventListener('mouseout', () => hideTooltip());
             effectsContainer.appendChild(buffSpan);
         });
@@ -561,10 +562,12 @@ function createEffectsContainer(stateObject) {
     if (stateObject.debuffs) {
         stateObject.debuffs.forEach(debuff => {
             const debuffSpan = document.createElement('span');
-            const icon = effectIcons[debuff.type] || '❓';
+            const lowerType = debuff.type.toLowerCase();
+            const def = effectDefinitions[lowerType] || { icon: '❓', description: 'Harmful effect' };
+
             debuffSpan.className = 'player-card-effect debuff';
-            debuffSpan.textContent = icon;
-            debuffSpan.addEventListener('mouseover', () => showTooltip(`<strong>${debuff.type}</strong><br>Turns Remaining: ${debuff.duration}`));
+            debuffSpan.textContent = def.icon;
+            debuffSpan.addEventListener('mouseover', () => showTooltip(`<strong>${debuff.type}</strong><br>${def.description}<br>Turns Remaining: ${debuff.duration}`));
             debuffSpan.addEventListener('mouseout', () => hideTooltip());
             effectsContainer.appendChild(debuffSpan);
         });

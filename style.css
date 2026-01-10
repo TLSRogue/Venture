@@ -456,6 +456,49 @@ body {
     color: #f39c12;
 }
 
+/* Buffs and Debuffs - positioned at bottom inside card */
+.player-card-effects {
+    position: absolute;
+    bottom: 5px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 2px 5px;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.player-card-effect {
+    font-size: 1.2em;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    cursor: help;
+    pointer-events: auto;
+    transition: transform 0.2s;
+}
+
+.player-card-effect:hover {
+    transform: scale(1.2);
+    z-index: 10;
+}
+
+.player-card-effect.buff {
+    border: 1px solid var(--success-color);
+}
+
+.player-card-effect.debuff {
+    border: 1px solid var(--danger-color);
+}
+
 /* Card Health and Threat Bars - positioned below the card */
 .card-bars-container {
     position: absolute;
