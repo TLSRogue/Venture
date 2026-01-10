@@ -31,14 +31,23 @@ const effectDefinitions = {
  * @param {number} health - Current health
  * @param {number} maxHealth - Maximum health
  * @param {number|null} threat - Threat value (only for players in PvE, null otherwise)
+ * @param {number} shield - Shield/Barrier value (default 0)
  * @returns {string} HTML string for the bar
  */
-function createHealthBarHTML(health, maxHealth, threat = null) {
+function createHealthBarHTML(health, maxHealth, threat = null, shield = 0) {
     const healthPercent = Math.max(0, Math.min(100, (health / maxHealth) * 100));
+
+    let shieldHTML = '';
+    if (shield > 0) {
+        const shieldPercent = Math.min(100, (shield / maxHealth) * 100);
+        shieldHTML = `<div class="card-shield-bar" style="width: ${shieldPercent}%"></div>`;
+    }
+
     let html = `
         <div class="card-bars-container">
             <div class="card-health-bar-container">
-                <div class="card-health-bar" style="width: ${healthPercent}%">${health}/${maxHealth}</div>
+                <div class="card-health-bar" style="width: ${healthPercent}%">${health}/${maxHealth}${shield > 0 ? ` (+${shield})` : ''}</div>
+                ${shieldHTML}
             </div>`;
 
     if (threat !== null) {
@@ -322,11 +331,18 @@ function renderPvpScreen() {
                 visualHTML = `<div class="card-icon">${playerState.icon || '👤'}</div>`;
             }
 
+            let shield = 0;
+            if (playerState.buffs) {
+                const b = playerState.buffs.find(bu => bu.type === 'Magic Barrier');
+                if (b) shield = b.value || 0;
+            } else if (playerState.shield) {
+                shield = playerState.shield;
+            }
+
             cardEl.innerHTML = `
                 <div class="card-title">${playerState.name}</div>
                 ${visualHTML}
-                ${createHealthBarHTML(playerState.health, playerState.maxHealth)}
-            `;
+                ${createHealthBarHTML(playerState.health, playerState.maxHealth, null, shield)}`;
             cardEl.appendChild(createEffectsContainer(playerState));
         }
         container.appendChild(cardEl);
@@ -374,10 +390,18 @@ function renderPartyScreen() {
                 visualHTML = `<div class="card-icon">${playerState.icon || '👤'}</div>`;
             }
 
+            let shield = 0;
+            if (playerState.buffs) {
+                const b = playerState.buffs.find(bu => bu.type === 'Magic Barrier');
+                if (b) shield = b.value || 0;
+            } else if (playerState.shield) {
+                shield = playerState.shield;
+            }
+
             cardEl.innerHTML = `
                 <div class="card-title">${playerState.name}</div>
                 ${visualHTML}
-                ${createHealthBarHTML(playerState.health, playerState.maxHealth, playerState.threat)}
+                ${createHealthBarHTML(playerState.health, playerState.maxHealth, playerState.threat, shield)}
             `;
             cardEl.appendChild(createEffectsContainer(playerState));
         }
@@ -424,8 +448,17 @@ function renderDuelScreen() {
     }
 
     const pTitle = document.createElement('div'); pTitle.className = 'card-title'; pTitle.textContent = localPlayer.name;
-    const pHealth = document.createElement('div'); pHealth.textContent = `❤️ ${localPlayer.health}/${localPlayer.maxHealth}`;
-    playerCardEl.append(pVisual, pTitle, pHealth, createEffectsContainer(localPlayer));
+
+    let localShield = 0;
+    if (localPlayer.buffs) {
+        const b = localPlayer.buffs.find(bu => bu.type === 'Magic Barrier');
+        if (b) localShield = b.value || 0;
+    } else if (localPlayer.shield) localShield = localPlayer.shield;
+
+    const pBars = document.createElement('div');
+    pBars.innerHTML = createHealthBarHTML(localPlayer.health, localPlayer.maxHealth, null, localShield);
+
+    playerCardEl.append(pVisual, pTitle, pBars, createEffectsContainer(localPlayer));
     partyContainer.appendChild(playerCardEl);
 
     const opponentCardEl = document.createElement('div');
@@ -457,8 +490,17 @@ function renderDuelScreen() {
         }
 
         const oTitle = document.createElement('div'); oTitle.className = 'card-title'; oTitle.textContent = opponent.name;
-        const oHealth = document.createElement('div'); oHealth.textContent = `❤️ ${opponent.health}/${opponent.maxHealth}`;
-        opponentCardEl.append(oVisual, oTitle, oHealth, createEffectsContainer(opponent));
+
+        let oppShield = 0;
+        if (opponent.buffs) {
+            const b = opponent.buffs.find(bu => bu.type === 'Magic Barrier');
+            if (b) oppShield = b.value || 0;
+        } else if (opponent.shield) oppShield = opponent.shield;
+
+        const oBars = document.createElement('div');
+        oBars.innerHTML = createHealthBarHTML(opponent.health, opponent.maxHealth, null, oppShield);
+
+        opponentCardEl.append(oVisual, oTitle, oBars, createEffectsContainer(opponent));
     }
     zoneContainer.appendChild(opponentCardEl);
 }
@@ -521,7 +563,12 @@ function renderZoneCards(cards) {
         if (card.type === 'enemy') {
             // Add health bar for enemies
             const barsDiv = document.createElement('div');
-            barsDiv.innerHTML = createHealthBarHTML(card.health, card.maxHealth);
+            let shield = 0;
+            if (card.buffs) {
+                const b = card.buffs.find(bu => bu.type === 'Magic Barrier');
+                if (b) shield = b.value || 0;
+            }
+            barsDiv.innerHTML = createHealthBarHTML(card.health, card.maxHealth, null, shield);
             cardEl.appendChild(barsDiv);
             cardEl.appendChild(createEffectsContainer(card));
         } else if (card.type === 'resource' && card.charges !== undefined) {

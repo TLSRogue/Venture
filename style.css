@@ -539,6 +539,23 @@ body {
     border-radius: 6px;
     padding: 2px;
     border: 1px solid #c0392b;
+    position: relative;
+    /* For shielding bar positioning */
+}
+
+.card-shield-bar {
+    position: absolute;
+    top: 2px;
+    /* Match padding */
+    left: 2px;
+    /* Match padding */
+    height: 14px;
+    /* Match health bar height */
+    background: rgba(52, 152, 219, 0.6);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 2;
+    transition: width 0.3s ease-out;
 }
 
 .card-health-bar {
