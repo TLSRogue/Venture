@@ -135,24 +135,25 @@ export function updateDisplay() {
     const adventureHUD = document.getElementById('adventure-hud');
     if (adventureHUD && (gameState.currentZone || gameState.inDuel)) {
         let currentHealth, currentMaxHealth, currentAP;
+        let localPlayerState = null;
 
         // Handle PvP encounter state
         if (gameState.pvpEncounter && gameState.pvpEncounter.playerStates) {
-            const localPlayerState = gameState.pvpEncounter.playerStates.find(p => p.playerId === Network.socket?.id);
+            localPlayerState = gameState.pvpEncounter.playerStates.find(p => p.playerId === Network.socket?.id);
             if (localPlayerState) {
                 currentHealth = localPlayerState.health;
                 currentMaxHealth = localPlayerState.maxHealth;
                 currentAP = localPlayerState.actionPoints;
             }
         } else if (gameState.partyId && gameState.partyMemberStates) {
-            const localPlayerState = gameState.partyMemberStates.find(p => p.playerId === Network.socket?.id);
+            localPlayerState = gameState.partyMemberStates.find(p => p.playerId === Network.socket?.id);
             if (localPlayerState) {
                 currentHealth = localPlayerState.health;
                 currentMaxHealth = localPlayerState.maxHealth;
                 currentAP = localPlayerState.actionPoints;
             }
         } else if (gameState.inDuel && gameState.duelState) {
-            const localPlayerState = gameState.duelState.player1.id === Network.socket?.id ? gameState.duelState.player1 : gameState.duelState.player2;
+            localPlayerState = gameState.duelState.player1.id === Network.socket?.id ? gameState.duelState.player1 : gameState.duelState.player2;
             if (localPlayerState) {
                 currentHealth = localPlayerState.health;
                 currentMaxHealth = localPlayerState.maxHealth;
@@ -160,6 +161,7 @@ export function updateDisplay() {
             }
         } else {
             // Fallback for solo or if state isn't synced yet
+            localPlayerState = gameState; // Use gameState as local state for fallback
             currentHealth = gameState.health;
             currentMaxHealth = gameState.maxHealth;
             currentAP = gameState.actionPoints;
