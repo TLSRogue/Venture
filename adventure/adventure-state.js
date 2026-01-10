@@ -4,6 +4,7 @@ import { players, parties, pvpZoneQueues, pvpEncounters } from '../serverState.j
 import { gameData } from '../data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js';
+import { applyDamage } from './combat-core.js';
 import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS } from '../constants.js';
 
 const PVP_ZONES = ['blighted_wastes'];
@@ -669,7 +670,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 ['bleed', 'burn', 'poison', 'entangling roots'].forEach(type => {
                     const debuff = enemy.debuffs.find(d => d.type.toLowerCase() === type);
                     if (debuff) {
-                        enemy.health -= debuff.damage;
+                        applyDamage(enemy, debuff.damage);
                         let typeName = type.charAt(0).toUpperCase() + type.slice(1);
                         let dmgType = debuff.damageType || (type === 'burn' ? 'Fire' : (type === 'poison' ? 'Nature' : 'Physical'));
                         sharedState.log.push({ message: `${enemy.name} takes ${debuff.damage} ${dmgType} damage from ${typeName}.`, type: 'damage' });
@@ -834,7 +835,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     }, REACTION_TIMER_MS);
                     return;
                 } else {
-                    targetPlayerState.health -= damageToDeal;
+                    applyDamage(targetPlayerState, damageToDeal);
                     let attackMessage = `${enemy.name} ${attack.message} It hits ${targetPlayerState.name} for ${damageToDeal} damage! [id:${targetPlayerState.playerId}]`;
                     if (damageToDeal < attack.damage) {
                         attackMessage += ` (${attack.damage - damageToDeal} resisted)`;
@@ -879,7 +880,8 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         const resistance = bonuses.physicalResistance || 0;
                         damageToDeal = Math.max(1, damageToDeal - resistance);
 
-                        targetPlayerState.health -= damageToDeal;
+
+                        applyDamage(targetPlayerState, damageToDeal);
                         let attackMessage = `${enemy.name} hits ${targetPlayerState.name} for ${damageToDeal} damage!`;
                         if (damageToDeal < 3) {
                             attackMessage += ` (${3 - damageToDeal} resisted)`;
@@ -1089,7 +1091,8 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                                     const resistance = bonuses.fireResistance || 0;
                                     const damage = Math.max(1, 4 - resistance);
 
-                                    p.health -= damage;
+
+                                    applyDamage(p, damage);
                                     let msg = `${p.name} takes ${damage} Fire damage!`;
                                     if (damage < 4) msg += ` (${4 - damage} resisted)`;
                                     sharedState.log.push({ message: msg, type: 'damage' });
@@ -1127,7 +1130,8 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         const resistance = bonuses.physicalResistance || 0;
                         const damageToDeal = Math.max(1, 2 - resistance);
 
-                        targetPlayerState.health -= damageToDeal;
+
+                        applyDamage(targetPlayerState, damageToDeal);
                         if (!targetPlayerState.debuffs) targetPlayerState.debuffs = [];
                         targetPlayerState.debuffs.push({ type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' });
 
@@ -1334,7 +1338,7 @@ function applyDoTEffects(playerState, logTarget) {
     ['bleed', 'burn', 'poison', 'entangling roots'].forEach(type => {
         const debuff = playerState.debuffs.find(d => d.type.toLowerCase() === type);
         if (debuff) {
-            playerState.health -= debuff.damage;
+            applyDamage(playerState, debuff.damage);
             let typeName = type.charAt(0).toUpperCase() + type.slice(1);
             let dmgType = debuff.damageType || (type === 'burn' ? 'Fire' : (type === 'poison' ? 'Nature' : 'Physical'));
             logTarget.push({ message: `${playerState.name} takes ${debuff.damage} ${dmgType} damage from ${typeName}.`, type: 'damage' });

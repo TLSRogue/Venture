@@ -39,7 +39,9 @@ export function normalizeTarget(sharedState, targetIndex, encounter) {
             debuffs: playerState.debuffs,
             team: playerState.team,
             // Unified damage application
-            applyDamage: (amount) => { playerState.health -= amount; },
+            applyDamage: (amount) => {
+                applyDamage(playerState, amount);
+            },
             applyDebuff: (debuff) => {
                 const existingIndex = playerState.debuffs.findIndex(d => d.type === debuff.type);
                 if (existingIndex !== -1) playerState.debuffs.splice(existingIndex, 1);
@@ -80,7 +82,9 @@ export function normalizeTarget(sharedState, targetIndex, encounter) {
             debuffs: enemy.debuffs || [],
             team: null,
             cardIndex: targetIndex,
-            applyDamage: (amount) => { enemy.health -= amount; },
+            applyDamage: (amount) => {
+                applyDamage(enemy, amount);
+            },
             applyDebuff: (debuff) => {
                 if (!enemy.debuffs) enemy.debuffs = [];
                 const existingIndex = enemy.debuffs.findIndex(d => d.type === debuff.type);
@@ -399,4 +403,35 @@ export function getLog(sharedState, encounter) {
 export function pushLog(sharedState, encounter, message, type = 'info') {
     const log = getLog(sharedState, encounter);
     log.push({ message, type });
+}
+
+/**
+ * Apply damage to a target state, handling barriers/shields.
+ */
+export function applyDamage(targetState, amount) {
+    if (!targetState) return amount;
+    if (!targetState.buffs) targetState.buffs = [];
+
+    // Handle Magic Barrier
+    const barrierIndex = targetState.buffs.findIndex(b => b.type === 'Magic Barrier');
+    if (barrierIndex !== -1) {
+        const barrier = targetState.buffs[barrierIndex];
+        const absorbed = Math.min(amount, barrier.value || 0);
+
+        // Update barrier value
+        barrier.value = (barrier.value || 0) - absorbed;
+        amount -= absorbed;
+
+        // Remove barrier if depleted
+        if (barrier.value <= 0) {
+            targetState.buffs.splice(barrierIndex, 1);
+        }
+    }
+
+    // Apply remaining damage to health
+    if (amount > 0) {
+        targetState.health -= amount;
+    }
+
+    return amount; // Return remaining damage (if any) or amount applied
 }
