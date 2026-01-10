@@ -5,6 +5,7 @@ import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
 import { checkAndEndTurnForPlayer, defeatEnemyInParty, handleResolveReaction } from './adventure-state.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
+import { applyDamage } from './combat-core.js';
 
 function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlayerState, actionDetails) {
     const defendingPlayerObject = players[defendingPlayerState.name];
@@ -244,7 +245,7 @@ export async function processWeaponAttack(io, party, player, payload) {
         }
 
         // Apply damage
-        target.state.health -= damageToDeal;
+        applyDamage(target.state, damageToDeal);
         logMessage += ` Deals ${damageToDeal} ${weapon.damageType} damage! [id:${target.id}]`;
 
         // Apply debuffs (on-crit or on-hit)
@@ -546,12 +547,26 @@ export async function processCastSpell(io, party, player, payload) {
         }
         else if (spell.type === 'buff') {
             const buffTarget = targetState || actingPlayerState;
-            const buff = spell.buff;
+            const buff = { ...spell.buff };
+
+            // Resolve scaling (e.g. Magic Barrier: value + wisdom)
+            if (buff.scaling) {
+                const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+                const statVal = (character[buff.scaling] || 0) + (bonuses[buff.scaling] || 0);
+                buff.value = (buff.value || 0) + statVal;
+                delete buff.scaling; // Remove scaling so it's a fixed value on the buff
+            }
+
             const existingIndex = buffTarget.buffs.findIndex(b => b.type === buff.type);
             if (existingIndex !== -1) buffTarget.buffs.splice(existingIndex, 1);
-            buffTarget.buffs.push({ ...buff });
+            buffTarget.buffs.push(buff);
             const targetId = isPvP ? buffTarget.playerId : (buffTarget.playerId || buffTarget.id);
-            log.push({ message: `${buffTarget.name} gains ${buff.type}! [id:${targetId}]`, type: 'heal' });
+
+            if (buff.type === 'Magic Barrier') {
+                log.push({ message: `${buffTarget.name} gains Magic Barrier (${buff.value} Shield)! [id:${targetId}]`, type: 'heal' });
+            } else {
+                log.push({ message: `${buffTarget.name} gains ${buff.type}! [id:${targetId}]`, type: 'heal' });
+            }
         }
         else if (spell.type === 'versatile') {
             const effectValue = spell.baseEffect + statValue;
@@ -564,7 +579,7 @@ export async function processCastSpell(io, party, player, payload) {
                     log.push({ message: `Healed ${targetState.name} for ${effectValue} HP. [id:${targetState.playerId}]`, type: 'heal' });
                 } else {
                     // Enemy Target: DAMAGE
-                    targetState.health -= effectValue;
+                    applyDamage(targetState, effectValue);
                     log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${targetState.name} [id:${targetState.playerId}].`, type: 'damage' });
                     if (targetState.health <= 0) {
                         defeatEnemyInParty(io, party, { playerId: targetState.playerId }, null);
@@ -587,7 +602,7 @@ export async function processCastSpell(io, party, player, payload) {
                         return;
                     }
                 }
-                enemyTarget.health -= effectValue;
+                applyDamage(enemyTarget, effectValue);
                 log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${enemyTarget.name} [id:${enemyTarget.id}].`, type: 'damage' });
                 if (enemyTarget.health <= 0) {
                     defeatEnemyInParty(io, party, enemyTarget, parseInt(targetIndex));
@@ -760,7 +775,7 @@ export async function processCastSpell(io, party, player, payload) {
 
                 let hitDescription = '';
                 if (baseDamage > 0) {
-                    target.state.health -= damageToDeal;
+                    applyDamage(target.state, damageToDeal);
                     hitDescription = `Dealt ${damageToDeal} ${spell.damageType || 'Magic'} damage to ${target.name} [id:${target.id}].`;
                     if (damageToDeal < baseDamage) hitDescription += ` (${baseDamage - damageToDeal} resisted)`;
                 }

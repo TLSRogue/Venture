@@ -168,16 +168,38 @@ export function updateDisplay() {
         const hudHealthBar = document.getElementById('hud-health-bar');
         const healthPercentage = (currentHealth / currentMaxHealth) * 100;
         hudHealthBar.style.width = `${healthPercentage}%`;
-        hudHealthBar.textContent = `${Math.round(currentHealth)} / ${currentMaxHealth}`;
+
+        // Shield Logic
+        let currentShield = 0;
+        if (localPlayerState && localPlayerState.buffs) {
+            const barrierBuff = localPlayerState.buffs.find(b => b.type === 'Magic Barrier');
+            if (barrierBuff) currentShield = barrierBuff.value || 0;
+        } else if (gameState.shield) {
+            currentShield = gameState.shield; // Fallback
+        }
+
+        const container = document.querySelector('.hud-health-bar-container');
+        let shieldBar = container.querySelector('.hud-shield-bar');
+        if (!shieldBar) {
+            shieldBar = document.createElement('div');
+            shieldBar.className = 'hud-shield-bar';
+            container.appendChild(shieldBar);
+        }
+
+        if (currentShield > 0) {
+            const shieldPercentage = (currentShield / currentMaxHealth) * 100;
+            shieldBar.style.width = `${shieldPercentage}%`;
+            shieldBar.style.display = 'block';
+            hudHealthBar.textContent = `${Math.round(currentHealth)} / ${currentMaxHealth} (+${currentShield})`;
+        } else {
+            shieldBar.style.display = 'none';
+            hudHealthBar.textContent = `${Math.round(currentHealth)} / ${currentMaxHealth}`;
+        }
+
         document.getElementById('hud-action-points').textContent = currentAP;
 
         const shieldDisplay = document.getElementById('player-shield-display');
-        if (gameState.shield > 0) {
-            shieldDisplay.textContent = `🛡️ ${gameState.shield}`;
-            shieldDisplay.style.display = 'block';
-        } else {
-            shieldDisplay.style.display = 'none';
-        }
+        shieldDisplay.style.display = 'none'; // Hide the old block display
     }
 }
 
