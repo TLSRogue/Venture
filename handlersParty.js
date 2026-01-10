@@ -16,7 +16,7 @@ export const registerPartyHandlers = (io, socket) => {
     const partyId = `PARTY-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
     parties[partyId] = { id: partyId, leaderId: name, members: [name], sharedState: null, isSoloParty: false };
     players[name].character.partyId = partyId;
-    
+
     socket.emit('characterUpdate', players[name].character);
     console.log(`Player ${name} created party ${partyId}`);
     broadcastPartyUpdate(io, partyId);
@@ -30,15 +30,15 @@ export const registerPartyHandlers = (io, socket) => {
     const partyId = inviter?.character?.partyId;
 
     if (!inviter || !inviter.character || !partyId) {
-        return socket.emit('partyError', 'You must be in a party to invite someone.');
+      return socket.emit('partyError', 'You must be in a party to invite someone.');
     }
     if (!target || !target.id) {
-        return socket.emit('partyError', 'The player you are trying to invite is not online.');
+      return socket.emit('partyError', 'The player you are trying to invite is not online.');
     }
     if (target.character.partyId) {
-        return socket.emit('partyError', `${target.character.characterName} is already in a party.`);
+      return socket.emit('partyError', `${target.character.characterName} is already in a party.`);
     }
-    
+
     io.to(target.id).emit('receivePartyInvite', { inviterName: inviter.character.characterName, partyId: partyId });
     console.log(`${inviter.character.characterName} invited ${target.character.characterName} to party ${partyId}`);
   });
@@ -50,10 +50,10 @@ export const registerPartyHandlers = (io, socket) => {
 
     const party = parties[partyId];
     if (!party) {
-        return socket.emit('partyError', 'Party not found.');
+      return socket.emit('partyError', 'Party not found.');
     }
     if (party.members.length >= 3) {
-        return socket.emit('partyError', 'Party is full.');
+      return socket.emit('partyError', 'Party is full.');
     }
 
     party.members.push(name);
@@ -71,36 +71,65 @@ export const registerPartyHandlers = (io, socket) => {
 
     const partyId = players[name].character.partyId;
     if (!partyId) return; // Player isn't in a party.
-    
+
     const party = parties[partyId];
 
     // --- FIX: Handle cases where the party doesn't exist on the server (desync/stuck state) ---
     if (!party) {
-        players[name].character.partyId = null;
-        console.log(`Corrected state for player ${name} who was in a non-existent party.`);
-        socket.emit('characterUpdate', players[name].character);
-        broadcastOnlinePlayers(io);
-        return;
+      players[name].character.partyId = null;
+      console.log(`Corrected state for player ${name} who was in a non-existent party.`);
+      socket.emit('characterUpdate', players[name].character);
+      broadcastOnlinePlayers(io);
+      return;
     }
-    
+
+    // --- ADVENTURE STATE CLEANUP ---
+    if (party.sharedState && party.sharedState.partyMemberStates) {
+      const memberIndex = party.sharedState.partyMemberStates.findIndex(p => p.name === name);
+      if (memberIndex !== -1) {
+        // Remove from adventure state
+        party.sharedState.partyMemberStates.splice(memberIndex, 1);
+        party.sharedState.log.push({ message: `${name} has left the party (and the adventure).`, type: 'info' });
+
+        // If adventure is now empty, end it
+        if (party.sharedState.partyMemberStates.length === 0) {
+          party.sharedState = null;
+          console.log(`Adventure ended for party ${partyId} (empty).`);
+        } else {
+          // Check if it was their turn?
+          // Simple failsafe: Just broadcast update. If turn logic gets stuck,
+          // the 'Force End Turn' or simply next action will fix it.
+          // Ideally call checkAndEndTurnForPlayer but we don't have easy access to that import here without circular dep issues potentially.
+          // We will rely on the fact that removing them from the array shifts the turn order or 
+          // requires the next player to act.
+          broadcastAdventureUpdate(io, party);
+        }
+      }
+    }
+
     // --- Original logic for leaving a valid party ---
     party.members = party.members.filter(memberName => memberName !== name);
     players[name].character.partyId = null;
-    
+
     socket.emit('characterUpdate', players[name].character);
     console.log(`Player ${name} left party ${partyId}`);
 
     if (party.members.length === 0) {
-        delete parties[partyId];
-        console.log(`Party ${partyId} disbanded.`);
+      delete parties[partyId];
+      console.log(`Party ${partyId} disbanded.`);
     } else {
-        if (party.leaderId === name) {
-            party.leaderId = party.members[0];
-            console.log(`New leader for party ${partyId} is ${party.leaderId}`);
+      if (party.leaderId === name) {
+        party.leaderId = party.members[0];
+        console.log(`New leader for party ${partyId} is ${party.leaderId}`);
+        // Notify new leader
+        const newLeader = players[party.leaderId];
+        if (newLeader) {
+          io.to(newLeader.id).emit('partyUpdate', { isPartyLeader: true }); // Partial update to trigger UI
         }
-        broadcastPartyUpdate(io, partyId);
+      }
+      broadcastPartyUpdate(io, partyId);
     }
-    
+
     broadcastOnlinePlayers(io);
   });
 };

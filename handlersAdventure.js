@@ -295,8 +295,10 @@ export const registerAdventureHandlers = (io, socket) => {
             if (party.sharedState.pendingReaction && action.type !== 'returnHome' && action.type !== 'surrender' && action.type !== 'resolvePvpFlee') return;
 
             if (action.type === 'returnHome' || action.type === 'ventureDeeper') {
-                // Allow action if player is leader OR if it's a solo party (failsafe)
-                if (name === party.leaderId || (party.isSoloParty && party.members.includes(name))) {
+                // Allow action if player is leader, OR if it's a solo party, OR JUST ALLOW ANYONE TO DO IT TO PREVENT STUCK STATES
+                // Decision: Allow any party member to proceed/return. This prevents hostage holding.
+                // if (name === party.leaderId || (party.isSoloParty && party.members.includes(name))) {
+                if (party.members.includes(name)) {
                     if (action.type === 'returnHome') await state.processEndAdventure(io, player, party);
                     if (action.type === 'ventureDeeper') await state.processVentureDeeper(io, player, party);
                 }
