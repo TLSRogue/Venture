@@ -65,6 +65,54 @@ export function normalizeTarget(sharedState, targetIndex, encounter) {
             }
         };
     } else {
+        // PvE
+        // Check for Party Member (pX)
+        if (typeof targetIndex === 'string' && targetIndex.startsWith('p')) {
+            const idx = parseInt(targetIndex.substring(1));
+            const memberState = sharedState.partyMemberStates[idx];
+
+            if (memberState) {
+                return {
+                    isPvP: false,
+                    isPlayer: true,
+                    id: memberState.playerId,
+                    name: memberState.name,
+                    state: memberState,
+                    character: null, // character data not always readily available in sharedState without lookup, but usually not needed for target reception
+                    health: memberState.health,
+                    maxHealth: memberState.maxHealth,
+                    buffs: memberState.buffs,
+                    debuffs: memberState.debuffs,
+                    team: null,
+                    applyDamage: (amount) => {
+                        memberState.health = Math.max(0, memberState.health - amount);
+                    },
+                    applyDebuff: (debuff) => {
+                        const existingIndex = memberState.debuffs.findIndex(d => d.type === debuff.type);
+                        if (existingIndex !== -1) memberState.debuffs.splice(existingIndex, 1);
+                        memberState.debuffs.push({ ...debuff });
+                    },
+                    applyBuff: (buff) => {
+                        const existingIndex = memberState.buffs.findIndex(b => b.type === buff.type);
+                        if (existingIndex !== -1) memberState.buffs.splice(existingIndex, 1);
+                        memberState.buffs.push({ ...buff });
+                    },
+                    heal: (amount) => {
+                        memberState.health = Math.min(memberState.maxHealth, memberState.health + amount);
+                    },
+                    isDead: () => memberState.health <= 0 || memberState.isDead,
+                    getResistance: (damageType) => {
+                        // PvE players might have resistance buffs
+                        if (damageType === 'Physical') {
+                            const buff = memberState.buffs?.find(b => b.bonus?.physicalResistance);
+                            return buff ? buff.bonus.physicalResistance : 0;
+                        }
+                        return 0;
+                    }
+                };
+            }
+        }
+
         // PvE: target is an enemy card
         const enemy = sharedState.zoneCards[targetIndex];
         if (!enemy || enemy.type !== 'enemy') return null;

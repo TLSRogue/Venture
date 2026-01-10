@@ -462,73 +462,129 @@ export async function processCastSpell(io, party, player, payload) {
             targets.push(target);
         }
 
-        // Process Targets
-        targets.forEach(t => {
-            if (t.isDead()) return;
+        // Deduplicate targets
+        const uniqueTargets = [...new Map(targets.map(t => [t.id, t])).values()];
 
-            let baseDamage = 0;
-            let isHeal = false;
+        // --- UNIFIED: Calculate and apply damage to each target ---
+        uniqueTargets.forEach(target => {
+            if (target.state.health <= 0) return;
 
-            // Versatile Logic
-            if (spell.type === 'versatile') {
-                const effectVal = spell.baseEffect + attackResult.modifiers.statValue;
-                if ((isPvP && t.team === actingPlayerState.team) || (!isPvP && t.isPlayer)) {
-                    // Heal Friendly
-                    t.heal(effectVal);
-                    log.push({ message: `Healed ${t.name} for ${effectVal} HP.`, type: 'heal' });
-                    isHeal = true;
-                } else {
-                    baseDamage = effectVal;
+            let baseDamage = spell.damage || 0;
+
+            // Special spell damage calculations
+            if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
+                const mainHand = character.equipment.mainHand;
+                const offHand = character.equipment.offHand;
+                let highestFireWeaponDamage = 0;
+                if (mainHand?.weaponDamage && mainHand.damageType === 'Fire') {
+                    highestFireWeaponDamage = mainHand.weaponDamage;
                 }
-            } else {
-                // Attack Logic
-                const specialStart = getSpecialSpellDamage(spell, character, actingPlayerState);
-                baseDamage = specialStart !== null ? specialStart : (spell.damage || 0);
-
-                // Cone of Cold check
-                if (spell.name === 'Cone of Cold' && attackResult.total < (spell.hit || 10)) {
+                if (offHand?.weaponDamage && offHand.damageType === 'Fire' && offHand !== mainHand) {
+                    highestFireWeaponDamage = Math.max(highestFireWeaponDamage, offHand.weaponDamage);
+                }
+                baseDamage = 1 + highestFireWeaponDamage;
+            }
+            else if (spell.name === 'Cone of Cold') {
+                if (attackResult.total >= (spell.hit || 10)) {
+                    baseDamage = (spell.damage || 0) + attackResult.modifiers.statValue;
+                } else {
                     baseDamage = 0;
                 }
             }
-
-            if (!isHeal && baseDamage > 0) {
-                const res = t.getResistance(spell.damageType || 'Magic');
-                const finalDmg = Math.max(1, baseDamage - res);
-
-                // Vexor check
-                if (t.name === 'Vexor, Lord of the Arena') {
-                    const columns = sharedState.zoneCards.filter(c => c && c.name === 'Stone Column');
-                    if (columns.length > 0 && Math.floor(Math.random() * 20) + 1 >= 10) {
-                        log.push({ message: `Vexor, Lord of the Arena's Dodge: Jumps behind a Stone Column! Avoided!`, type: 'reaction' });
-                        log.push({ message: `(Tip: Destroy the Stone Columns!)`, type: 'info' });
-                        return;
+            else if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
+                const mainHand = character.equipment.mainHand;
+                if (mainHand?.weaponDamage && spell.requires?.weaponType?.includes(mainHand.weaponType)) {
+                    baseDamage = mainHand.weaponDamage;
+                }
+            }
+            else if (spell.name === 'Ambush') {
+                let totalDaggerDamage = 0;
+                ['mainHand', 'offHand'].forEach(hand => {
+                    const weapon = character.equipment[hand];
+                    if (weapon?.weaponType === 'Dagger') {
+                        totalDaggerDamage += weapon.weaponDamage || 0;
                     }
+                });
+                baseDamage = totalDaggerDamage;
+                if (!spell.debuff) {
+                    spell.debuff = { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' };
                 }
-
-                t.applyDamage(finalDmg);
-                let msg = `Dealt ${finalDmg} ${spell.damageType || 'Magic'} damage to ${t.name} [id:${t.id}].`;
-                if (finalDmg < baseDamage) msg += ` (${baseDamage - finalDmg} resisted)`;
-                log.push({ message: msg, type: 'damage' });
-
-                // Apply Debuff
-                if (spell.debuff) {
-                    let d = { ...spell.debuff };
-                    if (d.scaling === 'wisdom') {
-                        const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
-                        const wis = (character.wisdom || 0) + (bonuses.wisdom || 0);
-                        d.damage = Math.max(1, (d.baseDamage || 0) + wis);
-                    }
-                    t.applyDebuff(d);
+            }
+            else if (spell.name === 'Punch' || spell.name === 'Kick') {
+                const hasMonkTraining = character.equippedSpells.some(s => s.name === "Monk's Training");
+                const isUnarmed = !character.equipment.mainHand && !character.equipment.offHand;
+                if (hasMonkTraining && isUnarmed) {
+                    baseDamage += 1;
                 }
+            }
+            else if (spell.name === 'Crushing Blow' || spell.name === 'Dagger Throw') {
+                baseDamage = (character.equipment.mainHand?.weaponDamage || 0) + (spell.damageBonus || 0);
+            }
 
-                // On-Hit Debuff from Spell (if any? e.g. consumables)
-                if (spell.onHit?.debuff && total >= (spell.onHit.threshold || hitTarget)) {
-                    t.applyDebuff(spell.onHit.debuff);
+            // Apply resistance
+            const resistance = target.getResistance(spell.damageType);
+            const damageToDeal = baseDamage > 0 ? Math.max(1, baseDamage - resistance) : 0;
+
+            // --- VEXOR DODGE ---
+            if (target.name === 'Vexor, Lord of the Arena') {
+                const columns = sharedState.zoneCards.filter(c => c && c.name === 'Stone Column');
+                if (columns.length > 0 && Math.floor(Math.random() * 20) + 1 >= 10) {
+                    log.push({ message: `Vexor, Lord of the Arena's Dodge: Jumps behind a Stone Column! Avoided!`, type: 'reaction' });
+                    log.push({ message: `(Tip: Destroy the Stone Columns!)`, type: 'info' });
+                    return;
                 }
+            }
 
-                if (t.isDead()) {
-                    if (t.isPvP) defeatEnemyInParty(io, party, { playerId: t.id }, null);
-                    else defeatEnemyInParty(io, party, t.state, t.cardIndex);
+            let hitDescription = '';
+            if (baseDamage > 0) {
+                applyDamage(target.state, damageToDeal);
+                hitDescription = `Dealt ${damageToDeal} ${spell.damageType || 'Magic'} damage to ${target.name} [id:${target.id}].`;
+                if (damageToDeal < baseDamage) hitDescription += ` (${baseDamage - damageToDeal} resisted)`;
+            }
+
+            // Apply debuffs
+            if (spell.debuff) {
+                if (!target.state.debuffs) target.state.debuffs = [];
+                const existingIndex = target.state.debuffs.findIndex(d => d.type.toLowerCase() === spell.debuff.type.toLowerCase());
+                if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
+                let debuffToApply = { ...spell.debuff };
+                if (spell.debuff.scaling === 'wisdom') {
+                    const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+                    const wis = (character.wisdom || 0) + (bonuses.wisdom || 0);
+                    debuffToApply.damage = Math.max(1, (spell.debuff.baseDamage || 0) + wis);
+                }
+                target.state.debuffs.push(debuffToApply);
+                hitDescription += ` ${target.name} is now ${spell.debuff.type}!`;
+            }
+
+            if (spell.onHit?.debuff && attackResult.total >= (spell.onHit.threshold || spell.hit)) { // Fixed 'total' and 'hitTarget' reference
+                if (!target.state.debuffs) target.state.debuffs = [];
+                const existingIndex = target.state.debuffs.findIndex(d => d.type === spell.onHit.debuff.type);
+                if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
+                target.state.debuffs.push({ ...spell.onHit.debuff });
+                hitDescription += ` ${target.name} is now ${spell.onHit.debuff.type}!`;
+            }
+
+            log.push({ message: hitDescription.trim(), type: 'damage' });
+
+            // Monk Focus Gain
+            if ((spell.name === 'Punch' || spell.name === 'Kick')) {
+                const hasMonkTraining = character.equippedSpells.some(s => s.name === "Monk's Training");
+                const isUnarmed = !character.equipment.mainHand && !character.equipment.offHand;
+                // Ensure focus is initialized
+                actingPlayerState.focus = actingPlayerState.focus || 0;
+                if (hasMonkTraining && isUnarmed && actingPlayerState.focus < 3) {
+                    actingPlayerState.focus += 1;
+                    log.push({ message: `${character.characterName} gains 1 Focus.`, type: 'heal' });
+                }
+            }
+
+            // Check for death
+            if (target.state.health <= 0) {
+                if (target.isPvP) {
+                    defeatEnemyInParty(io, party, { playerId: target.id }, null);
+                } else {
+                    defeatEnemyInParty(io, party, target.state, target.index);
                 }
             }
         });
