@@ -458,8 +458,8 @@ body {
 
 /* Buffs and Debuffs - positioned at bottom inside card */
 .player-card-effects {
-    position: absolute;
-    bottom: 5px;
+    position: absolute !important;
+    bottom: 0 !important;
     left: 0;
     width: 100%;
     display: flex;

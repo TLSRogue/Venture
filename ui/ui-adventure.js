@@ -553,7 +553,7 @@ function createEffectsContainer(stateObject) {
 
             buffSpan.className = 'player-card-effect buff';
             buffSpan.textContent = def.icon;
-            buffSpan.addEventListener('mouseover', () => showTooltip(`<strong>${buff.type}</strong><br>${def.description}<br>Turns Remaining: ${buff.duration}`));
+            buffSpan.addEventListener('mouseover', () => showTooltip(`${def.icon} <strong>${buff.type}</strong><br>${def.description}<br>Turns Remaining: ${buff.duration}`));
             buffSpan.addEventListener('mouseout', () => hideTooltip());
             effectsContainer.appendChild(buffSpan);
         });
@@ -567,7 +567,7 @@ function createEffectsContainer(stateObject) {
 
             debuffSpan.className = 'player-card-effect debuff';
             debuffSpan.textContent = def.icon;
-            debuffSpan.addEventListener('mouseover', () => showTooltip(`<strong>${debuff.type}</strong><br>${def.description}<br>Turns Remaining: ${debuff.duration}`));
+            debuffSpan.addEventListener('mouseover', () => showTooltip(`${def.icon} <strong>${debuff.type}</strong><br>${def.description}<br>Turns Remaining: ${debuff.duration}`));
             debuffSpan.addEventListener('mouseout', () => hideTooltip());
             effectsContainer.appendChild(debuffSpan);
         });
