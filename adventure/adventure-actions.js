@@ -603,7 +603,7 @@ export async function processCastSpell(io, party, player, payload) {
                 if (target.isPvP) {
                     defeatEnemyInParty(io, party, { playerId: target.id }, null);
                 } else {
-                    defeatEnemyInParty(io, party, target.state, target.index);
+                    defeatEnemyInParty(io, party, target.state, target.cardIndex);
                 }
             }
         });

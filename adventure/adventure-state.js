@@ -37,6 +37,28 @@ export function handlePvpPlayerDeath(io, defeatedPlayer, encounter) {
     encounter.log.push({ message: `${character.characterName} has been slain and dropped all of their items!`, type: 'damage' });
 }
 
+function checkPvpWinCondition(io, encounter, defeatedPlayerState) {
+    const opponentTeam = defeatedPlayerState.team === 'A' ? 'B' : 'A';
+    const teammates = encounter.playerStates.filter(p => p.team === defeatedPlayerState.team);
+    const allTeammatesDead = teammates.every(p => p.isDead);
+
+    if (allTeammatesDead) {
+        encounter.log.push({ message: "All opponents have been defeated! You are victorious!", type: 'success' });
+        const winningParty = (opponentTeam === 'A') ? parties[encounter.partyAId] : parties[encounter.partyBId];
+        const losingParty = (opponentTeam === 'A') ? parties[encounter.partyBId] : parties[encounter.partyAId];
+
+        // Safety check if parties exist (they might have disconnected)
+        if (winningParty && losingParty) {
+            endPvpEncounter(io, winningParty, losingParty);
+        } else {
+            // Fallback cleanup if a party is missing
+            delete pvpEncounters[encounter.id];
+        }
+        return true;
+    }
+    return false;
+}
+
 function endPvpEncounter(io, winningParty, losingParty) {
     const encounterId = winningParty.sharedState.pvpEncounterId;
     const encounter = pvpEncounters[encounterId];
@@ -375,15 +397,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
             if (defeatedPlayerObject) {
                 handlePvpPlayerDeath(io, defeatedPlayerObject, encounter);
             }
-        }
-        const opponentTeam = defeatedPlayerState.team === 'A' ? 'B' : 'A';
-        const opponents = encounter.playerStates.filter(p => p.team === defeatedPlayerState.team);
-        const allOpponentsDead = opponents.every(p => p.isDead);
-        if (allOpponentsDead) {
-            encounter.log.push({ message: "All opponents have been defeated! You are victorious!", type: 'success' });
-            const winningParty = (opponentTeam === 'A') ? parties[encounter.partyAId] : parties[encounter.partyBId];
-            const losingParty = (opponentTeam === 'A') ? parties[encounter.partyBId] : parties[encounter.partyAId];
-            endPvpEncounter(io, winningParty, losingParty);
+            checkPvpWinCondition(io, encounter, defeatedPlayerState);
         }
         return;
     }
@@ -1359,6 +1373,12 @@ export async function processPvpPlayerEndTurn(io, encounter, playerState) {
         playerState.health = 0;
         playerState.isDead = true;
         encounter.log.push({ message: `${playerState.name} has succumbed to their wounds!`, type: 'damage' });
+
+        const defeatedPlayerObject = players[playerState.name];
+        if (defeatedPlayerObject) {
+            handlePvpPlayerDeath(io, defeatedPlayerObject, encounter);
+        }
+        checkPvpWinCondition(io, encounter, playerState);
     }
 
     // Decrement Durations
