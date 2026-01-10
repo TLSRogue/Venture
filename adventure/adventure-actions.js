@@ -459,6 +459,7 @@ export async function processCastSpell(io, party, player, payload) {
     }
     else if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile') {
         // Collect Targets
+        // Collect Targets
         let targets = [];
         if (spell.aoeTargeting === 'all' && !isPvP) {
             sharedState.zoneCards.forEach((c, i) => {
@@ -472,7 +473,21 @@ export async function processCastSpell(io, party, player, payload) {
                 if (adj) targets.push(adj);
             });
         } else if (target) {
-            targets.push(target);
+            if ((target.isPlayer) || (target.state && target.state.type === 'enemy')) {
+                targets.push(target);
+            } else {
+                if (target.state && target.state.type !== 'enemy') {
+                    log.push({ message: "Invalid target!", type: 'info' });
+                    broadcastAdventureUpdate(io, party);
+                    await checkAndEndTurnForPlayer(io, party, player);
+                    return;
+                }
+            }
+        } else {
+            log.push({ message: "Invalid target!", type: 'info' });
+            broadcastAdventureUpdate(io, party);
+            await checkAndEndTurnForPlayer(io, party, player);
+            return;
         }
 
         // Deduplicate targets
