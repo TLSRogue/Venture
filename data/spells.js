@@ -215,7 +215,7 @@ export const allSpells = [
         type: "buff",
         stat: "wisdom",
         hit: 10,
-        buff: { type: 'Magic Barrier', duration: 4, value: 1, scaling: 'wisdom' },
+        buff: { type: 'Magic Barrier', duration: 4, shield: 'wisdom' },
         icon: "💠",
         rarity: "uncommon",
     },
