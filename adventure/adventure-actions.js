@@ -549,12 +549,21 @@ export async function processCastSpell(io, party, player, payload) {
             const buffTarget = targetState || actingPlayerState;
             const buff = { ...spell.buff };
 
-            // Resolve scaling (e.g. Magic Barrier: value + wisdom)
-            if (buff.scaling) {
+            // Resolve scaling logic (Safe for old and new data)
+            // New format: { type, duration, value, scaling: 'stat' }
+            // Old format: { type, duration, shield: 'stat' }
+            const scalingStat = buff.scaling || buff.shield;
+
+            if (scalingStat) {
                 const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
-                const statVal = (character[buff.scaling] || 0) + (bonuses[buff.scaling] || 0);
+                const statVal = (character[scalingStat] || 0) + (bonuses[scalingStat] || 0);
                 buff.value = (buff.value || 0) + statVal;
-                delete buff.scaling; // Remove scaling so it's a fixed value on the buff
+
+                // Cleanup definition properties
+                if (buff.scaling) delete buff.scaling;
+                if (buff.shield) delete buff.shield;
+            } else if (buff.value === undefined) {
+                buff.value = 0; // Default if completely missing
             }
 
             const existingIndex = buffTarget.buffs.findIndex(b => b.type === buff.type);
