@@ -369,9 +369,6 @@ export async function processCastSpell(io, party, player, payload) {
         // Ensure focus is initialized
         if (actingPlayerState.focus === undefined) actingPlayerState.focus = 0;
 
-        // Debug Log (Temporary)
-        // log.push({ message: `[Debug] Monk:${hasMonkTraining} Unarmed:${isUnarmed} Focus:${actingPlayerState.focus}`, type: 'info' });
-
         if (hasMonkTraining && isUnarmed && actingPlayerState.focus < 3) {
             actingPlayerState.focus += 1;
             log.push({ message: `${character.characterName} gains 1 Focus.`, type: 'heal' });
