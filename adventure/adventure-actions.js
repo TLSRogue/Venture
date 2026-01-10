@@ -359,11 +359,18 @@ export async function processCastSpell(io, party, player, payload) {
     // --- Spell Effect Resolution ---
 
     // Monk Focus Gain (Pre-Reaction)
+    // Monk Focus Gain (Pre-Reaction)
     if ((spell.name === 'Punch' || spell.name === 'Kick')) {
         const hasMonkTraining = character.equippedSpells.some(s => s.name === "Monk's Training");
-        const isUnarmed = !character.equipment.mainHand && !character.equipment.offHand;
+        const mainHand = character.equipment.mainHand;
+        const offHand = character.equipment.offHand;
+        const isUnarmed = (!mainHand || !mainHand.name) && (!offHand || !offHand.name);
+
         // Ensure focus is initialized
         if (actingPlayerState.focus === undefined) actingPlayerState.focus = 0;
+
+        // Debug Log (Temporary)
+        // log.push({ message: `[Debug] Monk:${hasMonkTraining} Unarmed:${isUnarmed} Focus:${actingPlayerState.focus}`, type: 'info' });
 
         if (hasMonkTraining && isUnarmed && actingPlayerState.focus < 3) {
             actingPlayerState.focus += 1;
@@ -611,8 +618,6 @@ export async function processCastSpell(io, party, player, payload) {
                 target.state.debuffs.push({ ...spell.onHit.debuff });
                 hitDescription += ` ${target.name} is now ${spell.onHit.debuff.type}!`;
             }
-
-            log.push({ message: hitDescription.trim(), type: 'damage' });
 
             log.push({ message: hitDescription.trim(), type: 'damage' });
 
