@@ -1,9 +1,7 @@
 // adventure/adventure-state.js
 
-import { socket } from '../network.js';
-import { players, parties, pvpEncounters } from '../serverState.js';
+import { players, parties, pvpZoneQueues, pvpEncounters } from '../serverState.js';
 import { gameData } from '../data/index.js';
-import { handlePvpPlayerDeath, applyDamage } from './adventure-actions.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js';
 import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS } from '../constants.js';

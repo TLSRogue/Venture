@@ -27,35 +27,18 @@ const effectDefinitions = {
 };
 
 /**
- * Creates health bar HTML for cards, with optional threat and shield bars.
+ * Creates health bar HTML for cards, with optional threat bar for players.
  * @param {number} health - Current health
  * @param {number} maxHealth - Maximum health
- * @param {number|null} threat - Threat value 
- * @param {number} shield - Shield value
+ * @param {number|null} threat - Threat value (only for players in PvE, null otherwise)
  * @returns {string} HTML string for the bar
  */
-function createHealthBarHTML(health, maxHealth, threat = null, shield = 0) {
+function createHealthBarHTML(health, maxHealth, threat = null) {
     const healthPercent = Math.max(0, Math.min(100, (health / maxHealth) * 100));
-    let shieldHtml = '';
-
-    // Shield Overlay
-    if (shield > 0) {
-        // Calculate shield width relative to max health for visual proportion, capped at 100% or managed via separate bar
-        // Let's implement it as an overlay on the health bar or a separate blue bar on top? 
-        // Request was "display the amount of HP it has left to absorb over the players HP bar"
-        // Interpretation: A secondary bar or overlay. Let's try an overlay style.
-        const shieldPercent = Math.min(100, (shield / maxHealth) * 100);
-        shieldHtml = `<div class="card-shield-bar" style="width: ${shieldPercent}%"></div>`;
-    }
-
     let html = `
         <div class="card-bars-container">
             <div class="card-health-bar-container">
-                <div class="card-health-bar" style="width: ${healthPercent}%">
-                    ${health}/${maxHealth}
-                    ${shield > 0 ? `<span class="shield-text">(${shield})</span>` : ''}
-                </div>
-                ${shieldHtml}
+                <div class="card-health-bar" style="width: ${healthPercent}%">${health}/${maxHealth}</div>
             </div>`;
 
     if (threat !== null) {
@@ -70,7 +53,6 @@ function createHealthBarHTML(health, maxHealth, threat = null, shield = 0) {
     html += `</div>`;
     return html;
 }
-
 
 function addActionTooltipListener(element, itemOrSpell) {
     element.addEventListener('mousemove', (e) => {
@@ -332,15 +314,6 @@ function renderPvpScreen() {
                 cardEl.classList.add('active-turn');
             }
 
-            let totalShield = 0;
-            if (playerState.buffs) {
-                totalShield = playerState.buffs.reduce((acc, b) => acc + (b.currentShield || 0), 0);
-            }
-
-            if (totalShield > 0) {
-                cardEl.classList.add('shielded');
-            }
-
             let visualHTML;
             if (playerState.icon && playerState.icon.includes('/')) {
                 visualHTML = `<img src="${playerState.icon}" class="card-image" style="border-radius: 4px;">`;
@@ -351,7 +324,7 @@ function renderPvpScreen() {
             cardEl.innerHTML = `
                 <div class="card-title">${playerState.name}</div>
                 ${visualHTML}
-                ${createHealthBarHTML(playerState.health, playerState.maxHealth, null, totalShield)}
+                ${createHealthBarHTML(playerState.health, playerState.maxHealth)}
             `;
             cardEl.appendChild(createEffectsContainer(playerState));
         }
@@ -393,15 +366,6 @@ function renderPartyScreen() {
                 cardEl.style.opacity = '0.6';
             }
 
-            let totalShield = 0;
-            if (playerState.buffs) {
-                totalShield = playerState.buffs.reduce((acc, b) => acc + (b.currentShield || 0), 0);
-            }
-
-            if (totalShield > 0) {
-                cardEl.classList.add('shielded');
-            }
-
             let visualHTML;
             if (playerState.icon && playerState.icon.includes('/')) {
                 visualHTML = `<img src="${playerState.icon}" class="card-image" style="border-radius: 4px;">`;
@@ -412,7 +376,7 @@ function renderPartyScreen() {
             cardEl.innerHTML = `
                 <div class="card-title">${playerState.name}</div>
                 ${visualHTML}
-                ${createHealthBarHTML(playerState.health, playerState.maxHealth, playerState.threat, totalShield)}
+                ${createHealthBarHTML(playerState.health, playerState.maxHealth, playerState.threat)}
             `;
             cardEl.appendChild(createEffectsContainer(playerState));
         }

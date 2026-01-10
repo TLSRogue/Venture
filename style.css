@@ -519,50 +519,6 @@ body {
     border-radius: 6px;
     padding: 2px;
     border: 1px solid #c0392b;
-    position: relative;
-    /* For shield overlay positioning */
-}
-
-/* Shield Bar Overlay */
-.card-shield-bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    background: rgba(52, 152, 219, 0.6);
-    /* Semi-transparent blue */
-    border-radius: 4px;
-    z-index: 1;
-    transition: width 0.3s ease-out;
-    pointer-events: none;
-    border: 1px solid #2980b9;
-}
-
-.shield-text {
-    color: #3498db;
-    text-shadow: 1px 1px 1px black;
-    margin-left: 4px;
-    font-size: 0.9em;
-    position: relative;
-    z-index: 2;
-    /* Ensure text is above shield bar */
-}
-
-/* Shield Glow for Card */
-.card.shielded {
-    box-shadow: 0 0 15px 5px rgba(142, 68, 173, 0.6);
-    border-color: #9b59b6;
-    animation: shieldPulse 2s infinite alternate;
-}
-
-@keyframes shieldPulse {
-    from {
-        box-shadow: 0 0 10px 2px rgba(142, 68, 173, 0.4);
-    }
-
-    to {
-        box-shadow: 0 0 20px 8px rgba(142, 68, 173, 0.7);
-    }
 }
 
 .card-health-bar {

@@ -546,20 +546,10 @@ export async function processCastSpell(io, party, player, payload) {
         }
         else if (spell.type === 'buff') {
             const buffTarget = targetState || actingPlayerState;
-            const buff = { ...spell.buff };
-
-            // --- SHIELD INITIALIZATION ---
-            if (buff.shield) {
-                const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
-                // Magic Barrier logic: Wis + 1
-                const statVal = (character[buff.shield] || 0) + (bonuses[buff.shield] || 0);
-                buff.currentShield = statVal + 1;
-                log.push({ message: `${buffTarget.name} gains a shield of ${buff.currentShield} points!`, type: 'heal' });
-            }
-
+            const buff = spell.buff;
             const existingIndex = buffTarget.buffs.findIndex(b => b.type === buff.type);
             if (existingIndex !== -1) buffTarget.buffs.splice(existingIndex, 1);
-            buffTarget.buffs.push(buff);
+            buffTarget.buffs.push({ ...buff });
             const targetId = isPvP ? buffTarget.playerId : (buffTarget.playerId || buffTarget.id);
             log.push({ message: `${buffTarget.name} gains ${buff.type}! [id:${targetId}]`, type: 'heal' });
         }
@@ -574,15 +564,7 @@ export async function processCastSpell(io, party, player, payload) {
                     log.push({ message: `Healed ${targetState.name} for ${effectValue} HP. [id:${targetState.playerId}]`, type: 'heal' });
                 } else {
                     // Enemy Target: DAMAGE
-                    // targetState.health -= effectValue; 
-                    // Use applyDamage
-                    const targetWrapper = { state: targetState, name: targetState.name }; // Mock wrapper if needed or just pass state if we tweak helper
-                    // The helper expects { state: { health, buffs... }, name... }
-                    // targetState itself has health/buffs. So we can wrap it.
-                    // Actually, applyDamage takes (party, target, ...) where target has .state
-                    const tWrapper = { state: targetState, name: targetState.name };
-                    applyDamage(party, tWrapper, effectValue, log, io);
-
+                    targetState.health -= effectValue;
                     log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${targetState.name} [id:${targetState.playerId}].`, type: 'damage' });
                     if (targetState.health <= 0) {
                         defeatEnemyInParty(io, party, { playerId: targetState.playerId }, null);
@@ -777,20 +759,8 @@ export async function processCastSpell(io, party, player, payload) {
                 }
 
                 let hitDescription = '';
-                // Use applyDamage helper for logic, but we construct the string for the main log line first
-                // Actually, let's let applyDamage handle the "effective" damage log or we log the "hit" and then apply damage.
-
-                // We need to calculate damage AFTER resistance but BEFORE shield for the initial "Dealt X damage" message?
-                // Standard RPG: "Hit for 10 damage (5 absorbed)"
-
                 if (baseDamage > 0) {
-                    // Refactoring to use applyDamage
-                    // We need to pass the target wrapper to applyDamage which expects { state: ..., name: ... }
-                    // Our 'target' variable here is exactly that wrapper from the targets.push() earlier.
-
-                    // Note: applyDamage modifies state directly.
-                    applyDamage(party, target, damageToDeal, log, io);
-
+                    target.state.health -= damageToDeal;
                     hitDescription = `Dealt ${damageToDeal} ${spell.damageType || 'Magic'} damage to ${target.name} [id:${target.id}].`;
                     if (damageToDeal < baseDamage) hitDescription += ` (${baseDamage - damageToDeal} resisted)`;
                 }
@@ -842,16 +812,9 @@ export async function processCastSpell(io, party, player, payload) {
         }
     }
 
-    // --- BUFF APPLICATION: Initialize Shield ---
-    if (spell.type === 'buff') {
-        // ... (existing helper logic needs to be updated relative to where we are in the file)
-        // We need to intercept the 'buff' block in the main function body
-    }
-
     broadcastAdventureUpdate(io, party);
     await checkAndEndTurnForPlayer(io, party, player);
 }
-
 
 export async function processEquipItem(io, party, player, payload) {
     const { inventoryIndex } = payload;
