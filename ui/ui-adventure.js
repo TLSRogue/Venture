@@ -279,6 +279,92 @@ function buildPlayerInspectTooltip(playerData) {
     return tooltip;
 }
 
+function createEntityCard(state, options = {}) {
+    const {
+        isAlly = true,
+        isLocalPlayer = false,
+        isActiveTurn = false,
+        isDuelOpponent = false,
+        showLootButton = false
+    } = options;
+
+    const cardEl = document.createElement('div');
+    // Base classes
+    const classes = ['card', 'player'];
+    if (!isAlly) classes.push('enemy');
+    if (isLocalPlayer) classes.push('is-local-player');
+    if (isActiveTurn) classes.push('active-turn');
+    cardEl.className = classes.join(' ');
+
+    // Dataset attributes
+    if (state.playerId) cardEl.dataset.playerId = state.playerId;
+    if (state.id) cardEl.dataset.id = state.id;
+    if (options.dataset) {
+        Object.entries(options.dataset).forEach(([key, value]) => {
+            cardEl.dataset[key] = value;
+        });
+    }
+
+    // Dead state
+    if (state.isDead) {
+        cardEl.classList.add('dead');
+        let deadContent = `
+            <div class="card-icon">💀</div>
+            <div class="card-title">${state.name}</div>
+            <div>DEFEATED</div>
+        `;
+        if (showLootButton && state.lootableInventory && state.lootableInventory.length > 0) {
+            deadContent += `<button class="btn btn-sm" data-action="lootPlayer">Loot Bag (${state.lootableInventory.length})</button>`;
+        }
+        cardEl.innerHTML = deadContent;
+        return cardEl;
+    }
+
+    // Tooltip listeners
+    cardEl.addEventListener('mousemove', (e) => {
+        if (e.altKey) showTooltip(buildPlayerInspectTooltip(state));
+    });
+    cardEl.addEventListener('mouseleave', hideTooltip);
+
+    // Visual Icon/Image
+    let visualHTML;
+    if (state.icon && state.icon.includes('/')) {
+        visualHTML = `<img src="${state.icon}" class="card-image" style="border-radius: 4px;">`;
+    } else {
+        visualHTML = `<div class="card-icon">${state.icon || '👤'}</div>`;
+    }
+
+    // Shield/Barrier calculation
+    let shield = 0;
+    if (state.buffs) {
+        const b = state.buffs.find(bu => bu.type === 'Magic Barrier');
+        if (b) shield = b.value || 0;
+    } else if (state.shield) {
+        shield = state.shield;
+    }
+
+    // Health Bar
+    // Only show threat for players in non-PvP party screen, or if specifically requested. 
+    // Existing logic only showed threat in renderPartyScreen.
+    const showThreat = options.showThreat && state.threat !== undefined;
+
+    cardEl.innerHTML = `
+        <div class="card-title">${state.name}</div>
+        ${visualHTML}
+        ${createHealthBarHTML(state.health, state.maxHealth, showThreat ? state.threat : null, shield)}
+    `;
+
+    // Append effects
+    cardEl.appendChild(createEffectsContainer(state));
+
+    // Turn ended opacity (mostly for party screen)
+    if (state.turnEnded) {
+        cardEl.style.opacity = '0.6';
+    }
+
+    return cardEl;
+}
+
 function renderPvpScreen() {
     const partyContainer = document.getElementById('party-cards-container');
     const zoneContainer = document.getElementById('zone-cards');
@@ -298,53 +384,15 @@ function renderPvpScreen() {
     gameState.pvpEncounter.playerStates.forEach(playerState => {
         const isAlly = playerState.team === localPlayerTeam;
         const container = isAlly ? partyContainer : zoneContainer;
+        const isLocal = playerState.playerId === socket.id;
+        const isActive = gameState.pvpEncounter.activeTeam === playerState.team;
 
-        const cardEl = document.createElement('div');
-        cardEl.className = isAlly ? 'card player' : 'card player enemy';
-        cardEl.dataset.playerId = playerState.playerId;
+        const cardEl = createEntityCard(playerState, {
+            isAlly,
+            isLocalPlayer: isLocal,
+            isActiveTurn: isActive
+        });
 
-        if (playerState.isDead) {
-            cardEl.classList.add('dead');
-            cardEl.innerHTML = `
-                <div class="card-icon">💀</div>
-                <div class="card-title">${playerState.name}</div>
-                <div>DEFEATED</div>
-            `;
-        } else {
-            cardEl.addEventListener('mousemove', (e) => {
-                if (e.altKey) showTooltip(buildPlayerInspectTooltip(playerState));
-            });
-            cardEl.addEventListener('mouseleave', hideTooltip);
-
-            if (playerState.playerId === socket.id) {
-                cardEl.classList.add('is-local-player');
-            }
-
-            if (gameState.pvpEncounter.activeTeam === playerState.team) {
-                cardEl.classList.add('active-turn');
-            }
-
-            let visualHTML;
-            if (playerState.icon && playerState.icon.includes('/')) {
-                visualHTML = `<img src="${playerState.icon}" class="card-image" style="border-radius: 4px;">`;
-            } else {
-                visualHTML = `<div class="card-icon">${playerState.icon || '👤'}</div>`;
-            }
-
-            let shield = 0;
-            if (playerState.buffs) {
-                const b = playerState.buffs.find(bu => bu.type === 'Magic Barrier');
-                if (b) shield = b.value || 0;
-            } else if (playerState.shield) {
-                shield = playerState.shield;
-            }
-
-            cardEl.innerHTML = `
-                <div class="card-title">${playerState.name}</div>
-                ${visualHTML}
-                ${createHealthBarHTML(playerState.health, playerState.maxHealth, null, shield)}`;
-            cardEl.appendChild(createEffectsContainer(playerState));
-        }
         container.appendChild(cardEl);
     });
 }
@@ -352,62 +400,27 @@ function renderPvpScreen() {
 function renderPartyScreen() {
     const partyContainer = document.getElementById('party-cards-container');
     partyContainer.innerHTML = '';
+
     gameState.partyMemberStates.forEach((playerState, index) => {
-        const cardEl = document.createElement('div');
-        cardEl.className = 'card player';
+        const isLocal = playerState.playerId === socket.id;
 
-        if (playerState.isDead) {
-            cardEl.classList.add('dead');
-            cardEl.innerHTML = `
-                <div class="card-icon">💀</div>
-                <div class="card-title">${playerState.name}</div>
-                <div>DEFEATED</div>
-                ${(playerState.lootableInventory.length > 0)
-                    ? `<button class="btn btn-sm" data-action="lootPlayer">Loot Bag (${playerState.lootableInventory.length})</button>`
-                    : ''
-                }
-            `;
-        } else {
-            cardEl.addEventListener('mousemove', (e) => {
-                if (e.altKey) showTooltip(buildPlayerInspectTooltip(playerState));
-            });
-            cardEl.addEventListener('mouseleave', hideTooltip);
-
-            if (playerState.playerId === socket.id) {
-                cardEl.classList.add('is-local-player');
-                gameState.health = playerState.health;
-                gameState.maxHealth = playerState.maxHealth;
-            }
-
-            if (playerState.turnEnded) {
-                cardEl.style.opacity = '0.6';
-            }
-
-            let visualHTML;
-            if (playerState.icon && playerState.icon.includes('/')) {
-                visualHTML = `<img src="${playerState.icon}" class="card-image" style="border-radius: 4px;">`;
-            } else {
-                visualHTML = `<div class="card-icon">${playerState.icon || '👤'}</div>`;
-            }
-
-            let shield = 0;
-            if (playerState.buffs) {
-                const b = playerState.buffs.find(bu => bu.type === 'Magic Barrier');
-                if (b) shield = b.value || 0;
-            } else if (playerState.shield) {
-                shield = playerState.shield;
-            }
-
-            cardEl.innerHTML = `
-                <div class="card-title">${playerState.name}</div>
-                ${visualHTML}
-                ${createHealthBarHTML(playerState.health, playerState.maxHealth, playerState.threat, shield)}
-            `;
-            cardEl.appendChild(createEffectsContainer(playerState));
+        // Update local gameState health if it's the local player
+        if (isLocal) {
+            gameState.health = playerState.health;
+            gameState.maxHealth = playerState.maxHealth;
         }
 
-        cardEl.dataset.index = `p${index}`;
-        if (playerState.playerId) cardEl.dataset.playerId = playerState.playerId;
+        const cardEl = createEntityCard(playerState, {
+            isAlly: true,
+            isLocalPlayer: isLocal,
+            showLootButton: true,
+            showThreat: true,
+            dataset: { index: `p${index}` } // Preserving data-index="p0" format
+        });
+
+        // Add index dataset separately if needed or ensure createEntityCard handles it via options if generic
+        // The helper above handles options.dataset
+
         partyContainer.appendChild(cardEl);
     });
     renderZoneCards(gameState.zoneCards);
@@ -427,82 +440,24 @@ function renderDuelScreen() {
     const localPlayer = gameState.duelState.player1.id === socket.id ? gameState.duelState.player1 : gameState.duelState.player2;
     const opponent = gameState.duelState.player1.id === socket.id ? gameState.duelState.player2 : gameState.duelState.player1;
 
-    const playerCardEl = document.createElement('div');
-    playerCardEl.className = 'card player is-local-player';
-    if (gameState.duelState.activePlayerId === localPlayer.id && !gameState.duelState.ended) {
-        playerCardEl.classList.add('active-turn');
-    }
-    playerCardEl.dataset.target = 'player';
-    if (localPlayer.id) playerCardEl.dataset.playerId = localPlayer.id;
+    // Render Local Player
+    const localIsActive = gameState.duelState.activePlayerId === localPlayer.id && !gameState.duelState.ended;
+    const localCard = createEntityCard(localPlayer, {
+        isAlly: true,
+        isLocalPlayer: true,
+        isActiveTurn: localIsActive,
+        dataset: { target: 'player' }
+    });
+    partyContainer.appendChild(localCard);
 
-    let pVisual;
-    if (localPlayer.icon && localPlayer.icon.includes('/')) {
-        pVisual = document.createElement('img');
-        pVisual.className = 'card-image';
-        pVisual.src = localPlayer.icon;
-        pVisual.style.borderRadius = '4px';
-    } else {
-        pVisual = document.createElement('div');
-        pVisual.className = 'card-icon';
-        pVisual.textContent = localPlayer.icon || '👤';
-    }
-
-    const pTitle = document.createElement('div'); pTitle.className = 'card-title'; pTitle.textContent = localPlayer.name;
-
-    let localShield = 0;
-    if (localPlayer.buffs) {
-        const b = localPlayer.buffs.find(bu => bu.type === 'Magic Barrier');
-        if (b) localShield = b.value || 0;
-    } else if (localPlayer.shield) localShield = localPlayer.shield;
-
-    const pBars = document.createElement('div');
-    pBars.innerHTML = createHealthBarHTML(localPlayer.health, localPlayer.maxHealth, null, localShield);
-
-    playerCardEl.append(pVisual, pTitle, pBars, createEffectsContainer(localPlayer));
-    partyContainer.appendChild(playerCardEl);
-
-    const opponentCardEl = document.createElement('div');
-    opponentCardEl.className = 'card player enemy';
-    if (gameState.duelState.activePlayerId === opponent.id && !gameState.duelState.ended) {
-        opponentCardEl.classList.add('active-turn');
-    }
-    opponentCardEl.dataset.index = 0;
-    if (opponent.id) opponentCardEl.dataset.playerId = opponent.id;
-
-    if (opponent.health <= 0) {
-        opponentCardEl.classList.add('dead');
-        opponentCardEl.innerHTML = `
-            <div class="card-icon">💀</div>
-            <div class="card-title">${opponent.name}</div>
-            <div>DEFEATED</div>
-        `;
-    } else {
-        let oVisual;
-        if (opponent.icon && opponent.icon.includes('/')) {
-            oVisual = document.createElement('img');
-            oVisual.className = 'card-image';
-            oVisual.src = opponent.icon;
-            oVisual.style.borderRadius = '4px';
-        } else {
-            oVisual = document.createElement('div');
-            oVisual.className = 'card-icon';
-            oVisual.textContent = opponent.icon || '👤';
-        }
-
-        const oTitle = document.createElement('div'); oTitle.className = 'card-title'; oTitle.textContent = opponent.name;
-
-        let oppShield = 0;
-        if (opponent.buffs) {
-            const b = opponent.buffs.find(bu => bu.type === 'Magic Barrier');
-            if (b) oppShield = b.value || 0;
-        } else if (opponent.shield) oppShield = opponent.shield;
-
-        const oBars = document.createElement('div');
-        oBars.innerHTML = createHealthBarHTML(opponent.health, opponent.maxHealth, null, oppShield);
-
-        opponentCardEl.append(oVisual, oTitle, oBars, createEffectsContainer(opponent));
-    }
-    zoneContainer.appendChild(opponentCardEl);
+    // Render Opponent
+    const oppIsActive = gameState.duelState.activePlayerId === opponent.id && !gameState.duelState.ended;
+    const oppCard = createEntityCard(opponent, {
+        isAlly: false,
+        isActiveTurn: oppIsActive,
+        dataset: { index: 0 }
+    });
+    zoneContainer.appendChild(oppCard);
 }
 
 function renderZoneCards(cards) {
