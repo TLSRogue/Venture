@@ -348,9 +348,17 @@ function createEntityCard(state, options = {}) {
     // Existing logic only showed threat in renderPartyScreen.
     const showThreat = options.showThreat && state.threat !== undefined;
 
+    // Focus Display (Monk)
+    let focusHTML = '';
+    if (state.focus && state.focus > 0) {
+        const focusDots = '🔸'.repeat(state.focus);
+        focusHTML = `<div class="card-focus-bar" style="color: #f1c40f; text-align: center; font-size: 14px; margin-top: -5px; margin-bottom: 2px; text-shadow: 0 0 2px black;">${focusDots}</div>`;
+    }
+
     cardEl.innerHTML = `
         <div class="card-title">${state.name}</div>
         ${visualHTML}
+        ${focusHTML}
         ${createHealthBarHTML(state.health, state.maxHealth, showThreat ? state.threat : null, shield)}
     `;
 
