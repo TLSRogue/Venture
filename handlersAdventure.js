@@ -295,7 +295,8 @@ export const registerAdventureHandlers = (io, socket) => {
             if (party.sharedState.pendingReaction && action.type !== 'returnHome' && action.type !== 'surrender' && action.type !== 'resolvePvpFlee') return;
 
             if (action.type === 'returnHome' || action.type === 'ventureDeeper') {
-                if (name === party.leaderId) {
+                // Allow action if player is leader OR if it's a solo party (failsafe)
+                if (name === party.leaderId || (party.isSoloParty && party.members.includes(name))) {
                     if (action.type === 'returnHome') await state.processEndAdventure(io, player, party);
                     if (action.type === 'ventureDeeper') await state.processVentureDeeper(io, player, party);
                 }

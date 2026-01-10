@@ -555,10 +555,29 @@ export async function processCastSpell(io, party, player, payload) {
         }
         else if (spell.type === 'versatile') {
             const effectValue = spell.baseEffect + statValue;
-            if (targetState && !targetState.isDead) {
+
+            // --- FIXED PvP TARGETING LOGIC ---
+            if (isPvP && targetState) {
+                if (targetState.team === actingPlayerState.team) {
+                    // Friendly Target: HEAL
+                    targetState.health = Math.min(targetState.maxHealth, targetState.health + effectValue);
+                    log.push({ message: `Healed ${targetState.name} for ${effectValue} HP. [id:${targetState.playerId}]`, type: 'heal' });
+                } else {
+                    // Enemy Target: DAMAGE
+                    targetState.health -= effectValue;
+                    log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${targetState.name} [id:${targetState.playerId}].`, type: 'damage' });
+                    if (targetState.health <= 0) {
+                        defeatEnemyInParty(io, party, { playerId: targetState.playerId }, null);
+                    }
+                }
+            }
+            // --- PvE TARGETING LOGIC (Unchanged) ---
+            else if (targetState && !targetState.isDead) {
+                // Players in PvE are always friendly
                 targetState.health = Math.min(targetState.maxHealth, targetState.health + effectValue);
                 log.push({ message: `Healed ${targetState.name} for ${effectValue} HP.`, type: 'heal' });
             } else if (enemyTarget) {
+                // Enemy cards in PvE
                 // --- VEXOR DODGE ---
                 if (enemyTarget.name === 'Vexor, Lord of the Arena') {
                     const columns = sharedState.zoneCards.filter(c => c && c.name === 'Stone Column');
@@ -572,12 +591,6 @@ export async function processCastSpell(io, party, player, payload) {
                 log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${enemyTarget.name} [id:${enemyTarget.id}].`, type: 'damage' });
                 if (enemyTarget.health <= 0) {
                     defeatEnemyInParty(io, party, enemyTarget, parseInt(targetIndex));
-                }
-            } else if (isPvP && targetState && targetState.team !== actingPlayerState.team) {
-                targetState.health -= effectValue;
-                log.push({ message: `Dealt ${effectValue} ${spell.damageType} damage to ${targetState.name} [id:${targetState.playerId}].`, type: 'damage' });
-                if (targetState.health <= 0) {
-                    defeatEnemyInParty(io, party, { playerId: targetState.playerId }, null);
                 }
             }
         }
