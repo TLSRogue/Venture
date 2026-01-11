@@ -295,6 +295,18 @@ export async function processCastSpell(io, party, player, payload) {
     // Revive handler: Logic + Logs. No AP deduction.
     // So I need to deduct AP here.
 
+    // --- EARLY VALIDATION FOR ATTACK SPELLS ---
+    // Check if this is an attack spell targeting an invalid target BEFORE consuming AP
+    if ((spell.type === 'attack' || spell.type === 'aoe') && !spell.aoeTargeting) {
+        // Single-target attack spell needs a valid enemy target
+        if (!target || (!target.isPlayer && target.state?.type !== 'enemy')) {
+            const log = isPvP ? pvpEncounters[sharedState.pvpEncounterId].log : sharedState.log;
+            log.push({ message: "Invalid target!", type: 'info' });
+            broadcastAdventureUpdate(io, party);
+            return;
+        }
+    }
+
     if (SpellHandlers[spell.name] || spell.type === 'revive') {
         const handler = SpellHandlers[spell.name] || SpellHandlers['Revive'];
 

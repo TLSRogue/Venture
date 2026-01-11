@@ -26,6 +26,18 @@ export function lootPlayer(targetPlayerIndex) {
 export function interactWithCard(targetIdentifier) {
     const selectedAction = gameState.turnState.selectedAction;
 
+    // CLIENT-SIDE VALIDATION: Prevent wasting AP on invalid targets
+    // Check if targeting a zone card (numeric index) that isn't marked as targetable
+    if (typeof targetIdentifier === 'number' && selectedAction) {
+        const clickedCard = document.querySelector(`#zone-cards .card[data-index="${targetIdentifier}"]`);
+        if (clickedCard && !clickedCard.classList.contains('targetable')) {
+            // Don't send action for non-targetable cards
+            UIMain.addToLog("Invalid target.", "info");
+            clearSelection();
+            return;
+        }
+    }
+
     // Handle targeting allies for spells
     if (targetIdentifier.toString().startsWith('p')) {
         if (selectedAction && selectedAction.type === 'spell') {
