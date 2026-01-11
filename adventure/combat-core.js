@@ -373,10 +373,8 @@ export function calculateSpellDamage(spell, character, actingPlayerState, target
         baseDamage = (character.equipment.mainHand?.weaponDamage || 0) + (spell.damageBonus || 0);
     }
     else if (spell.baseEffect) {
-        // Versatile spells use baseEffect + stat
-        const stat = Array.isArray(spell.stat) ? spell.stat[0] : spell.stat;
-        const statValue = (character[stat] || 0) + (bonuses[stat] || 0);
-        baseDamage = spell.baseEffect + statValue;
+        // Versatile spells use baseEffect only - stats affect hit chance, power affects damage
+        baseDamage = spell.baseEffect;
     }
 
     // Add power bonus based on damage type (from socketed gems)

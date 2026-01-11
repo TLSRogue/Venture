@@ -38,4 +38,6 @@ export const craftingRecipes = [
     { result: { name: "Gem of Arcane" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
     { result: { name: "Gem of Nature" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
     { result: { name: "Gem of Might" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
+    { result: { name: "Gem of Frost" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
+    { result: { name: "Gem of Holy" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
 ];

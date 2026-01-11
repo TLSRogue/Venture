@@ -447,15 +447,10 @@ export async function processCastSpell(io, party, player, payload) {
         };
         const buff = { ...spell.buff };
 
-        // Scaling logic
-        const scalingStat = buff.scaling || buff.shield;
-        if (scalingStat) {
-            const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
-            const statVal = (character[scalingStat] || 0) + (bonuses[scalingStat] || 0);
-            buff.value = (buff.value || 0) + statVal;
-            delete buff.scaling;
-            delete buff.shield;
-        }
+        // NOTE: Buff values are now flat - stats only affect hit chance, not buff strength
+        // Remove any legacy scaling properties
+        delete buff.scaling;
+        delete buff.shield;
 
         // Use applyBuff if method exists, else manual push (fallback)
         if (buffTarget.applyBuff) {
@@ -612,10 +607,12 @@ export async function processCastSpell(io, party, player, payload) {
                 const existingIndex = target.state.debuffs.findIndex(d => d.type.toLowerCase() === spell.debuff.type.toLowerCase());
                 if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
                 let debuffToApply = { ...spell.debuff };
-                if (spell.debuff.scaling === 'wisdom') {
+                // DoT damage scales with power bonuses, not stats
+                if (spell.debuff.damageType) {
                     const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
-                    const wis = (character.wisdom || 0) + (bonuses.wisdom || 0);
-                    debuffToApply.damage = Math.max(1, (spell.debuff.baseDamage || 0) + wis);
+                    const powerKey = spell.debuff.damageType.toLowerCase() + 'Power';
+                    const powerBonus = bonuses[powerKey] || 0;
+                    debuffToApply.damage = (spell.debuff.baseDamage || 0) + powerBonus;
                 }
                 target.state.debuffs.push(debuffToApply);
                 hitDescription += ` ${target.name} is now ${spell.debuff.type}!`;

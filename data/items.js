@@ -872,6 +872,26 @@ export const allItems = [
         rarity: "uncommon",
         canBeInMerchantWares: false,
     },
+    {
+        name: "Gem of Frost",
+        type: "gem",
+        price: 100,
+        gemBonus: { frostPower: 1 },
+        description: "An icy blue gem radiating cold. +1 Frost Power when socketed.",
+        icon: "🧊",
+        rarity: "uncommon",
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Gem of Holy",
+        type: "gem",
+        price: 100,
+        gemBonus: { holyPower: 1 },
+        description: "A radiant white gem glowing with divine light. +1 Holy Power when socketed.",
+        icon: "⭐",
+        rarity: "uncommon",
+        canBeInMerchantWares: false,
+    },
 ];
 
 export const genericTreasureLoot = [
