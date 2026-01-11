@@ -171,7 +171,8 @@ export function addItemToInventoryServer(character, itemData, quantity = 1, grou
 
     if (baseItem.stackable) {
         for (const invItem of character.inventory) {
-            if (invItem && invItem.name === itemData.name && invItem.quantity < baseItem.stackable) {
+            // Prevent stacking if either item has a socketed gem (treat as unique)
+            if (invItem && invItem.name === itemData.name && invItem.quantity < baseItem.stackable && !itemData.socketedGem && !invItem.socketedGem) {
                 const canAdd = baseItem.stackable - invItem.quantity;
                 const toAdd = Math.min(remainingQuantity, canAdd);
                 invItem.quantity += toAdd;
@@ -189,7 +190,8 @@ export function addItemToInventoryServer(character, itemData, quantity = 1, grou
         }
 
         const amountToAdd = baseItem.stackable ? Math.min(remainingQuantity, baseItem.stackable) : 1;
-        character.inventory[emptySlotIndex] = { ...baseItem, quantity: amountToAdd };
+        // Important: Merge itemData to preserve custom properties like socketedGem
+        character.inventory[emptySlotIndex] = { ...baseItem, ...itemData, quantity: amountToAdd };
         remainingQuantity -= amountToAdd;
         addedToInventory = true;
         if (!baseItem.stackable && remainingQuantity > 0) continue;

@@ -244,7 +244,7 @@ export const registerPlayerActionHandlers = (io, socket) => {
                     const { index } = payload;
                     const itemToDeposit = character.inventory[index];
                     if (itemToDeposit) {
-                        const existingBankItem = character.bank.find(item => item.name === itemToDeposit.name);
+                        const existingBankItem = character.bank.find(item => item.name === itemToDeposit.name && !item.socketedGem && !itemToDeposit.socketedGem);
                         const amountToDeposit = itemToDeposit.quantity || 1;
 
                         if (existingBankItem) {
