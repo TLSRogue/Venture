@@ -16,7 +16,7 @@ export const craftingRecipes = [
     { result: { name: "Iron Armor" }, materials: { "Iron": 2, "Cow Hide": 1 }, category: "Blacksmithing" },
     { result: { name: "Iron Helm" }, materials: { "Iron": 1, "Cow Hide": 1 }, category: "Blacksmithing" },
     { result: { name: "Steel Bar" }, materials: { "Iron": 1, "Coal": 1 }, category: "Blacksmithing" },
-    { result: { name: "Steel Armor" }, materials: { "Steel Bar": 2, "Cow Hide": 1 }, category: "Blacksmithing" },
+    { result: { name: "Steel Armor" }, materials: { "Steel Bar": 2, "Cow Hide": 1 }, category: "Blacksmithing", requiresDiscovery: true },
     { result: { name: "Iron Boots" }, materials: { "Iron": 1, "Cow Hide": 1 }, category: "Blacksmithing" },
     { result: { name: "Quiver" }, materials: { "Cow Hide": 2 }, category: "Leatherworking" },
     { result: { name: "Leather Armor" }, materials: { "Cow Hide": 3 }, category: "Leatherworking" },
@@ -29,4 +29,13 @@ export const craftingRecipes = [
     { result: { name: "Staff" }, materials: { "Wood": 3 }, category: "Artificing" },
     { result: { name: "Wooden Torch" }, materials: { "Wood": 1, "Animal Fat": 1 }, category: "General" },
     { result: { name: "Powder Keg" }, materials: { "Wood": 2, "Coal": 1 }, category: "General", requiresDiscovery: true },
+    // --- Tier 1 Gems (Artificing) ---
+    { result: { name: "Gem of Strength" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
+    { result: { name: "Gem of Agility" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
+    { result: { name: "Gem of Wisdom" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
+    { result: { name: "Gem of Fortitude" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
+    { result: { name: "Gem of Fire" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
+    { result: { name: "Gem of Arcane" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
+    { result: { name: "Gem of Nature" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
+    { result: { name: "Gem of Might" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
 ];

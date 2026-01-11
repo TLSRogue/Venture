@@ -328,6 +328,62 @@ export const registerPlayerActionHandlers = (io, socket) => {
                     success = true;
                 }
                 break;
+            case 'socketGem':
+                {
+                    const { equipmentSlot, gemInventoryIndex } = payload;
+                    const equippedItem = character.equipment[equipmentSlot];
+                    const gem = character.inventory[gemInventoryIndex];
+
+                    // Validate the equipment has a gem slot
+                    if (!equippedItem || !equippedItem.gemSlot) {
+                        console.log(`[socketGem] Failed: Item in ${equipmentSlot} has no gem slot`);
+                        break;
+                    }
+
+                    // Validate the gem
+                    if (!gem || gem.type !== 'gem') {
+                        console.log(`[socketGem] Failed: Item at index ${gemInventoryIndex} is not a gem`);
+                        break;
+                    }
+
+                    // If there's already a socketed gem, return it to inventory
+                    if (equippedItem.socketedGem) {
+                        const oldGem = equippedItem.socketedGem;
+                        if (!addItemToInventoryServer(character, oldGem)) {
+                            console.log(`[socketGem] Failed: Inventory full, cannot unsocket existing gem`);
+                            break;
+                        }
+                    }
+
+                    // Socket the new gem
+                    equippedItem.socketedGem = { ...gem };
+                    character.inventory[gemInventoryIndex] = null;
+                    console.log(`[socketGem] ${character.characterName} socketed ${gem.name} into ${equippedItem.name}`);
+                    success = true;
+                }
+                break;
+            case 'unsocketGem':
+                {
+                    const { equipmentSlot } = payload;
+                    const equippedItem = character.equipment[equipmentSlot];
+
+                    // Validate the equipment has a socketed gem
+                    if (!equippedItem || !equippedItem.socketedGem) {
+                        console.log(`[unsocketGem] Failed: Item in ${equipmentSlot} has no socketed gem`);
+                        break;
+                    }
+
+                    const gem = equippedItem.socketedGem;
+                    if (!addItemToInventoryServer(character, gem)) {
+                        console.log(`[unsocketGem] Failed: Inventory full`);
+                        break;
+                    }
+
+                    equippedItem.socketedGem = null;
+                    console.log(`[unsocketGem] ${character.characterName} unsocketed ${gem.name} from ${equippedItem.name}`);
+                    success = true;
+                }
+                break;
         }
 
         if (success) {

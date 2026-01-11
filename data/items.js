@@ -537,12 +537,13 @@ export const allItems = [
         type: "armor",
         slot: "armor",
         bonus: { strength: 1, defense: 1, maxHealth: 1, physicalResistance: 1 },
-        description: "Tougher than iron and twice as shiny. +1 Str, +1 Def, +1 Max HP, +1 Physical Resistance. Heavy.",
+        description: "Tougher than iron and twice as shiny. +1 Str, +1 Def, +1 Max HP, +1 Physical Resistance. Has a gem slot.",
         tier: 2,
         icon: "👕",
         traits: ['Heavy', 'Physical', 'Tier 2'],
         rarity: "uncommon",
         canBeInMerchantWares: false, // Crafted only
+        gemSlot: true, // Can socket one gem
     },
     {
         name: "Leather Armor",
@@ -778,6 +779,97 @@ export const allItems = [
         tier: 1,
         icon: "👑",
         rarity: "rare",
+        canBeInMerchantWares: false,
+    },
+
+    // --- Quest Items ---
+    { name: "Old Family Recipe", type: "questItem", price: 0, description: "A faded parchment with an arcane formula. The Fortune Teller might be interested in this.", icon: "📜", rarity: "quest", canBeInMerchantWares: false },
+
+    // --- Gem Crafting Materials ---
+    { name: "Tier 1 Gemstone", type: "material", price: 25, description: "A rough, uncut gemstone with latent magical potential.", icon: "💎", rarity: "uncommon", canBeInMerchantWares: false },
+    { name: "Magic Essence", type: "material", price: 30, description: "A shimmering vial of pure magical energy.", icon: "✨", rarity: "uncommon", canBeInMerchantWares: false },
+
+    // --- Tier 1 Stat Gems ---
+    {
+        name: "Gem of Strength",
+        type: "gem",
+        price: 100,
+        gemBonus: { strength: 1 },
+        description: "A crimson gem that pulses with raw power. +1 Strength when socketed.",
+        icon: "🔴",
+        rarity: "uncommon",
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Gem of Agility",
+        type: "gem",
+        price: 100,
+        gemBonus: { agility: 1 },
+        description: "A verdant gem that shimmers with swift energy. +1 Agility when socketed.",
+        icon: "🟢",
+        rarity: "uncommon",
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Gem of Wisdom",
+        type: "gem",
+        price: 100,
+        gemBonus: { wisdom: 1 },
+        description: "A sapphire gem that glows with arcane knowledge. +1 Wisdom when socketed.",
+        icon: "🔵",
+        rarity: "uncommon",
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Gem of Fortitude",
+        type: "gem",
+        price: 100,
+        gemBonus: { defense: 1, maxHealth: 1 },
+        description: "A golden gem that radiates endurance. +1 Defense, +1 Max HP when socketed.",
+        icon: "🟡",
+        rarity: "uncommon",
+        canBeInMerchantWares: false,
+    },
+
+    // --- Tier 1 Damage Gems ---
+    {
+        name: "Gem of Fire",
+        type: "gem",
+        price: 100,
+        gemBonus: { firePower: 1 },
+        description: "A flame-orange gem that burns with inner heat. +1 Fire Power when socketed.",
+        icon: "🟠",
+        rarity: "uncommon",
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Gem of Arcane",
+        type: "gem",
+        price: 100,
+        gemBonus: { arcanePower: 1 },
+        description: "A violet gem crackling with magical energy. +1 Arcane Power when socketed.",
+        icon: "🟣",
+        rarity: "uncommon",
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Gem of Nature",
+        type: "gem",
+        price: 100,
+        gemBonus: { naturePower: 1 },
+        description: "A deep green gem thrumming with primal life. +1 Nature Power when socketed.",
+        icon: "💚",
+        rarity: "uncommon",
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Gem of Might",
+        type: "gem",
+        price: 100,
+        gemBonus: { physicalPower: 1 },
+        description: "A steel-grey gem dense with martial fury. +1 Physical Power when socketed.",
+        icon: "⚪",
+        rarity: "uncommon",
         canBeInMerchantWares: false,
     },
 ];

@@ -126,13 +126,19 @@ export function drawCardsForServer(sharedState, amount) {
 }
 
 export function getBonusStatsForPlayer(character, playerState) {
-    const bonuses = { strength: 0, wisdom: 0, agility: 0, defense: 0, luck: 0, maxHealth: 0, physicalResistance: 0, mining: 0, woodcutting: 0, fishing: 0, harvesting: 0, rollBonus: 0 };
+    const bonuses = { strength: 0, wisdom: 0, agility: 0, defense: 0, luck: 0, maxHealth: 0, physicalResistance: 0, mining: 0, woodcutting: 0, fishing: 0, harvesting: 0, rollBonus: 0, firePower: 0, arcanePower: 0, naturePower: 0, physicalPower: 0 };
     for (const slot in character.equipment) {
         const item = character.equipment[slot];
         if (item && item.hands === 2 && slot === 'offHand') continue;
         if (item && item.bonus) {
             for (const stat in item.bonus) {
                 bonuses[stat] = (bonuses[stat] || 0) + item.bonus[stat];
+            }
+        }
+        // Check for socketed gems
+        if (item && item.socketedGem && item.socketedGem.gemBonus) {
+            for (const stat in item.socketedGem.gemBonus) {
+                bonuses[stat] = (bonuses[stat] || 0) + item.socketedGem.gemBonus[stat];
             }
         }
     }

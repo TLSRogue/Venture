@@ -366,13 +366,70 @@ export function renderEquipment() {
             if (item.quantity > 1) {
                 itemText += ` <div class="item-quantity">${item.quantity}</div>`;
             }
-            slotEl.innerHTML = `<div><strong>${slotNames[slotKey]}</strong></div>${itemText}<button class="btn btn-danger btn-sm" data-equipment-action="unequip" data-slot="${slotKey}">Unequip</button>`;
+
+            // Gem slot display
+            let gemSlotHTML = '';
+            if (item.gemSlot) {
+                if (item.socketedGem) {
+                    gemSlotHTML = `
+                        <div class="gem-slot socketed" title="Socketed: ${item.socketedGem.name}">
+                            <span class="gem-icon">${item.socketedGem.icon || '💎'}</span>
+                            <button class="btn btn-sm gem-unsocket-btn" data-equipment-action="unsocketGem" data-slot="${slotKey}">✕</button>
+                        </div>
+                    `;
+                } else {
+                    gemSlotHTML = `
+                        <div class="gem-slot empty" title="Empty gem slot - click to socket a gem">
+                            <button class="btn btn-sm gem-socket-btn" data-equipment-action="socketGem" data-slot="${slotKey}">💎+</button>
+                        </div>
+                    `;
+                }
+            }
+
+            slotEl.innerHTML = `<div><strong>${slotNames[slotKey]}</strong></div>${itemText}${gemSlotHTML}<button class="btn btn-danger btn-sm" data-equipment-action="unequip" data-slot="${slotKey}">Unequip</button>`;
         } else {
             slotEl.innerHTML = `<div><strong>${slotNames[slotKey]}</strong></div><div>Empty</div>`;
         }
 
         container.appendChild(slotEl);
     });
+}
+
+export function showGemSocketModal(equipmentSlot) {
+    const equippedItem = gameState.equipment[equipmentSlot];
+    if (!equippedItem || !equippedItem.gemSlot) return;
+
+    // Find all gems in inventory
+    const gemsInInventory = [];
+    gameState.inventory.forEach((item, index) => {
+        if (item && item.type === 'gem') {
+            gemsInInventory.push({ gem: item, index });
+        }
+    });
+
+    let modalContent = `<h2>Socket Gem into ${equippedItem.name}</h2>`;
+
+    if (gemsInInventory.length === 0) {
+        modalContent += '<p>You have no gems in your inventory.</p>';
+    } else {
+        modalContent += '<div class="gem-selection-grid">';
+        gemsInInventory.forEach(({ gem, index }) => {
+            const bonusText = Object.entries(gem.gemBonus || {}).map(([stat, val]) => `+${val} ${stat}`).join(', ');
+            modalContent += `
+                <div class="gem-option" data-gem-socket-action="socket" data-gem-index="${index}" data-equipment-slot="${equipmentSlot}">
+                    <span class="gem-icon">${gem.icon}</span>
+                    <div class="gem-info">
+                        <strong>${gem.name}</strong>
+                        <small>${bonusText}</small>
+                    </div>
+                </div>
+            `;
+        });
+        modalContent += '</div>';
+    }
+
+    modalContent += '<div class="action-buttons" style="margin-top: 20px;"><button class="btn" onclick="document.getElementById(\'modal\').classList.add(\'hidden\')">Cancel</button></div>';
+    showModal(modalContent);
 }
 
 function generateQuestLogHTML() {

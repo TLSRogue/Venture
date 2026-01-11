@@ -120,7 +120,7 @@ export const cardPools = {
                 ]
             }, count: 3
         },
-        { card: { name: "Iron Node", type: "resource", skill: "mining", description: "Requires Mining Pickaxe (T1)", loot: { name: "Iron", type: "material", price: 5 }, tool: "Mining Pickaxe (T1)", icon: "⛏️", imageUrl: '/assets/farmlands-ironnode.png' }, count: 6 },
+        { card: { name: "Iron Node", type: "resource", skill: "mining", description: "Requires Mining Pickaxe (T1). Rare chance for gemstones.", lootPool: [{ name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Tier 1 Gemstone" }], tool: "Mining Pickaxe (T1)", icon: "⛏️", imageUrl: '/assets/farmlands-ironnode.png' }, count: 6 },
         { card: { name: "Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Axe (T1)", loot: { name: "Wood", type: "material", price: 5 }, tool: "Woodcutting Axe (T1)", icon: "🌲", imageUrl: '/assets/farmlands-tree.png' }, count: 6 },
         { card: { name: "River", type: "resource", skill: "fishing", description: "Requires Fishing Rod (T1)", loot: { name: "Fish", type: "material", price: 5 }, tool: "Fishing Rod (T1)", icon: "🎣", imageUrl: '/assets/farmlands-river.png' }, count: 6 },
         { card: { name: "Crops", type: "resource", skill: "harvesting", description: "Requires Harvesting Sickle (T1)", lootPool: [{ name: "Wheat" }, { name: "Carrot" }, { name: "Hemp" }], tool: "Harvesting Sickle (T1)", icon: "🌾", imageUrl: '/assets/farmlands-crops.png' }, count: 5 },
@@ -185,9 +185,10 @@ export const cardPools = {
                 ],
                 guaranteedLoot: { gold: true },
                 lootTable: [
-                    { range: [1, 12], items: ["Goblin Head"] },
-                    { range: [13, 18], items: ["Goblin Head", "Vines"] },
-                    { range: [19, 20], items: ["Shaman's Fetish"] }
+                    { range: [1, 10], items: ["Goblin Head", "Magic Essence"] },
+                    { range: [11, 16], items: ["Goblin Head", "Vines", "Magic Essence"] },
+                    { range: [17, 19], items: ["Shaman's Fetish", "Magic Essence"] },
+                    { range: [20, 20], items: ["Shaman's Fetish", "Magic Essence", "Old Family Recipe"] }
                 ]
             }, count: 5
         },
@@ -208,9 +209,10 @@ export const cardPools = {
                 ],
                 guaranteedLoot: { gold: true },
                 lootTable: [
-                    { range: [1, 12], items: ["Goblin Head"] },
-                    { range: [13, 18], items: ["Goblin Head", "Arrow Bundle"] },
-                    { range: [19, 20], items: ["Archer's Shortbow"] }
+                    { range: [1, 11], items: ["Goblin Head"] },
+                    { range: [12, 17], items: ["Goblin Head", "Arrow Bundle"] },
+                    { range: [18, 19], items: ["Archer's Shortbow"] },
+                    { range: [20, 20], items: ["Archer's Shortbow", "Old Family Recipe"] }
                 ]
             }, count: 6
         },
@@ -231,9 +233,10 @@ export const cardPools = {
                 ],
                 guaranteedLoot: { gold: true },
                 lootTable: [
-                    { range: [1, 12], items: ["Goblin Head"] },
-                    { range: [13, 18], items: ["Goblin Head", "Iron"] },
-                    { range: [19, 20], items: ["Warrior's Cleaver"] }
+                    { range: [1, 11], items: ["Goblin Head"] },
+                    { range: [12, 17], items: ["Goblin Head", "Iron"] },
+                    { range: [18, 19], items: ["Warrior's Cleaver"] },
+                    { range: [20, 20], items: ["Warrior's Cleaver", "Old Family Recipe"] }
                 ]
             }, count: 7
         },
@@ -282,6 +285,44 @@ export const cardPools = {
                     MONK_FOCUS_QUEST_ready: { text: "You have returned, and with the requested items. You have shown patience and a focused spirit. Very well. Let me show you how to turn your own life force into a weapon, and a balm.", options: [{ text: "Thank you, master.", questComplete: "MONK_FOCUS_QUEST", next: "allQuestsDone" }] },
                     allQuestsDone: { text: "The technique is now yours. Practice it, and you will find strength not only in your fists, but in your spirit. Go well.", options: [{ text: "Farewell.", next: "farewell" }] },
                     farewell: { text: "May your path be clear.", options: [] }
+                }
+            }, count: 1
+        },
+        {
+            card: {
+                name: "Blacksmith",
+                type: "npc",
+                description: "A burly smith working at his forge. The heat is intense.",
+                icon: "🔨",
+                imageUrl: '/assets/town-blacksmith.jpg',
+                quests: [
+                    { id: "STEEL_ARMOR_QUEST", title: "Steel Armor Forging", turnInItems: { "Steel Bar": 3 }, reward: { gold: 50, qp: 1, recipeReward: "Steel Armor" }, prerequisite: null }
+                ],
+                dialogue: {
+                    STEEL_ARMOR_QUEST_start: { text: "Hail, adventurer! I see you've got some steel on ya. If you can bring me three Steel Bars, I'll teach you the art of forging proper Steel Armor. It's tougher than iron, and it'll save your hide more than once.", options: [{ text: "I'll bring you the steel.", questId: "STEEL_ARMOR_QUEST", next: "STEEL_ARMOR_QUEST_inProgress" }, { text: "Maybe another time.", next: "farewell" }] },
+                    STEEL_ARMOR_QUEST_inProgress: { text: "You'll need to smelt some Steel Bars from Iron and Coal. Come back when you've got three of 'em.", options: [{ text: "I'm working on it.", next: "farewell" }] },
+                    STEEL_ARMOR_QUEST_ready: { text: "Excellent! This is fine steel. Watch closely now, and I'll show you how to forge armor that'll make the goblins weep. Here's a bit of gold for your trouble too.", options: [{ text: "Thank you, master smith.", questComplete: "STEEL_ARMOR_QUEST", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "You've got the knowledge now. Go forge yourself some proper armor!", options: [{ text: "Farewell.", next: "farewell" }] },
+                    farewell: { text: "Keep that blade sharp.", options: [] }
+                }
+            }, count: 1
+        },
+        {
+            card: {
+                name: "Fortune Teller",
+                type: "npc",
+                description: "A mysterious old woman peers into a glowing crystal ball.",
+                icon: "🔮",
+                imageUrl: '/assets/town-fortuneteller.jpg',
+                quests: [
+                    { id: "OLD_RECIPE_QUEST", title: "The Old Recipe", turnInItems: { "Old Family Recipe": 1 }, reward: { gold: 75, qp: 1, recipeReward: ["Gem of Strength", "Gem of Agility", "Gem of Wisdom", "Gem of Fortitude", "Gem of Fire", "Gem of Arcane", "Gem of Nature", "Gem of Might"] }, prerequisite: null }
+                ],
+                dialogue: {
+                    OLD_RECIPE_QUEST_start: { text: "Ah, a seeker of secrets... I have foreseen your coming. I lost something precious long ago—a family recipe for imbuing gems with power. The goblins stole it generations past. If you find it, I will share the knowledge with you.", options: [{ text: "I'll search for your recipe.", questId: "OLD_RECIPE_QUEST", next: "OLD_RECIPE_QUEST_inProgress" }, { text: "I'm not interested in fortune telling.", next: "farewell" }] },
+                    OLD_RECIPE_QUEST_inProgress: { text: "The recipe is hidden somewhere in the goblin caves. They guard it without knowing its value. Bring it to me, and I shall teach you the art of gem enchantment.", options: [{ text: "I'll keep looking.", next: "farewell" }] },
+                    OLD_RECIPE_QUEST_ready: { text: "The spirits were right! You've found it! At last, my family's legacy returns. As promised, I shall teach you to craft enchanted gems. You'll need raw gemstones and magic essence from the shaman.", options: [{ text: "Thank you for the knowledge.", questComplete: "OLD_RECIPE_QUEST", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "The gems you craft will enhance your armor with great power. Use this knowledge wisely, adventurer.", options: [{ text: "Farewell.", next: "farewell" }] },
+                    farewell: { text: "The future is always in motion...", options: [] }
                 }
             }, count: 1
         },

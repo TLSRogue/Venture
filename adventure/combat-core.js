@@ -299,16 +299,26 @@ export function resolveAttackRoll(actingPlayerState, character, target, stat, hi
 
 /**
  * Calculate weapon damage with resistance applied.
+ * @param {object} weapon - The weapon being used
+ * @param {object} target - The target of the attack
+ * @param {object} bonuses - Optional player bonuses (for power bonuses from gems)
  */
-export function calculateWeaponDamage(weapon, target) {
+export function calculateWeaponDamage(weapon, target, bonuses = {}) {
     let baseDamage = weapon.weaponDamage || 0;
     const damageType = weapon.damageType || 'Physical';
+
+    // Add power bonus based on damage type
+    const powerBonusKey = damageType.toLowerCase() + 'Power';
+    const powerBonus = bonuses[powerBonusKey] || 0;
+    baseDamage += powerBonus;
+
     const resistance = target.getResistance(damageType);
     const finalDamage = Math.max(0, baseDamage - resistance);
 
     return {
         baseDamage,
         damageType,
+        powerBonus,
         resistance,
         finalDamage,
         resisted: baseDamage - finalDamage
@@ -321,6 +331,7 @@ export function calculateWeaponDamage(weapon, target) {
 export function calculateSpellDamage(spell, character, actingPlayerState, target) {
     let baseDamage = spell.damage || 0;
     const damageType = spell.damageType || 'Magic';
+    const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
 
     // Special spell damage calculations
     if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
@@ -363,11 +374,15 @@ export function calculateSpellDamage(spell, character, actingPlayerState, target
     }
     else if (spell.baseEffect) {
         // Versatile spells use baseEffect + stat
-        const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
         const stat = Array.isArray(spell.stat) ? spell.stat[0] : spell.stat;
         const statValue = (character[stat] || 0) + (bonuses[stat] || 0);
         baseDamage = spell.baseEffect + statValue;
     }
+
+    // Add power bonus based on damage type (from socketed gems)
+    const powerBonusKey = damageType.toLowerCase() + 'Power';
+    const powerBonus = bonuses[powerBonusKey] || 0;
+    baseDamage += powerBonus;
 
     const resistance = target.getResistance(damageType);
     const finalDamage = Math.max(0, baseDamage - resistance);
@@ -375,6 +390,7 @@ export function calculateSpellDamage(spell, character, actingPlayerState, target
     return {
         baseDamage,
         damageType,
+        powerBonus,
         resistance,
         finalDamage,
         resisted: baseDamage - finalDamage

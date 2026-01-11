@@ -849,9 +849,24 @@ function addEventListeners() {
                 if (button.dataset.spellAction === 'unequip') return Player.unequipSpell(index);
                 if (button.dataset.spellAction === 'equip') return Player.equipSpell(index);
             }
-            if (button.dataset.equipmentAction) return Player.unequipItem(button.dataset.slot);
+            if (button.dataset.equipmentAction) {
+                const action = button.dataset.equipmentAction;
+                const slot = button.dataset.slot;
+                if (action === 'unequip') return Player.unequipItem(slot);
+                if (action === 'socketGem') return UIPlayer.showGemSocketModal(slot);
+                if (action === 'unsocketGem') return Player.unsocketGem(slot);
+            }
             if (button.dataset.equipSlot) {
                 Player.equipItem(parseInt(button.dataset.itemIndex), button.dataset.equipSlot);
+                return UIMain.hideModal();
+            }
+
+            // Handle gem socket selection from modal
+            if (target.closest('[data-gem-socket-action]')) {
+                const gemOption = target.closest('[data-gem-socket-action]');
+                const gemIndex = parseInt(gemOption.dataset.gemIndex, 10);
+                const equipmentSlot = gemOption.dataset.equipmentSlot;
+                Player.socketGem(equipmentSlot, gemIndex);
                 return UIMain.hideModal();
             }
 

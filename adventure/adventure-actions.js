@@ -171,8 +171,9 @@ export async function processWeaponAttack(io, party, player, payload) {
         logMessage += ` Critical Failure!`;
         log.push({ message: logMessage, type: 'damage' });
     } else if (attackResult.isHit) {
-        // Calculate Damage
-        const dmgResult = calculateWeaponDamage(weapon, target);
+        // Calculate Damage - pass bonuses for gem power bonuses
+        const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+        const dmgResult = calculateWeaponDamage(weapon, target, bonuses);
 
         // Vexor Check (Zone-specific boss mechanic)
         if (target.name === 'Vexor, Lord of the Arena') {

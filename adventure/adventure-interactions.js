@@ -302,8 +302,13 @@ export function processDialogueChoice(io, player, party, payload) {
                             }
                         }
 
-                        if (reward.recipeReward && !member.knownRecipes.includes(reward.recipeReward)) {
-                            member.knownRecipes.push(reward.recipeReward);
+                        if (reward.recipeReward) {
+                            const recipes = Array.isArray(reward.recipeReward) ? reward.recipeReward : [reward.recipeReward];
+                            recipes.forEach(recipe => {
+                                if (!member.knownRecipes.includes(recipe)) {
+                                    member.knownRecipes.push(recipe);
+                                }
+                            });
                         }
 
                         if (memberPlayer.id) io.to(memberPlayer.id).emit('characterUpdate', memberPlayer.character);
