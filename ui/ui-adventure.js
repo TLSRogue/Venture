@@ -752,12 +752,12 @@ export function updateActionUI() {
         const actionType = gameState.turnState.selectedAction.type;
 
         // Weapons and attack spells target enemies
-        if (action.type === 'attack' || action.type === 'aoe' || action.weaponDamage) {
+        if (action.type === 'attack' || action.type === 'aoe' || action.type === 'versatile' || action.weaponDamage) {
             document.querySelectorAll('#zone-cards .card.enemy').forEach(enemyCard => {
                 enemyCard.classList.add('targetable');
             });
         }
-        // Heal/buff spells target allies
+        // Heal/buff/versatile spells target allies (versatile can do both!)
         if (action.type === 'heal' || action.type === 'buff' || action.type === 'versatile') {
             document.querySelectorAll('#party-cards-container .card.player:not(.dead), #zone-cards .card.player:not(.dead)').forEach(playerCard => {
                 playerCard.classList.add('targetable');
