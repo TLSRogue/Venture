@@ -1159,7 +1159,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                             const bonuses = getBonusStatsForPlayer(playerObj.character, target);
                             const resistance = bonuses.physicalResistance || 0;
                             const damage = Math.max(1, 5 - resistance);
-                            target.health -= damage;
+                            applyDamage(target, damage);
                             sharedState.log.push({ message: `Vexor slashes ${target.name} for ${damage} Physical damage!`, type: 'damage' });
                             if (target.health <= 0) { target.isDead = true; target.health = 0; }
                         }
@@ -1176,7 +1176,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                             const bonuses = getBonusStatsForPlayer(playerObj.character, target);
                             const resistance = bonuses.physicalResistance || 0;
                             const damage = Math.max(1, 4 - resistance);
-                            target.health -= damage;
+                            applyDamage(target, damage);
 
                             if (!target.debuffs) target.debuffs = [];
                             target.debuffs.push({ type: 'stun', duration: 1 });
@@ -1209,7 +1209,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                                 const bonuses = getBonusStatsForPlayer(playerObj.character, p);
                                 const resistance = bonuses.physicalResistance || 0;
                                 const damage = Math.max(1, 5 - resistance);
-                                p.health -= damage;
+                                applyDamage(p, damage);
 
                                 if (!p.debuffs) p.debuffs = [];
                                 p.debuffs.push({ type: 'bleed', duration: 2, damage: 2 });
@@ -1499,7 +1499,7 @@ export async function handleResolveReaction(io, socket, payload) {
                                 damageToDeal = Math.max(1, counterDamage - resistance);
                             }
 
-                            attackerPlayerState.health -= damageToDeal;
+                            applyDamage(attackerPlayerState, damageToDeal);
 
                             let counterLog = ` They counter-attack, dealing ${damageToDeal} damage to ${attackerPlayerState.name}!`;
                             if (damageToDeal < counterDamage) counterLog += ` (${counterDamage - damageToDeal} resisted)`;
@@ -1517,7 +1517,7 @@ export async function handleResolveReaction(io, socket, payload) {
                             const resistance = attackerEnemy.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
                             let damageToDeal = Math.max(1, counterDamage - resistance);
 
-                            attackerEnemy.health -= damageToDeal;
+                            applyDamage(attackerEnemy, damageToDeal);
 
                             let counterLog = ` They counter-attack, dealing ${damageToDeal} damage to ${attackerEnemy.name}!`;
                             stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
@@ -1583,7 +1583,7 @@ export async function handleResolveReaction(io, socket, payload) {
                                 damageToDeal = Math.max(1, counterDamage - resistance);
                             }
 
-                            attackerPlayerState.health -= damageToDeal;
+                            applyDamage(attackerPlayerState, damageToDeal);
 
                             let counterLog = ` They riposte, dealing ${damageToDeal} damage to ${attackerPlayerState.name}!`;
                             if (damageToDeal < counterDamage) counterLog += ` (${counterDamage - damageToDeal} resisted)`;
@@ -1601,7 +1601,7 @@ export async function handleResolveReaction(io, socket, payload) {
                             const resistance = attackerEnemy.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
                             let damageToDeal = Math.max(1, counterDamage - resistance);
 
-                            attackerEnemy.health -= damageToDeal;
+                            applyDamage(attackerEnemy, damageToDeal);
 
                             let counterLog = ` They riposte, dealing ${damageToDeal} damage to ${attackerEnemy.name}!`;
                             stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
@@ -1638,7 +1638,7 @@ export async function handleResolveReaction(io, socket, payload) {
                 const resistance = bonuses.physicalResistance || 0;
                 damageToDeal = Math.max(1, finalDamage - resistance);
             }
-            reactingPlayerState.health -= damageToDeal;
+            applyDamage(reactingPlayerState, damageToDeal);
             damageMessage += ` It hits ${name} for ${damageToDeal} damage! [id:${reactingPlayerState.playerId}]`;
             if (damageToDeal < finalDamage) {
                 damageMessage += ` (${finalDamage - damageToDeal} resisted)`;

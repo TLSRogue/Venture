@@ -824,7 +824,7 @@ export async function processUseConsumable(io, party, player, payload) {
             // Apply damage
             if (item.damage) {
                 const damage = item.damage;
-                targetCard.health -= damage;
+                applyDamage(targetCard, damage);
                 logTarget.log.push({
                     message: `${character.characterName} throws ${item.name} at ${targetCard.name}! ${rollDisplay} Deals ${damage} damage! [id:${targetCard.id}]`,
                     type: 'damage'
