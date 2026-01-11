@@ -720,6 +720,35 @@ export async function processEquipItem(io, party, player, payload) {
 
     character.inventory[inventoryIndex] = null;
 
+    // Recalculate derived stats (Max Health) for the active adventure state
+    if (party.sharedState) {
+        let actingPlayerState;
+        if (party.sharedState.pvpEncounterId) {
+            const encounter = pvpEncounters[party.sharedState.pvpEncounterId];
+            actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
+        } else {
+            actingPlayerState = party.sharedState.partyMemberStates.find(p => p.playerId === player.id);
+        }
+
+        if (actingPlayerState) {
+            const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+            const newMaxHealth = 10 + (bonuses.maxHealth || 0);
+
+            // Log update if max health changed (Optional, good for clarity)
+            // if (actingPlayerState.maxHealth !== newMaxHealth) {
+            //    const diff = newMaxHealth - actingPlayerState.maxHealth;
+            //    party.sharedState.log.push({ message: `${character.characterName}'s Max HP updated (${diff > 0 ? '+' : ''}${diff}).`, type: 'info' });
+            // }
+
+            actingPlayerState.maxHealth = newMaxHealth;
+
+            // Clamp current health if it exceeds new max
+            if (actingPlayerState.health > newMaxHealth) {
+                actingPlayerState.health = newMaxHealth;
+            }
+        }
+    }
+
     io.to(player.id).emit('characterUpdate', character);
 
     broadcastAdventureUpdate(io, party);
