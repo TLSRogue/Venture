@@ -5,7 +5,8 @@
  * such as deck building, inventory management, and calculating player stats.
  */
 
-import { gameData } from './data/index.js';
+import { gameData, itemsByName } from './data/index.js';
+import { shuffleArray, DEFAULT_BONUS_STATS } from './shared.js';
 
 export function createStateForClient(sharedState, encounterState = null) {
     if (!sharedState) return null;
@@ -48,10 +49,7 @@ function generateMerchantStock(character) {
     );
 
     // Shuffle the eligible items to ensure variety
-    for (let i = stockPool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [stockPool[i], stockPool[j]] = [stockPool[j], stockPool[i]];
-    }
+    shuffleArray(stockPool);
 
     // Assign a random quantity to the selected stock
     character.merchantStock = stockPool.slice(0, 10).map(item => ({
@@ -97,10 +95,7 @@ export function buildZoneDeckForServer(zoneName) {
     }
 
     // Shuffle only the non-NPC cards
-    for (let i = otherCards.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [otherCards[i], otherCards[j]] = [otherCards[j], otherCards[i]];
-    }
+    shuffleArray(otherCards);
 
     return [...npcs, ...otherCards];
 }
@@ -126,7 +121,7 @@ export function drawCardsForServer(sharedState, amount) {
 }
 
 export function getBonusStatsForPlayer(character, playerState) {
-    const bonuses = { strength: 0, wisdom: 0, agility: 0, defense: 0, luck: 0, maxHealth: 0, physicalResistance: 0, mining: 0, woodcutting: 0, fishing: 0, harvesting: 0, rollBonus: 0, firePower: 0, arcanePower: 0, naturePower: 0, physicalPower: 0, frostPower: 0, holyPower: 0 };
+    const bonuses = { ...DEFAULT_BONUS_STATS };
     for (const slot in character.equipment) {
         const item = character.equipment[slot];
         if (item && item.hands === 2 && slot === 'offHand') continue;
@@ -163,7 +158,8 @@ export function getBonusStatsForPlayer(character, playerState) {
 
 export function addItemToInventoryServer(character, itemData, quantity = 1, groundLoot = null) {
     if (!itemData) return false;
-    const baseItem = gameData.allItems.find(i => i.name === itemData.name);
+    // Use itemsByName Map for O(1) lookup instead of array find
+    const baseItem = itemsByName.get(itemData.name);
     if (!baseItem) return false;
 
     let remainingQuantity = quantity;

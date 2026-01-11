@@ -5,11 +5,12 @@ import * as Interactions from './interactions.js';
 import * as Network from './network.js';
 import * as UIMain from './ui/ui-main.js';
 import * as UIPlayer from './ui/ui-player.js';
+import { DEFAULT_BONUS_STATS } from './shared.js';
 
 // --- CORE PLAYER STATS ---
 
 export function getBonusStats() {
-    const bonuses = { strength: 0, wisdom: 0, agility: 0, defense: 0, luck: 0, maxHealth: 0, mining: 0, fishing: 0, woodcutting: 0, harvesting: 0, physicalResistance: 0, rollBonus: 0, firePower: 0, arcanePower: 0, naturePower: 0, physicalPower: 0, frostPower: 0, holyPower: 0 };
+    const bonuses = { ...DEFAULT_BONUS_STATS };
     for (const slot in gameState.equipment) {
         const item = gameState.equipment[slot];
         if (item && item.hands === 2 && slot === 'offHand') continue;
