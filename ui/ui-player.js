@@ -222,7 +222,12 @@ export function renderInventory() {
 
         const item = gameState.inventory[i];
         if (item) {
-            const tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
+            let tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
+            if (item.socketedGem) {
+                tooltipContent += `<hr style="margin: 5px 0;"><strong>Socketed:</strong><br>`;
+                tooltipContent += `<span class="gem-icon">${item.socketedGem.icon}</span> <strong>${item.socketedGem.name}</strong><br>`;
+                tooltipContent += `<small>${item.socketedGem.description}</small>`;
+            }
             slot.onmouseover = () => showTooltip(tooltipContent);
             slot.onmouseout = () => hideTooltip();
 
@@ -387,6 +392,22 @@ export function renderEquipment() {
             }
 
             slotEl.innerHTML = `<div><strong>${slotNames[slotKey]}</strong></div>${itemText}${gemSlotHTML}<button class="btn btn-danger btn-sm" data-equipment-action="unequip" data-slot="${slotKey}">Unequip</button>`;
+
+            // Add tooltip
+            let tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
+            if (item.socketedGem) {
+                tooltipContent += `<hr style="margin: 5px 0;"><strong>Socketed:</strong><br>`;
+                tooltipContent += `<span class="gem-icon">${item.socketedGem.icon}</span> <strong>${item.socketedGem.name}</strong><br>`;
+                tooltipContent += `<small>${item.socketedGem.description}</small>`;
+                tooltipContent += `<br><small style="color:var(--accent-color)">Right-click gem slot to unsocket</small>`;
+            }
+            slotEl.onmouseover = (e) => {
+                // Don't show tooltip if hovering over buttons
+                if (e.target.closest('button')) return;
+                showTooltip(tooltipContent);
+            };
+            slotEl.onmouseout = () => hideTooltip();
+
         } else {
             slotEl.innerHTML = `<div><strong>${slotNames[slotKey]}</strong></div><div>Empty</div>`;
         }

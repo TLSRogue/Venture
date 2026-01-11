@@ -64,7 +64,14 @@ export function renderBankInterface() {
             slot.dataset.bankAction = 'withdraw';
             const originalIndex = gameState.bank.findIndex(bankItem => bankItem.name === item.name);
             slot.dataset.index = originalIndex;
-            slot.onmouseover = () => showTooltip(`<strong>${item.name}</strong><br>${item.description}<br><br>Click to Withdraw 1`);
+            let tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
+            if (item.socketedGem) {
+                tooltipContent += `<hr style="margin: 5px 0;"><strong>Socketed:</strong><br>`;
+                tooltipContent += `<span class="gem-icon">${item.socketedGem.icon}</span> <strong>${item.socketedGem.name}</strong><br>`;
+                tooltipContent += `<small>${item.socketedGem.description}</small>`;
+            }
+            tooltipContent += `<br><br>Click to Withdraw 1`;
+            slot.onmouseover = () => showTooltip(tooltipContent);
             slot.onmouseout = () => hideTooltip();
         } else {
             slot.classList.add('empty');
@@ -136,6 +143,11 @@ function renderStoragePanel(parentContainer, mode, storageSource = 'inventory') 
             if (isBank) slot.dataset.fromBank = 'true';
 
             let tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
+            if (item.socketedGem) {
+                tooltipContent += `<hr style="margin: 5px 0;"><strong>Socketed:</strong><br>`;
+                tooltipContent += `<span class="gem-icon">${item.socketedGem.icon}</span> <strong>${item.socketedGem.name}</strong><br>`;
+                tooltipContent += `<small>${item.socketedGem.description}</small>`;
+            }
             if (mode === 'sell' && item.price) {
                 const sellPrice = Math.floor(item.price / 2) || 1;
                 tooltipContent += `<hr style="margin: 5px 0;">Sell Price: ${sellPrice}g`;

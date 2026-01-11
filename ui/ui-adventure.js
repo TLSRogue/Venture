@@ -832,7 +832,12 @@ export function showBackpack() {
         slot.className = 'inventory-item';
 
         if (item) {
-            const tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
+            let tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
+            if (item.socketedGem) {
+                tooltipContent += `<hr style="margin: 5px 0;"><strong>Socketed:</strong><br>`;
+                tooltipContent += `<span class="gem-icon">${item.socketedGem.icon}</span> <strong>${item.socketedGem.name}</strong><br>`;
+                tooltipContent += `<small>${item.socketedGem.description}</small>`;
+            }
             slot.onmouseover = () => showTooltip(tooltipContent);
             slot.onmouseout = () => hideTooltip();
 
