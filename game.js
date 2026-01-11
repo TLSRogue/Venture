@@ -757,6 +757,15 @@ function addEventListeners() {
             return Interactions.interactWithCard(targetIdentifier);
         }
 
+        // Handle gem socket selection from modal (before button check since these are divs)
+        if (target.closest('[data-gem-socket-action]')) {
+            const gemOption = target.closest('[data-gem-socket-action]');
+            const gemIndex = parseInt(gemOption.dataset.gemIndex, 10);
+            const equipmentSlot = gemOption.dataset.equipmentSlot;
+            Player.socketGem(equipmentSlot, gemIndex);
+            return UIMain.hideModal();
+        }
+
         const button = target.closest('button');
         if (button) {
             if (button.id === 'ground-loot-btn') return UIAdventure.showGroundLootModal();
@@ -858,15 +867,6 @@ function addEventListeners() {
             }
             if (button.dataset.equipSlot) {
                 Player.equipItem(parseInt(button.dataset.itemIndex), button.dataset.equipSlot);
-                return UIMain.hideModal();
-            }
-
-            // Handle gem socket selection from modal
-            if (target.closest('[data-gem-socket-action]')) {
-                const gemOption = target.closest('[data-gem-socket-action]');
-                const gemIndex = parseInt(gemOption.dataset.gemIndex, 10);
-                const equipmentSlot = gemOption.dataset.equipmentSlot;
-                Player.socketGem(equipmentSlot, gemIndex);
                 return UIMain.hideModal();
             }
 
