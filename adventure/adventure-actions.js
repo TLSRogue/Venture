@@ -237,6 +237,9 @@ export async function processCastSpell(io, party, player, payload) {
         ? encounter.playerStates.find(p => p.playerId === player.id)
         : sharedState.partyMemberStates.find(p => p.playerId === player.id);
 
+    // Calculate bonuses early for spell scaling
+    const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+
     // --- Validation ---
     if (actingPlayerState.actionPoints < cost) return;
     if ((actingPlayerState.spellCooldowns[spell.name] || 0) > 0) return;
@@ -514,7 +517,16 @@ export async function processCastSpell(io, party, player, payload) {
 
             // Versatile Logic
             if (spell.type === 'versatile') {
-                const effectVal = spell.baseEffect + attackResult.modifiers.statValue;
+                let effectVal = spell.baseEffect || 0;
+
+                // Holy Shock Scaling
+                if (spell.school === 'Holy') {
+                    effectVal += (bonuses.holyPower || 0);
+                } else {
+                    // Fallback for other versatile spells (if any)
+                    effectVal += attackResult.modifiers.statValue;
+                }
+
                 // Check if target is friendly
                 const isFriendly = (isPvP && target.team === actingPlayerState.team) || (!isPvP && target.isPlayer);
 
@@ -531,20 +543,14 @@ export async function processCastSpell(io, party, player, payload) {
             // Special spell damage calculations
             if (!isHeal) {
                 if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
-                    const mainHand = character.equipment.mainHand;
-                    const offHand = character.equipment.offHand;
-                    let highestFireWeaponDamage = 0;
-                    if (mainHand?.weaponDamage && mainHand.damageType === 'Fire') {
-                        highestFireWeaponDamage = mainHand.weaponDamage;
-                    }
-                    if (offHand?.weaponDamage && offHand.damageType === 'Fire' && offHand !== mainHand) {
-                        highestFireWeaponDamage = Math.max(highestFireWeaponDamage, offHand.weaponDamage);
-                    }
-                    baseDamage = 1 + highestFireWeaponDamage;
+                    // New Formula: Base (1) + Fire Power
+                    const fireBonus = bonuses.firePower || 0;
+                    baseDamage = (spell.damage || 1) + fireBonus;
                 }
                 else if (spell.name === 'Cone of Cold') {
                     if (attackResult.total >= (spell.hit || 10)) {
-                        baseDamage = (spell.damage || 0) + attackResult.modifiers.statValue;
+                        // New Formula: Base + Frost Power
+                        baseDamage = (spell.damage || 0) + (bonuses.frostPower || 0);
                     } else {
                         baseDamage = 0;
                     }
