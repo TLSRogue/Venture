@@ -296,8 +296,8 @@ export async function processCastSpell(io, party, player, payload) {
     // So I need to deduct AP here.
 
     // --- EARLY VALIDATION FOR ATTACK SPELLS ---
-    // Check if this is an attack spell targeting an invalid target BEFORE consuming AP
-    if ((spell.type === 'attack' || spell.type === 'aoe') && !spell.aoeTargeting) {
+    // Only validate single-target attack spells (not versatile or aoe which have their own targeting logic)
+    if (spell.type === 'attack' && !spell.aoeTargeting) {
         // Single-target attack spell needs a valid enemy target
         if (!target || (!target.isPlayer && target.state?.type !== 'enemy')) {
             const log = isPvP ? pvpEncounters[sharedState.pvpEncounterId].log : sharedState.log;

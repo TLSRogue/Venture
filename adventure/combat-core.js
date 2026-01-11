@@ -85,7 +85,7 @@ export function normalizeTarget(sharedState, targetIndex, encounter) {
                     debuffs: memberState.debuffs,
                     team: null,
                     applyDamage: (amount) => {
-                        memberState.health = Math.max(0, memberState.health - amount);
+                        applyDamage(memberState, amount);
                     },
                     applyDebuff: (debuff) => {
                         const existingIndex = memberState.debuffs.findIndex(d => d.type === debuff.type);
