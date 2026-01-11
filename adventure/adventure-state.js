@@ -6,6 +6,7 @@ import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcas
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js';
 import { applyDamage } from './combat-core.js';
 import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS } from '../constants.js';
+import * as PartyManager from '../party/party-manager.js';
 
 const PVP_ZONES = ['blighted_wastes'];
 
@@ -93,16 +94,15 @@ function endPvpEncounter(io, winningParty, losingParty) {
             }
         });
 
-        // Clean up duel parties (they're always solo/temp)
+        // Clean up duel parties via centralized party manager
         [winningParty, losingParty].forEach(party => {
             party.members.forEach(memberName => {
                 const memberPlayer = players[memberName];
                 if (memberPlayer?.character) {
-                    memberPlayer.character.partyId = null;
                     memberPlayer.character.duelId = null;
                 }
             });
-            delete parties[party.id];
+            PartyManager.disbandParty(io, party.id);
         });
 
         return;
@@ -117,10 +117,9 @@ function endPvpEncounter(io, winningParty, losingParty) {
     });
 
     if (losingParty.isSoloParty) {
-        delete parties[losingParty.id];
+        PartyManager.cleanupSoloParty(io, losingParty);
     } else {
-        losingParty.sharedState = null;
-        broadcastPartyUpdate(io, losingParty.id);
+        PartyManager.endPartyAdventure(io, losingParty.id);
     }
 
     const { sharedState } = winningParty;
@@ -166,16 +165,15 @@ export function endDuelEncounter(io, winningParty, losingParty, encounter) {
         }
     });
 
-    // Clean up duel parties
+    // Clean up duel parties via centralized party manager
     [winningParty, losingParty].forEach(party => {
         party.members.forEach(memberName => {
             const memberPlayer = players[memberName];
             if (memberPlayer?.character) {
-                memberPlayer.character.partyId = null;
                 memberPlayer.character.duelId = null;
             }
         });
-        delete parties[party.id];
+        PartyManager.disbandParty(io, party.id);
     });
 }
 export function startPvpEncounter(io, partyA, partyB, isDuel = false) {
@@ -549,14 +547,9 @@ export async function processEndAdventure(io, player, party) {
             }
         });
         if (party.isSoloParty) {
-            if (player && player.character) {
-                player.character.partyId = null;
-                if (player.id) io.to(player.id).emit('partyUpdate', null);
-            }
-            delete parties[party.id];
+            PartyManager.cleanupSoloParty(io, party, player);
         } else {
-            party.sharedState = null;
-            broadcastPartyUpdate(io, party.id);
+            PartyManager.endPartyAdventure(io, party.id);
         }
     };
     const inCombat = sharedState.zoneCards.some(c => c && c.type === 'enemy');

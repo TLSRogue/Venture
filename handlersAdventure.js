@@ -9,6 +9,7 @@ import { ARENA_ENTRY_FEE } from './constants.js';
 import * as actions from './adventure/adventure-actions.js';
 import * as interactions from './adventure/adventure-interactions.js';
 import * as state from './adventure/adventure-state.js';
+import * as PartyManager from './party/party-manager.js';
 
 export const registerAdventureHandlers = (io, socket) => {
     socket.on('party:enterZone', (zoneName) => {
@@ -29,12 +30,9 @@ export const registerAdventureHandlers = (io, socket) => {
                 return socket.emit('partyError', 'Only the party leader can start an adventure.');
             }
         } else {
-            partyId = `SOLO-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-            party = { id: partyId, leaderId: name, members: [name], sharedState: null, isSoloParty: true };
-            parties[partyId] = party;
-            player.character.partyId = partyId;
-            socket.emit('partyUpdate', { partyId: partyId, leaderId: name, members: [{ name: name, id: socket.id, isLeader: true }], isPartyLeader: true });
-            console.log(`Player ${name} created temporary solo party ${partyId}`);
+            // Create temporary solo party via centralized party manager
+            party = PartyManager.createSoloParty(io, player, socket);
+            partyId = party.id;
         }
 
         const deck = buildZoneDeckForServer(zoneName);
