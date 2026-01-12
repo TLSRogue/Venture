@@ -659,6 +659,8 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             sharedState.log.push({ message: "--- Zone's Turn ---", type: 'info' });
         }
         broadcastAdventureUpdate(io, party);
+        // Small delay between player turn ending and first enemy action
+        await new Promise(resolve => setTimeout(resolve, 1500));
     }
     const enemies = sharedState.zoneCards.map((card, index) => ({ card, index })).filter(e => e.card && e.card.type === 'enemy');
     for (let i = startIndex; i < enemies.length; i++) {
