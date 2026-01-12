@@ -540,49 +540,16 @@ export async function processCastSpell(io, party, player, payload) {
                 }
             }
 
-            // Special spell damage calculations
+            // Special spell damage calculations - use unified handler
             if (!isHeal) {
-                if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
-                    // New Formula: Base (1) + Fire Power
-                    const fireBonus = bonuses.firePower || 0;
-                    baseDamage = (spell.damage || 1) + fireBonus;
+                const specialDamage = getSpecialSpellDamage(spell, character, actingPlayerState, bonuses);
+                if (specialDamage !== null) {
+                    baseDamage = specialDamage;
                 }
-                else if (spell.name === 'Cone of Cold') {
-                    if (attackResult.total >= (spell.hit || 10)) {
-                        // New Formula: Base + Frost Power
-                        baseDamage = (spell.damage || 0) + (bonuses.frostPower || 0);
-                    } else {
-                        baseDamage = 0;
-                    }
-                }
-                else if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
-                    const mainHand = character.equipment.mainHand;
-                    if (mainHand?.weaponDamage && spell.requires?.weaponType?.includes(mainHand.weaponType)) {
-                        baseDamage = mainHand.weaponDamage;
-                    }
-                }
-                else if (spell.name === 'Ambush') {
-                    let totalDaggerDamage = 0;
-                    ['mainHand', 'offHand'].forEach(hand => {
-                        const weapon = character.equipment[hand];
-                        if (weapon?.weaponType === 'Dagger') {
-                            totalDaggerDamage += weapon.weaponDamage || 0;
-                        }
-                    });
-                    baseDamage = totalDaggerDamage;
-                    if (!spell.debuff) {
-                        spell.debuff = { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' };
-                    }
-                }
-                else if (spell.name === 'Punch' || spell.name === 'Kick') {
-                    const hasMonkTraining = character.equippedSpells.some(s => s.name === "Monk's Training");
-                    const isUnarmed = !character.equipment.mainHand && !character.equipment.offHand;
-                    if (hasMonkTraining && isUnarmed) {
-                        baseDamage += 1;
-                    }
-                }
-                else if (spell.name === 'Crushing Blow' || spell.name === 'Dagger Throw') {
-                    baseDamage = (character.equipment.mainHand?.weaponDamage || 0) + (spell.damageBonus || 0);
+
+                // Ambush applies bleed debuff if not already defined
+                if (spell.name === 'Ambush' && !spell.debuff) {
+                    spell.debuff = { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' };
                 }
             }
 

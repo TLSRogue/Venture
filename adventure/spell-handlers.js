@@ -41,31 +41,43 @@ export const SpellHandlers = {
 };
 
 /**
- * Calculates raw damage for specific spells that have unique scaling logic.
- * Default behavior (base + stat) is handled in combat-core if this returns null.
+ * Calculates raw damage for spells that have unique scaling or weapon-based logic.
+ * This is the single source of truth for special spell damage calculations.
+ * 
+ * @param {object} spell - The spell being cast
+ * @param {object} character - The caster's character data
+ * @param {object} actingPlayerState - The caster's combat state
+ * @param {object} bonuses - Pre-calculated stat bonuses (optional, will be computed if not provided)
+ * @returns {number|null} The calculated base damage, or null for default spell.damage behavior
  */
-export function getSpecialSpellDamage(spell, character, actingPlayerState) {
-    let baseDamage = null;
-
-    if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
-        const mainHand = character.equipment.mainHand;
-        const offHand = character.equipment.offHand;
-        let highestFireWeaponDamage = 0;
-        if (mainHand?.weaponDamage && mainHand.damageType === 'Fire') {
-            highestFireWeaponDamage = mainHand.weaponDamage;
-        }
-        if (offHand?.weaponDamage && offHand.damageType === 'Fire' && offHand !== mainHand) {
-            highestFireWeaponDamage = Math.max(highestFireWeaponDamage, offHand.weaponDamage);
-        }
-        baseDamage = 1 + highestFireWeaponDamage;
+export function getSpecialSpellDamage(spell, character, actingPlayerState, bonuses = null) {
+    // Compute bonuses if not provided
+    if (!bonuses) {
+        bonuses = getBonusStatsForPlayer(character, actingPlayerState);
     }
-    else if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
+
+    // --- Fire Spells: Base + Fire Power ---
+    if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
+        const fireBonus = bonuses.firePower || 0;
+        return (spell.damage || 1) + fireBonus;
+    }
+
+    // --- Frost Spells: Base + Frost Power ---
+    if (spell.name === 'Cone of Cold') {
+        return (spell.damage || 0) + (bonuses.frostPower || 0);
+    }
+
+    // --- Bow Spells: Weapon Damage ---
+    if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
         const mainHand = character.equipment.mainHand;
         if (mainHand?.weaponDamage && spell.requires?.weaponType?.includes(mainHand.weaponType)) {
-            baseDamage = mainHand.weaponDamage;
+            return mainHand.weaponDamage;
         }
+        return spell.damage || 0;
     }
-    else if (spell.name === 'Ambush') {
+
+    // --- Rogue Spells: Dagger Damage ---
+    if (spell.name === 'Ambush') {
         let totalDaggerDamage = 0;
         ['mainHand', 'offHand'].forEach(hand => {
             const weapon = character.equipment[hand];
@@ -73,19 +85,25 @@ export function getSpecialSpellDamage(spell, character, actingPlayerState) {
                 totalDaggerDamage += weapon.weaponDamage || 0;
             }
         });
-        baseDamage = totalDaggerDamage;
+        return totalDaggerDamage;
     }
-    else if (spell.name === 'Punch' || spell.name === 'Kick') {
-        baseDamage = spell.damage || 1;
+
+    // --- Monk Spells: Unarmed Bonus ---
+    if (spell.name === 'Punch' || spell.name === 'Kick') {
+        let baseDamage = spell.damage || 1;
         const hasMonkTraining = character.equippedSpells.some(s => s.name === "Monk's Training");
         const isUnarmed = !character.equipment.mainHand && !character.equipment.offHand;
         if (hasMonkTraining && isUnarmed) {
             baseDamage += 1;
         }
-    }
-    else if (spell.name === 'Crushing Blow' || spell.name === 'Dagger Throw') {
-        baseDamage = (character.equipment.mainHand?.weaponDamage || 0) + (spell.damageBonus || 0);
+        return baseDamage;
     }
 
-    return baseDamage;
+    // --- Weapon-Based Spells: MainHand Damage + Bonus ---
+    if (spell.name === 'Crushing Blow' || spell.name === 'Dagger Throw') {
+        return (character.equipment.mainHand?.weaponDamage || 0) + (spell.damageBonus || 0);
+    }
+
+    // No special handling - return null to use default spell.damage
+    return null;
 }
