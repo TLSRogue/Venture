@@ -669,8 +669,6 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
         if (!enemy || enemy.health <= 0) continue;
         try {
 
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
             // Helper for End of Turn (Damage + Decrement)
             const processEndOfTurn = () => {
                 let damageTaken = false;
@@ -1241,7 +1239,9 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             // --- END OF TURN PROCESSING (DoT + Decrement) ---
             if (processEndOfTurn()) continue;
 
+            // Broadcast and delay so players see each enemy act sequentially
             broadcastAdventureUpdate(io, party);
+            await new Promise(resolve => setTimeout(resolve, 1200));
         } catch (error) {
             console.error(`Error processing turn for enemy ${enemy.name}:`, error);
         }
