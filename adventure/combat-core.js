@@ -8,7 +8,71 @@ import { players, pvpEncounters } from '../serverState.js';
 import { getBonusStatsForPlayer } from '../utilsHelpers.js';
 
 // --- TARGET NORMALIZATION ---
-// These functions create a unified interface for both enemy cards and player states
+
+/**
+ * Factory function to create a unified target wrapper with common methods.
+ * This eliminates code duplication across PvP players, PvE players, and enemies.
+ * 
+ * @param {object} state - The underlying state object (player state or enemy card)
+ * @param {object} options - Configuration for this target type
+ * @returns {object} Normalized target with unified interface
+ */
+function createTargetWrapper(state, options) {
+    const {
+        isPvP = false,
+        isPlayer = false,
+        id,
+        name,
+        character = null,
+        team = null,
+        cardIndex = null,
+        getResistanceImpl = () => 0
+    } = options;
+
+    // Ensure buffs/debuffs arrays exist
+    if (!state.buffs) state.buffs = [];
+    if (!state.debuffs) state.debuffs = [];
+
+    return {
+        isPvP,
+        isPlayer,
+        id,
+        name,
+        state,
+        character,
+        health: state.health,
+        maxHealth: state.maxHealth || state.health,
+        buffs: state.buffs,
+        debuffs: state.debuffs,
+        team,
+        cardIndex,
+
+        applyDamage: (amount) => {
+            applyDamage(state, amount);
+        },
+
+        applyDebuff: (debuff) => {
+            const existingIndex = state.debuffs.findIndex(d => d.type === debuff.type);
+            if (existingIndex !== -1) state.debuffs.splice(existingIndex, 1);
+            state.debuffs.push({ ...debuff });
+        },
+
+        applyBuff: (buff) => {
+            const existingIndex = state.buffs.findIndex(b => b.type === buff.type);
+            if (existingIndex !== -1) state.buffs.splice(existingIndex, 1);
+            state.buffs.push({ ...buff });
+        },
+
+        heal: (amount) => {
+            const max = state.maxHealth || state.health + amount;
+            state.health = Math.min(max, state.health + amount);
+        },
+
+        isDead: () => state.health <= 0 || state.isDead,
+
+        getResistance: getResistanceImpl
+    };
+}
 
 /**
  * Normalize a target (enemy or player) into a common interface.
@@ -26,138 +90,62 @@ export function normalizeTarget(sharedState, targetIndex, encounter) {
         const playerObj = players[playerState.name];
         const character = playerObj?.character;
 
-        return {
+        return createTargetWrapper(playerState, {
             isPvP: true,
             isPlayer: true,
             id: playerState.playerId,
             name: playerState.name,
-            state: playerState,
-            character: character,
-            health: playerState.health,
-            maxHealth: playerState.maxHealth,
-            buffs: playerState.buffs,
-            debuffs: playerState.debuffs,
+            character,
             team: playerState.team,
-            // Unified damage application
-            applyDamage: (amount) => {
-                applyDamage(playerState, amount);
-            },
-            applyDebuff: (debuff) => {
-                const existingIndex = playerState.debuffs.findIndex(d => d.type === debuff.type);
-                if (existingIndex !== -1) playerState.debuffs.splice(existingIndex, 1);
-                playerState.debuffs.push({ ...debuff });
-            },
-            applyBuff: (buff) => {
-                const existingIndex = playerState.buffs.findIndex(b => b.type === buff.type);
-                if (existingIndex !== -1) playerState.buffs.splice(existingIndex, 1);
-                playerState.buffs.push({ ...buff });
-            },
-            heal: (amount) => {
-                playerState.health = Math.min(playerState.maxHealth, playerState.health + amount);
-            },
-            isDead: () => playerState.health <= 0,
-            getResistance: (damageType) => {
+            getResistanceImpl: (damageType) => {
                 if (damageType === 'Physical' && character) {
                     const bonuses = getBonusStatsForPlayer(character, playerState);
                     return bonuses.physicalResistance || 0;
                 }
                 return 0;
             }
-        };
-    } else {
-        // PvE
-        // Check for Party Member (pX)
-        if (typeof targetIndex === 'string' && targetIndex.startsWith('p')) {
-            const idx = parseInt(targetIndex.substring(1));
-            const memberState = sharedState.partyMemberStates[idx];
-
-            if (memberState) {
-                return {
-                    isPvP: false,
-                    isPlayer: true,
-                    id: memberState.playerId,
-                    name: memberState.name,
-                    state: memberState,
-                    character: null, // character data not always readily available in sharedState without lookup, but usually not needed for target reception
-                    health: memberState.health,
-                    maxHealth: memberState.maxHealth,
-                    buffs: memberState.buffs,
-                    debuffs: memberState.debuffs,
-                    team: null,
-                    applyDamage: (amount) => {
-                        applyDamage(memberState, amount);
-                    },
-                    applyDebuff: (debuff) => {
-                        const existingIndex = memberState.debuffs.findIndex(d => d.type === debuff.type);
-                        if (existingIndex !== -1) memberState.debuffs.splice(existingIndex, 1);
-                        memberState.debuffs.push({ ...debuff });
-                    },
-                    applyBuff: (buff) => {
-                        const existingIndex = memberState.buffs.findIndex(b => b.type === buff.type);
-                        if (existingIndex !== -1) memberState.buffs.splice(existingIndex, 1);
-                        memberState.buffs.push({ ...buff });
-                    },
-                    heal: (amount) => {
-                        memberState.health = Math.min(memberState.maxHealth, memberState.health + amount);
-                    },
-                    isDead: () => memberState.health <= 0 || memberState.isDead,
-                    getResistance: (damageType) => {
-                        // PvE players might have resistance buffs
-                        if (damageType === 'Physical') {
-                            const buff = memberState.buffs?.find(b => b.bonus?.physicalResistance);
-                            return buff ? buff.bonus.physicalResistance : 0;
-                        }
-                        return 0;
-                    }
-                };
-            }
-        }
-
-        // PvE: target is an enemy card
-        const enemy = sharedState.zoneCards[targetIndex];
-        if (!enemy || enemy.type !== 'enemy') return null;
-
-        return {
-            isPvP: false,
-            isPlayer: false,
-            id: enemy.id,
-            name: enemy.name,
-            state: enemy,
-            character: null,
-            health: enemy.health,
-            maxHealth: enemy.maxHealth || enemy.health,
-            buffs: enemy.buffs || [],
-            debuffs: enemy.debuffs || [],
-            team: null,
-            cardIndex: targetIndex,
-            applyDamage: (amount) => {
-                applyDamage(enemy, amount);
-            },
-            applyDebuff: (debuff) => {
-                if (!enemy.debuffs) enemy.debuffs = [];
-                const existingIndex = enemy.debuffs.findIndex(d => d.type === debuff.type);
-                if (existingIndex !== -1) enemy.debuffs.splice(existingIndex, 1);
-                enemy.debuffs.push({ ...debuff });
-            },
-            applyBuff: (buff) => {
-                if (!enemy.buffs) enemy.buffs = [];
-                const existingIndex = enemy.buffs.findIndex(b => b.type === buff.type);
-                if (existingIndex !== -1) enemy.buffs.splice(existingIndex, 1);
-                enemy.buffs.push({ ...buff });
-            },
-            heal: (amount) => {
-                const max = enemy.maxHealth || enemy.health + amount;
-                enemy.health = Math.min(max, enemy.health + amount);
-            },
-            isDead: () => enemy.health <= 0,
-            getResistance: (damageType) => {
-                if (damageType === 'Physical') {
-                    return enemy.buffs?.find(b => b.bonus?.physicalResistance)?.bonus.physicalResistance || 0;
-                }
-                return 0;
-            }
-        };
+        });
     }
+
+    // PvE: Check for Party Member (pX)
+    if (typeof targetIndex === 'string' && targetIndex.startsWith('p')) {
+        const idx = parseInt(targetIndex.substring(1));
+        const memberState = sharedState.partyMemberStates[idx];
+
+        if (memberState) {
+            return createTargetWrapper(memberState, {
+                isPvP: false,
+                isPlayer: true,
+                id: memberState.playerId,
+                name: memberState.name,
+                getResistanceImpl: (damageType) => {
+                    if (damageType === 'Physical') {
+                        const buff = memberState.buffs?.find(b => b.bonus?.physicalResistance);
+                        return buff ? buff.bonus.physicalResistance : 0;
+                    }
+                    return 0;
+                }
+            });
+        }
+    }
+
+    // PvE: target is an enemy card
+    const enemy = sharedState.zoneCards[targetIndex];
+    if (!enemy || enemy.type !== 'enemy') return null;
+
+    return createTargetWrapper(enemy, {
+        isPvP: false,
+        isPlayer: false,
+        id: enemy.id,
+        name: enemy.name,
+        cardIndex: targetIndex,
+        getResistanceImpl: (damageType) => {
+            if (damageType === 'Physical') {
+                return enemy.buffs?.find(b => b.bonus?.physicalResistance)?.bonus.physicalResistance || 0;
+            }
+            return 0;
+        }
+    });
 }
 
 /**
@@ -174,60 +162,32 @@ export function normalizeFriendlyTarget(sharedState, targetIndex, actingPlayerId
         }
         if (!playerState) return null;
 
-        return {
+        return createTargetWrapper(playerState, {
             isPvP: true,
             isPlayer: true,
             id: playerState.playerId,
-            name: playerState.name,
-            state: playerState,
-            health: playerState.health,
-            maxHealth: playerState.maxHealth,
-            buffs: playerState.buffs,
-            debuffs: playerState.debuffs,
-            heal: (amount) => {
-                playerState.health = Math.min(playerState.maxHealth, playerState.health + amount);
-            },
-            applyBuff: (buff) => {
-                const existingIndex = playerState.buffs.findIndex(b => b.type === buff.type);
-                if (existingIndex !== -1) playerState.buffs.splice(existingIndex, 1);
-                playerState.buffs.push({ ...buff });
-            },
-            isDead: () => playerState.isDead
-        };
-    } else {
-        // PvE: Party member state
-        let memberState;
-        if (targetIndex === 'player') {
-            memberState = sharedState.partyMemberStates.find(p => p.playerId === actingPlayerId);
-        } else if (typeof targetIndex === 'string' && targetIndex.startsWith('p')) {
-            const idx = parseInt(targetIndex.substring(1));
-            memberState = sharedState.partyMemberStates[idx];
-        } else {
-            memberState = sharedState.partyMemberStates.find(p => p.playerId === targetIndex);
-        }
-        if (!memberState) return null;
-
-        return {
-            isPvP: false,
-            isPlayer: true,
-            id: memberState.playerId,
-            name: memberState.name,
-            state: memberState,
-            health: memberState.health,
-            maxHealth: memberState.maxHealth,
-            buffs: memberState.buffs,
-            debuffs: memberState.debuffs,
-            heal: (amount) => {
-                memberState.health = Math.min(memberState.maxHealth, memberState.health + amount);
-            },
-            applyBuff: (buff) => {
-                const existingIndex = memberState.buffs.findIndex(b => b.type === buff.type);
-                if (existingIndex !== -1) memberState.buffs.splice(existingIndex, 1);
-                memberState.buffs.push({ ...buff });
-            },
-            isDead: () => memberState.isDead
-        };
+            name: playerState.name
+        });
     }
+
+    // PvE: Party member state
+    let memberState;
+    if (targetIndex === 'player') {
+        memberState = sharedState.partyMemberStates.find(p => p.playerId === actingPlayerId);
+    } else if (typeof targetIndex === 'string' && targetIndex.startsWith('p')) {
+        const idx = parseInt(targetIndex.substring(1));
+        memberState = sharedState.partyMemberStates[idx];
+    } else {
+        memberState = sharedState.partyMemberStates.find(p => p.playerId === targetIndex);
+    }
+    if (!memberState) return null;
+
+    return createTargetWrapper(memberState, {
+        isPvP: false,
+        isPlayer: true,
+        id: memberState.playerId,
+        name: memberState.name
+    });
 }
 
 // --- COMBAT ROLL RESOLUTION ---
