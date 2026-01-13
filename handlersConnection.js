@@ -12,6 +12,35 @@ import { endDuel } from './handlersDuel.js';
 import { handlePvpPlayerDeath } from './adventure/adventure-state.js';
 import fs from 'fs';
 import { DUEL_DISCONNECT_MS } from './constants.js';
+import { gameData } from './data/index.js';
+
+/**
+ * Refreshes player spells to match current definitions.
+ * This ensures players get updated spell properties (like crossbow support for bow spells).
+ */
+function refreshPlayerSpells(character, characterName) {
+    // List of spells that may need updates
+    const spellsToRefresh = ['Aim True', 'Split Shot', 'Evasive Shot'];
+
+    spellsToRefresh.forEach(spellName => {
+        const currentDef = gameData.allSpells.find(s => s.name === spellName);
+        if (!currentDef) return;
+
+        // Update in equipped spells
+        const equippedIdx = character.equippedSpells?.findIndex(s => s && s.name === spellName);
+        if (equippedIdx !== undefined && equippedIdx !== -1) {
+            character.equippedSpells[equippedIdx] = { ...currentDef };
+            console.log(`[Spell Refresh] Updated ${spellName} for ${characterName} (equipped)`);
+        }
+
+        // Update in spellbook
+        const spellbookIdx = character.spellbook?.findIndex(s => s && s.name === spellName);
+        if (spellbookIdx !== undefined && spellbookIdx !== -1) {
+            character.spellbook[spellbookIdx] = { ...currentDef };
+            console.log(`[Spell Refresh] Updated ${spellName} for ${characterName} (spellbook)`);
+        }
+    });
+}
 
 export const registerConnectionHandlers = (io, socket) => {
 
@@ -64,6 +93,10 @@ export const registerConnectionHandlers = (io, socket) => {
             socket.characterName = name;
             characterToUpdate = characterDataFromClient;
         }
+
+        // --- RUNTIME SPELL REFRESH ---
+        // Always update spells to current definitions to ensure new properties are applied
+        refreshPlayerSpells(characterToUpdate, name);
 
         // Send the authoritative state to the client for this session
         if (characterToUpdate.duelId && duels[characterToUpdate.duelId]) {
