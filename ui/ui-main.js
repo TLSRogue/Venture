@@ -125,3 +125,54 @@ export function addToLog(message, type = 'info') {
 export function setTabsDisabled(isDisabled) {
     document.querySelectorAll('.tab').forEach(tab => { tab.disabled = isDisabled; });
 }
+
+/**
+ * Build a consistent tooltip for items with tier, rarity, and description
+ * @param {Object} item The item object
+ * @param {Object} options Optional overrides { showPrice: true, action: 'Click to Buy' }
+ * @returns {string} HTML tooltip content
+ */
+export function buildItemTooltip(item, options = {}) {
+    if (!item) return '';
+
+    // Tier badge with color
+    const tierColors = { 1: '#aaa', 2: '#2ecc71', 3: '#3498db', 4: '#9b59b6', 5: '#f39c12' };
+    const tierColor = tierColors[item.tier] || '#aaa';
+    const tierBadge = item.tier ? `<span style="color:${tierColor};font-weight:bold;">T${item.tier}</span> ` : '';
+
+    // Rarity color
+    const rarityColors = { common: '#9e9e9e', uncommon: '#4caf50', rare: '#2196f3', epic: '#9c27b0', legendary: '#ff9800', quest: '#f1c40f' };
+    const rarityColor = rarityColors[item.rarity] || '#9e9e9e';
+
+    let tooltip = `<strong style="color:${rarityColor}">${tierBadge}${item.name}</strong>`;
+
+    // Type line
+    if (item.type && item.type !== 'material') {
+        const typeLabel = item.weaponType || item.type.charAt(0).toUpperCase() + item.type.slice(1);
+        tooltip += `<br><em style="color:#888">${typeLabel}</em>`;
+    }
+
+    // Description
+    if (item.description) {
+        tooltip += `<br>${item.description}`;
+    }
+
+    // Price
+    if (options.showPrice && item.price) {
+        tooltip += `<br><span style="color:#f1c40f">${item.price}g</span>`;
+    }
+
+    // Socketed gem
+    if (item.socketedGem) {
+        tooltip += `<hr style="margin: 5px 0;"><strong>Socketed:</strong><br>`;
+        tooltip += `<span class="gem-icon">${item.socketedGem.icon}</span> <strong>${item.socketedGem.name}</strong><br>`;
+        tooltip += `<small>${item.socketedGem.description}</small>`;
+    }
+
+    // Action hint
+    if (options.action) {
+        tooltip += `<br><br><em style="color:#aaa">${options.action}</em>`;
+    }
+
+    return tooltip;
+}

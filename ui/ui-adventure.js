@@ -2,7 +2,7 @@
 
 import { gameState } from '../state.js';
 import { socket } from '../network.js';
-import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js';
+import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip } from './ui-main.js';
 import { getBonusStats } from '../player.js';
 
 let reactionTimerInterval = null;
@@ -993,10 +993,8 @@ export function showGroundLootModal() {
             const itemEl = document.createElement('div');
             itemEl.className = 'inventory-item ground-loot-item';
 
-            // Add tooltip on hover
-            let tooltipContent = `<strong>${item.name}</strong>`;
-            if (item.description) tooltipContent += `<br>${item.description}`;
-            if (item.quantity > 1) tooltipContent += `<br>Quantity: ${item.quantity}`;
+            // Build tooltip using helper
+            const tooltipContent = buildItemTooltip(item, { action: 'Click Take to pick up' });
             itemEl.onmouseover = () => showTooltip(tooltipContent);
             itemEl.onmouseout = () => hideTooltip();
 
@@ -1024,10 +1022,8 @@ export function showGroundLootModal() {
         const itemEl = document.createElement('div');
         itemEl.className = 'inventory-item';
         if (item) {
-            // Add tooltip on hover
-            let tooltipContent = `<strong>${item.name}</strong>`;
-            if (item.description) tooltipContent += `<br>${item.description}`;
-            if (item.quantity > 1) tooltipContent += `<br>Quantity: ${item.quantity}`;
+            // Build tooltip using helper
+            const tooltipContent = buildItemTooltip(item, { action: 'Click Drop to put on ground' });
             itemEl.onmouseover = () => showTooltip(tooltipContent);
             itemEl.onmouseout = () => hideTooltip();
 

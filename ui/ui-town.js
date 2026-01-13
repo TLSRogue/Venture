@@ -3,7 +3,7 @@
 import { gameData } from '../data/index.js';
 import { gameState } from '../state.js';
 import * as Network from '../network.js';
-import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js'; // BUG FIX: Added hideTooltip
+import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip } from './ui-main.js';
 
 // --- LOCAL STATE & HELPERS ---
 
@@ -64,13 +64,7 @@ export function renderBankInterface() {
             slot.dataset.bankAction = 'withdraw';
             const originalIndex = gameState.bank.findIndex(bankItem => bankItem.name === item.name);
             slot.dataset.index = originalIndex;
-            let tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
-            if (item.socketedGem) {
-                tooltipContent += `<hr style="margin: 5px 0;"><strong>Socketed:</strong><br>`;
-                tooltipContent += `<span class="gem-icon">${item.socketedGem.icon}</span> <strong>${item.socketedGem.name}</strong><br>`;
-                tooltipContent += `<small>${item.socketedGem.description}</small>`;
-            }
-            tooltipContent += `<br><br>Click to Withdraw 1`;
+            let tooltipContent = buildItemTooltip(item, { action: 'Click to Withdraw 1' });
             slot.onmouseover = () => showTooltip(tooltipContent);
             slot.onmouseout = () => hideTooltip();
         } else {
@@ -142,12 +136,7 @@ function renderStoragePanel(parentContainer, mode, storageSource = 'inventory') 
             slot.dataset.index = i;
             if (isBank) slot.dataset.fromBank = 'true';
 
-            let tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
-            if (item.socketedGem) {
-                tooltipContent += `<hr style="margin: 5px 0;"><strong>Socketed:</strong><br>`;
-                tooltipContent += `<span class="gem-icon">${item.socketedGem.icon}</span> <strong>${item.socketedGem.name}</strong><br>`;
-                tooltipContent += `<small>${item.socketedGem.description}</small>`;
-            }
+            let tooltipContent = buildItemTooltip(item);
             if (mode === 'sell' && item.price) {
                 const sellPrice = Math.floor(item.price / 2) || 1;
                 tooltipContent += `<hr style="margin: 5px 0;">Sell Price: ${sellPrice}g`;
@@ -197,7 +186,7 @@ export function renderMerchant() {
         itemEl.dataset.buyItem = item.name;
         itemEl.dataset.permanent = 'true';
 
-        itemEl.addEventListener('mouseover', () => showTooltip(`<strong>${item.name}</strong> (${item.price}g)<br>${item.description}<br><br>Click to Buy`));
+        itemEl.addEventListener('mouseover', () => showTooltip(buildItemTooltip(item, { showPrice: true, action: 'Click to Buy' })));
         itemEl.addEventListener('mouseout', () => hideTooltip());
 
         if (gameState.gold < item.price) {
@@ -223,7 +212,7 @@ export function renderMerchant() {
             itemEl.dataset.buyItem = index;
             itemEl.dataset.permanent = 'false';
 
-            itemEl.addEventListener('mouseover', () => showTooltip(`<strong>${item.name}</strong> (${item.price}g)<br>${item.description}<br><br>Click to Buy`));
+            itemEl.addEventListener('mouseover', () => showTooltip(buildItemTooltip(item, { showPrice: true, action: 'Click to Buy' })));
             itemEl.addEventListener('mouseout', () => hideTooltip());
 
             if (gameState.gold < item.price || item.quantity <= 0) {

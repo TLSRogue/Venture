@@ -5,6 +5,7 @@ export const allItems = [
         name: "Obsidian Chunk",
         price: 150,
         type: "material",
+        tier: 2,
         description: "A shard of razor-sharp volcanic glass, pulsating with heat.",
         icon: "🖤",
         rarity: "rare",
@@ -14,6 +15,7 @@ export const allItems = [
         name: "Ashenwood Log",
         price: 120,
         type: "material",
+        tier: 2,
         description: "A petrified, soot-blackened log from a tree that survived the wastes.",
         icon: "🪵",
         rarity: "rare",
@@ -23,6 +25,7 @@ export const allItems = [
         name: "Drake Scale",
         price: 200,
         type: "material",
+        tier: 2,
         description: "An iridescent, incredibly durable scale from a drake.",
         icon: "鱗",
         rarity: "rare",
@@ -34,6 +37,7 @@ export const allItems = [
         name: "Healing Potion",
         price: 25,
         type: "consumable",
+        tier: 1,
         cost: 1,
         heal: 3,
         description: "A crimson elixir that mends wounds in moments. 1 AP | Heals 3 HP.",
@@ -45,6 +49,7 @@ export const allItems = [
         name: "Cooked Fish",
         price: 30,
         type: "consumable",
+        tier: 1,
         cost: 1,
         heal: 3,
         buff: { type: 'Well Fed (Agi)', duration: 2, bonus: { agility: 1 } },
@@ -57,53 +62,58 @@ export const allItems = [
         name: "Cooked Pork",
         price: 30,
         type: "consumable",
+        tier: 1,
         cost: 1,
         heal: 3,
         buff: { type: 'Well Fed (Str)', duration: 2, bonus: { strength: 1 } },
         description: "Savory roasted pork that fuels battle fury. 1 AP | Heals 3 HP, +1 Strength for 2 turns.",
         icon: "🍖",
         rarity: "uncommon",
-        canBeInMerchantWares: false, // Crafted only
+        canBeInMerchantWares: false,
     },
     {
         name: "Cooked Chicken",
         price: 30,
         type: "consumable",
+        tier: 1,
         cost: 1,
         heal: 4,
         description: "A simple but hearty meal, roasted to perfection. 1 AP | Heals 4 HP.",
         icon: "🍗",
         rarity: "uncommon",
-        canBeInMerchantWares: false, // Crafted only
+        canBeInMerchantWares: false,
     },
     {
         name: "Spiced Carrots",
         price: 30,
         type: "consumable",
+        tier: 1,
         cost: 1,
         heal: 3,
         buff: { type: 'Well Fed (Wis)', duration: 2, bonus: { wisdom: 1 } },
         description: "A fragrant dish that clears the mind. 1 AP | Heals 3 HP, +1 Wisdom for 2 turns.",
         icon: "🥣",
         rarity: "uncommon",
-        canBeInMerchantWares: false, // Crafted only
+        canBeInMerchantWares: false,
     },
     {
         name: "Birthday Cake",
         price: 100,
         type: "consumable",
+        tier: 1,
         cost: 1,
         heal: 2,
         charges: 3,
         description: "A delicious layered cake for celebrations. 1 AP | Heals 2 HP. Has 3 uses.",
         icon: "🎂",
         rarity: "rare",
-        canBeInMerchantWares: false, // Crafted only via quest
+        canBeInMerchantWares: false,
     },
     {
         name: "Wooden Torch",
         price: 30,
         type: "consumable",
+        tier: 1,
         cost: 0,
         buff: { type: 'Light Source', duration: 4 },
         description: "A flickering flame atop a wooden stick. Illuminates dark areas for 3 turns. Free to use.",
@@ -115,26 +125,28 @@ export const allItems = [
         name: "Powder Keg",
         price: 100,
         type: "consumable",
+        tier: 1,
         cost: 1,
         description: "An explosive barrel packed with black powder. 1 AP | Deals 3 Fire damage to all enemies (12+ to avoid).",
         icon: "💣",
         rarity: "uncommon",
-        canBeInMerchantWares: false, // Crafted only
+        canBeInMerchantWares: false,
     },
     {
         name: "Rotten Egg",
-        price: 1,
+        price: 50,
         type: "consumable",
+        tier: 1,
         cost: 1,
-        targetEnemy: true, // New flag: this consumable requires an enemy target
-        hit: 11, // Roll needed to hit
+        targetEnemy: true,
+        hit: 11,
         damage: 1,
         damageType: "Physical",
         onHit: { debuff: { type: 'daze', duration: 2 } },
-        description: "A foul-smelling egg from a chicken past its prime. 1 AP | D20 (11+) | Deals 1 damage and Dazes.",
+        description: "A foul-smelling egg from a chicken past its prime. 1 AP | D20 (11+) | Deals 1 Physical damage and Dazes for 2 turns.",
         icon: "🥚",
         rarity: "uncommon",
-        canBeInMerchantWares: false, // Chicken drop
+        canBeInMerchantWares: false,
     },
 
     // --- Ammunition ---
@@ -209,6 +221,7 @@ export const allItems = [
         slot: "mainHand",
         cost: 1,
         cooldown: 1,
+        stat: "strength",
         hit: 10,
         range: "melee",
         weaponType: "One-Hand Sword",
@@ -393,6 +406,8 @@ export const allItems = [
         hands: 2,
         cost: 1,
         cooldown: 2,
+        stat: "strength",
+        hit: 10,
         range: "melee",
         weaponDamage: 5,
         damageType: "Physical",
@@ -402,7 +417,7 @@ export const allItems = [
         tier: 1,
         icon: "🔨",
         rarity: "rare",
-        canBeInMerchantWares: false, // Boss Drop
+        canBeInMerchantWares: false,
     },
     {
         name: "Iron Spear",
@@ -650,25 +665,26 @@ export const allItems = [
     },
 
     // --- Materials ---
-    { name: "Iron", type: "material", price: 10, description: "A chunk of raw iron.", icon: "🪨", rarity: "common", canBeInMerchantWares: true, },
-    { name: "Wood", type: "material", price: 5, description: "A sturdy log of wood.", icon: "🪵", rarity: "common", canBeInMerchantWares: true, },
-    { name: "Fish", type: "material", price: 8, description: "A fresh fish.", icon: "🐟", rarity: "common", canBeInMerchantWares: false, },
-    { name: "Pork", type: "material", price: 10, description: "A slab of raw pork.", icon: "🍖", rarity: "common", canBeInMerchantWares: false, },
-    { name: "Cow Hide", type: "material", price: 15, description: "A tough piece of leather.", icon: "🐮", rarity: "common", canBeInMerchantWares: true, },
-    { name: "Vines", type: "material", price: 15, description: "A length of sturdy vine.", icon: "🌿", rarity: "common", canBeInMerchantWares: true, },
-    { name: "Coal", type: "material", price: 15, description: "A lump of coal.", icon: "⚫", rarity: "common", canBeInMerchantWares: true, },
-    { name: "Goblin Head", type: "material", price: 30, description: "A gruesome trophy.", icon: "💀", rarity: "common", canBeInMerchantWares: false, },
-    { name: "Animal Fat", type: "material", price: 5, description: "A greasy lump of fat.", icon: "🧈", rarity: "common", canBeInMerchantWares: false, },
-    { name: "Steel Bar", type: "material", price: 50, description: "A strong metal bar.", icon: "🔗", rarity: "uncommon", canBeInMerchantWares: false, },
-    { name: "Spices", type: "material", price: 10, description: "A blend of savory spices.", icon: "🌶️", stackable: 200, rarity: "common", canBeInMerchantWares: true, },
-    { name: "Cloth", type: "material", price: 8, description: "A piece of rough cloth.", icon: "📜", rarity: "common", canBeInMerchantWares: true, },
-    { name: "Gold Nugget", type: "material", price: 50, description: "A small but valuable nugget of pure gold.", icon: "🪙", rarity: "uncommon", canBeInMerchantWares: false, },
+    { name: "Iron", type: "material", tier: 1, price: 10, description: "A chunk of raw iron.", icon: "🪨", rarity: "common", canBeInMerchantWares: true },
+    { name: "Wood", type: "material", tier: 1, price: 5, description: "A sturdy log of wood.", icon: "🪵", rarity: "common", canBeInMerchantWares: true },
+    { name: "Fish", type: "material", tier: 1, price: 8, description: "A fresh fish.", icon: "🐟", rarity: "common", canBeInMerchantWares: false },
+    { name: "Pork", type: "material", tier: 1, price: 10, description: "A slab of raw pork.", icon: "🍖", rarity: "common", canBeInMerchantWares: false },
+    { name: "Cow Hide", type: "material", tier: 1, price: 15, description: "A tough piece of leather.", icon: "🐮", rarity: "common", canBeInMerchantWares: true },
+    { name: "Vines", type: "material", tier: 1, price: 15, description: "A length of sturdy vine.", icon: "🌿", rarity: "common", canBeInMerchantWares: true },
+    { name: "Coal", type: "material", tier: 1, price: 15, description: "A lump of coal.", icon: "⚫", rarity: "common", canBeInMerchantWares: true },
+    { name: "Goblin Head", type: "material", tier: 1, price: 30, description: "A gruesome trophy.", icon: "💀", rarity: "common", canBeInMerchantWares: false },
+    { name: "Animal Fat", type: "material", tier: 1, price: 5, description: "A greasy lump of fat.", icon: "🧈", rarity: "common", canBeInMerchantWares: false },
+    { name: "Steel Bar", type: "material", tier: 2, price: 50, description: "A strong metal bar.", icon: "🔗", rarity: "uncommon", canBeInMerchantWares: false },
+    { name: "Spices", type: "material", tier: 1, price: 10, description: "A blend of savory spices.", icon: "🌶️", stackable: 200, rarity: "common", canBeInMerchantWares: true },
+    { name: "Cloth", type: "material", tier: 1, price: 8, description: "A piece of rough cloth.", icon: "📜", rarity: "common", canBeInMerchantWares: true },
+    { name: "Gold Nugget", type: "material", tier: 1, price: 50, description: "A small but valuable nugget of pure gold.", icon: "🪙", rarity: "uncommon", canBeInMerchantWares: false },
 
     // --- Goblin Loot Items ---
     {
         name: "Gorbon's Crown",
         type: "armor",
         slot: "helmet",
+        tier: 1,
         price: 200,
         bonus: { strength: 1, wisdom: 1, maxHealth: 2 },
         description: "The crude but imposing crown of the Goblin King. It radiates authority. +1 Str, +1 Wis, +2 Max HP.",
@@ -680,6 +696,7 @@ export const allItems = [
         name: "Gorbon's Royal Mace",
         type: "weapon",
         slot: "mainHand",
+        tier: 1,
         cost: 1,
         cooldown: 2,
         stat: "strength",
@@ -699,6 +716,7 @@ export const allItems = [
         name: "Shaman's Fetish",
         type: "accessory",
         slot: "accessory",
+        tier: 1,
         price: 100,
         bonus: { wisdom: 2 },
         description: "A strange totem that enhances magical power. +2 Wisdom.",
@@ -709,6 +727,7 @@ export const allItems = [
     {
         name: "Arrow Bundle",
         type: "material",
+        tier: 1,
         price: 15,
         description: "A bundle of crude goblin arrows.",
         icon: "➡️",
@@ -719,6 +738,7 @@ export const allItems = [
         name: "Archer's Shortbow",
         type: "weapon",
         slot: "mainHand",
+        tier: 1,
         hands: 2,
         cost: 1,
         cooldown: 1,
@@ -738,6 +758,7 @@ export const allItems = [
         name: "Warrior's Cleaver",
         type: "weapon",
         slot: "mainHand",
+        tier: 1,
         cost: 1,
         cooldown: 2,
         stat: "strength",
@@ -754,21 +775,21 @@ export const allItems = [
         canBeInMerchantWares: false,
     },
 
-    { name: "Goblin Head", type: "material", price: 30, description: "A gruesome trophy.", icon: "💀", rarity: "common", canBeInMerchantWares: false, },
-    { name: "Egg", type: "material", price: 5, description: "A fresh egg.", icon: "🥚", rarity: "common", canBeInMerchantWares: false, },
-    { name: "Raw Chicken", type: "material", price: 8, description: "Uncooked chicken meat.", icon: "🍗", rarity: "common", canBeInMerchantWares: false, },
-    { name: "Milk", type: "material", price: 6, description: "A bottle of fresh milk.", icon: "🥛", rarity: "common", canBeInMerchantWares: false, },
-    { name: "Wheat", type: "material", price: 4, description: "A bundle of wheat.", icon: "🌾", rarity: "common", canBeInMerchantWares: false, },
-    { name: "Hemp", type: "material", price: 5, description: "A fibrous plant stalk, useful for making cloth.", icon: "🌿", rarity: "common", canBeInMerchantWares: false, },
-    { name: "Carrot", type: "material", price: 5, description: "A crunchy, orange root vegetable.", icon: "🥕", rarity: "common", canBeInMerchantWares: false, },
-    { name: "Feather", type: "material", price: 2, description: "A small, light feather.", icon: "🪶", rarity: "common", canBeInMerchantWares: false, },
-    { name: "Goblin Lucky Charm", type: "questItem", price: 0, description: "A strange, surprisingly shiny goblin trinket.", icon: "🍀", rarity: "quest", canBeInMerchantWares: false, },
+    { name: "Goblin Head", type: "material", tier: 1, price: 30, description: "A gruesome trophy.", icon: "💀", rarity: "common", canBeInMerchantWares: false },
+    { name: "Egg", type: "material", tier: 1, price: 5, description: "A fresh egg.", icon: "🥚", rarity: "common", canBeInMerchantWares: false },
+    { name: "Raw Chicken", type: "material", tier: 1, price: 8, description: "Uncooked chicken meat.", icon: "🍗", rarity: "common", canBeInMerchantWares: false },
+    { name: "Milk", type: "material", tier: 1, price: 6, description: "A bottle of fresh milk.", icon: "🥛", rarity: "common", canBeInMerchantWares: false },
+    { name: "Wheat", type: "material", tier: 1, price: 4, description: "A bundle of wheat.", icon: "🌾", rarity: "common", canBeInMerchantWares: false },
+    { name: "Hemp", type: "material", tier: 1, price: 5, description: "A fibrous plant stalk, useful for making cloth.", icon: "🌿", rarity: "common", canBeInMerchantWares: false },
+    { name: "Carrot", type: "material", tier: 1, price: 5, description: "A crunchy, orange root vegetable.", icon: "🥕", rarity: "common", canBeInMerchantWares: false },
+    { name: "Feather", type: "material", tier: 1, price: 2, description: "A small, light feather.", icon: "🪶", rarity: "common", canBeInMerchantWares: false },
+    { name: "Goblin Lucky Charm", type: "questItem", tier: 1, price: 0, description: "A strange, surprisingly shiny goblin trinket.", icon: "🍀", rarity: "quest", canBeInMerchantWares: false },
 
     // --- Rat Loot Items ---
-    { name: "Rat Meat", type: "material", price: 5, description: "Chewy but edible.", icon: "🥩", rarity: "common", canBeInMerchantWares: false, },
-    { name: "Rat Eye", type: "material", price: 10, description: "A beady red eye.", icon: "👁️", rarity: "common", canBeInMerchantWares: false, },
-    { name: "Rat Tail", type: "material", price: 8, description: "A long, pink tail.", icon: "🐀", rarity: "common", canBeInMerchantWares: false, },
-    { name: "Plague Essence", type: "material", price: 50, description: "A vial of green, glowing ooze.", icon: "🧪", rarity: "rare", canBeInMerchantWares: false, },
+    { name: "Rat Meat", type: "material", tier: 1, price: 5, description: "Chewy but edible.", icon: "🥩", rarity: "common", canBeInMerchantWares: false },
+    { name: "Rat Eye", type: "material", tier: 1, price: 10, description: "A beady red eye.", icon: "👁️", rarity: "common", canBeInMerchantWares: false },
+    { name: "Rat Tail", type: "material", tier: 1, price: 8, description: "A long, pink tail.", icon: "🐀", rarity: "common", canBeInMerchantWares: false },
+    { name: "Plague Essence", type: "material", tier: 1, price: 50, description: "A vial of green, glowing ooze.", icon: "🧪", rarity: "rare", canBeInMerchantWares: false },
     {
         name: "Rat King's Crown",
         type: "armor",
@@ -783,16 +804,17 @@ export const allItems = [
     },
 
     // --- Quest Items ---
-    { name: "Old Family Recipe", type: "questItem", price: 0, description: "A faded parchment with an arcane formula. The Fortune Teller might be interested in this.", icon: "📜", rarity: "quest", canBeInMerchantWares: false },
+    { name: "Old Family Recipe", type: "questItem", tier: 1, price: 0, description: "A faded parchment with an arcane formula. The Fortune Teller might be interested in this.", icon: "📜", rarity: "quest", canBeInMerchantWares: false },
 
     // --- Gem Crafting Materials ---
-    { name: "Tier 1 Gemstone", type: "material", price: 25, description: "A rough, uncut gemstone with latent magical potential.", icon: "💎", rarity: "uncommon", canBeInMerchantWares: false },
-    { name: "Magic Essence", type: "material", price: 30, description: "A shimmering vial of pure magical energy.", icon: "✨", rarity: "uncommon", canBeInMerchantWares: false },
+    { name: "Tier 1 Gemstone", type: "material", tier: 1, price: 25, description: "A rough, uncut gemstone with latent magical potential.", icon: "💎", rarity: "uncommon", canBeInMerchantWares: false },
+    { name: "Magic Essence", type: "material", tier: 1, price: 30, description: "A shimmering vial of pure magical energy.", icon: "✨", rarity: "uncommon", canBeInMerchantWares: false },
 
     // --- Tier 1 Stat Gems ---
     {
         name: "Gem of Strength",
         type: "gem",
+        tier: 1,
         price: 100,
         gemBonus: { strength: 1 },
         description: "A crimson gem that pulses with raw power. +1 Strength when socketed.",
@@ -803,6 +825,7 @@ export const allItems = [
     {
         name: "Gem of Agility",
         type: "gem",
+        tier: 1,
         price: 100,
         gemBonus: { agility: 1 },
         description: "A verdant gem that shimmers with swift energy. +1 Agility when socketed.",
@@ -813,6 +836,7 @@ export const allItems = [
     {
         name: "Gem of Wisdom",
         type: "gem",
+        tier: 1,
         price: 100,
         gemBonus: { wisdom: 1 },
         description: "A sapphire gem that glows with arcane knowledge. +1 Wisdom when socketed.",
@@ -823,6 +847,7 @@ export const allItems = [
     {
         name: "Gem of Fortitude",
         type: "gem",
+        tier: 1,
         price: 100,
         gemBonus: { defense: 1, maxHealth: 1 },
         description: "A golden gem that radiates endurance. +1 Defense, +1 Max HP when socketed.",
@@ -835,6 +860,7 @@ export const allItems = [
     {
         name: "Gem of Fire",
         type: "gem",
+        tier: 1,
         price: 100,
         gemBonus: { firePower: 1 },
         description: "A flame-orange gem that burns with inner heat. +1 Fire Power when socketed.",
@@ -845,6 +871,7 @@ export const allItems = [
     {
         name: "Gem of Arcane",
         type: "gem",
+        tier: 1,
         price: 100,
         gemBonus: { arcanePower: 1 },
         description: "A violet gem crackling with magical energy. +1 Arcane Power when socketed.",
@@ -855,6 +882,7 @@ export const allItems = [
     {
         name: "Gem of Nature",
         type: "gem",
+        tier: 1,
         price: 100,
         gemBonus: { naturePower: 1 },
         description: "A deep green gem thrumming with primal life. +1 Nature Power when socketed.",
@@ -865,6 +893,7 @@ export const allItems = [
     {
         name: "Gem of Might",
         type: "gem",
+        tier: 1,
         price: 100,
         gemBonus: { physicalPower: 1 },
         description: "A steel-grey gem dense with martial fury. +1 Physical Power when socketed.",
@@ -875,6 +904,7 @@ export const allItems = [
     {
         name: "Gem of Frost",
         type: "gem",
+        tier: 1,
         price: 100,
         gemBonus: { frostPower: 1 },
         description: "An icy blue gem radiating cold. +1 Frost Power when socketed.",
@@ -885,6 +915,7 @@ export const allItems = [
     {
         name: "Gem of Holy",
         type: "gem",
+        tier: 1,
         price: 100,
         gemBonus: { holyPower: 1 },
         description: "A radiant white gem glowing with divine light. +1 Holy Power when socketed.",
@@ -896,5 +927,5 @@ export const allItems = [
 
 export const genericTreasureLoot = [
     { name: "Healing Potion" },
-    { name: "Gold Pouch", type: "consumable", price: 0, gold: 25, description: "A pouch containing 25 gold. Open to receive your reward.", }
+    { name: "Gold Pouch", type: "consumable", tier: 1, price: 0, gold: 25, description: "A pouch containing 25 gold. Open to receive your reward." }
 ];
