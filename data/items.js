@@ -279,6 +279,46 @@ export const allItems = [
         rarity: "common",
         canBeInMerchantWares: true,
     },
+    // --- Tier 2 Tools ---
+    {
+        name: "Steel Pickaxe (T2)",
+        price: 150,
+        type: "tool",
+        toolType: "mining",
+        slot: "mainHand",
+        skillBonus: { mining: 2 },
+        description: "A reinforced steel pickaxe. Allows mining higher tier nodes. +2 Mining.",
+        tier: 2,
+        icon: "⛏️",
+        rarity: "uncommon",
+        canBeInMerchantWares: false, // Crafted only
+    },
+    {
+        name: "Steel Axe (T2)",
+        price: 150,
+        type: "tool",
+        toolType: "woodcutting",
+        slot: "mainHand",
+        skillBonus: { woodcutting: 2 },
+        description: "A sharp steel axe for felling tougher trees. +2 Woodcutting.",
+        tier: 2,
+        icon: "🪓",
+        rarity: "uncommon",
+        canBeInMerchantWares: false, // Crafted only
+    },
+    {
+        name: "Steel Sickle (T2)",
+        price: 150,
+        type: "tool",
+        toolType: "harvesting",
+        slot: "mainHand",
+        skillBonus: { harvesting: 2 },
+        description: "A durable steel sickle for harvesting rare crops. +2 Harvesting.",
+        tier: 2,
+        icon: "🌾",
+        rarity: "uncommon",
+        canBeInMerchantWares: false, // Crafted only
+    },
 
     // --- Weapons ---
     {

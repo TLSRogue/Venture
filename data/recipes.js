@@ -16,6 +16,10 @@ export const craftingRecipes = [
     { result: { name: "Iron Armor" }, materials: { "Iron": 2, "Cow Hide": 1 }, category: "Blacksmithing" },
     { result: { name: "Iron Helm" }, materials: { "Iron": 1, "Cow Hide": 1 }, category: "Blacksmithing" },
     { result: { name: "Steel Bar" }, materials: { "Iron": 1, "Coal": 1 }, category: "Blacksmithing" },
+    // --- Tier 2 Tools ---
+    { result: { name: "Steel Pickaxe (T2)" }, materials: { "Steel Bar": 2, "Wood": 1 }, category: "Blacksmithing" },
+    { result: { name: "Steel Axe (T2)" }, materials: { "Steel Bar": 2, "Wood": 1 }, category: "Blacksmithing" },
+    { result: { name: "Steel Sickle (T2)" }, materials: { "Steel Bar": 2, "Wood": 1 }, category: "Blacksmithing" },
     { result: { name: "Steel Armor" }, materials: { "Steel Bar": 2, "Cow Hide": 1 }, category: "Blacksmithing", requiresDiscovery: true },
     { result: { name: "Iron Boots" }, materials: { "Iron": 1, "Cow Hide": 1 }, category: "Blacksmithing" },
     { result: { name: "Quiver" }, materials: { "Cow Hide": 2 }, category: "Leatherworking" },

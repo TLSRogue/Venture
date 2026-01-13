@@ -86,7 +86,23 @@ export async function processInteractWithCard(io, party, player, payload) {
         const hasTool = character.inventory.some(hasValidTool) ||
             hasValidTool(character.equipment.mainHand) ||
             hasValidTool(character.equipment.offHand);
-        if (!hasTool) return;
+
+        if (!hasTool) {
+            // Provide helpful feedback about which tool is needed
+            const toolNames = {
+                mining: "Mining Pickaxe",
+                woodcutting: "Woodcutting Axe",
+                fishing: "Fishing Rod",
+                harvesting: "Harvesting Sickle"
+            };
+            const toolName = toolNames[card.toolType] || card.toolType;
+            const tier = card.toolTier || 1;
+            sharedState.log.push({
+                message: `You need a ${toolName} (T${tier} or better) to gather from ${card.name}.`,
+                type: 'info'
+            });
+            return;
+        }
 
         if (actingPlayerState.actionPoints < 1) return;
         actingPlayerState.actionPoints--;
