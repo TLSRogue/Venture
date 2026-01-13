@@ -493,6 +493,127 @@ export const cardPools = {
         { card: { name: "Ashenwood Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T4)", loot: { name: "Ashenwood Log" }, toolType: "woodcutting", toolTier: 4, charges: 3, icon: "🌳" }, count: 5 },
         { card: { name: "Rare Treasure", type: "treasure", description: "A heavily locked chest.", icon: "👑" }, count: 2 },
     ],
+
+    // --- Dark Forest Zone ---
+    darkForest: [
+        {
+            card: {
+                name: "Night Watchman",
+                type: "npc",
+                description: "A vigilant guard keeping watch over the forest's edge.",
+                icon: "🛡️",
+                imageUrl: '/assets/darkforest-nightwatchman.jpg',
+                quests: [
+                    { id: "FOREST_PATROL", title: "Forest Patrol", target: "Dark Forest Enemy", required: 8, reward: { gold: 100, qp: 1 }, prerequisite: null }
+                ],
+                dialogue: {
+                    FOREST_PATROL_start: { text: "Hail, adventurer. These woods grow more dangerous by the day. Spiders and wolves lurk in every shadow. Help me cull their numbers—slay 8 of these beasts and I'll reward you handsomely.", options: [{ text: "I'll help keep the forest safe.", questId: "FOREST_PATROL", next: "FOREST_PATROL_inProgress" }, { text: "I have other business.", next: "farewell" }] },
+                    FOREST_PATROL_inProgress: { text: "The beasts still prowl. Keep hunting, friend.", options: [{ text: "I'll continue.", next: "farewell" }] },
+                    FOREST_PATROL_ready: { text: "Excellent work! The forest is safer thanks to you. Here is your reward.", options: [{ text: "Thank you.", questComplete: "FOREST_PATROL", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "The forest thanks you, brave one. Safe travels.", options: [{ text: "Farewell.", next: "farewell" }] },
+                    farewell: { text: "Stay vigilant.", options: [] }
+                }
+            }, count: 1
+        },
+        {
+            card: {
+                name: "Mary",
+                type: "npc",
+                description: "A nervous young woman with dark circles under her eyes.",
+                icon: "👩",
+                imageUrl: '/assets/darkforest-mary.jpg',
+                quests: [
+                    { id: "VAMPIRE_HUNT", title: "The Inheritance", target: "Vampire", required: 1, reward: { qp: 1, spellReward: { name: 'Backstab' } }, prerequisite: null }
+                ],
+                dialogue: {
+                    VAMPIRE_HUNT_start: { text: "Please, you must help me! I married Lord Ashworth for his fortune, but that wretched old man just won't die! He never leaves his mansion, never eats... I just want what's mine. Can you... deal with him?", options: [{ text: "I'll pay the lord a visit.", questId: "VAMPIRE_HUNT", next: "VAMPIRE_HUNT_inProgress" }, { text: "This isn't my concern.", next: "farewell" }] },
+                    VAMPIRE_HUNT_inProgress: { text: "The mansion is deeper in the forest. Be careful—strange things happen there at night.", options: [{ text: "I'll find him.", next: "farewell" }] },
+                    VAMPIRE_HUNT_ready: { text: "He's dead? Finally! I mean... oh how tragic. Well, here's a little something for your... trouble. I learned this from a shady friend—you seem like you could use it.", options: [{ text: "Thanks for the tip.", questComplete: "VAMPIRE_HUNT", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "The mansion is mine now. Don't visit too often, will you?", options: [{ text: "Farewell.", next: "farewell" }] },
+                    farewell: { text: "Good luck out there.", options: [] }
+                }
+            }, count: 1
+        },
+        {
+            card: {
+                name: "Black Widow",
+                type: "enemy",
+                health: 12,
+                maxHealth: 12,
+                description: "A giant venomous spider lurking in its web.",
+                icon: "🕷️",
+                imageUrl: '/assets/darkforest-blackwidow.jpg',
+                questTarget: "Dark Forest Enemy",
+                attackTable: [
+                    { range: [1, 3], action: 'miss', message: "Miss!" },
+                    { range: [4, 9], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Bite! Deals 4 Physical Damage!" },
+                    { range: [10, 16], action: 'attack', attackRange: 'ranged', damage: 4, damageType: 'Nature', debuff: { type: 'trap', duration: 2 }, message: "Web Shot! Deals 4 Nature Damage and Traps for 2 turns!" },
+                    { range: [17, 20], action: 'special', message: "Consume! The spider strikes at a trapped victim!" }
+                ],
+                lootTable: [
+                    { range: [1, 10], items: ["Spider Leg"] },
+                    { range: [11, 19], items: ["Spider Silk"] },
+                    { range: [20, 20], items: ["Spider Leg", "Spider Silk"] }
+                ]
+            }, count: 6
+        },
+        {
+            card: {
+                name: "Gray Wolf",
+                type: "enemy",
+                health: 16,
+                maxHealth: 16,
+                description: "A fierce predator of the dark woods.",
+                icon: "🐺",
+                imageUrl: '/assets/darkforest-graywolf.jpg',
+                questTarget: "Dark Forest Enemy",
+                attackTable: [
+                    { range: [1, 3], action: 'miss', message: "Miss!" },
+                    { range: [4, 10], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', message: "Bite! Deals 5 Physical Damage!" },
+                    { range: [11, 17], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', debuff: { type: 'daze', duration: 1 }, message: "Pounce! Deals 5 Physical Damage and Dazes!" },
+                    { range: [18, 20], action: 'special', message: "Howl! The wolf calls for reinforcements!" }
+                ],
+                lootTable: [
+                    { range: [1, 10], items: ["Rough Fur"] },
+                    { range: [11, 19], items: ["Wolf Bones"] },
+                    { range: [20, 20], items: ["Rough Fur", "Wolf Bones"] }
+                ]
+            }, count: 5
+        },
+        { card: { name: "Withered Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T2)", loot: { name: "Dark Wood" }, toolType: "woodcutting", toolTier: 2, charges: 3, icon: "🌲", imageUrl: '/assets/darkforest-witheredtree.jpg' }, count: 5 },
+        { card: { name: "Dark Crystal Node", type: "resource", skill: "mining", description: "Requires Mining Tool (T2)", loot: { name: "Dark Crystal" }, toolType: "mining", toolTier: 2, charges: 3, icon: "💎", imageUrl: '/assets/darkforest-darkcrystal.jpg' }, count: 5 },
+        { card: { name: "Treasure Chest", type: "treasure", description: "An old chest covered in cobwebs.", icon: "📦" }, count: 1 },
+        { card: { name: "The Mansion", type: "treasure", description: "A decrepit mansion looms in the darkness. Something evil dwells within.", icon: "🏚️", imageUrl: '/assets/darkforest-mansion.jpg' }, count: 1 },
+    ],
+
+    // --- Mansion Boss Area ---
+    mansion: [
+        {
+            card: {
+                name: "Vampire",
+                type: "enemy",
+                health: 80,
+                maxHealth: 80,
+                description: "Lord Ashworth, revealed as an ancient vampire.",
+                icon: "🧛",
+                imageUrl: '/assets/darkforest-vampire.jpg',
+                questTarget: "Vampire",
+                phaseThreshold: 60,
+                attackTable: [
+                    { range: [1, 1], action: 'miss', message: "The Vampire's strike goes wide!" },
+                    { range: [2, 6], action: 'special', message: "Take Flight! The Vampire soars into the air!" },
+                    { range: [7, 13], action: 'attack', attackRange: 'melee', damage: 7, damageType: 'Physical', debuff: { type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' }, message: "Gouge! Deals 7 Physical Damage and causes heavy Bleeding!" },
+                    { range: [14, 17], action: 'special', message: "Blood Fountain! The Vampire drains the blood of the wounded!" },
+                    { range: [18, 20], action: 'special', message: "From The Shadows! The Vampire targets the weakest prey!" }
+                ],
+                guaranteedLoot: { gold: true, minGold: 100, maxGold: 200 },
+                lootTable: [
+                    { range: [1, 10], items: ["Cloak of Shadows"] },
+                    { range: [11, 20], items: ["Vampire's Robe"] }
+                ]
+            }, count: 1
+        },
+    ],
 };
 
 export const specialCards = {
@@ -529,6 +650,55 @@ export const specialCards = {
         isTargetable: true,
         attackTable: [
             { range: [1, 20], action: 'miss', message: "The column stands firm." }
+        ]
+    },
+    // --- Dark Forest Spawnable Cards ---
+    vampireAssistant: {
+        name: "Vampire's Assistant",
+        type: "enemy",
+        health: 20,
+        maxHealth: 20,
+        description: "A ghoulish servant of the Vampire.",
+        icon: "🧟",
+        imageUrl: '/assets/darkforest-vampireassistant.jpg',
+        attackTable: [
+            { range: [1, 3], action: 'miss', message: "Miss!" },
+            { range: [4, 10], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Stab! Deals 3 Physical Damage and causes Bleeding!" },
+            { range: [11, 20], action: 'special', message: "The Assistant drags in a human victim for its master!" }
+        ]
+    },
+    humanVictim: {
+        name: "Human Victim",
+        type: "enemy",
+        health: 6,
+        maxHealth: 6,
+        description: "A helpless victim. The Vampire will consume them if not saved!",
+        icon: "😱",
+        imageUrl: '/assets/darkforest-humanvictim.jpg',
+        turnsUntilConsumed: 2,
+        attackTable: [
+            { range: [1, 20], action: 'miss', message: "The victim lies there, dying..." }
+        ]
+    },
+    grayWolf: {
+        name: "Gray Wolf",
+        type: "enemy",
+        health: 16,
+        maxHealth: 16,
+        description: "A fierce predator called by the pack.",
+        icon: "🐺",
+        imageUrl: '/assets/darkforest-graywolf.jpg',
+        questTarget: "Dark Forest Enemy",
+        attackTable: [
+            { range: [1, 3], action: 'miss', message: "Miss!" },
+            { range: [4, 10], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', message: "Bite! Deals 5 Physical Damage!" },
+            { range: [11, 17], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', debuff: { type: 'daze', duration: 1 }, message: "Pounce! Deals 5 Physical Damage and Dazes!" },
+            { range: [18, 20], action: 'special', message: "Howl! The wolf calls for reinforcements!" }
+        ],
+        lootTable: [
+            { range: [1, 10], items: ["Rough Fur"] },
+            { range: [11, 19], items: ["Wolf Bones"] },
+            { range: [20, 20], items: ["Rough Fur", "Wolf Bones"] }
         ]
     }
 };

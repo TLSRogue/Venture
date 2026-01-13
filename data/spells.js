@@ -350,5 +350,21 @@ export const allSpells = [
         debuff: { type: 'entangling roots', duration: 2, baseDamage: 1, damageType: 'Nature' },
         icon: "🌿",
         rarity: "uncommon",
+    },
+    // --- Dark Forest Quest Reward ---
+    {
+        name: "Backstab",
+        cost: 2,
+        cooldown: 2,
+        school: "Physical",
+        range: "melee",
+        description: "A vicious strike from behind. 2 AP, 2 CD | D20+Agi (10+) | If you have Stealth or target is Bleeding: Double damage + 3-turn Bleed. Requires Dagger.",
+        type: "attack",
+        stat: "agility",
+        hit: 10,
+        damageType: 'Physical',
+        requires: { weaponType: ["Dagger"] },
+        icon: "🗡️",
+        rarity: "rare",
     }
 ];
