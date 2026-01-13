@@ -850,7 +850,8 @@ function addEventListeners() {
                 }
 
                 Player.handleItemAction(action, index);
-                if (!button.closest('#ground-loot-modal')) UIMain.hideModal();
+                // Only close modal if NOT inside an inventory-type modal
+                if (!button.closest('#ground-loot-modal') && !button.closest('#backpack-modal')) UIMain.hideModal();
                 return;
             }
             if (button.dataset.spellAction) {

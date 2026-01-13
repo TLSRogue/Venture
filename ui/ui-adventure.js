@@ -819,6 +819,7 @@ export function showReactionModal({ damage, attacker, availableReactions, timer 
 
 export function showBackpack() {
     const modalContentEl = document.createElement('div');
+    modalContentEl.id = 'backpack-modal';
     modalContentEl.innerHTML = '<h2>Backpack</h2>';
 
     const itemsGrid = document.createElement('div');
@@ -990,13 +991,22 @@ export function showGroundLootModal() {
     if (groundLoot && groundLoot.length > 0) {
         groundLoot.forEach((item, index) => {
             const itemEl = document.createElement('div');
-            itemEl.className = 'inventory-item';
-            let itemText = `<strong>${item.name}</strong>`;
-            if (item.quantity > 1) itemText += ` (x${item.quantity})`;
-            itemEl.innerHTML = `
-                <div>${itemText}</div>
-                <button class="btn btn-success btn-sm" data-action="takeGroundLoot" data-index="${index}">Take</button>
-            `;
+            itemEl.className = 'inventory-item ground-loot-item';
+
+            // Add tooltip on hover
+            let tooltipContent = `<strong>${item.name}</strong>`;
+            if (item.description) tooltipContent += `<br>${item.description}`;
+            if (item.quantity > 1) tooltipContent += `<br>Quantity: ${item.quantity}`;
+            itemEl.onmouseover = () => showTooltip(tooltipContent);
+            itemEl.onmouseout = () => hideTooltip();
+
+            let itemHtml = `<div class="item-icon">${item.icon || '❓'}</div>`;
+            if (item.quantity > 1) {
+                itemHtml += `<div class="item-quantity">${item.quantity}</div>`;
+            }
+            itemHtml += `<button class="btn btn-success btn-sm ground-loot-take-btn" data-action="takeGroundLoot" data-index="${index}">Take</button>`;
+
+            itemEl.innerHTML = itemHtml;
             groundGrid.appendChild(itemEl);
         });
     } else {
