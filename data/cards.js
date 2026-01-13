@@ -107,7 +107,7 @@ export const cardPools = {
         },
         {
             card: {
-                name: "Angry Farmhand", type: "enemy", health: 4, maxHealth: 4, description: "An angry local. Wants you off his land.", icon: "🧑‍🌾", imageUrl: '/assets/farmlands-angryfarmhand.png',
+                name: "Angry Farmhand", type: "enemy", health: 4, maxHealth: 4, description: "An angry local. Wants you off his land.", icon: "🧑‍🌾", imageUrl: '/assets/farmlands-angryfarmhand.jpg',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
                     { range: [4, 13], action: 'special', message: "The Farmhand weighs his options..." },
@@ -507,8 +507,10 @@ export const specialCards = {
         type: "enemy",
         health: 6,
         maxHealth: 6,
+        tier: 1,
         description: "A greedy goblin carrying a massive sack of loot!",
         icon: "💰",
+        imageUrl: '/assets/loot-goblin.jpg',
         stolenGold: 0,
         attackTable: [
             { range: [1, 10], action: 'special', message: "The Loot Goblin dances around, taunting you!" },

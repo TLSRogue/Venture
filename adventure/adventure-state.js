@@ -400,6 +400,50 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         return;
     }
     sharedState.log.push({ message: `${enemy.name} has been defeated!`, type: 'success' });
+
+    // --- LOOT GOBLIN: Special Death Rewards ---
+    if (enemy.name === 'Loot Goblin') {
+        // Return stolen gold to party leader
+        if (enemy.stolenGold > 0) {
+            const leader = players[party.leaderId];
+            if (leader && leader.character) {
+                leader.character.gold += enemy.stolenGold;
+                sharedState.log.push({ message: `Recovered ${enemy.stolenGold}g of stolen treasure!`, type: 'success' });
+                if (leader.id) io.to(leader.id).emit('characterUpdate', leader.character);
+            }
+        }
+
+        // Tier-based loot pools
+        const tierLootPools = {
+            1: ['Iron', 'Wood', 'Coal', 'Cow Hide', 'Healing Potion', 'Iron Sword', 'Leather Armor', 'Cloth'],
+            2: ['Steel Bar', 'Obsidian Chunk', 'Magic Essence', 'Tier 1 Gemstone', 'Iron Armor', 'Steel Armor', 'Longbow'],
+            3: ['Drake Scale', 'Gold Nugget', 'Gem of Strength', 'Gem of Agility', 'Gem of Wisdom', 'Magna Clavis', 'Gorbon\'s Crown']
+        };
+
+        const lootPool = tierLootPools[enemy.tier] || tierLootPools[1];
+        const goblinTier = enemy.tier || 1;
+
+        sharedState.log.push({ message: `The Tier ${goblinTier} Loot Goblin's sack spills open!`, type: 'success' });
+
+        // Drop 3 random items from the tier pool
+        for (let i = 0; i < 3; i++) {
+            const randomItemName = lootPool[Math.floor(Math.random() * lootPool.length)];
+            const itemData = gameData.allItems.find(item => item.name === randomItemName);
+            if (itemData) {
+                sharedState.groundLoot.push({ ...itemData, quantity: 1 });
+                sharedState.log.push({ message: `Found: ${itemData.icon || '❓'} ${itemData.name}`, type: 'success' });
+            }
+        }
+
+        // Skip normal loot processing for Loot Goblin
+        sharedState.zoneCards[enemyIndex] = null;
+        if (!sharedState.zoneCards.some(c => c && c.type === 'enemy')) {
+            sharedState.log.push({ message: "Combat has ended! Action Points restored.", type: "success" });
+            sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = 3; });
+        }
+        return;
+    }
+
     let lootToDistribute = [];
     if (enemy.lootTable && enemy.lootTable.length > 0) {
         const roll = Math.floor(Math.random() * 20) + 1;
@@ -857,9 +901,32 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     sharedState.log.push({ message: attackMessage, type: 'damage' });
                 }
             } else if (attack && attack.action === 'special') {
-                sharedState.log.push({ message: `${enemy.name} uses a special ability: ${attack.message}`, type: 'reaction' });
+                // --- LOOT GOBLIN: Pickpocket ---
+                if (enemy.name === 'Loot Goblin' && attack.message.includes('Pickpocket')) {
+                    const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);
+                    if (alivePlayers.length > 0) {
+                        const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+                        const victimPlayer = players[victim.name];
+                        if (victimPlayer && victimPlayer.character) {
+                            const stealAmount = Math.min(
+                                Math.floor(Math.random() * 20) + 1, // 1-20 gold
+                                victimPlayer.character.gold // Can't steal more than they have
+                            );
+                            if (stealAmount > 0) {
+                                victimPlayer.character.gold -= stealAmount;
+                                enemy.stolenGold = (enemy.stolenGold || 0) + stealAmount;
+                                sharedState.log.push({ message: `The Loot Goblin steals ${stealAmount}g from ${victim.name}! (Total stolen: ${enemy.stolenGold}g)`, type: 'damage' });
+                                if (victimPlayer.id) io.to(victimPlayer.id).emit('characterUpdate', victimPlayer.character);
+                            } else {
+                                sharedState.log.push({ message: `The Loot Goblin rummages through ${victim.name}'s pockets but finds nothing!`, type: 'info' });
+                            }
+                        }
+                    }
+                }
+                // --- LOOT GOBLIN: Escape ---
                 if (enemy.name === 'Loot Goblin' && attack.message.includes('escapes')) {
-                    sharedState.log.push({ message: `The Loot Goblin escaped with its treasure!`, type: 'damage' });
+                    const stolenMsg = enemy.stolenGold > 0 ? ` with ${enemy.stolenGold}g of stolen treasure!` : '!';
+                    sharedState.log.push({ message: `The Loot Goblin escaped${stolenMsg}`, type: 'damage' });
                     sharedState.zoneCards[enemyIndex] = null;
                 }
                 if (enemy.name === 'Pulvis Cadus' && attack.message.includes('kegs')) {

@@ -91,7 +91,18 @@ export function buildZoneDeckForServer(zoneName) {
     });
 
     if (Math.random() < 0.33) {
-        otherCards.push({ ...gameData.specialCards.lootGoblin, stolenGold: 0 });
+        // Randomly assign tier (1-3) and scale HP accordingly
+        const tier = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3
+        const tierHP = { 1: 6, 2: 12, 3: 18 };
+        const lootGoblin = {
+            ...gameData.specialCards.lootGoblin,
+            tier: tier,
+            health: tierHP[tier],
+            maxHealth: tierHP[tier],
+            stolenGold: 0,
+            debuffs: []
+        };
+        otherCards.push(lootGoblin);
     }
 
     // Shuffle only the non-NPC cards
