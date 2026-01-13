@@ -69,34 +69,26 @@ try {
             }
 
             // --- BOW SPELL CROSSBOW MIGRATION ---
-            // Update bow spells to include crossbow support for older characters
+            // Force update all bow spells to current definitions (ensures crossbow support)
             const bowSpellNames = ['Aim True', 'Split Shot', 'Evasive Shot'];
             bowSpellNames.forEach(spellName => {
                 const currentSpellDef = gameData.allSpells.find(s => s.name === spellName);
                 if (!currentSpellDef) return;
 
-                // Check equipped spells - update if requires.weaponType doesn't include "One-Hand Crossbow"
+                // Force update equipped spells to current definition
                 const equippedIdx = character.equippedSpells.findIndex(s => s && s.name === spellName);
                 if (equippedIdx !== -1) {
-                    const equippedSpell = character.equippedSpells[equippedIdx];
-                    const needsUpdate = !equippedSpell.requires?.weaponType?.includes('One-Hand Crossbow');
-                    if (needsUpdate) {
-                        character.equippedSpells[equippedIdx] = { ...currentSpellDef };
-                        console.log(`Updated ${spellName} for ${characterName} in equipped spells (added crossbow support).`);
-                        dataWasMigrated = true;
-                    }
+                    character.equippedSpells[equippedIdx] = { ...currentSpellDef };
+                    console.log(`Force-updated ${spellName} for ${characterName} in equipped spells.`);
+                    dataWasMigrated = true;
                 }
 
-                // Check spellbook
+                // Force update spellbook to current definition
                 const spellbookIdx = character.spellbook.findIndex(s => s && s.name === spellName);
                 if (spellbookIdx !== -1) {
-                    const spellbookSpell = character.spellbook[spellbookIdx];
-                    const needsUpdate = !spellbookSpell.requires?.weaponType?.includes('One-Hand Crossbow');
-                    if (needsUpdate) {
-                        character.spellbook[spellbookIdx] = { ...currentSpellDef };
-                        console.log(`Updated ${spellName} for ${characterName} in spellbook (added crossbow support).`);
-                        dataWasMigrated = true;
-                    }
+                    character.spellbook[spellbookIdx] = { ...currentSpellDef };
+                    console.log(`Force-updated ${spellName} for ${characterName} in spellbook.`);
+                    dataWasMigrated = true;
                 }
             });
             // --- END BOW SPELL MIGRATION ---
