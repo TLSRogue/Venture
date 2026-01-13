@@ -636,7 +636,9 @@ export async function processCastSpell(io, party, player, payload) {
                     const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
                     const powerKey = spell.debuff.damageType.toLowerCase() + 'Power';
                     const powerBonus = bonuses[powerKey] || 0;
-                    debuffToApply.damage = (spell.debuff.baseDamage || 0) + powerBonus;
+                    // Use baseDamage for scaling, fallback to existing damage value
+                    const baseDmg = spell.debuff.baseDamage ?? spell.debuff.damage ?? 0;
+                    debuffToApply.damage = baseDmg + powerBonus;
                 }
                 target.state.debuffs.push(debuffToApply);
                 hitDescription += ` ${target.name} is now ${spell.debuff.type}!`;
