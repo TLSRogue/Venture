@@ -120,10 +120,10 @@ export const cardPools = {
                 ]
             }, count: 3
         },
-        { card: { name: "Iron Node", type: "resource", skill: "mining", description: "Requires Mining Pickaxe (T1). Rare chance for gemstones.", lootPool: [{ name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Tier 1 Gemstone" }], tool: "Mining Pickaxe (T1)", icon: "⛏️", imageUrl: '/assets/farmlands-ironnode.png' }, count: 6 },
-        { card: { name: "Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Axe (T1)", loot: { name: "Wood", type: "material", price: 5 }, tool: "Woodcutting Axe (T1)", icon: "🌲", imageUrl: '/assets/farmlands-tree.png' }, count: 6 },
-        { card: { name: "River", type: "resource", skill: "fishing", description: "Requires Fishing Rod (T1)", loot: { name: "Fish", type: "material", price: 5 }, tool: "Fishing Rod (T1)", icon: "🎣", imageUrl: '/assets/farmlands-river.png' }, count: 6 },
-        { card: { name: "Crops", type: "resource", skill: "harvesting", description: "Requires Harvesting Sickle (T1)", lootPool: [{ name: "Wheat" }, { name: "Carrot" }, { name: "Hemp" }], tool: "Harvesting Sickle (T1)", icon: "🌾", imageUrl: '/assets/farmlands-crops.png' }, count: 5 },
+        { card: { name: "Iron Node", type: "resource", skill: "mining", description: "Requires Mining Tool (T1). Rare chance for gemstones.", lootPool: [{ name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Tier 1 Gemstone" }], toolType: "mining", toolTier: 1, charges: 3, icon: "⛏️", imageUrl: '/assets/farmlands-ironnode.png' }, count: 6 },
+        { card: { name: "Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T1)", loot: { name: "Wood", type: "material", price: 5 }, toolType: "woodcutting", toolTier: 1, charges: 3, icon: "🌲", imageUrl: '/assets/farmlands-tree.png' }, count: 6 },
+        { card: { name: "River", type: "resource", skill: "fishing", description: "Requires Fishing Tool (T1)", loot: { name: "Fish", type: "material", price: 5 }, toolType: "fishing", toolTier: 1, charges: 3, icon: "🎣", imageUrl: '/assets/farmlands-river.png' }, count: 6 },
+        { card: { name: "Crops", type: "resource", skill: "harvesting", description: "Requires Harvesting Tool (T1)", lootPool: [{ name: "Wheat" }, { name: "Carrot" }, { name: "Hemp" }], toolType: "harvesting", toolTier: 1, charges: 3, icon: "🌾", imageUrl: '/assets/farmlands-crops.png' }, count: 5 },
     ],
 
     goblinCaves: [
@@ -241,8 +241,8 @@ export const cardPools = {
             }, count: 7
         },
         { card: { name: "Boulders", type: "resource", description: "A pile of impassable rocks.", charges: 0, icon: "🪨", imageUrl: '/assets/goblincaves-boulders.png' }, count: 8 },
-        { card: { name: "Vines", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Axe (T1)", loot: { name: "Vines", type: "material", price: 5 }, tool: "Woodcutting Axe (T1)", icon: "🌿", imageUrl: '/assets/goblincaves-vines.png' }, count: 6 },
-        { card: { name: "Coal", type: "resource", skill: "mining", description: "Requires Mining Pickaxe (T1)", loot: { name: "Coal", type: "material", price: 5 }, tool: "Mining Pickaxe (T1)", icon: "⛏️" }, count: 6 },
+        { card: { name: "Vines", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T1)", loot: { name: "Vines", type: "material", price: 5 }, toolType: "woodcutting", toolTier: 1, charges: 3, icon: "🌿", imageUrl: '/assets/goblincaves-vines.png' }, count: 6 },
+        { card: { name: "Coal", type: "resource", skill: "mining", description: "Requires Mining Tool (T1)", loot: { name: "Coal", type: "material", price: 5 }, toolType: "mining", toolTier: 1, charges: 3, icon: "⛏️" }, count: 6 },
     ],
 
     town: [
@@ -489,8 +489,8 @@ export const cardPools = {
                 lootTable: [{ range: [1, 20], items: ["Drake Scale", "Drake Scale"] }]
             }, count: 2
         },
-        { card: { name: "Obsidian Vein", type: "resource", skill: "mining", description: "Requires Mining Pickaxe (T2)", loot: { name: "Obsidian Chunk" }, tool: "Steel Pickaxe (T2)", icon: "💎" }, count: 5 },
-        { card: { name: "Ashenwood Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Axe (T2)", loot: { name: "Ashenwood Log" }, tool: "Steel Axe (T2)", icon: "🌳" }, count: 5 },
+        { card: { name: "Obsidian Vein", type: "resource", skill: "mining", description: "Requires Mining Tool (T4)", loot: { name: "Obsidian Chunk" }, toolType: "mining", toolTier: 4, charges: 3, icon: "💎" }, count: 5 },
+        { card: { name: "Ashenwood Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T4)", loot: { name: "Ashenwood Log" }, toolType: "woodcutting", toolTier: 4, charges: 3, icon: "🌳" }, count: 5 },
         { card: { name: "Rare Treasure", type: "treasure", description: "A heavily locked chest.", icon: "👑" }, count: 2 },
     ],
 };

@@ -64,7 +64,15 @@ export async function processInteractWithCard(io, party, player, payload) {
     }
 
     if (card.type === 'resource') {
-        const hasTool = character.inventory.some(item => item && item.name === card.tool) || (character.equipment.mainHand && character.equipment.mainHand.name === card.tool);
+        // Check if player has a valid tool for this resource
+        // Tool must match the required type and have tier >= required tier
+        const hasValidTool = (item) => {
+            if (!item || item.type !== 'tool') return false;
+            return item.toolType === card.toolType && item.tier >= card.toolTier;
+        };
+        const hasTool = character.inventory.some(hasValidTool) ||
+            hasValidTool(character.equipment.mainHand) ||
+            hasValidTool(character.equipment.offHand);
         if (!hasTool) return;
 
         if (actingPlayerState.actionPoints < 1) return;
