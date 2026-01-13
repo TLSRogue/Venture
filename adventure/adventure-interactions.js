@@ -63,6 +63,19 @@ export async function processInteractWithCard(io, party, player, payload) {
         return;
     }
 
+    if (card.name === 'The Mansion') {
+        sharedState.log.push({ message: "The party enters the decrepit mansion. A chill runs down their spines...", type: 'info' });
+        party.sharedState.currentZone = 'mansion';
+        party.sharedState.zoneDeck = buildZoneDeckForServer('mansion');
+        party.sharedState.zoneCards = [];
+        party.sharedState.groundLoot = [];
+        // Draw only the Vampire (1 card) leaving 2 empty slots for spawns
+        drawCardsForServer(party.sharedState, 1);
+        // Add 2 empty slots for Vampire's Assistant and Human Victim spawns
+        party.sharedState.zoneCards.push(null, null);
+        return;
+    }
+
     if (card.type === 'resource') {
         // Check if player has a valid tool for this resource
         // Tool must match the required type and have tier >= required tier
