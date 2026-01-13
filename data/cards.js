@@ -677,7 +677,7 @@ export const specialCards = {
         imageUrl: '/assets/darkforest-humanvictim.jpg',
         turnsUntilConsumed: 2,
         attackTable: [
-            { range: [1, 20], action: 'miss', message: "The victim lies there, dying..." }
+            { range: [1, 20], action: 'special', message: "The victim lies there, dying..." }
         ]
     },
     grayWolf: {

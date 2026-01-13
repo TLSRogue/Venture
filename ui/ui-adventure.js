@@ -23,7 +23,12 @@ const effectDefinitions = {
     'well fed (wis)': { icon: '🥣', description: 'Well Fed (+Wisdom).' },
     'light source': { icon: '🔥', description: 'Illuminating the area.' },
     'focus': { icon: '🧘', description: 'Focused. Next ability is empowered.' },
-    'magic barrier': { icon: '💠', description: 'Protected by a magical barrier.' }
+    'magic barrier': { icon: '💠', description: 'Protected by a magical barrier.' },
+    'flying': { icon: '🦇', description: 'Airborne. Cannot be hit by melee attacks.' },
+    'aerial strike': { icon: '🎯', description: 'Next attack has +5 to hit.' },
+    'rallied': { icon: '📢', description: 'Rallied! +2 damage bonus.' },
+    'enraged': { icon: '😡', description: 'Enraged! Increased damage and hit chance.' },
+    'trap': { icon: '🕸️', description: 'Trapped. Movement restricted.' }
 };
 
 /**
