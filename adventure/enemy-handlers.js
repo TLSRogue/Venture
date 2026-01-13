@@ -399,7 +399,7 @@ function handleGrayWolfHowl(enemy, sharedState, target, attack, ctx) {
 function handleVampireTakeFlight(enemy, sharedState, target, attack, ctx) {
     if (!enemy.buffs) enemy.buffs = [];
     enemy.buffs = enemy.buffs.filter(b => b.type !== 'Flying' && b.type !== 'Aerial Strike');
-    enemy.buffs.push({ type: 'Flying', duration: 1 });
+    enemy.buffs.push({ type: 'Flying', duration: 2 });
     enemy.buffs.push({ type: 'Aerial Strike', duration: 1, bonus: { rollBonus: 5 } });
     sharedState.log.push({ message: `The Vampire takes flight! He cannot be hit by melee attacks and his next attack has +5 to hit!`, type: 'reaction' });
     return { handled: true };

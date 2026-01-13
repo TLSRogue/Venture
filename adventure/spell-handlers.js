@@ -110,8 +110,24 @@ export function getSpecialSpellDamage(spell, character, actingPlayerState, bonus
     }
 
     // --- Weapon-Based Spells: MainHand Damage + Bonus ---
-    if (spell.name === 'Crushing Blow' || spell.name === 'Dagger Throw') {
+    if (spell.name === 'Crushing Blow') {
         return (character.equipment.mainHand?.weaponDamage || 0) + (spell.damageBonus || 0);
+    }
+
+    // --- Dagger Throw: Use highest damage dagger from either hand ---
+    if (spell.name === 'Dagger Throw') {
+        const mainHand = character.equipment.mainHand;
+        const offHand = character.equipment.offHand;
+        let bestDaggerDamage = 0;
+
+        if (mainHand?.weaponType === 'Dagger') {
+            bestDaggerDamage = Math.max(bestDaggerDamage, mainHand.weaponDamage || 0);
+        }
+        if (offHand?.weaponType === 'Dagger') {
+            bestDaggerDamage = Math.max(bestDaggerDamage, offHand.weaponDamage || 0);
+        }
+
+        return bestDaggerDamage + (spell.damageBonus || 0);
     }
 
     // No special handling - return null to use default spell.damage
