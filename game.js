@@ -282,8 +282,14 @@ function handleCharacterUpdate(serverState) {
 
     document.querySelector('.game-container').style.display = 'block';
     // Don't close modal if user is in an inventory-type modal during adventure
-    const inInventoryModal = document.getElementById('ground-loot-modal') || document.getElementById('backpack-modal');
-    if (!inInventoryModal) {
+    // Instead, refresh the modal to show updated data
+    const groundLootModal = document.getElementById('ground-loot-modal');
+    const backpackModal = document.getElementById('backpack-modal');
+    if (groundLootModal) {
+        UIAdventure.showGroundLootModal();
+    } else if (backpackModal) {
+        UIAdventure.showBackpack();
+    } else {
         UIMain.hideModal();
     }
     UIPlayer.renderAll();

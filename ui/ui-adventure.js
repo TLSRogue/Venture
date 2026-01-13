@@ -1024,15 +1024,21 @@ export function showGroundLootModal() {
         const itemEl = document.createElement('div');
         itemEl.className = 'inventory-item';
         if (item) {
-            let itemText = `<strong>${item.name}</strong>`;
-            if (item.quantity > 1) itemText += ` (x${item.quantity})`;
-            itemEl.innerHTML = `
-                <div>${itemText}</div>
-                <button class="btn btn-danger btn-sm" data-inventory-action="dropItem" data-index="${i}">Drop to Ground</button>
-            `;
+            // Add tooltip on hover
+            let tooltipContent = `<strong>${item.name}</strong>`;
+            if (item.description) tooltipContent += `<br>${item.description}`;
+            if (item.quantity > 1) tooltipContent += `<br>Quantity: ${item.quantity}`;
+            itemEl.onmouseover = () => showTooltip(tooltipContent);
+            itemEl.onmouseout = () => hideTooltip();
+
+            let itemHtml = `<div class="item-icon">${item.icon || '❓'}</div>`;
+            if (item.quantity > 1) {
+                itemHtml += `<div class="item-quantity">${item.quantity}</div>`;
+            }
+            itemHtml += `<button class="btn btn-danger btn-sm ground-loot-take-btn" data-inventory-action="dropItem" data-index="${i}">Drop</button>`;
+            itemEl.innerHTML = itemHtml;
         } else {
-            itemEl.innerHTML = 'Empty';
-            itemEl.style.opacity = '0.5';
+            itemEl.classList.add('empty');
         }
         inventoryGrid.appendChild(itemEl);
     }
