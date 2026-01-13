@@ -67,6 +67,11 @@ export function getSpecialSpellDamage(spell, character, actingPlayerState, bonus
         return (spell.damage || 0) + (bonuses.frostPower || 0);
     }
 
+    // --- Holy Shock (Versatile): Base + Holy Power ---
+    if (spell.name === 'Holy Shock') {
+        return (spell.baseEffect || 0) + (bonuses.holyPower || 0);
+    }
+
     // --- Bow Spells: Weapon Damage ---
     if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
         const mainHand = character.equipment.mainHand;
