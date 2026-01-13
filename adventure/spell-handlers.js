@@ -72,11 +72,16 @@ export function getSpecialSpellDamage(spell, character, actingPlayerState, bonus
         return (spell.baseEffect || 0) + (bonuses.holyPower || 0);
     }
 
-    // --- Bow Spells: Weapon Damage ---
+    // --- Bow/Crossbow Spells: Weapon Damage ---
     if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
         const mainHand = character.equipment.mainHand;
+        const offHand = character.equipment.offHand;
+        // Check mainHand first, then offHand (for one-handed crossbows)
         if (mainHand?.weaponDamage && spell.requires?.weaponType?.includes(mainHand.weaponType)) {
             return mainHand.weaponDamage;
+        }
+        if (offHand?.weaponDamage && spell.requires?.weaponType?.includes(offHand.weaponType)) {
+            return offHand.weaponDamage;
         }
         return spell.damage || 0;
     }
