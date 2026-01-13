@@ -1287,6 +1287,164 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         }
                     });
                 }
+
+                // --- BLACK WIDOW: Consume (heal when attacking trapped target) ---
+                if (enemy.name === 'Black Widow' && attack.message.includes('Consume')) {
+                    // Find a trapped player and attack them
+                    const trappedPlayers = sharedState.partyMemberStates.filter(p =>
+                        !p.isDead && (p.debuffs || []).some(d => d.type.toLowerCase() === 'trap')
+                    );
+                    if (trappedPlayers.length > 0) {
+                        const target = trappedPlayers[Math.floor(Math.random() * trappedPlayers.length)];
+                        const playerObj = players[target.name];
+                        if (playerObj) {
+                            const bonuses = getBonusStatsForPlayer(playerObj.character, target);
+                            const resistance = bonuses.physicalResistance || 0;
+                            const damage = Math.max(1, 4 - resistance);
+                            applyDamage(target, damage);
+
+                            // Heal the spider
+                            const healAmount = 4;
+                            enemy.health = Math.min(enemy.maxHealth, enemy.health + healAmount);
+
+                            sharedState.log.push({ message: `The Black Widow consumes the trapped ${target.name} for ${damage} damage and heals for ${healAmount} HP!`, type: 'damage' });
+                            if (target.health <= 0) { target.isDead = true; target.health = 0; }
+                        }
+                    } else {
+                        // No trapped targets, just do a normal bite
+                        const validTargets = sharedState.partyMemberStates.filter(p => !p.isDead);
+                        if (validTargets.length > 0) {
+                            const target = validTargets[Math.floor(Math.random() * validTargets.length)];
+                            const playerObj = players[target.name];
+                            if (playerObj) {
+                                const bonuses = getBonusStatsForPlayer(playerObj.character, target);
+                                const resistance = bonuses.physicalResistance || 0;
+                                const damage = Math.max(1, 4 - resistance);
+                                applyDamage(target, damage);
+                                sharedState.log.push({ message: `The Black Widow bites ${target.name} for ${damage} Physical damage!`, type: 'damage' });
+                                if (target.health <= 0) { target.isDead = true; target.health = 0; }
+                            }
+                        }
+                    }
+                }
+
+                // --- GRAY WOLF: Howl (spawn another wolf) ---
+                if (enemy.name === 'Gray Wolf' && attack.message.includes('Howl')) {
+                    const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+                    if (emptySlotIndex !== -1) {
+                        const newWolf = {
+                            ...gameData.specialCards.grayWolf,
+                            id: Date.now(),
+                            debuffs: [],
+                            buffs: []
+                        };
+                        sharedState.zoneCards[emptySlotIndex] = newWolf;
+                        sharedState.log.push({ message: `A Gray Wolf answers the call and joins the fight!`, type: 'reaction' });
+                    } else {
+                        sharedState.log.push({ message: `The howl echoes through the forest, but no wolves can join the fight!`, type: 'info' });
+                    }
+                }
+
+                // --- VAMPIRE: Take Flight (gain Flying buff + attack bonus) ---
+                if (enemy.name === 'Vampire' && attack.message.includes('Take Flight')) {
+                    if (!enemy.buffs) enemy.buffs = [];
+                    enemy.buffs = enemy.buffs.filter(b => b.type !== 'Flying' && b.type !== 'Aerial Strike');
+                    enemy.buffs.push({ type: 'Flying', duration: 1 });
+                    enemy.buffs.push({ type: 'Aerial Strike', duration: 1, bonus: { rollBonus: 5 } });
+                    sharedState.log.push({ message: `The Vampire takes flight! He cannot be hit by melee attacks and his next attack has +5 to hit!`, type: 'reaction' });
+                }
+
+                // --- VAMPIRE: Blood Fountain (AoE damage to bleeding players) ---
+                if (enemy.name === 'Vampire' && attack.message.includes('Blood Fountain')) {
+                    const bleedingPlayers = sharedState.partyMemberStates.filter(p =>
+                        !p.isDead && (p.debuffs || []).some(d => d.type.toLowerCase() === 'bleed')
+                    );
+
+                    if (bleedingPlayers.length > 0) {
+                        bleedingPlayers.forEach(target => {
+                            const playerObj = players[target.name];
+                            if (playerObj) {
+                                const bonuses = getBonusStatsForPlayer(playerObj.character, target);
+                                const resistance = bonuses.physicalResistance || 0;
+                                const damage = Math.max(1, 8 - resistance);
+                                applyDamage(target, damage);
+                                sharedState.log.push({ message: `Blood Fountain drains ${target.name} for ${damage} Physical damage!`, type: 'damage' });
+                                if (target.health <= 0) { target.isDead = true; target.health = 0; }
+                            }
+                        });
+                    } else {
+                        // No bleeding players, apply Bleed to all
+                        sharedState.partyMemberStates.forEach(p => {
+                            if (!p.isDead) {
+                                if (!p.debuffs) p.debuffs = [];
+                                p.debuffs.push({ type: 'bleed', duration: 2, damage: 2, damageType: 'Physical' });
+                            }
+                        });
+                        sharedState.log.push({ message: `The Vampire's blood magic cuts everyone! All players are now Bleeding!`, type: 'damage' });
+                    }
+                }
+
+                // --- VAMPIRE: From The Shadows (attack lowest threat) ---
+                if (enemy.name === 'Vampire' && attack.message.includes('From The Shadows')) {
+                    const sortedPlayers = [...sharedState.partyMemberStates].filter(p => !p.isDead).sort((a, b) => (a.threat || 0) - (b.threat || 0));
+                    if (sortedPlayers.length > 0) {
+                        const target = sortedPlayers[0];
+                        const playerObj = players[target.name];
+                        if (playerObj) {
+                            const bonuses = getBonusStatsForPlayer(playerObj.character, target);
+                            const resistance = bonuses.physicalResistance || 0;
+                            const damage = Math.max(1, 8 - resistance);
+                            applyDamage(target, damage);
+
+                            if (!target.debuffs) target.debuffs = [];
+                            target.debuffs.push({ type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' });
+
+                            sharedState.log.push({ message: `The Vampire strikes ${target.name} from the shadows for ${damage} damage and causes heavy Bleeding!`, type: 'damage' });
+                            if (target.health <= 0) { target.isDead = true; target.health = 0; }
+                        }
+                    }
+                }
+
+                // --- VAMPIRE'S ASSISTANT: Spawn Human Victim ---
+                if (enemy.name === "Vampire's Assistant" && attack.message.includes('human victim')) {
+                    const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+                    if (emptySlotIndex !== -1) {
+                        const newVictim = {
+                            ...gameData.specialCards.humanVictim,
+                            id: Date.now(),
+                            debuffs: [],
+                            buffs: [],
+                            turnsUntilConsumed: 2
+                        };
+                        sharedState.zoneCards[emptySlotIndex] = newVictim;
+                        sharedState.log.push({ message: `The Assistant drags in a helpless Human Victim! The Vampire will consume them in 2 turns!`, type: 'reaction' });
+                    } else {
+                        sharedState.log.push({ message: `The Assistant tries to bring in a victim, but there's no room!`, type: 'info' });
+                    }
+                }
+
+                // --- HUMAN VICTIM: Countdown Timer ---
+                if (enemy.name === 'Human Victim' && attack.message.includes('dying')) {
+                    if (typeof enemy.turnsUntilConsumed === 'undefined') enemy.turnsUntilConsumed = 2;
+                    enemy.turnsUntilConsumed--;
+
+                    if (enemy.turnsUntilConsumed <= 0) {
+                        // Vampire consumes the victim
+                        const vampire = sharedState.zoneCards.find(c => c && c.name === 'Vampire');
+                        if (vampire) {
+                            const healAmount = 20;
+                            vampire.health = Math.min(vampire.maxHealth, vampire.health + healAmount);
+                            sharedState.log.push({ message: `The Vampire consumes the Human Victim and heals for ${healAmount} HP!`, type: 'heal' });
+                        }
+                        // Remove the victim
+                        const victimIndex = sharedState.zoneCards.findIndex(c => c && c.id === enemy.id);
+                        if (victimIndex !== -1) {
+                            sharedState.zoneCards[victimIndex] = null;
+                        }
+                    } else {
+                        sharedState.log.push({ message: `The Human Victim whimpers helplessly... (${enemy.turnsUntilConsumed} turns until consumed)`, type: 'info' });
+                    }
+                }
             } else {
                 sharedState.log.push({ message: `${enemy.name} misses its attack.`, type: 'info' });
             }

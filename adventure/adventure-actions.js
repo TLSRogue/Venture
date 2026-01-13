@@ -187,6 +187,14 @@ export async function processWeaponAttack(io, party, player, payload) {
             }
         }
 
+        // Flying Check - melee attacks cannot hit flying enemies
+        if (weapon.range === 'melee' && target.state && (target.state.buffs || []).some(b => b.type === 'Flying')) {
+            log.push({ message: `${target.name} is flying! Melee attacks cannot reach them!`, type: 'info' });
+            broadcastAdventureUpdate(io, party);
+            await checkAndEndTurnForPlayer(io, party, player);
+            return;
+        }
+
         // Apply Damage
         target.applyDamage(dmgResult.finalDamage);
         logMessage += ` Deals ${dmgResult.finalDamage} ${dmgResult.damageType} damage! [id:${target.id}]`;
@@ -199,6 +207,22 @@ export async function processWeaponAttack(io, party, player, payload) {
         }
 
         log.push({ message: logMessage, type: 'damage' });
+
+        // Vampire Phase Transition (spawn Vampire's Assistant at 60HP)
+        if (target.name === 'Vampire' && target.state && target.state.health <= 60 && !target.state.phaseTriggered) {
+            target.state.phaseTriggered = true;
+            const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+            if (emptySlotIndex !== -1) {
+                const assistant = {
+                    ...gameData.specialCards.vampireAssistant,
+                    id: Date.now(),
+                    debuffs: [],
+                    buffs: []
+                };
+                sharedState.zoneCards[emptySlotIndex] = assistant;
+                log.push({ message: `The Vampire hisses in fury! "Assist me, minion!" A Vampire's Assistant emerges from the shadows!`, type: 'reaction' });
+            }
+        }
 
         // Kill Logic
         if (target.isDead()) {
@@ -551,11 +575,38 @@ export async function processCastSpell(io, party, player, payload) {
                 if (spell.name === 'Ambush' && !spell.debuff) {
                     spell.debuff = { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' };
                 }
+
+                // Backstab - double damage + 3 turn bleed when stealthed or target is bleeding
+                if (spell.name === 'Backstab') {
+                    const hasStealthBuff = (actingPlayerState.buffs || []).some(b => b.type.toLowerCase() === 'stealth');
+                    const targetBleeding = (target.state.debuffs || []).some(d => d.type.toLowerCase() === 'bleed');
+
+                    // Get dagger damage
+                    const mainHand = character.equipment.mainHand;
+                    const offHand = character.equipment.offHand;
+                    let daggerDamage = 0;
+                    if (mainHand?.weaponType === 'Dagger') daggerDamage += mainHand.weaponDamage || 0;
+                    if (offHand?.weaponType === 'Dagger') daggerDamage += offHand.weaponDamage || 0;
+
+                    if (hasStealthBuff || targetBleeding) {
+                        baseDamage = daggerDamage * 2;
+                        spell.debuff = { type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' };
+                        log.push({ message: `Backstab bonus! ${hasStealthBuff ? 'From the shadows!' : 'Targeting the wound!'}`, type: 'reaction' });
+                    } else {
+                        baseDamage = daggerDamage;
+                    }
+                }
             }
 
             // Apply resistance
             const resistance = target.getResistance(spell.damageType);
             const damageToDeal = baseDamage > 0 ? Math.max(1, baseDamage - resistance) : 0;
+
+            // --- FLYING CHECK (melee spells) ---
+            if (spell.range === 'melee' && (target.state.buffs || []).some(b => b.type === 'Flying')) {
+                log.push({ message: `${target.name} is flying! Melee attacks cannot reach them!`, type: 'info' });
+                return;
+            }
 
             // --- VEXOR DODGE ---
             if (target.name === 'Vexor, Lord of the Arena') {
@@ -600,6 +651,22 @@ export async function processCastSpell(io, party, player, payload) {
             }
 
             log.push({ message: hitDescription.trim(), type: 'damage' });
+
+            // Vampire Phase Transition (spawn Vampire's Assistant at 60HP)
+            if (target.name === 'Vampire' && target.state && target.state.health <= 60 && target.state.health > 0 && !target.state.phaseTriggered) {
+                target.state.phaseTriggered = true;
+                const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+                if (emptySlotIndex !== -1) {
+                    const assistant = {
+                        ...gameData.specialCards.vampireAssistant,
+                        id: Date.now(),
+                        debuffs: [],
+                        buffs: []
+                    };
+                    sharedState.zoneCards[emptySlotIndex] = assistant;
+                    log.push({ message: `The Vampire hisses in fury! "Assist me, minion!" A Vampire's Assistant emerges from the shadows!`, type: 'reaction' });
+                }
+            }
 
             // Check for death
             if (target.state.health <= 0) {
