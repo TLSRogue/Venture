@@ -289,8 +289,13 @@ export const registerAdventureHandlers = (io, socket) => {
             }
 
             if (!party.sharedState) return;
-            // Block normal actions if a reaction is pending, but allow 'returnHome' (Flee) and 'surrender'
-            if (party.sharedState.pendingReaction && action.type !== 'returnHome' && action.type !== 'surrender' && action.type !== 'resolvePvpFlee') return;
+
+            // Block normal actions if a reaction is pending (in either PvE or PvP)
+            // Allow specific actions: returnHome (Flee), surrender, resolvePvpFlee, resolveReaction
+            const encounter = party.sharedState.pvpEncounterId ? pvpEncounters[party.sharedState.pvpEncounterId] : null;
+            const hasPendingReaction = party.sharedState.pendingReaction || (encounter && encounter.pendingReaction);
+            const allowedDuringReaction = ['returnHome', 'surrender', 'resolvePvpFlee', 'resolveReaction'];
+            if (hasPendingReaction && !allowedDuringReaction.includes(action.type)) return;
 
             if (action.type === 'returnHome' || action.type === 'ventureDeeper') {
                 // Allow action if player is leader, OR if it's a solo party, OR JUST ALLOW ANYONE TO DO IT TO PREVENT STUCK STATES

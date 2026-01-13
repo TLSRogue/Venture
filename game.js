@@ -440,17 +440,22 @@ function updatePvpTurnTimerUI() {
 
 function updateWaitingBannerUI() {
     const banner = document.getElementById('waiting-for-reaction-banner');
+    const actionBar = document.getElementById('player-action-bar');
     const pendingReaction = gameState.pvpEncounter ? gameState.pvpEncounter.pendingReaction : gameState.pendingReaction;
 
     if (pendingReaction && pendingReaction.targetName !== gameState.characterName) {
         banner.textContent = `Waiting for ${pendingReaction.targetName} to react...`;
         banner.style.display = 'block';
+        // Disable action bar while waiting for another player's reaction
+        if (actionBar) actionBar.classList.add('disabled-during-reaction');
     } else if (gameState.isLoadingNextArea && !gameState.pvpEncounter) {
         // Show banner when waiting in PVP zone queue for other players
         banner.textContent = '⏳ Searching for other adventurers...';
         banner.style.display = 'block';
+        if (actionBar) actionBar.classList.remove('disabled-during-reaction');
     } else {
         banner.style.display = 'none';
+        if (actionBar) actionBar.classList.remove('disabled-during-reaction');
     }
 }
 

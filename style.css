@@ -112,6 +112,11 @@ body {
     border-radius: 8px;
 }
 
+#player-action-bar.disabled-during-reaction {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
 .hidden {
     display: none !important;
 }

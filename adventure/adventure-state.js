@@ -7,6 +7,7 @@ import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, c
 import { applyDamage } from './combat-core.js';
 import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
+import { processEnemyEndOfTurn } from './enemy-handlers.js';
 
 const PVP_ZONES = ['blighted_wastes'];
 
@@ -860,6 +861,14 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 }
                 // --- END OF REACTION LOGIC MODIFICATION ---
                 if (availableReactions.length > 0 && !isFleeing) {
+                    // FIX: Process end of turn effects BEFORE waiting for reaction
+                    // This ensures DOT damage is applied even if we pause for reaction
+                    if (processEndOfTurn()) {
+                        // Enemy died from DOT - skip the reaction setup
+                        broadcastAdventureUpdate(io, party);
+                        continue;
+                    }
+
                     sharedState.pendingReaction = {
                         attackerName: enemy.name,
                         attackerIndex: enemyIndex,
@@ -869,7 +878,8 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         attackRange: attack.attackRange || 'melee',
                         debuff: attack.debuff || null,
                         message: attack.message,
-                        isFleeing: isFleeing
+                        isFleeing: isFleeing,
+                        endOfTurnProcessed: true  // Mark that DOT was already processed
                     };
                     const reactionPayload = {
                         damage: attack.damage,
@@ -884,6 +894,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                             handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
                         }
                     }, REACTION_TIMER_MS);
+                    broadcastAdventureUpdate(io, party);
                     return;
                 } else {
                     applyDamage(targetPlayerState, damageToDeal);
