@@ -308,8 +308,12 @@ export function calculateSpellDamage(spell, character, actingPlayerState, target
     }
     else if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
         const mainHand = character.equipment.mainHand;
+        const offHand = character.equipment.offHand;
+        // Check mainHand first, then offHand (for one-handed crossbows)
         if (mainHand?.weaponDamage && spell.requires?.weaponType?.includes(mainHand.weaponType)) {
             baseDamage = mainHand.weaponDamage;
+        } else if (offHand?.weaponDamage && spell.requires?.weaponType?.includes(offHand.weaponType)) {
+            baseDamage = offHand.weaponDamage;
         }
     }
     else if (spell.name === 'Ambush') {

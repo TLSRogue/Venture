@@ -1532,8 +1532,13 @@ export async function handleResolveReaction(io, socket, payload) {
     else if (reactionType === 'Evasive Shot') {
         const evasiveShotSpell = reactingPlayer.character.equippedSpells.find(s => s.name === "Evasive Shot");
         const mainHand = reactingPlayer.character.equipment.mainHand;
+        const offHand = reactingPlayer.character.equipment.offHand;
+        const requiredTypes = evasiveShotSpell?.requires?.weaponType || [];
+        // Find the ranged weapon (check mainHand first, then offHand for crossbows)
+        const rangedWeapon = (mainHand && requiredTypes.includes(mainHand.weaponType)) ? mainHand :
+            (offHand && requiredTypes.includes(offHand.weaponType)) ? offHand : null;
 
-        if (evasiveShotSpell && mainHand && (reactingPlayerState.spellCooldowns[evasiveShotSpell.name] || 0) <= 0) {
+        if (evasiveShotSpell && rangedWeapon && (reactingPlayerState.spellCooldowns[evasiveShotSpell.name] || 0) <= 0) {
             reactingPlayerState.spellCooldowns[evasiveShotSpell.name] = evasiveShotSpell.cooldown;
             const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
             const statValue = reactingPlayer.character.agility + bonuses.agility;
@@ -1553,7 +1558,7 @@ export async function handleResolveReaction(io, socket, payload) {
                 logMessage = `${name}'s Evasive Shot: ${rollDisplay} Avoided!`;
 
                 if (total >= counterHit) {
-                    let counterDamage = mainHand.weaponDamage;
+                    let counterDamage = rangedWeapon.weaponDamage;
 
                     if (isPvp) {
                         // PVP counter-attack - target is another player
