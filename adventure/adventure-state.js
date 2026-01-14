@@ -1040,10 +1040,13 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         debuffs: []
                     };
 
-                    // Find an empty slot to place the rat
-                    const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
-                    if (emptySlotIndex !== -1) {
-                        sharedState.zoneCards[emptySlotIndex] = ratCard;
+                    // Find an empty slot OR an area card that allows spawning over it
+                    let spawnIndex = sharedState.zoneCards.findIndex(c => c === null);
+                    if (spawnIndex === -1) {
+                        spawnIndex = sharedState.zoneCards.findIndex(c => c && c.type === 'area' && c.allowSpawnOver);
+                    }
+                    if (spawnIndex !== -1) {
+                        sharedState.zoneCards[spawnIndex] = ratCard;
                         sharedState.log.push({ message: `A ${randomRat.name} scurries into the battle!`, type: 'reaction' });
                     } else {
                         sharedState.log.push({ message: `The Rat King shrieks, but there's no room for more rats!`, type: 'info' });
