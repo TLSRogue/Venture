@@ -475,10 +475,14 @@ export async function processCastSpell(io, party, player, payload) {
         };
         const buff = { ...spell.buff };
 
-        // NOTE: Buff values are now flat - stats only affect hit chance, not buff strength
-        // Remove any legacy scaling properties
-        delete buff.scaling;
-        delete buff.shield;
+        // Handle Magic Barrier scaling with arcanePower
+        if (buff.type === 'Magic Barrier' && buff.scaling === 'arcanePower') {
+            const bonusStats = getBonusStatsForPlayer(actingPlayerState);
+            const arcanePower = bonusStats.arcanePower || 0;
+            buff.value = (buff.baseValue || 2) + arcanePower;
+            delete buff.baseValue;
+            delete buff.scaling;
+        }
 
         // Use applyBuff if method exists, else manual push (fallback)
         if (buffTarget.applyBuff) {

@@ -363,8 +363,10 @@ export async function checkAndEndTurnForPlayer(io, party, player) {
         if (!encounter) return;
         const actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
         if (actingPlayerState && actingPlayerState.actionPoints <= 0 && !actingPlayerState.turnEnded) {
-            actingPlayerState.turnEnded = true;
-            encounter.log.push({ message: `${player.character.characterName} is out of Action Points and their turn ends.`, type: 'info' });
+            encounter.log.push({ message: `${player.character.characterName} is out of Action Points.`, type: 'info' });
+            // Call full end turn handler to apply DoT and decrement buffs/debuffs
+            await processPvpPlayerEndTurn(io, encounter, actingPlayerState);
+
             const teamMembers = encounter.playerStates.filter(p => p.team === encounter.activeTeam);
             const allTurnsEnded = teamMembers.every(p => p.turnEnded || p.isDead);
             if (allTurnsEnded) {
@@ -375,12 +377,9 @@ export async function checkAndEndTurnForPlayer(io, party, player) {
     }
     const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
     if (actingPlayerState && actingPlayerState.actionPoints <= 0 && !actingPlayerState.turnEnded) {
-        actingPlayerState.turnEnded = true;
-        sharedState.log.push({ message: `${player.character.characterName} is out of Action Points and their turn ends.`, type: 'info' });
-        const allTurnsEnded = sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
-        if (allTurnsEnded) {
-            await runEnemyPhaseForParty(io, party.id);
-        }
+        sharedState.log.push({ message: `${player.character.characterName} is out of Action Points.`, type: 'info' });
+        // Call full end turn handler to apply DoT and decrement buffs/debuffs
+        await processPlayerEndTurn(io, party.id, actingPlayerState.name);
     }
 }
 
