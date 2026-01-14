@@ -299,6 +299,34 @@ function handleUnsocketGem(character, payload) {
     return true;
 }
 
+function handleSellAllJunk(character) {
+    let totalGold = 0;
+    let itemsSold = 0;
+
+    // Find and sell all "junk" items (common tier 1 materials)
+    for (let i = 0; i < character.inventory.length; i++) {
+        const item = character.inventory[i];
+        if (item &&
+            item.type === 'material' &&
+            item.tier === 1 &&
+            item.rarity === 'common' &&
+            item.price) {
+            const quantity = item.quantity || 1;
+            const sellPrice = Math.floor(item.price / 2) || 1;
+            totalGold += sellPrice * quantity;
+            itemsSold += quantity;
+            character.inventory[i] = null;
+        }
+    }
+
+    if (itemsSold > 0) {
+        character.gold += totalGold;
+        console.log(`[SellAllJunk] ${character.characterName} sold ${itemsSold} junk items for ${totalGold}g`);
+        return true;
+    }
+    return false;
+}
+
 // --- ACTION DISPATCH TABLE ---
 const actionHandlers = {
     viewMerchant: handleViewMerchant,
@@ -317,7 +345,8 @@ const actionHandlers = {
     consolidateBank: handleConsolidateBank,
     depositAll: handleDepositAll,
     socketGem: handleSocketGem,
-    unsocketGem: handleUnsocketGem
+    unsocketGem: handleUnsocketGem,
+    sellAllJunk: handleSellAllJunk
 };
 
 // --- MAIN HANDLER REGISTRATION ---

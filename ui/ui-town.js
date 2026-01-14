@@ -31,6 +31,48 @@ function hasMaterials(materials, checkBank = true) {
     return true;
 }
 
+/**
+ * Get all "junk" items from inventory (common tier 1 materials)
+ * Returns array of { index, item } objects
+ */
+function getJunkItems() {
+    const junkItems = [];
+    gameState.inventory.forEach((item, index) => {
+        if (item &&
+            item.type === 'material' &&
+            item.tier === 1 &&
+            item.rarity === 'common' &&
+            item.price) {
+            junkItems.push({ index, ...item });
+        }
+    });
+    return junkItems;
+}
+
+/**
+ * Show confirmation modal for selling all junk
+ */
+function showSellAllJunkModal(junkItems, totalValue) {
+    const itemNames = [...new Set(junkItems.map(i => i.name))];
+    const itemList = itemNames.slice(0, 5).join(', ') + (itemNames.length > 5 ? '...' : '');
+
+    const modalContent = `
+        <h2>Sell All Junk</h2>
+        <p>Sell <strong>${junkItems.length}</strong> common T1 materials for <strong style="color:#f1c40f">${totalValue}g</strong>?</p>
+        <p style="font-size: 0.9em; color: #888;">Items: ${itemList}</p>
+        <div class="action-buttons">
+            <button id="confirm-sell-junk-btn" class="btn btn-success">Sell All</button>
+            <button class="btn btn-danger" onclick="this.closest('.modal-overlay').classList.add('hidden')">Cancel</button>
+        </div>
+    `;
+    showModal(modalContent);
+
+    document.getElementById('confirm-sell-junk-btn').addEventListener('click', () => {
+        Network.emitPlayerAction('sellAllJunk');
+        hideModal();
+    });
+}
+
 // --- RENDER FUNCTIONS ---
 
 export function renderBankInterface() {
@@ -241,6 +283,30 @@ export function renderMerchant() {
             renderMerchant();
         });
     });
+
+    // Quick Action: Sell All Junk button
+    const quickActionsContainer = document.createElement('div');
+    quickActionsContainer.className = 'merchant-quick-actions';
+    quickActionsContainer.style.cssText = 'margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px;';
+
+    const junkItems = getJunkItems();
+    const totalJunkValue = junkItems.reduce((sum, item) => sum + (Math.floor(item.price / 2) || 1), 0);
+
+    quickActionsContainer.innerHTML = `
+        <button id="sell-all-junk-btn" class="btn btn-warning" ${junkItems.length === 0 ? 'disabled' : ''}>
+            💰 Sell All Junk (${junkItems.length} items, ${totalJunkValue}g)
+        </button>
+        <small style="display: block; margin-top: 5px; color: #888;">Sells common T1 materials from inventory</small>
+    `;
+    sellContainer.appendChild(quickActionsContainer);
+
+    // Add event listener for Sell All Junk
+    const sellJunkBtn = document.getElementById('sell-all-junk-btn');
+    if (sellJunkBtn && junkItems.length > 0) {
+        sellJunkBtn.addEventListener('click', () => {
+            showSellAllJunkModal(junkItems, totalJunkValue);
+        });
+    }
 
     renderStoragePanel(sellContainer, 'sell', merchantSellTab);
 

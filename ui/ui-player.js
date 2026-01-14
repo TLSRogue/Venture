@@ -4,7 +4,7 @@ import { gameData } from '../data/index.js'; // Corrected Path
 import { gameState } from '../state.js';
 import * as Network from '../network.js';
 import { getBonusStats } from '../player.js';
-import { showModal, hideModal, showTooltip, hideTooltip } from './ui-main.js';
+import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip, buildSpellTooltip } from './ui-main.js';
 import * as TownUI from './ui-town.js';
 import * as AdventureUI from './ui-adventure.js';
 import * as UIParty from './ui-party.js';
@@ -222,12 +222,19 @@ export function renderInventory() {
 
         const item = gameState.inventory[i];
         if (item) {
-            let tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
-            if (item.socketedGem) {
-                tooltipContent += `<hr style="margin: 5px 0;"><strong>Socketed:</strong><br>`;
-                tooltipContent += `<span class="gem-icon">${item.socketedGem.icon}</span> <strong>${item.socketedGem.name}</strong><br>`;
-                tooltipContent += `<small>${item.socketedGem.description}</small>`;
+            // Determine what equipment slot this item could go in for comparison
+            let compareWith = null;
+            if (item.slot) {
+                const targetSlot = Array.isArray(item.slot) ? item.slot[0] : item.slot;
+                compareWith = gameState.equipment[targetSlot];
+                // Don't compare item to itself if somehow in both places
+                if (compareWith && compareWith.name === item.name) compareWith = null;
             }
+
+            const tooltipContent = buildItemTooltip(item, {
+                compareWith,
+                action: 'Click ... for actions'
+            });
             slot.onmouseover = () => showTooltip(tooltipContent);
             slot.onmouseout = () => hideTooltip();
 
@@ -315,11 +322,18 @@ export function renderSpells() {
             slot.innerHTML = `
                 <div><strong>${spell.icon || '✨'} ${spell.name}</strong> <span style="font-size: 0.8em; color: var(--accent-color);">(${spell.school})</span></div>
                 <div class="spell-details">
-                    <div>Cost: ${spell.cost || 0} AP | CD: ${spell.cooldown}</div>
-                    <div>${spell.description}</div>
+                    <div>Cost: ${spell.cost || 0} AP | CD: ${spell.cooldown}${cooldown > 0 ? ` <span style="color:#e74c3c">(${cooldown} left)</span>` : ''}</div>
                 </div>
                 ${swapButton}
             `;
+
+            // Add tooltip
+            const tooltipContent = buildSpellTooltip(spell, cooldown);
+            slot.onmouseover = (e) => {
+                if (e.target.closest('button')) return;
+                showTooltip(tooltipContent);
+            };
+            slot.onmouseout = () => hideTooltip();
         } else {
             slot.className = 'spell-card';
             slot.innerHTML = 'Empty Spell Slot';
@@ -338,10 +352,19 @@ export function renderSpells() {
         card.innerHTML = `
             <div><strong>${spell.icon || '✨'} ${spell.name}</strong></div>
             <div class="spell-details">
-                <div>${spell.description}</div>
+                <div>${spell.cost || 0} AP | CD: ${spell.cooldown}</div>
             </div>
             ${equipButton}
         `;
+
+        // Add tooltip
+        const tooltipContent = buildSpellTooltip(spell, 0);
+        card.onmouseover = (e) => {
+            if (e.target.closest('button')) return;
+            showTooltip(tooltipContent);
+        };
+        card.onmouseout = () => hideTooltip();
+
         spellbookContainer.appendChild(card);
     });
 }
@@ -393,14 +416,8 @@ export function renderEquipment() {
 
             slotEl.innerHTML = `<div><strong>${slotNames[slotKey]}</strong></div>${itemText}${gemSlotHTML}<button class="btn btn-danger btn-sm" data-equipment-action="unequip" data-slot="${slotKey}">Unequip</button>`;
 
-            // Add tooltip
-            let tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
-            if (item.socketedGem) {
-                tooltipContent += `<hr style="margin: 5px 0;"><strong>Socketed:</strong><br>`;
-                tooltipContent += `<span class="gem-icon">${item.socketedGem.icon}</span> <strong>${item.socketedGem.name}</strong><br>`;
-                tooltipContent += `<small>${item.socketedGem.description}</small>`;
-                tooltipContent += `<br><small style="color:var(--accent-color)">Right-click gem slot to unsocket</small>`;
-            }
+            // Add tooltip using enhanced buildItemTooltip
+            const tooltipContent = buildItemTooltip(item);
             slotEl.onmouseover = (e) => {
                 // Don't show tooltip if hovering over buttons
                 if (e.target.closest('button')) return;
