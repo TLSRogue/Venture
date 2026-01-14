@@ -146,6 +146,18 @@ export const allItems = [
         canBeInMerchantWares: false,
     },
     {
+        name: "Cooked Rat Meat",
+        price: 30,
+        type: "consumable",
+        tier: 1,
+        cost: 1,
+        heal: 4,
+        description: "Surprisingly tasty when seasoned well. 1 AP | Heals 4 HP.",
+        icon: "🍖",
+        rarity: "uncommon",
+        canBeInMerchantWares: false,
+    },
+    {
         name: "Spiced Carrots",
         price: 30,
         type: "consumable",

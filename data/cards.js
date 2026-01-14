@@ -384,9 +384,9 @@ export const cardPools = {
                 name: "The Rat King", type: "enemy", health: 30, maxHealth: 30, description: "A horrifying amalgamation of rats.", icon: "👑",
                 imageUrl: '/assets/rat-king.jpg',
                 attackTable: [
-                    { range: [1, 5], action: 'miss', message: "Miss!" },
-                    { range: [6, 10], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Gnaw! Deals 3 Physical Damage!" },
-                    { range: [11, 15], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', debuff: { type: 'poison', duration: 3, damage: 2, damageType: 'Nature' }, message: "Diseased Bite! Deals 2 Physical Damage and Poisons you!" },
+                    { range: [1, 3], action: 'miss', message: "Miss!" },
+                    { range: [4, 9], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Gnaw! Deals 3 Physical Damage!" },
+                    { range: [10, 15], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', debuff: { type: 'poison', duration: 3, damage: 2, damageType: 'Nature' }, message: "Diseased Bite! Deals 2 Physical Damage and Poisons you!" },
                     { range: [16, 20], action: 'special', message: "The Rat King shrieks and another rat appears!" }
                 ],
                 guaranteedLoot: { gold: true, items: ["Rat Tail Cloak"] },

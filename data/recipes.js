@@ -6,6 +6,7 @@ export const craftingRecipes = [
     { result: { name: "Cooked Fish" }, materials: { "Fish": 1, "Spices": 1 }, category: "Cooking" },
     { result: { name: "Cooked Pork" }, materials: { "Pork": 1, "Spices": 1 }, category: "Cooking" },
     { result: { name: "Cooked Chicken" }, materials: { "Raw Chicken": 1, "Spices": 1 }, category: "Cooking" },
+    { result: { name: "Cooked Rat Meat" }, materials: { "Rat Meat": 1, "Spices": 1 }, category: "Cooking" },
     { result: { name: "Spiced Carrots" }, materials: { "Carrot": 1, "Spices": 1 }, category: "Cooking" },
     { result: { name: "Birthday Cake" }, materials: { "Egg": 1, "Milk": 1, "Wheat": 1 }, category: "Cooking", requiresDiscovery: true },
     { result: { name: "Iron Dagger" }, materials: { "Cow Hide": 1, "Iron": 1 }, category: "Blacksmithing" },
