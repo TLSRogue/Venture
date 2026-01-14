@@ -275,6 +275,7 @@ export const cardPools = {
                 type: "npc",
                 description: "A bald monk in simple robes, tending a small garden.",
                 icon: "🧘‍♂️",
+                imageUrl: '/assets/town-brotherthatch.jpg',
                 quests: [
                     { id: "MONK_FOCUS_QUEST", title: "A Test of Focus", turnInItems: { "Wheat": 3, "Fish": 3 }, reward: { spellReward: { name: "Monk's Training" } } }
                 ],
@@ -344,6 +345,26 @@ export const cardPools = {
         { card: { name: "Townsfolk", type: "npc", description: "A local man enjoying the day.", icon: "🧑", imageUrl: '/assets/town-citizen-m.jpg' }, count: 4 },
         { card: { name: "Townsfolk", type: "npc", description: "A local woman enjoying the day.", icon: "👩", imageUrl: '/assets/town-citizen-f.jpg' }, count: 4 },
         { card: { name: "Sewer Grate", type: "treasure", description: "A dark opening leading down to the sewers.", icon: "🕳️", imageUrl: '/assets/town-sewer-grate.jpg', loot: [{ name: "Rat Tail", type: "material", price: 1 }] }, count: 1 },
+        {
+            card: {
+                name: "Vagrant",
+                type: "npc",
+                description: "A disheveled man reeking of cheap ale, muttering to himself.",
+                icon: "🧔",
+                imageUrl: '/assets/town-vagrant.jpg',
+                quests: [
+                    { id: "RAT_KING_CROWN", title: "The True King", turnInItems: { "Rat King's Crown": 1 }, reward: { qp: 1 }, prerequisite: null }
+                ],
+                dialogue: {
+                    RAT_KING_CROWN_start: { text: "*hic* Youuu don't undershtand... I'M the Rat King! ME! They shtole my crown... thosse filthy ratss... *burp* ...took everythin' from me...", options: [{ text: "You... were the Rat King?", next: "RAT_KING_CROWN_explain" }, { text: "You're just a drunk.", next: "farewell" }] },
+                    RAT_KING_CROWN_explain: { text: "*hic* I ruled the sewersss... the KING of all ratss! But they... they betrayed me... took my crown... left me to ROT up here... *sob* ...bring me my crown... prove I'm not crazyyy...", options: [{ text: "I'll look for your crown.", questId: "RAT_KING_CROWN", next: "RAT_KING_CROWN_inProgress" }, { text: "Get some sleep, friend.", next: "farewell" }] },
+                    RAT_KING_CROWN_inProgress: { text: "*hic* My crown... my beautifulll crown... the ratss wear it now... mocking meee... *mumbles incoherently*", options: [{ text: "I'm still looking.", next: "farewell" }] },
+                    RAT_KING_CROWN_ready: { text: "*eyes widen* Isss that... MY CROWN?! *grabs it, inspects it* Wait... I can't drink outta thiss! *throws it away* Uselesss! ...but thank you, shtranger... now I know... I know I washn't dreaming... *passes out*", options: [{ text: "...Okay then.", questComplete: "RAT_KING_CROWN", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "*snoring loudly* ...zzz... my kingdom... zzz...", options: [{ text: "Let him sleep.", next: "farewell" }] },
+                    farewell: { text: "*mumbles and stares blankly*", options: [] }
+                }
+            }, count: 1
+        },
 
     ],
 
