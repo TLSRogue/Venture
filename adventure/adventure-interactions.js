@@ -6,6 +6,19 @@ import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, add
 import { checkAndEndTurnForPlayer } from './adventure-state.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 
+/**
+ * Get the area card to use when replacing treasure chests or resources in a zone.
+ * @param {string} zoneName - The current zone name
+ * @returns {Object|null} Area card object with unique id, or null if no area card for zone
+ */
+function getZoneAreaCard(zoneName) {
+    const zoneAreaCards = {
+        sewers: gameData.specialCards.emptyCanal
+    };
+    const areaCard = zoneAreaCards[zoneName];
+    return areaCard ? { ...areaCard, id: Date.now() } : null;
+}
+
 
 export function processDropItem(io, party, player, payload) {
     const { inventoryIndex } = payload;
@@ -197,7 +210,9 @@ export async function processInteractWithCard(io, party, player, payload) {
             }
 
             io.to(player.id).emit('characterUpdate', character);
-            sharedState.zoneCards[cardIndex] = null;
+            // Replace with zone-specific area card, or null if none defined
+            const areaCard = getZoneAreaCard(sharedState.currentZone);
+            sharedState.zoneCards[cardIndex] = areaCard;
         }
     }
 

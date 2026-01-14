@@ -11,6 +11,20 @@ import { processEnemyEndOfTurn } from './enemy-handlers.js';
 
 const PVP_ZONES = ['blighted_wastes'];
 
+/**
+ * Get the area card to use when replacing defeated enemies or opened chests in a zone.
+ * @param {string} zoneName - The current zone name
+ * @returns {Object|null} Area card object with unique id, or null if no area card for zone
+ */
+function getZoneAreaCard(zoneName) {
+    const zoneAreaCards = {
+        sewers: gameData.specialCards.emptyCanal
+    };
+    const areaCard = zoneAreaCards[zoneName];
+    return areaCard ? { ...areaCard, id: Date.now() } : null;
+}
+
+
 export function handlePvpPlayerDeath(io, defeatedPlayer, encounter) {
     const character = defeatedPlayer.character;
 
@@ -436,7 +450,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         }
 
         // Skip normal loot processing for Loot Goblin
-        sharedState.zoneCards[enemyIndex] = null;
+        sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone);
         if (!sharedState.zoneCards.some(c => c && c.type === 'enemy')) {
             sharedState.log.push({ message: "Combat has ended! Action Points restored.", type: "success" });
             sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = 3; });
@@ -532,7 +546,8 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
         sharedState.log.push({ message: `${enemy.name} dropped gold, which was split among the party.`, type: 'success' });
     }
-    sharedState.zoneCards[enemyIndex] = null;
+    // Replace with zone-specific area card, or null if none defined
+    sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone);
     if (!sharedState.zoneCards.some(c => c && c.type === 'enemy')) {
         sharedState.log.push({ message: "Combat has ended! Action Points restored.", type: "success" });
         sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = 3; });

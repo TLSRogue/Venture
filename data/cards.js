@@ -396,6 +396,8 @@ export const cardPools = {
                 ]
             }, count: 1
         },
+        { card: { name: "Treasure Chest", type: "treasure", description: "A grimy chest half-submerged in sewer water.", icon: "📦", imageUrl: '/assets/sewers-treasurechest.jpg' }, count: 1 },
+        { card: { name: "Empty Canal", type: "area", description: "A dark, empty sewer canal.", icon: "🕳️", imageUrl: '/assets/sewers-emptycanal.jpg', allowSpawnOver: true }, count: 3 },
     ],
 
     arena: [
@@ -700,5 +702,14 @@ export const specialCards = {
             { range: [11, 19], items: ["Wolf Bones"] },
             { range: [20, 20], items: ["Rough Fur", "Wolf Bones"] }
         ]
+    },
+    // --- Sewer Area Cards ---
+    emptyCanal: {
+        name: "Empty Canal",
+        type: "area",
+        description: "A dark, empty sewer canal.",
+        icon: "🕳️",
+        imageUrl: '/assets/sewers-emptycanal.jpg',
+        allowSpawnOver: true
     }
 };
