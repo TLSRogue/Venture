@@ -20,7 +20,7 @@ import { gameData } from './data/index.js';
  */
 function refreshPlayerSpells(character, characterName) {
     // List of spells that may need updates
-    const spellsToRefresh = ['Aim True', 'Split Shot', 'Evasive Shot', 'Dagger Throw', 'Ambush'];
+    const spellsToRefresh = ['Aim True', 'Split Shot', 'Evasive Shot', 'Dagger Throw', 'Ambush', 'Magic Barrier'];
 
     spellsToRefresh.forEach(spellName => {
         const currentDef = gameData.allSpells.find(s => s.name === spellName);
