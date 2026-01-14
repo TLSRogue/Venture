@@ -477,7 +477,7 @@ export async function processCastSpell(io, party, player, payload) {
 
         // Handle Magic Barrier scaling with arcanePower
         if (buff.type === 'Magic Barrier' && buff.scaling === 'arcanePower') {
-            const bonusStats = getBonusStatsForPlayer(actingPlayerState);
+            const bonusStats = getBonusStatsForPlayer(character, actingPlayerState);
             const arcanePower = bonusStats.arcanePower || 0;
             buff.value = (buff.baseValue || 2) + arcanePower;
             delete buff.baseValue;
