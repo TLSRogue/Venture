@@ -7,7 +7,7 @@
 import { players, parties, duels } from './serverState.js';
 import { broadcastPartyUpdate, broadcastDuelUpdate } from './utilsBroadcast.js';
 import { getBonusStatsForPlayer } from './utilsHelpers.js';
-import { startPvpEncounter } from './adventure/adventure-state.js';
+import { startPvpEncounter } from './adventure/pvp-state.js';
 
 // This function is exported separately so the disconnect handler can call it.
 export function endDuel(io, duelId, winnerName, loserName) {

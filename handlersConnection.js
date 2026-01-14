@@ -9,7 +9,7 @@
 import { players, parties, duels, pvpEncounters, createInitialCharacter } from './serverState.js';
 import { broadcastOnlinePlayers, broadcastPartyUpdate, broadcastDuelUpdate, broadcastAdventureUpdate } from './utilsBroadcast.js';
 import { endDuel } from './handlersDuel.js';
-import { handlePvpPlayerDeath } from './adventure/adventure-state.js';
+import { handlePvpPlayerDeath } from './adventure/pvp-state.js';
 import fs from 'fs';
 import { DUEL_DISCONNECT_MS } from './constants.js';
 import { gameData } from './data/index.js';
