@@ -164,6 +164,11 @@ export async function processInteractWithCard(io, party, player, payload) {
         return;
     }
 
+    // Area cards are non-interactable - don't spend AP
+    else if (card.type === 'area') {
+        return;
+    }
+
     else if (card.type === 'npc' && player.character.characterName !== party.leaderId) {
         return;
     }
