@@ -673,6 +673,23 @@ function addEventListeners() {
     document.body.addEventListener('click', (e) => {
         const target = e.target;
 
+        // Log tab filtering
+        const logTab = target.closest('.log-tab');
+        if (logTab) {
+            const filter = logTab.dataset.logFilter;
+            const log = document.getElementById('adventure-log');
+
+            // Update active tab
+            document.querySelectorAll('.log-tab').forEach(t => t.classList.remove('active'));
+            logTab.classList.add('active');
+
+            // Apply filter class
+            log.classList.remove('filter-combat', 'filter-chat');
+            if (filter === 'combat') log.classList.add('filter-combat');
+            if (filter === 'chat') log.classList.add('filter-chat');
+            return;
+        }
+
         const lootButton = target.closest('#loot-roll-container button[data-choice]');
         if (lootButton) {
             const choice = lootButton.dataset.choice;

@@ -275,6 +275,11 @@
     </div>
 
     <div id="adventure-log-container" style="display: none;">
+        <div class="log-tabs">
+            <button class="log-tab active" data-log-filter="all">All</button>
+            <button class="log-tab" data-log-filter="combat">Combat</button>
+            <button class="log-tab" data-log-filter="chat">Chat</button>
+        </div>
         <div id="adventure-log" class="log"></div>
         <div class="chat-input-area">
             <input type="text" id="zone-chat-input" placeholder="Say something..." maxlength="200">

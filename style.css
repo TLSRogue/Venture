@@ -1261,21 +1261,21 @@ hr {
 }
 
 #adventure-log-container {
-    padding: 0 20px 10px 20px;
+    padding: 15px 20px 10px 20px;
     z-index: 999;
 }
 
 #adventure-log-container .log {
     max-width: 1200px;
     margin: 0 auto;
-    margin-top: 0;
-    height: 200px;
+    height: 180px;
     overflow-y: auto;
     display: flex;
     flex-direction: column-reverse;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 0 8px 8px 8px;
     padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 #adventure-content-wrapper {
@@ -1810,10 +1810,94 @@ hr {
     margin: 10px auto 0 auto;
 }
 
+/* --- LOG TABS --- */
+.log-tabs {
+    display: flex;
+    gap: 5px;
+    max-width: 1200px;
+    margin: 0 auto 8px auto;
+    padding: 0 10px;
+}
+
+.log-tab {
+    padding: 6px 16px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    color: #888;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+}
+
+.log-tab:hover {
+    background: rgba(0, 0, 0, 0.6);
+    color: #ccc;
+}
+
+.log-tab.active {
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    border-color: var(--primary-color);
+}
+
+/* --- LOG ENTRY ENHANCEMENTS --- */
 .log-entry.chat {
     color: #ecf0f1;
     font-style: italic;
+    border-left-color: #7f8c8d;
 }
+
+.log-entry.success {
+    border-left-color: var(--success-color);
+}
+
+.log-entry.info {
+    border-left-color: var(--primary-color);
+}
+
+/* Damage type colors in log */
+.log-entry .damage-fire {
+    color: #e74c3c;
+}
+
+.log-entry .damage-frost {
+    color: #3498db;
+}
+
+.log-entry .damage-holy {
+    color: #f1c40f;
+}
+
+.log-entry .damage-arcane {
+    color: #9b59b6;
+}
+
+.log-entry .damage-shadow {
+    color: #8e44ad;
+}
+
+.log-entry .damage-nature {
+    color: #2ecc71;
+}
+
+.log-entry .damage-physical {
+    color: #ecf0f1;
+}
+
+/* Filter states for log entries */
+#adventure-log.filter-combat .log-entry.chat {
+    display: none;
+}
+
+#adventure-log.filter-chat .log-entry:not(.chat) {
+    display: none;
+}
+
 
 /* --- GEM SLOT STYLING --- */
 .gem-slot {
