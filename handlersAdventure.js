@@ -72,6 +72,7 @@ export const registerAdventureHandlers = (io, socket) => {
             log: [{ message: `Party has entered the ${zoneName}!`, type: 'info' }],
             pendingReaction: null,
             pendingLootRoll: null,
+            lootRollQueue: [],
         };
 
         if (zoneName === 'arena') {

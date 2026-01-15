@@ -368,6 +368,34 @@ export function determineLootWinnerAndDistribute(io, partyId) {
             io.to(member.id).emit('party:lootRollEnded');
         }
     });
+
+    // Process next item in the queue if any
+    processNextLootRoll(io, party);
+}
+
+// Start the next loot roll from the queue
+function processNextLootRoll(io, party) {
+    const { sharedState } = party;
+    if (!sharedState.lootRollQueue || sharedState.lootRollQueue.length === 0) {
+        return;
+    }
+
+    const nextItem = sharedState.lootRollQueue.shift();
+    sharedState.log.push({ message: `Party found: [${nextItem.name}]! A roll will begin.`, type: 'success' });
+    sharedState.pendingLootRoll = {
+        item: nextItem,
+        rolls: [],
+        endTime: Date.now() + LOOT_ROLL_DURATION_MS,
+    };
+    party.members.forEach(memberName => {
+        const member = players[memberName];
+        if (member && member.id) {
+            io.to(member.id).emit('party:lootRollStarted', sharedState.pendingLootRoll);
+        }
+    });
+    setTimeout(() => {
+        determineLootWinnerAndDistribute(io, party.id);
+    }, LOOT_ROLL_DURATION_MS);
 }
 
 export async function checkAndEndTurnForPlayer(io, party, player) {
@@ -487,8 +515,10 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     lootToDistribute.forEach(itemData => {
         if (itemData.rarity === 'uncommon' || itemData.rarity === 'rare') {
             if (sharedState.pendingLootRoll) {
-                sharedState.groundLoot.push(itemData);
-                sharedState.log.push({ message: `Found ${itemData.name}, but a roll is in progress. Item dropped to the ground.`, type: 'info' });
+                // Queue the item for rolling after current roll completes
+                if (!sharedState.lootRollQueue) sharedState.lootRollQueue = [];
+                sharedState.lootRollQueue.push(itemData);
+                sharedState.log.push({ message: `Found ${itemData.name}! Queued for rolling.`, type: 'info' });
             } else {
                 sharedState.log.push({ message: `Party found: [${itemData.name}]! A roll will begin.`, type: 'success' });
                 sharedState.pendingLootRoll = {
@@ -507,15 +537,9 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
                 }, LOOT_ROLL_DURATION_MS);
             }
         } else {
-            party.members.forEach(memberName => {
-                const member = players[memberName];
-                if (member && member.character) {
-                    if (!addItemToInventoryServer(member.character, itemData, 1, sharedState.groundLoot)) {
-                        sharedState.log.push({ message: `${itemData.name} dropped, but ${memberName}'s inventory is full! It was left on the ground.`, type: 'damage' });
-                    }
-                }
-            });
-            sharedState.log.push({ message: `${enemy.name} dropped: ${itemData.name}! (Distributed to all)`, type: 'success' });
+            // Non-rare loot drops to the ground - party decides who picks it up
+            sharedState.groundLoot.push({ ...itemData, quantity: 1 });
+            sharedState.log.push({ message: `${enemy.name} dropped: ${itemData.name}!`, type: 'success' });
         }
     });
     party.members.forEach(memberName => {
