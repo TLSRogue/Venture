@@ -359,7 +359,9 @@ export function determineLootWinnerAndDistribute(io, partyId) {
             party.sharedState.log.push({ message: `${winner.playerName} won ${rollData.item.name}, but their inventory was full! The item was dropped on the ground.`, type: 'damage' });
         }
     } else {
-        party.sharedState.log.push({ message: `Nobody rolled for ${rollData.item.name}.`, type: 'info' });
+        // Nobody rolled - drop to ground so it's not lost
+        party.sharedState.groundLoot.push({ ...rollData.item, quantity: 1 });
+        party.sharedState.log.push({ message: `Nobody rolled for ${rollData.item.name}. It was left on the ground.`, type: 'info' });
     }
     party.sharedState.pendingLootRoll = null;
     party.members.forEach(memberName => {
