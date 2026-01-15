@@ -24,6 +24,7 @@ export const craftingRecipes = [
     { result: { name: "Steel Sickle (T2)" }, materials: { "Steel Bar": 2, "Wood": 1 }, category: "Blacksmithing" },
     { result: { name: "Steel Armor" }, materials: { "Steel Bar": 2, "Cow Hide": 1 }, category: "Blacksmithing", requiresDiscovery: true },
     { result: { name: "Iron Boots" }, materials: { "Iron": 1, "Cow Hide": 1 }, category: "Blacksmithing" },
+    { result: { name: "Leather" }, materials: { "Tanin": 1, "Hide": 1 }, category: "Leatherworking" },
     { result: { name: "Quiver" }, materials: { "Cow Hide": 2 }, category: "Leatherworking" },
     { result: { name: "Leather Armor" }, materials: { "Cow Hide": 3 }, category: "Leatherworking" },
     { result: { name: "Leather Cowl" }, materials: { "Cow Hide": 2 }, category: "Leatherworking" },

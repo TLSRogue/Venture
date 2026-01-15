@@ -1115,6 +1115,38 @@ export const allItems = [
         rarity: "uncommon",
         canBeInMerchantWares: false,
     },
+    // --- Leatherworking Materials ---
+    {
+        name: "Tanin",
+        type: "material",
+        tier: 1,
+        price: 10,
+        description: "A tanning agent used in leather working.",
+        icon: "🧴",
+        rarity: "common",
+        canBeInMerchantWares: true,
+        permanentMerchantStock: true,
+    },
+    {
+        name: "Hide",
+        type: "material",
+        tier: 2,
+        price: 15,
+        description: "A raw animal hide, ready to be processed into leather.",
+        icon: "🦮",
+        rarity: "common",
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Leather",
+        type: "material",
+        tier: 2,
+        price: 25,
+        description: "Processed leather, suitable for crafting armor and equipment.",
+        icon: "🧥",
+        rarity: "common",
+        canBeInMerchantWares: false,
+    },
 ];
 
 export const genericTreasureLoot = [

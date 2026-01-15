@@ -18,7 +18,7 @@ const RAT_TYPES = [
             { range: [4, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Bite! Deals 2 Physical Damage!" }
         ],
         lootTable: [
-            { range: [1, 10], items: ["Rat Meat"] },
+            { range: [1, 10], items: ["Rat Meat", "Hide"] },
             { range: [11, 18], items: ["Rat Tail"] },
             { range: [19, 20], items: ["Rat Eye"] }
         ]

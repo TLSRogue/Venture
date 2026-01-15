@@ -411,7 +411,7 @@ export const cardPools = {
                     { range: [4, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Bite! Deals 2 Physical Damage!" }
                 ],
                 lootTable: [
-                    { range: [1, 10], items: ["Rat Meat"] },
+                    { range: [1, 10], items: ["Rat Meat", "Hide"] },
                     { range: [11, 18], items: ["Rat Tail"] },
                     { range: [19, 20], items: ["Rat Eye"] }
                 ]
@@ -631,9 +631,9 @@ export const cardPools = {
                     { range: [18, 20], action: 'special', message: "Howl! The wolf calls for reinforcements!" }
                 ],
                 lootTable: [
-                    { range: [1, 10], items: ["Rough Fur"] },
-                    { range: [11, 19], items: ["Wolf Bones"] },
-                    { range: [20, 20], items: ["Rough Fur", "Wolf Bones"] }
+                    { range: [1, 15], items: ["Rough Fur", "Hide"] },
+                    { range: [16, 19], items: ["Wolf Bones", "Hide"] },
+                    { range: [20, 20], items: ["Rough Fur", "Wolf Bones", "Hide"] }
                 ]
             }, count: 5
         },
@@ -753,9 +753,9 @@ export const specialCards = {
             { range: [18, 20], action: 'special', message: "Howl! The wolf calls for reinforcements!" }
         ],
         lootTable: [
-            { range: [1, 10], items: ["Rough Fur"] },
-            { range: [11, 19], items: ["Wolf Bones"] },
-            { range: [20, 20], items: ["Rough Fur", "Wolf Bones"] }
+            { range: [1, 15], items: ["Rough Fur", "Hide"] },
+            { range: [16, 19], items: ["Wolf Bones", "Hide"] },
+            { range: [20, 20], items: ["Rough Fur", "Wolf Bones", "Hide"] }
         ]
     },
     // --- Farmlands Spawnable Cards ---
