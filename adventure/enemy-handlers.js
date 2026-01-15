@@ -14,8 +14,8 @@ const RAT_TYPES = [
         name: "Sewer Rat", type: "enemy", health: 6, maxHealth: 6, icon: "🐀",
         imageUrl: '/assets/sewer-rat.jpg',
         attackTable: [
-            { range: [1, 8], action: 'miss', message: "Miss!" },
-            { range: [9, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Bite! Deals 2 Physical Damage!" }
+            { range: [1, 3], action: 'miss', message: "Miss!" },
+            { range: [4, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Bite! Deals 2 Physical Damage!" }
         ],
         lootTable: [
             { range: [1, 10], items: ["Rat Meat"] },
@@ -27,9 +27,9 @@ const RAT_TYPES = [
         name: "Plague Rat", type: "enemy", health: 10, maxHealth: 10, icon: "🐀",
         imageUrl: '/assets/plague-rat.jpg',
         attackTable: [
-            { range: [1, 8], action: 'miss', message: "Miss!" },
-            { range: [9, 16], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Maul! Deals 3 Physical Damage!" },
-            { range: [17, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Infectious Bite! Deals 2 Nature Damage and Poisons!" }
+            { range: [1, 3], action: 'miss', message: "Miss!" },
+            { range: [4, 14], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Maul! Deals 3 Physical Damage!" },
+            { range: [15, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Infectious Bite! Deals 2 Nature Damage and Poisons!" }
         ],
         lootTable: [
             { range: [1, 10], items: ["Rat Meat", "Rat Eye"] },
