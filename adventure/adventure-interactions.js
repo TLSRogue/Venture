@@ -169,6 +169,32 @@ export async function processInteractWithCard(io, party, player, payload) {
         return;
     }
 
+    // Interaction cards that spawn enemies (e.g., Chicken Coop -> Angry Rooster)
+    else if (card.type === 'interaction' && card.spawnsEnemy) {
+        const cost = card.interactionCost || 1;
+        if (actingPlayerState.actionPoints < cost) {
+            sharedState.log.push({ message: `Not enough AP to interact with ${card.name}.`, type: 'info' });
+            return;
+        }
+        actingPlayerState.actionPoints -= cost;
+
+        const enemyTemplate = gameData.specialCards[card.spawnsEnemy];
+        if (enemyTemplate) {
+            const spawnedEnemy = {
+                ...enemyTemplate,
+                id: Date.now(),
+                health: enemyTemplate.health,
+                maxHealth: enemyTemplate.maxHealth,
+                buffs: [],
+                debuffs: []
+            };
+            sharedState.zoneCards[cardIndex] = spawnedEnemy;
+            sharedState.log.push({ message: `${character.characterName} disturbed the ${card.name}! A ${spawnedEnemy.name} appears!`, type: 'damage' });
+        }
+        await checkAndEndTurnForPlayer(io, party, player);
+        return;
+    }
+
     else if (card.type === 'npc' && player.character.characterName !== party.leaderId) {
         return;
     }
@@ -297,9 +323,22 @@ export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNode
     }
 
     const currentNode = npc.dialogue[currentDialogueNodeKey];
+
+    // Filter out options that require items the player doesn't have
+    let filteredNode = currentNode;
+    if (currentNode && currentNode.options) {
+        const filteredOptions = currentNode.options.filter(opt => {
+            if (opt.requiresItem) {
+                return leaderCharacter.inventory.some(item => item && item.name === opt.requiresItem);
+            }
+            return true;
+        });
+        filteredNode = { ...currentNode, options: filteredOptions };
+    }
+
     const payload = {
         npcName: npc.name,
-        node: currentNode,
+        node: filteredNode,
         cardIndex: cardIndex
     };
 
@@ -374,6 +413,20 @@ export function processDialogueChoice(io, player, party, payload) {
             });
             party.sharedState.log.push({ message: `Party completed Quest: ${questToComplete.details.title}`, type: 'success' });
         }
+    }
+
+    // Handle teachRecipe - NPC teaches a recipe to the player
+    if (choice.teachRecipe) {
+        const recipeName = choice.teachRecipe;
+        party.members.forEach(memberName => {
+            const memberPlayer = players[memberName];
+            const member = memberPlayer?.character;
+            if (member && !member.knownRecipes.includes(recipeName)) {
+                member.knownRecipes.push(recipeName);
+                if (memberPlayer.id) io.to(memberPlayer.id).emit('characterUpdate', member);
+            }
+        });
+        party.sharedState.log.push({ message: `${npc.name} taught the party how to craft: ${recipeName}!`, type: 'success' });
     }
 
     if (choice.next === 'farewell') {

@@ -567,6 +567,16 @@ function handleRagingBullThickHide(enemy, sharedState, target, attack, ctx) {
     }
 }
 
+// --- ANGRY ROOSTER HANDLERS ---
+function handleAngryRoosterEnrage(enemy, sharedState, target, attack, ctx) {
+    if (!enemy.buffs) enemy.buffs = [];
+    // Remove existing Enraged buff if present to reset duration
+    enemy.buffs = enemy.buffs.filter(b => b.type !== 'Enraged');
+    enemy.buffs.push({ type: 'Enraged', duration: 3, extraAttacks: 1 });
+    sharedState.log.push({ message: `The Angry Rooster becomes ENRAGED! It will make 2 attacks each turn for 3 turns!`, type: 'reaction' });
+    return { handled: true };
+}
+
 // --- FILL KEGS SPECIAL (Pulvis Cadus) ---
 function handlePulvisFillKegs(enemy, sharedState, target, attack, ctx) {
     const emptyIndices = sharedState.zoneCards.map((card, idx) => card === null ? idx : -1).filter(idx => idx !== -1);
@@ -636,6 +646,9 @@ export const EnemySpecialHandlers = {
     },
     'Raging Bull': {
         'Thick Hide': handleRagingBullThickHide
+    },
+    'Angry Rooster': {
+        'Enrage': handleAngryRoosterEnrage
     }
 };
 

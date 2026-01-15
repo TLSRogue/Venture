@@ -392,6 +392,28 @@ export const allItems = [
         canBeInMerchantWares: true,
     },
     {
+        name: "Spur Dagger",
+        price: 75,
+        type: "weapon",
+        slot: ["mainHand", "offHand"],
+        cost: 1,
+        cooldown: 1,
+        hit: 10,
+        stat: "agility",
+        range: "melee",
+        weaponType: "Dagger",
+        weaponDamage: 3,
+        damageType: "Physical",
+        bonus: { agility: 1 },
+        description: "A wicked dagger crafted from a rooster's spur. 1 AP, 1 CD | D20+Agi (10+) | Deals 3 Physical Damage. On 15+, applies Bleed. +1 Agility.",
+        onCritThreshold: { threshold: 15, debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' } },
+        tier: 2,
+        icon: "🗡️",
+        traits: ['Dagger', 'Melee', 'Tier 2'],
+        rarity: "uncommon",
+        canBeInMerchantWares: false, // Crafted only
+    },
+    {
         name: "Iron Sword",
         price: 70,
         type: "weapon",
@@ -952,6 +974,7 @@ export const allItems = [
     { name: "Hemp", type: "material", tier: 1, price: 5, description: "A fibrous plant stalk, useful for making cloth.", icon: "🌿", rarity: "common", canBeInMerchantWares: false },
     { name: "Carrot", type: "material", tier: 1, price: 5, description: "A crunchy, orange root vegetable.", icon: "🥕", rarity: "common", canBeInMerchantWares: false },
     { name: "Feather", type: "material", tier: 1, price: 2, description: "A small, light feather.", icon: "🪶", rarity: "common", canBeInMerchantWares: false },
+    { name: "Rooster Spur", type: "material", tier: 1, price: 15, description: "A sharp rooster spur! Someone might be able to make something with this.", icon: "🦴", rarity: "rare", canBeInMerchantWares: false },
     { name: "Goblin Lucky Charm", type: "questItem", tier: 1, price: 0, description: "A strange, surprisingly shiny goblin trinket.", icon: "🍀", rarity: "quest", canBeInMerchantWares: false },
 
     // --- Rat Loot Items ---

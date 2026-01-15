@@ -58,16 +58,16 @@ export const cardPools = {
                 }
             }, count: 1
         },
-        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", icon: "📦", imageUrl: '/assets/farmlands-treasurechest.png' }, count: 1 },
+        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", icon: "📦", imageUrl: '/assets/farmlands-treasurechest.jpg' }, count: 1 },
         {
             card: {
-                name: "Chicken", type: "enemy", health: 2, maxHealth: 2, description: "A feisty farm chicken", icon: "🐔", imageUrl: '/assets/farmlands-chicken.png',
+                name: "Chicken", type: "enemy", health: 2, maxHealth: 2, description: "A feisty farm chicken", icon: "🐔", imageUrl: '/assets/farmlands-chicken.jpg',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
                     { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 1, damageType: 'Physical', message: "Peck! Deals 1 Physical Damage!" },
                     { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Eye Gouge! Deals 2 Physical Damage!" }
                 ],
-                guaranteedLoot: { items: ["Raw Chicken"] },
+                guaranteedLoot: { items: ["Raw Chicken", "Feather"] },
                 lootTable: [
                     { range: [1, 10], items: ["Egg"] },
                     { range: [11, 17], items: ["Feather"] },
@@ -123,7 +123,18 @@ export const cardPools = {
         { card: { name: "Iron Node", type: "resource", skill: "mining", description: "Requires Mining Tool (T1). Rare chance for gemstones.", lootPool: [{ name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Tier 1 Gemstone" }], toolType: "mining", toolTier: 1, charges: 3, icon: "⛏️", imageUrl: '/assets/farmlands-ironnode.png' }, count: 6 },
         { card: { name: "Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T1)", loot: { name: "Wood", type: "material", price: 5 }, toolType: "woodcutting", toolTier: 1, charges: 3, icon: "🌲", imageUrl: '/assets/farmlands-tree.png' }, count: 6 },
         { card: { name: "River", type: "resource", skill: "fishing", description: "Requires Fishing Tool (T1)", loot: { name: "Fish", type: "material", price: 5 }, toolType: "fishing", toolTier: 1, charges: 3, icon: "🎣", imageUrl: '/assets/farmlands-river.png' }, count: 6 },
-        { card: { name: "Crops", type: "resource", skill: "harvesting", description: "Requires Harvesting Tool (T1)", lootPool: [{ name: "Wheat" }, { name: "Carrot" }, { name: "Hemp" }], toolType: "harvesting", toolTier: 1, charges: 3, icon: "🌾", imageUrl: '/assets/farmlands-crops.png' }, count: 5 },
+        { card: { name: "Crops", type: "resource", skill: "harvesting", description: "Requires Harvesting Tool (T1)", lootPool: [{ name: "Wheat" }, { name: "Carrot" }, { name: "Hemp" }], toolType: "harvesting", toolTier: 1, charges: 3, icon: "🌾", imageUrl: '/assets/farmlands-crops.jpg' }, count: 5 },
+        {
+            card: {
+                name: "Chicken Coop",
+                type: "interaction",
+                description: "A rustic chicken coop. Something's moving inside...",
+                icon: "🏠",
+                imageUrl: '/assets/farmlands-chickencoop.jpg',
+                interactionCost: 1,
+                spawnsEnemy: "angryRooster"
+            }, count: 1
+        },
     ],
 
     goblinCaves: [
@@ -362,6 +373,28 @@ export const cardPools = {
                     RAT_KING_CROWN_ready: { text: "*eyes widen* Isss that... MY CROWN?! *grabs it, inspects it* Wait... I can't drink outta thiss! *throws it away* Uselesss! ...but thank you, shtranger... now I know... I know I washn't dreaming... *passes out*", options: [{ text: "...Okay then.", questComplete: "RAT_KING_CROWN", next: "allQuestsDone" }] },
                     allQuestsDone: { text: "*snoring loudly* ...zzz... my kingdom... zzz...", options: [{ text: "Let him sleep.", next: "farewell" }] },
                     farewell: { text: "*mumbles and stares blankly*", options: [] }
+                }
+            }, count: 1
+        },
+        {
+            card: {
+                name: "Fletcher",
+                type: "npc",
+                description: "A skilled craftsman who makes arrows and other sharp implements.",
+                icon: "🏹",
+                imageUrl: '/assets/town-fletcher.jpg',
+                dialogue: {
+                    start: {
+                        text: "Ah, a customer! I craft the finest arrows and bolts in the region. Looking for something sharp?", options: [
+                            { text: "Tell me about your work.", next: "about" },
+                            { text: "I have a Rooster Spur. Can you do anything with it?", next: "spurRecipe", requiresItem: "Rooster Spur" },
+                            { text: "Just browsing.", next: "farewell" }
+                        ]
+                    },
+                    about: { text: "I've been fletching for decades. Arrows, bolts, throwing knives... if it flies and sticks, I can make it.", options: [{ text: "Interesting.", next: "farewell" }] },
+                    spurRecipe: { text: "A Rooster Spur? Now that's a nasty little thing. Sharp as any blade I've seen. Tell you what\u2014I'll teach you how to fashion it into a proper dagger. You'll need some Dark Wood for the handle.", options: [{ text: "Teach me.", teachRecipe: "Spur Dagger", next: "spurRecipeLearned" }] },
+                    spurRecipeLearned: { text: "There you go. Spur Dagger\u2014fast, light, and it'll make your enemies bleed. Good hunting!", options: [{ text: "Thanks.", next: "farewell" }] },
+                    farewell: { text: "Stay sharp out there.", options: [] }
                 }
             }, count: 1
         },
@@ -724,6 +757,23 @@ export const specialCards = {
             { range: [11, 19], items: ["Wolf Bones"] },
             { range: [20, 20], items: ["Rough Fur", "Wolf Bones"] }
         ]
+    },
+    // --- Farmlands Spawnable Cards ---
+    angryRooster: {
+        name: "Angry Rooster",
+        type: "enemy",
+        health: 8,
+        maxHealth: 8,
+        description: "An enraged rooster protecting its territory!",
+        icon: "🐓",
+        imageUrl: '/assets/farmlands-angryrooster.jpg',
+        attackTable: [
+            { range: [1, 3], action: 'miss', message: "Miss!" },
+            { range: [4, 8], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Claw! Deals 3 Physical Damage!" },
+            { range: [9, 15], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Gouge! Deals 3 Physical Damage and Bleed!" },
+            { range: [16, 20], action: 'special', message: "Enrage! The Angry Rooster becomes Enraged for 3 turns!" }
+        ],
+        guaranteedLoot: { items: ["Feather", "Raw Chicken", "Raw Chicken", "Rooster Spur"] }
     },
     // --- Sewer Area Cards ---
     emptyCanal: {

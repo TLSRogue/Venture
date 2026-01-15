@@ -1517,6 +1517,50 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 sharedState.log.push({ message: `${targetPlayerState.name} has been defeated!`, type: 'damage' });
             }
 
+            // --- EXTRA ATTACK FOR ENRAGED ENEMIES ---
+            const enragedBuff = enemy.buffs?.find(b => b.type === 'Enraged' && b.extraAttacks);
+            if (enragedBuff && enemy.health > 0) {
+                for (let extraAttackNum = 0; extraAttackNum < enragedBuff.extraAttacks; extraAttackNum++) {
+                    const alivePlayersForExtra = sharedState.partyMemberStates.filter(p => !p.isDead);
+                    if (alivePlayersForExtra.length === 0) break;
+
+                    const maxThreatExtra = Math.max(...alivePlayersForExtra.map(p => p.threat));
+                    const topThreatPlayersExtra = alivePlayersForExtra.filter(p => p.threat === maxThreatExtra);
+                    const extraTarget = topThreatPlayersExtra[Math.floor(Math.random() * topThreatPlayersExtra.length)];
+                    const extraTargetObj = players[extraTarget.name];
+                    if (!extraTargetObj) break;
+
+                    let extraRoll = Math.floor(Math.random() * 20) + 1;
+                    const extraAttack = enemy.attackTable ? enemy.attackTable.find(a => extraRoll >= a.range[0] && extraRoll <= a.range[1]) : null;
+
+                    if (extraAttack && extraAttack.action === 'attack') {
+                        let extraDamage = extraAttack.damage;
+                        if (extraAttack.damageType === 'Physical') {
+                            const bonuses = getBonusStatsForPlayer(extraTargetObj.character, extraTarget);
+                            const resistance = bonuses.physicalResistance || 0;
+                            extraDamage = Math.max(1, extraDamage - resistance);
+                        }
+                        applyDamage(extraTarget, extraDamage);
+                        sharedState.log.push({ message: `[ENRAGED] ${enemy.name} ${extraAttack.message}`, type: 'damage' });
+
+                        if (extraAttack.debuff) {
+                            if (!extraTarget.debuffs) extraTarget.debuffs = [];
+                            extraTarget.debuffs.push({ ...extraAttack.debuff });
+                        }
+
+                        if (extraTarget.health <= 0) {
+                            extraTarget.health = 0;
+                            extraTarget.isDead = true;
+                            sharedState.log.push({ message: `${extraTarget.name} has been defeated!`, type: 'damage' });
+                        }
+                    } else if (extraAttack) {
+                        sharedState.log.push({ message: `[ENRAGED] ${enemy.name} ${extraAttack.message}`, type: 'info' });
+                    }
+                    broadcastAdventureUpdate(io, party);
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                }
+            }
+
             // --- END OF TURN PROCESSING (DoT + Decrement) ---
             if (processEndOfTurn()) continue;
 

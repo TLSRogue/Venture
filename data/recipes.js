@@ -13,6 +13,7 @@ export const craftingRecipes = [
     { result: { name: "Iron Sword" }, materials: { "Cow Hide": 1, "Iron": 1 }, category: "Blacksmithing" },
     { result: { name: "Large Iron Mace" }, materials: { "Iron": 2, "Wood": 1 }, category: "Blacksmithing" },
     { result: { name: "Iron Spear" }, materials: { "Wood": 2, "Iron": 1 }, category: "Blacksmithing" },
+    { result: { name: "Spur Dagger" }, materials: { "Rooster Spur": 1, "Dark Wood": 1 }, category: "Blacksmithing", requiresDiscovery: true },
     { result: { name: "Iron Shield" }, materials: { "Cow Hide": 1, "Iron": 1 }, category: "Blacksmithing" },
     { result: { name: "Iron Armor" }, materials: { "Iron": 2, "Cow Hide": 1 }, category: "Blacksmithing" },
     { result: { name: "Iron Helm" }, materials: { "Iron": 1, "Cow Hide": 1 }, category: "Blacksmithing" },
