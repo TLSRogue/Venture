@@ -410,10 +410,10 @@ export const cardPools = {
                     { range: [10, 15], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', debuff: { type: 'poison', duration: 3, damage: 2, damageType: 'Nature' }, message: "Diseased Bite! Deals 2 Physical Damage and Poisons you!" },
                     { range: [16, 20], action: 'special', message: "The Rat King shrieks and another rat appears!" }
                 ],
-                guaranteedLoot: { gold: true, items: ["Rat Tail Cloak"] },
+                guaranteedLoot: { gold: true, items: ["Rat Meat", "Rat Tail"] },
                 lootTable: [
-                    { range: [1, 15], items: ["Rat Tail", "Plague Essence"] },
-                    { range: [16, 20], items: ["Rat King's Crown"] }
+                    { range: [1, 10], items: ["Rat Tail Cloak"] },
+                    { range: [11, 20], items: ["Rat King's Crown"] }
                 ]
             }, count: 1
         },
