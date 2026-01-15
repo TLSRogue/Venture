@@ -253,8 +253,8 @@ export async function processInteractWithCard(io, party, player, payload) {
 export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNodeKey = 'start') {
     const leaderCharacter = player.character;
 
-    // Fallback for NPCs without dialogue or quests
-    if (!npc.dialogue || !npc.quests || npc.quests.length === 0) {
+    // Fallback for NPCs without dialogue defined
+    if (!npc.dialogue) {
         const genericDialogue = {
             text: npc.description || "Hello, traveler. Safe journeys to you.",
             options: [{ text: "Farewell.", next: "farewell" }]
@@ -262,6 +262,51 @@ export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNode
         const payload = {
             npcName: npc.name,
             node: genericDialogue,
+            cardIndex: cardIndex
+        };
+        party.members.forEach(memberName => {
+            const member = players[memberName];
+            if (member && member.id) io.to(member.id).emit('party:showDialogue', payload);
+        });
+        return;
+    }
+
+    // For NPCs with dialogue but no quests, just show the dialogue directly
+    if (!npc.quests || npc.quests.length === 0) {
+        const currentNode = npc.dialogue[dialogueNodeKey];
+        if (!currentNode) {
+            // Fallback if the requested dialogue key doesn't exist
+            const genericDialogue = {
+                text: npc.description || "Hello, traveler. Safe journeys to you.",
+                options: [{ text: "Farewell.", next: "farewell" }]
+            };
+            const payload = {
+                npcName: npc.name,
+                node: genericDialogue,
+                cardIndex: cardIndex
+            };
+            party.members.forEach(memberName => {
+                const member = players[memberName];
+                if (member && member.id) io.to(member.id).emit('party:showDialogue', payload);
+            });
+            return;
+        }
+
+        // Filter out options that require items the player doesn't have
+        let filteredNode = currentNode;
+        if (currentNode.options) {
+            const filteredOptions = currentNode.options.filter(opt => {
+                if (opt.requiresItem) {
+                    return leaderCharacter.inventory.some(item => item && item.name === opt.requiresItem);
+                }
+                return true;
+            });
+            filteredNode = { ...currentNode, options: filteredOptions };
+        }
+
+        const payload = {
+            npcName: npc.name,
+            node: filteredNode,
             cardIndex: cardIndex
         };
         party.members.forEach(memberName => {
