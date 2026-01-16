@@ -32,6 +32,20 @@ function hasMaterials(materials, checkBank = true) {
 }
 
 /**
+ * Get the count of a specific material from inventory + bank
+ */
+function getMaterialCount(materialName) {
+    let count = 0;
+    gameState.inventory.forEach(item => {
+        if (item && item.name === materialName) count += (item.quantity || 1);
+    });
+    gameState.bank.forEach(item => {
+        if (item && item.name === materialName) count += (item.quantity || 1);
+    });
+    return count;
+}
+
+/**
  * Get all "junk" items from inventory (common tier 1 materials)
  * Returns array of { index, item } objects
  */
@@ -419,33 +433,56 @@ export function renderCrafting() {
         gridContainer.appendChild(subtabContainer);
     }
 
-    // Render recipes as compact rows
-    const recipesToDisplay = subtabMap[activeCraftingSubtab] || [];
+    // Sort recipes: craftable first, then alphabetically
+    const recipesToDisplay = (subtabMap[activeCraftingSubtab] || []).sort((a, b) => {
+        const canCraftA = hasMaterials(a.materials);
+        const canCraftB = hasMaterials(b.materials);
+        if (canCraftA && !canCraftB) return -1;
+        if (!canCraftA && canCraftB) return 1;
+        return a.result.name.localeCompare(b.result.name);
+    });
 
     recipesToDisplay.forEach((recipe) => {
         const recipeEl = document.createElement('div');
-        recipeEl.className = 'crafting-row';
-
         const canCraft = hasMaterials(recipe.materials);
+        recipeEl.className = `crafting-card ${canCraft ? 'craftable' : 'not-craftable'}`;
+
         const resultItem = gameData.allItems.find(i => i.name === recipe.result.name);
         const recipeIndex = gameData.craftingRecipes.indexOf(recipe);
 
+        // Build material list with owned/required counts
+        let materialsHtml = '';
+        for (const materialName in recipe.materials) {
+            const required = recipe.materials[materialName];
+            const owned = getMaterialCount(materialName);
+            const isSufficient = owned >= required;
+            const materialItem = gameData.allItems.find(i => i.name === materialName);
+            const icon = materialItem?.icon || '📦';
+            materialsHtml += `
+                <div class="crafting-material ${isSufficient ? 'sufficient' : 'insufficient'}">
+                    <span class="material-icon">${icon}</span>
+                    <span class="material-name">${materialName}</span>
+                    <span class="material-count">${owned}/${required}</span>
+                    <span class="material-status">${isSufficient ? '✓' : '✗'}</span>
+                </div>
+            `;
+        }
+
         recipeEl.innerHTML = `
-            <div class="crafting-row-info">
-                <span class="crafting-row-icon">${resultItem?.icon || '❓'}</span>
-                <span class="crafting-row-name">${recipe.result.quantity > 1 ? recipe.result.quantity + 'x ' : ''}${recipe.result.name}</span>
+            <div class="crafting-card-header">
+                <span class="crafting-card-icon">${resultItem?.icon || '❓'}</span>
+                <span class="crafting-card-name">${recipe.result.quantity > 1 ? recipe.result.quantity + 'x ' : ''}${recipe.result.name}</span>
             </div>
-            <button class="btn btn-sm btn-success" data-craft-index="${recipeIndex}" ${!canCraft ? 'disabled' : ''}>Craft</button>
+            <div class="crafting-materials-list">
+                ${materialsHtml}
+            </div>
+            <button class="btn btn-sm ${canCraft ? 'btn-success' : 'btn-disabled'}" data-craft-index="${recipeIndex}" ${!canCraft ? 'disabled' : ''}>Craft</button>
         `;
 
-        // Build tooltip content
+        // Build tooltip content for item details
         let tooltipContent = `<strong>${resultItem?.name || recipe.result.name}</strong>`;
         if (resultItem?.description) {
             tooltipContent += `<br>${resultItem.description}`;
-        }
-        tooltipContent += `<hr style="margin: 5px 0;"><strong>Materials:</strong><br>`;
-        for (const material in recipe.materials) {
-            tooltipContent += `• ${recipe.materials[material]}x ${material}<br>`;
         }
         if (resultItem?.bonus) {
             tooltipContent += `<hr style="margin: 5px 0;"><strong>Bonuses:</strong><br>`;

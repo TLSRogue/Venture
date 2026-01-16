@@ -803,6 +803,116 @@ body {
 
 /* --- END COMPACT ROW LAYOUTS --- */
 
+/* --- NEW CRAFTING CARD STYLES --- */
+.crafting-card {
+    background: rgba(155, 89, 182, 0.15);
+    border: 2px solid rgba(155, 89, 182, 0.4);
+    border-radius: 10px;
+    padding: 15px;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.crafting-card:hover {
+    background: rgba(155, 89, 182, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
+}
+
+.crafting-card.craftable {
+    border-color: var(--success-color);
+    background: rgba(46, 204, 113, 0.15);
+}
+
+.crafting-card.craftable:hover {
+    background: rgba(46, 204, 113, 0.25);
+    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+}
+
+.crafting-card.not-craftable {
+    opacity: 0.7;
+}
+
+.crafting-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.crafting-card-icon {
+    font-size: 2em;
+    line-height: 1;
+}
+
+.crafting-card-name {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #fff;
+}
+
+.crafting-materials-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.9em;
+}
+
+.crafting-material {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.crafting-material .material-icon {
+    font-size: 1.2em;
+}
+
+.crafting-material .material-name {
+    flex: 1;
+    color: #ccc;
+}
+
+.crafting-material .material-count {
+    font-weight: 600;
+    min-width: 40px;
+    text-align: right;
+}
+
+.crafting-material .material-status {
+    font-size: 1.1em;
+    width: 18px;
+    text-align: center;
+}
+
+.crafting-material.sufficient .material-count,
+.crafting-material.sufficient .material-status {
+    color: var(--success-color);
+}
+
+.crafting-material.insufficient .material-count,
+.crafting-material.insufficient .material-status {
+    color: var(--danger-color);
+}
+
+.crafting-card .btn {
+    align-self: flex-end;
+    margin-top: auto;
+}
+
+.btn-disabled {
+    background: #555;
+    color: #888;
+    cursor: not-allowed;
+}
+/* --- END CRAFTING CARD STYLES --- */
+
 .spell-card.reaction {
     border-color: var(--accent-color);
 }
