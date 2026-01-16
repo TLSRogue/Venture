@@ -114,7 +114,7 @@ export function buildZoneDeckForServer(zoneName) {
 /**
  * Get zone-specific area card for filling empty slots
  */
-function getZoneAreaCard(zoneName) {
+function getZoneAreaCard(zoneName, index = 0) {
     const zoneAreaCards = {
         sewers: gameData.specialCards.emptyCanal,
         goblinCaves: gameData.specialCards.goblinCavesTunnel,
@@ -122,14 +122,15 @@ function getZoneAreaCard(zoneName) {
         mansion: gameData.specialCards.mansionHall
     };
     const areaCard = zoneAreaCards[zoneName];
-    return areaCard ? { ...areaCard, id: Date.now() } : null;
+    // Add index to Date.now() to ensure unique IDs within the same call block
+    return areaCard ? { ...areaCard, id: Date.now() + 1000 + index } : null;
 }
 
 export function drawCardsForServer(sharedState, amount) {
     for (let i = 0; i < amount; i++) {
         if (sharedState.zoneDeck.length === 0) {
             // Fill with area card if zone supports it
-            const areaCard = getZoneAreaCard(sharedState.currentZone);
+            const areaCard = getZoneAreaCard(sharedState.currentZone, i);
             if (areaCard) {
                 sharedState.zoneCards.push(areaCard);
                 continue;

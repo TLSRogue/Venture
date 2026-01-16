@@ -643,7 +643,7 @@ export const cardPools = {
         { card: { name: "Withered Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T2)", loot: { name: "Dark Wood" }, toolType: "woodcutting", toolTier: 2, charges: 3, icon: "🌲", imageUrl: '/assets/darkforest-witheredtree.jpg' }, count: 5 },
         { card: { name: "Dark Crystal Node", type: "resource", skill: "mining", description: "Requires Mining Tool (T2)", loot: { name: "Dark Crystal" }, toolType: "mining", toolTier: 2, charges: 3, icon: "💎", imageUrl: '/assets/darkforest-darkcrystal.jpg' }, count: 5 },
         { card: { name: "Treasure Chest", type: "treasure", description: "An old chest covered in cobwebs.", icon: "📦" }, count: 1 },
-        { card: { name: "The Mansion", type: "treasure", description: "A decrepit mansion looms in the darkness. Something evil dwells within.", icon: "🏚️", imageUrl: '/assets/darkforest-mansion.jpg' }, count: 1 },
+        { card: { name: "The Mansion", type: "treasure", description: "A decrepit mansion looms in the darkness. Something evil dwells within.", icon: "🏚️", imageUrl: '/assets/darkforest-mansionhall.jpg' }, count: 1 },
     ],
 
     // --- Mansion Boss Area ---

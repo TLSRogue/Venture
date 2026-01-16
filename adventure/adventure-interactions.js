@@ -11,7 +11,7 @@ import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
  * @param {string} zoneName - The current zone name
  * @returns {Object|null} Area card object with unique id, or null if no area card for zone
  */
-function getZoneAreaCard(zoneName) {
+function getZoneAreaCard(zoneName, index = 0) {
     const zoneAreaCards = {
         sewers: gameData.specialCards.emptyCanal,
         goblinCaves: gameData.specialCards.goblinCavesTunnel,
@@ -19,7 +19,7 @@ function getZoneAreaCard(zoneName) {
         mansion: gameData.specialCards.mansionHall
     };
     const areaCard = zoneAreaCards[zoneName];
-    return areaCard ? { ...areaCard, id: Date.now() } : null;
+    return areaCard ? { ...areaCard, id: Date.now() + 1000 + index } : null;
 }
 
 
@@ -85,10 +85,8 @@ export async function processInteractWithCard(io, party, player, payload) {
         party.sharedState.zoneDeck = buildZoneDeckForServer('mansion');
         party.sharedState.zoneCards = [];
         party.sharedState.groundLoot = [];
-        // Draw only the Vampire (1 card) leaving 2 empty slots for spawns
-        drawCardsForServer(party.sharedState, 1);
-        // Add 2 empty slots for Vampire's Assistant and Human Victim spawns
-        party.sharedState.zoneCards.push(null, null);
+        // Draw 3 cards - will draw Vampire and fill with 2 Mansion Hall area cards
+        drawCardsForServer(party.sharedState, 3);
         return;
     }
 

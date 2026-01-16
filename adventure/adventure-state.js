@@ -16,7 +16,7 @@ const PVP_ZONES = ['blighted_wastes'];
  * @param {string} zoneName - The current zone name
  * @returns {Object|null} Area card object with unique id, or null if no area card for zone
  */
-function getZoneAreaCard(zoneName) {
+function getZoneAreaCard(zoneName, index = 0) {
     const zoneAreaCards = {
         sewers: gameData.specialCards.emptyCanal,
         goblinCaves: gameData.specialCards.goblinCavesTunnel,
@@ -24,7 +24,7 @@ function getZoneAreaCard(zoneName) {
         mansion: gameData.specialCards.mansionHall
     };
     const areaCard = zoneAreaCards[zoneName];
-    return areaCard ? { ...areaCard, id: Date.now() } : null;
+    return areaCard ? { ...areaCard, id: Date.now() + 1000 + index } : null;
 }
 
 
