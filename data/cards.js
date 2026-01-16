@@ -146,7 +146,7 @@ export const cardPools = {
                 maxHealth: 30,
                 description: "The formidable king of the goblins.",
                 icon: "👺",
-                imageUrl: '/assets/goblincaves-gorbonking.png',
+                imageUrl: '/assets/goblincaves-king.jpg',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The King stumbles on his royal robes. Miss!" },
                     { range: [4, 10], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Royal Mace! Deals 4 Physical Damage!" },
@@ -178,7 +178,7 @@ export const cardPools = {
                 }
             }, count: 1
         },
-        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", loot: [{ name: "Goblin Lucky Charm", type: "questItem", price: 0, description: "A strange, surprisingly shiny goblin trinket." }], icon: "📦", imageUrl: '/assets/goblincaves-treasurechest.png' }, count: 1 },
+        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", loot: [{ name: "Goblin Lucky Charm", type: "questItem", price: 0, description: "A strange, surprisingly shiny goblin trinket." }], icon: "📦", imageUrl: '/assets/goblincaves-treasure.jpg' }, count: 1 },
         {
             card: {
                 name: "Goblin Shaman",
@@ -187,19 +187,20 @@ export const cardPools = {
                 maxHealth: 8,
                 description: "A mystical goblin shaman.",
                 icon: "👺",
-                imageUrl: '/assets/goblincaves-shaman.png',
+                imageUrl: '/assets/goblincaves-shaman.jpg',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The Shaman's hex fizzles. Miss!" },
                     { range: [4, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Nature', message: "Hex! Deals 3 Nature Damage!" },
                     { range: [13, 17], action: 'attack', attackRange: 'ranged', damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Toxic Curse! Deals 2 Nature Damage and Poisons!" },
                     { range: [18, 20], action: 'special', message: "The Shaman chants and heals an ally!" }
                 ],
-                guaranteedLoot: { gold: true },
+                guaranteedLoot: { gold: true, minGold: 1, maxGold: 15 },
                 lootTable: [
-                    { range: [1, 10], items: ["Goblin Head", "Magic Essence"] },
-                    { range: [11, 16], items: ["Goblin Head", "Vines", "Magic Essence"] },
-                    { range: [17, 19], items: ["Shaman's Fetish", "Magic Essence"] },
-                    { range: [20, 20], items: ["Shaman's Fetish", "Magic Essence", "Old Family Recipe"] }
+                    { range: [1, 5], fromCategory: "T1 Material", count: 1 },
+                    { range: [6, 10], fromCategory: "T2 Material", count: 1 },
+                    { range: [11, 15], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
+                    { range: [16, 19], fromCategories: ["T2 Weapon", "T2 Equipment"], count: 1 },
+                    { range: [20, 20], items: ["Shaman's Fetish"] }
                 ]
             }, count: 5
         },
@@ -211,19 +212,20 @@ export const cardPools = {
                 maxHealth: 8,
                 description: "A sneaky goblin archer.",
                 icon: "👺",
-                imageUrl: '/assets/goblincaves-archer.png',
+                imageUrl: '/assets/goblincaves-archer.jpg',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The arrow whizzes past. Miss!" },
                     { range: [4, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Physical', message: "Barbed Arrow! Deals 3 Physical Damage!" },
                     { range: [13, 17], action: 'attack', attackRange: 'ranged', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Serrated Arrow! Deals 2 Physical Damage and causes Bleed!" },
                     { range: [18, 20], action: 'attack', attackRange: 'ranged', damage: 4, damageType: 'Physical', debuff: { type: 'trap', duration: 1 }, message: "Net Trap! Deals 4 Physical Damage and Traps you!" }
                 ],
-                guaranteedLoot: { gold: true },
+                guaranteedLoot: { gold: true, minGold: 1, maxGold: 10 },
                 lootTable: [
-                    { range: [1, 11], items: ["Goblin Head"] },
-                    { range: [12, 17], items: ["Goblin Head", "Arrow Bundle"] },
-                    { range: [18, 19], items: ["Archer's Shortbow"] },
-                    { range: [20, 20], items: ["Archer's Shortbow", "Old Family Recipe"] }
+                    { range: [1, 5], fromCategory: "T1 Material", count: 1 },
+                    { range: [6, 10], fromCategory: "T2 Material", count: 1 },
+                    { range: [11, 15], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
+                    { range: [16, 19], fromCategories: ["T2 Weapon", "T2 Equipment"], count: 1 },
+                    { range: [20, 20], items: ["Archer's Shortbow"] }
                 ]
             }, count: 6
         },
@@ -235,7 +237,7 @@ export const cardPools = {
                 maxHealth: 10,
                 description: "A brutish goblin warrior.",
                 icon: "👺",
-                imageUrl: '/assets/goblincaves-warrior.png',
+                imageUrl: '/assets/goblincaves-warrior.jpg',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The warrior swings wildly. Miss!" },
                     { range: [4, 12], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Brutal Swing! Deals 4 Physical Damage!" },
