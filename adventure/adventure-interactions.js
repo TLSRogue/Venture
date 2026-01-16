@@ -13,7 +13,8 @@ import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
  */
 function getZoneAreaCard(zoneName) {
     const zoneAreaCards = {
-        sewers: gameData.specialCards.emptyCanal
+        sewers: gameData.specialCards.emptyCanal,
+        goblinCaves: gameData.specialCards.goblinCavesTunnel
     };
     const areaCard = zoneAreaCards[zoneName];
     return areaCard ? { ...areaCard, id: Date.now() } : null;
@@ -156,7 +157,51 @@ export async function processInteractWithCard(io, party, player, payload) {
         card.charges--;
         if (card.charges <= 0) {
             sharedState.log.push({ message: `${card.name} has been depleted.`, type: 'info' });
-            sharedState.zoneCards[cardIndex] = null;
+
+            // Check for onDepletedSpawn (e.g., Boulders in Goblin Caves)
+            if (card.onDepletedSpawn && sharedState.currentZone === 'goblinCaves') {
+                const spawnRoll = Math.floor(Math.random() * 100) + 1;
+
+                if (spawnRoll <= 50) {
+                    // 50% chance: Spawn random enemy (not Gorbon)
+                    const goblinCavesPool = gameData.cardPools.goblinCaves;
+                    const enemyCards = goblinCavesPool.filter(entry =>
+                        entry.card.type === 'enemy' &&
+                        entry.card.name !== 'Gorbon the Goblin King'
+                    );
+                    if (enemyCards.length > 0) {
+                        const randomEntry = enemyCards[Math.floor(Math.random() * enemyCards.length)];
+                        const spawnedEnemy = {
+                            ...randomEntry.card,
+                            id: Date.now(),
+                            health: randomEntry.card.health,
+                            maxHealth: randomEntry.card.maxHealth,
+                            buffs: [],
+                            debuffs: []
+                        };
+                        sharedState.zoneCards[cardIndex] = spawnedEnemy;
+                        sharedState.log.push({ message: `A ${spawnedEnemy.name} was hiding behind the rubble!`, type: 'damage' });
+                    } else {
+                        sharedState.zoneCards[cardIndex] = getZoneAreaCard(sharedState.currentZone);
+                    }
+                } else if (spawnRoll <= 75) {
+                    // 25% chance: Spawn treasure chest
+                    const treasureChestEntry = goblinCavesPool.find(entry => entry.card.type === 'treasure');
+                    if (treasureChestEntry) {
+                        const spawnedChest = { ...treasureChestEntry.card, id: Date.now() };
+                        sharedState.zoneCards[cardIndex] = spawnedChest;
+                        sharedState.log.push({ message: `A hidden treasure chest was revealed behind the boulders!`, type: 'success' });
+                    } else {
+                        sharedState.zoneCards[cardIndex] = getZoneAreaCard(sharedState.currentZone);
+                    }
+                } else {
+                    // 25% chance: Empty tunnel
+                    sharedState.zoneCards[cardIndex] = getZoneAreaCard(sharedState.currentZone);
+                    sharedState.log.push({ message: `The rubble clears to reveal an empty tunnel.`, type: 'info' });
+                }
+            } else {
+                sharedState.zoneCards[cardIndex] = null;
+            }
         }
     }
 

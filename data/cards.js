@@ -254,9 +254,9 @@ export const cardPools = {
                 ]
             }, count: 7
         },
-        { card: { name: "Boulders", type: "resource", description: "A pile of impassable rocks.", charges: 0, icon: "🪨", imageUrl: '/assets/goblincaves-boulders.png' }, count: 8 },
-        { card: { name: "Vines", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T1)", loot: { name: "Vines", type: "material", price: 5 }, toolType: "woodcutting", toolTier: 1, charges: 3, icon: "🌿", imageUrl: '/assets/goblincaves-vines.png' }, count: 6 },
-        { card: { name: "Coal", type: "resource", skill: "mining", description: "Requires Mining Tool (T1)", loot: { name: "Coal", type: "material", price: 5 }, toolType: "mining", toolTier: 1, charges: 3, icon: "⛏️" }, count: 6 },
+        { card: { name: "Boulders", type: "resource", skill: "mining", description: "Requires Mining Tool (T1). Something might be lurking behind...", loot: { name: "Iron", type: "material", price: 5 }, toolType: "mining", toolTier: 1, charges: 3, icon: "🪨", imageUrl: '/assets/goblincaves-boulder.jpg', onDepletedSpawn: true }, count: 8 },
+        { card: { name: "Vines", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T1)", loot: { name: "Vines", type: "material", price: 5 }, toolType: "woodcutting", toolTier: 1, charges: 3, icon: "🌿", imageUrl: '/assets/goblincaves-vines.jpg' }, count: 6 },
+        { card: { name: "Coal", type: "resource", skill: "mining", description: "Requires Mining Tool (T1)", loot: { name: "Coal", type: "material", price: 5 }, toolType: "mining", toolTier: 1, charges: 3, icon: "⛏️", imageUrl: '/assets/goblincaves-coal.jpg' }, count: 6 },
     ],
 
     town: [
@@ -785,6 +785,15 @@ export const specialCards = {
         description: "A dark, empty sewer canal.",
         icon: "🕳️",
         imageUrl: '/assets/sewers-emptycanal.jpg',
+        allowSpawnOver: true
+    },
+    // --- Goblin Caves Area Cards ---
+    goblinCavesTunnel: {
+        name: "Cave Tunnel",
+        type: "area",
+        description: "A dark tunnel stretching deeper into the caves.",
+        icon: "🕳️",
+        imageUrl: '/assets/goblincaves-tunnel.jpg',
         allowSpawnOver: true
     }
 };
