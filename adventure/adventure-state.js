@@ -993,21 +993,11 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     }
                     if (handlerResult.removeEnemy) {
                         // Enemy removed itself (e.g. Loot Goblin escape)
-                        // We don't need to do anything else, the slot is null or handled
-                        if (sharedState.zoneCards[enemyIndex] !== null && sharedState.zoneCards[enemyIndex].health <= 0) {
-                            // If it died, process death? 
-                            // Usually removeEnemy means it left or died. 
-                            // If removeEnemy is true, we assume the handler managed the state update or we should check if it's dead.
-                        }
+                        // logic handles null slot naturally
                     }
-                    // Skip specific logic below if handled, OR let it fall through if we want dual handling (risky)
-                    // Since we are adding this above existing logic, if it returns handled, we should `continue` the loop
-                    // unless we want to process buffs/debuffs tick (which happens at `processEndOfTurn`).
-                    // Currently `processEndOfTurn` is called at the TOP of the loop? No, at start of loop handling?
-                    // Wait, `processEndOfTurn` helper is defined inside the loop but only called if Stunned or at end?
-                    // I need to check where `processEndOfTurn` is called normally.
-                    // It's not called explicitly in the `special` block usually.
-                    // So we should continue.
+                    if (!handlerResult.skipEndOfTurn) {
+                        processEndOfTurn();
+                    }
                     continue;
                 }
 
@@ -1548,21 +1538,84 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         const target = sortedPlayers[0];
                         const playerObj = players[target.name];
                         if (playerObj) {
-                            // Reaction Check: check if player successfully dodged/blocked the special attack
-                            if (target.skipDamage) {
-                                delete target.skipDamage;
-                                return;
+                            // Reaction Check: trigger reaction request manually
+                            const availableReactions = [];
+                            // Re-use reaction availability logic check logic (simplified)
+                            // We can check just for Parry/Dodge for now, or copy the logic block if needed.
+                            // Since this is a melee physical attack, Parry/Dodge are valid.
+
+                            // Check Dodge
+                            if (playerObj.character.equippedSpells.some(s => s.name === "Dodge" && (target.spellCooldowns["Dodge"] || 0) <= 0)) {
+                                // Check heavy
+                                let isWearingHeavy = false;
+                                if (playerObj.character.equipment) {
+                                    for (const slot in playerObj.character.equipment) {
+                                        const item = playerObj.character.equipment[slot];
+                                        if (item && item.traits && item.traits.includes('Heavy')) {
+                                            isWearingHeavy = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (!isWearingHeavy) availableReactions.push({ name: 'Dodge' });
                             }
-                            const bonuses = getBonusStatsForPlayer(playerObj.character, target);
-                            const resistance = bonuses.physicalResistance || 0;
-                            const damage = Math.max(1, 8 - resistance);
-                            applyDamage(target, damage);
 
-                            if (!target.debuffs) target.debuffs = [];
-                            target.debuffs.push({ type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' });
+                            // Check Parry
+                            const parrySpell = playerObj.character.equippedSpells.find(s => s.name === "Parry");
+                            if (parrySpell && (target.spellCooldowns["Parry"] || 0) <= 0) {
+                                const mainHand = playerObj.character.equipment.mainHand;
+                                const rangedWeaponTypes = ['Two-Hand Bow', 'Two-Hand Staff'];
+                                const hasMeleeWeapon = mainHand && mainHand.type === 'weapon' &&
+                                    (mainHand.range === 'melee' || (!mainHand.range && !rangedWeaponTypes.includes(mainHand.weaponType)));
+                                if (hasMeleeWeapon) availableReactions.push({ name: 'Parry' });
+                            }
+                            // Check Block
+                            if (playerObj.character.equipment.offHand && playerObj.character.equipment.offHand.type === 'shield' && (target.itemCooldowns[playerObj.character.equipment.offHand.name] || 0) <= 0) {
+                                availableReactions.push({ name: 'Block' });
+                            }
 
-                            sharedState.log.push({ message: `The Vampire strikes ${target.name} from the shadows for ${damage} damage and causes heavy Bleeding!`, type: 'damage' });
-                            if (target.health <= 0) { target.isDead = true; target.health = 0; }
+                            if (availableReactions.length > 0) {
+                                sharedState.pendingReaction = {
+                                    attackerName: enemy.name,
+                                    attackerIndex: enemyIndex,
+                                    targetName: target.name,
+                                    damage: 8, // Fixed damage for special
+                                    damageType: 'Physical',
+                                    attackRange: 'melee',
+                                    debuff: { type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' },
+                                    message: 'strikes from the shadows!',
+                                    isFleeing: false,
+                                    endOfTurnProcessed: true,
+                                    isSpecial: true
+                                };
+                                const reactionPayload = {
+                                    damage: 8,
+                                    attacker: enemy.name,
+                                    availableReactions: availableReactions.map(r => ({ name: r.name })),
+                                    timer: REACTION_TIMER_MS
+                                };
+                                io.to(target.playerId).emit('party:requestReaction', reactionPayload);
+                                party.reactionTimeout = setTimeout(() => {
+                                    const playerSocket = io.sockets.sockets.get(target.playerId);
+                                    if (playerSocket) {
+                                        handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
+                                    }
+                                }, REACTION_TIMER_MS);
+                                broadcastAdventureUpdate(io, party);
+                                return;
+                            } else {
+                                // No reaction available, apply damage directly
+                                const bonuses = getBonusStatsForPlayer(playerObj.character, target);
+                                const resistance = bonuses.physicalResistance || 0;
+                                const damage = Math.max(1, 8 - resistance);
+                                applyDamage(target, damage);
+
+                                if (!target.debuffs) target.debuffs = [];
+                                target.debuffs.push({ type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' });
+
+                                sharedState.log.push({ message: `The Vampire strikes ${target.name} from the shadows for ${damage} damage and causes heavy Bleeding!`, type: 'damage' });
+                                if (target.health <= 0) { target.isDead = true; target.health = 0; }
+                            }
                         }
                     }
                 }

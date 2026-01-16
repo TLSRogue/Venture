@@ -463,7 +463,11 @@ function handleVampireFromTheShadows(enemy, sharedState, target, attack, ctx) {
 
 // --- VAMPIRE'S ASSISTANT HANDLERS ---
 function handleAssistantSpawnVictim(enemy, sharedState, target, attack, ctx) {
-    const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+    let emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+    if (emptySlotIndex === -1) {
+        emptySlotIndex = sharedState.zoneCards.findIndex(c => c && c.type === 'area' && c.allowSpawnOver);
+    }
+
     if (emptySlotIndex !== -1) {
         const newVictim = {
             ...gameData.specialCards.humanVictim,
@@ -631,8 +635,8 @@ export const EnemySpecialHandlers = {
     },
     'Vampire': {
         'Take Flight': handleVampireTakeFlight,
-        'Blood Fountain': handleVampireBloodFountain,
-        'From The Shadows': handleVampireFromTheShadows
+        'Blood Fountain': handleVampireBloodFountain
+        // 'From The Shadows': handleVampireFromTheShadows // Handled in adventure-state.js for reaction logic
     },
     "Vampire's Assistant": {
         'human victim': handleAssistantSpawnVictim
