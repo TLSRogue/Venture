@@ -4,9 +4,13 @@ import { allSpells } from './spells.js';
 import { cardPools, specialCards } from './cards.js';
 import { craftingRecipes } from './recipes.js';
 import { createItemLookupMap } from '../shared.js';
+import * as lootPools from './loot-pools.js';
 
 // Pre-computed Map for O(1) item lookups by name
 export const itemsByName = createItemLookupMap(allItems);
+
+// Export loot pool utilities for use in adventure-state
+export { lootPools };
 
 // Re-assemble the original gameData object
 export const gameData = {

@@ -1,7 +1,7 @@
 // adventure/adventure-state.js
 
 import { players, parties, pvpZoneQueues, pvpEncounters } from '../serverState.js';
-import { gameData } from '../data/index.js';
+import { gameData, lootPools } from '../data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js';
 import { applyDamage } from './combat-core.js';
@@ -493,12 +493,33 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         const roll = Math.floor(Math.random() * 20) + 1;
         const lootDrop = enemy.lootTable.find(entry => roll >= entry.range[0] && roll <= entry.range[1]);
         if (lootDrop) {
+            // Handle direct items (backwards compatible)
             if (lootDrop.items && lootDrop.items.length > 0) {
                 lootDrop.items.forEach(itemName => {
                     const itemData = gameData.allItems.find(i => i.name === itemName);
                     if (itemData) lootToDistribute.push(itemData);
                 });
             }
+
+            // Handle single category drop (NEW) - e.g., fromCategory: "T1 Material"
+            if (lootDrop.fromCategory) {
+                const count = lootDrop.count || 1;
+                for (let i = 0; i < count; i++) {
+                    const itemData = lootPools.getRandomFromCategory(lootDrop.fromCategory);
+                    if (itemData) lootToDistribute.push(itemData);
+                }
+            }
+
+            // Handle multiple categories (NEW) - e.g., fromCategories: ["T1 Weapon", "T1 Equipment"]
+            if (lootDrop.fromCategories) {
+                const count = lootDrop.count || 1;
+                for (let i = 0; i < count; i++) {
+                    const itemData = lootPools.getRandomFromCategories(lootDrop.fromCategories);
+                    if (itemData) lootToDistribute.push(itemData);
+                }
+            }
+
+            // Handle existing randomItems format (backwards compatible)
             if (lootDrop.randomItems && lootDrop.randomItems.pool) {
                 for (let i = 0; i < lootDrop.randomItems.count; i++) {
                     const randomItemName = lootDrop.randomItems.pool[Math.floor(Math.random() * lootDrop.randomItems.pool.length)];

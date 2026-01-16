@@ -242,12 +242,13 @@ export const cardPools = {
                     { range: [13, 17], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Headbutt! Deals 3 Physical Damage and Dazes!" },
                     { range: [18, 20], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', message: "Overhead Smash! Deals 5 Physical Damage!" }
                 ],
-                guaranteedLoot: { gold: true },
+                guaranteedLoot: { gold: true, minGold: 1, maxGold: 10 },
                 lootTable: [
-                    { range: [1, 11], items: ["Goblin Head"] },
-                    { range: [12, 17], items: ["Goblin Head", "Iron"] },
-                    { range: [18, 19], items: ["Warrior's Cleaver"] },
-                    { range: [20, 20], items: ["Warrior's Cleaver", "Old Family Recipe"] }
+                    { range: [1, 5], fromCategory: "T1 Material", count: 1 },
+                    { range: [6, 10], fromCategory: "T2 Material", count: 1 },
+                    { range: [11, 15], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
+                    { range: [16, 19], fromCategories: ["T2 Weapon", "T2 Equipment"], count: 1 },
+                    { range: [20, 20], items: ["Warrior's Cleaver"] }
                 ]
             }, count: 7
         },
