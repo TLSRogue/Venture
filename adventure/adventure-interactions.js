@@ -161,10 +161,10 @@ export async function processInteractWithCard(io, party, player, payload) {
             // Check for onDepletedSpawn (e.g., Boulders in Goblin Caves)
             if (card.onDepletedSpawn && sharedState.currentZone === 'goblinCaves') {
                 const spawnRoll = Math.floor(Math.random() * 100) + 1;
+                const goblinCavesPool = gameData.cardPools.goblinCaves;
 
                 if (spawnRoll <= 50) {
                     // 50% chance: Spawn random enemy (not Gorbon)
-                    const goblinCavesPool = gameData.cardPools.goblinCaves;
                     const enemyCards = goblinCavesPool.filter(entry =>
                         entry.card.type === 'enemy' &&
                         entry.card.name !== 'Gorbon the Goblin King'
@@ -200,7 +200,8 @@ export async function processInteractWithCard(io, party, player, payload) {
                     sharedState.log.push({ message: `The rubble clears to reveal an empty tunnel.`, type: 'info' });
                 }
             } else {
-                sharedState.zoneCards[cardIndex] = null;
+                // Normal resource depletion - spawn zone area card if available
+                sharedState.zoneCards[cardIndex] = getZoneAreaCard(sharedState.currentZone);
             }
         }
     }

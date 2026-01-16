@@ -29,6 +29,9 @@ export function getItemsByCategory(category) {
         // Must match tier
         if (item.tier !== tier) return false;
 
+        // Exclude boss-exclusive items from category pools
+        if (item.bossExclusive) return false;
+
         // Match type
         switch (typeStr) {
             case 'material':

@@ -166,7 +166,7 @@ export const cardPools = {
                 type: "npc",
                 description: "A rugged-looking adventurer.",
                 icon: "🕵️‍♂️",
-                imageUrl: '/assets/goblincaves-treasurehunter.png',
+                imageUrl: '/assets/goblincaves-treasurehunter.jpg',
                 quests: [{ id: "LUCKY_CHARM_HUNT", title: "The Lucky Charm", turnInItems: { "Goblin Lucky Charm": 1 }, reward: { gold: 50, qp: 1, spellReward: { name: 'Stealth' } }, prerequisite: { qp: 2 } }],
                 dialogue: {
                     LUCKY_CHARM_HUNT_start: { text: "You look like you've seen a thing or two. I'm after a rare trinket—a Goblin Lucky Charm. Find one for me, and I'll teach you a trick for staying out of sight.", options: [{ text: "I'll keep an eye out.", questId: "LUCKY_CHARM_HUNT", next: "LUCKY_CHARM_HUNT_inProgress" }, { text: "I have other priorities.", next: "farewell" }] },
@@ -254,7 +254,7 @@ export const cardPools = {
                 ]
             }, count: 7
         },
-        { card: { name: "Boulders", type: "resource", skill: "mining", description: "Requires Mining Tool (T1). Something might be lurking behind...", loot: { name: "Iron", type: "material", price: 5 }, toolType: "mining", toolTier: 1, charges: 3, icon: "🪨", imageUrl: '/assets/goblincaves-boulder.jpg', onDepletedSpawn: true }, count: 8 },
+        { card: { name: "Boulders", type: "resource", skill: "mining", description: "Requires Mining Tool (T1). Something might be lurking behind...", loot: { name: "Rocks", type: "material", price: 5 }, toolType: "mining", toolTier: 1, charges: 3, icon: "🪨", imageUrl: '/assets/goblincaves-boulder.jpg', onDepletedSpawn: true }, count: 8 },
         { card: { name: "Vines", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T1)", loot: { name: "Vines", type: "material", price: 5 }, toolType: "woodcutting", toolTier: 1, charges: 3, icon: "🌿", imageUrl: '/assets/goblincaves-vines.jpg' }, count: 6 },
         { card: { name: "Coal", type: "resource", skill: "mining", description: "Requires Mining Tool (T1)", loot: { name: "Coal", type: "material", price: 5 }, toolType: "mining", toolTier: 1, charges: 3, icon: "⛏️", imageUrl: '/assets/goblincaves-coal.jpg' }, count: 6 },
     ],

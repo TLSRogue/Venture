@@ -882,6 +882,7 @@ export const allItems = [
         icon: "👑",
         rarity: "rare",
         canBeInMerchantWares: false,
+        bossExclusive: true,
     },
     {
         name: "Gorbon's Royal Mace",
@@ -902,6 +903,7 @@ export const allItems = [
         icon: "🔨",
         rarity: "rare",
         canBeInMerchantWares: false,
+        bossExclusive: true,
     },
     {
         name: "Shaman's Fetish",
@@ -993,6 +995,7 @@ export const allItems = [
         icon: "👑",
         rarity: "rare",
         canBeInMerchantWares: false,
+        bossExclusive: true,
     },
 
     // --- Quest Items ---
@@ -1144,6 +1147,16 @@ export const allItems = [
         price: 25,
         description: "Processed leather, suitable for crafting armor and equipment.",
         icon: "🧥",
+        rarity: "common",
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Rocks",
+        type: "material",
+        tier: 1,
+        price: 5,
+        description: "A pile of rough stones from the goblin caves.",
+        icon: "🪨",
         rarity: "common",
         canBeInMerchantWares: false,
     },
