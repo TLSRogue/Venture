@@ -992,8 +992,8 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         continue;
                     }
                     if (handlerResult.removeEnemy) {
-                        // Enemy removed itself (e.g. Loot Goblin escape)
-                        // logic handles null slot naturally
+                        // Enemy removed itself (e.g. Loot Goblin escape, Human Victim consumed)
+                        sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone, enemyIndex);
                     }
                     if (!handlerResult.skipEndOfTurn) {
                         processEndOfTurn();
