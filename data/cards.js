@@ -797,12 +797,21 @@ export const specialCards = {
         allowSpawnOver: true
     },
     // --- Dark Forest Area Cards ---
+    darkForestTrail: {
+        name: "Dark Forest Trail",
+        type: "area",
+        description: "A winding trail through the fog-shrouded woods.",
+        icon: "🌲",
+        imageUrl: '/assets/darkforest-trail.jpg',
+        allowSpawnOver: true
+    },
+    // --- Mansion Area Cards ---
     mansionHall: {
         name: "Mansion Hall",
         type: "area",
         description: "A dusty, abandoned hall in the vampire's mansion.",
         icon: "🏚️",
-        imageUrl: '/assets/darkforest-mansion.jpg',
+        imageUrl: '/assets/darkforest-mansionhall.jpg',
         allowSpawnOver: true
     }
 };
