@@ -7,7 +7,7 @@ import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, c
 import { applyDamage } from './combat-core.js';
 import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
-import { processEnemyEndOfTurn } from './enemy-handlers.js';
+import { processEnemyEndOfTurn, handleEnemySpecialAction } from './enemy-handlers.js';
 
 const PVP_ZONES = ['blighted_wastes'];
 
@@ -976,6 +976,43 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     sharedState.log.push({ message: attackMessage, type: 'damage' });
                 }
             } else if (attack && attack.action === 'special') {
+                // --- UNIFIED SPECIAL HANDLER ---
+                // Try to handle using improved handler registry first
+                const handlerResult = handleEnemySpecialAction(enemy, sharedState, targetPlayerState, attack, {
+                    io,
+                    party,
+                    enemyIndex,
+                    targetPlayerObject,
+                    players
+                });
+
+                if (handlerResult.handled) {
+                    if (handlerResult.rerollAttack) {
+                        i--; // Go back one step to retry this enemy
+                        continue;
+                    }
+                    if (handlerResult.removeEnemy) {
+                        // Enemy removed itself (e.g. Loot Goblin escape)
+                        // We don't need to do anything else, the slot is null or handled
+                        if (sharedState.zoneCards[enemyIndex] !== null && sharedState.zoneCards[enemyIndex].health <= 0) {
+                            // If it died, process death? 
+                            // Usually removeEnemy means it left or died. 
+                            // If removeEnemy is true, we assume the handler managed the state update or we should check if it's dead.
+                        }
+                    }
+                    // Skip specific logic below if handled, OR let it fall through if we want dual handling (risky)
+                    // Since we are adding this above existing logic, if it returns handled, we should `continue` the loop
+                    // unless we want to process buffs/debuffs tick (which happens at `processEndOfTurn`).
+                    // Currently `processEndOfTurn` is called at the TOP of the loop? No, at start of loop handling?
+                    // Wait, `processEndOfTurn` helper is defined inside the loop but only called if Stunned or at end?
+                    // I need to check where `processEndOfTurn` is called normally.
+                    // It's not called explicitly in the `special` block usually.
+                    // So we should continue.
+                    continue;
+                }
+
+                // --- LEGACY / SPECIFIC INLINE HANDLERS (Fallback) ---
+
                 // --- LOOT GOBLIN: Pickpocket ---
                 if (enemy.name === 'Loot Goblin' && attack.message.includes('Pickpocket')) {
                     const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);

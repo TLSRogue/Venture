@@ -212,7 +212,11 @@ export async function processWeaponAttack(io, party, player, payload) {
         // Vampire Phase Transition (spawn Vampire's Assistant at 60HP)
         if (target.name === 'Vampire' && target.state && target.state.health <= 60 && !target.state.phaseTriggered) {
             target.state.phaseTriggered = true;
-            const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+            let emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+            if (emptySlotIndex === -1) {
+                // Try to overwrite an area card (e.g. Mansion Hall)
+                emptySlotIndex = sharedState.zoneCards.findIndex(c => c && (c.type === 'area' || c.name === 'Mansion Hall'));
+            }
             if (emptySlotIndex !== -1) {
                 const assistant = {
                     ...gameData.specialCards.vampireAssistant,
@@ -662,7 +666,11 @@ export async function processCastSpell(io, party, player, payload) {
             // Vampire Phase Transition (spawn Vampire's Assistant at 60HP)
             if (target.name === 'Vampire' && target.state && target.state.health <= 60 && target.state.health > 0 && !target.state.phaseTriggered) {
                 target.state.phaseTriggered = true;
-                const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+                let emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+                if (emptySlotIndex === -1) {
+                    // Try to overwrite an area card
+                    emptySlotIndex = sharedState.zoneCards.findIndex(c => c && (c.type === 'area' || c.name === 'Mansion Hall'));
+                }
                 if (emptySlotIndex !== -1) {
                     const assistant = {
                         ...gameData.specialCards.vampireAssistant,
