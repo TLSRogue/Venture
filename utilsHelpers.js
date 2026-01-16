@@ -111,9 +111,28 @@ export function buildZoneDeckForServer(zoneName) {
     return [...npcs, ...otherCards];
 }
 
+/**
+ * Get zone-specific area card for filling empty slots
+ */
+function getZoneAreaCard(zoneName) {
+    const zoneAreaCards = {
+        sewers: gameData.specialCards.emptyCanal,
+        goblinCaves: gameData.specialCards.goblinCavesTunnel,
+        darkForest: gameData.specialCards.mansionHall
+    };
+    const areaCard = zoneAreaCards[zoneName];
+    return areaCard ? { ...areaCard, id: Date.now() } : null;
+}
+
 export function drawCardsForServer(sharedState, amount) {
     for (let i = 0; i < amount; i++) {
         if (sharedState.zoneDeck.length === 0) {
+            // Fill with area card if zone supports it
+            const areaCard = getZoneAreaCard(sharedState.currentZone);
+            if (areaCard) {
+                sharedState.zoneCards.push(areaCard);
+                continue;
+            }
             sharedState.log.push({ message: "The zone's deck is empty!", type: 'info' });
             break;
         }

@@ -795,5 +795,14 @@ export const specialCards = {
         icon: "🕳️",
         imageUrl: '/assets/goblincaves-tunnel.jpg',
         allowSpawnOver: true
+    },
+    // --- Dark Forest Area Cards ---
+    mansionHall: {
+        name: "Mansion Hall",
+        type: "area",
+        description: "A dusty, abandoned hall in the vampire's mansion.",
+        icon: "🏚️",
+        imageUrl: '/assets/darkforest-mansion.jpg',
+        allowSpawnOver: true
     }
 };

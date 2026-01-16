@@ -14,7 +14,8 @@ import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 function getZoneAreaCard(zoneName) {
     const zoneAreaCards = {
         sewers: gameData.specialCards.emptyCanal,
-        goblinCaves: gameData.specialCards.goblinCavesTunnel
+        goblinCaves: gameData.specialCards.goblinCavesTunnel,
+        darkForest: gameData.specialCards.mansionHall
     };
     const areaCard = zoneAreaCards[zoneName];
     return areaCard ? { ...areaCard, id: Date.now() } : null;
