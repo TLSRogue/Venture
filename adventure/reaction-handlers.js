@@ -275,6 +275,11 @@ export async function handleResolveReaction(io, socket, payload) {
 
     if (logMessage) stateObject.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
 
+    // For special attacks, we want to inform the special handler if the attack was avoided
+    if ((dodged || (blocked && finalDamage <= 0)) && reaction.isSpecial) {
+        reactingPlayerState.skipDamage = true;
+    }
+
     if ((finalDamage > 0 || (reaction.debuff && !dodged))) {
         let damageToDeal = 0;
         let damageMessage = `${reaction.attackerName} ${reaction.message}`;

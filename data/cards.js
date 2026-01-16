@@ -643,7 +643,7 @@ export const cardPools = {
         { card: { name: "Withered Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T2)", loot: { name: "Dark Wood" }, toolType: "woodcutting", toolTier: 2, charges: 3, icon: "🌲", imageUrl: '/assets/darkforest-witheredtree.jpg' }, count: 5 },
         { card: { name: "Dark Crystal Node", type: "resource", skill: "mining", description: "Requires Mining Tool (T2)", loot: { name: "Dark Crystal" }, toolType: "mining", toolTier: 2, charges: 3, icon: "💎", imageUrl: '/assets/darkforest-darkcrystal.jpg' }, count: 5 },
         { card: { name: "Treasure Chest", type: "treasure", description: "An old chest covered in cobwebs.", icon: "📦" }, count: 1 },
-        { card: { name: "The Mansion", type: "treasure", description: "A decrepit mansion looms in the darkness. Something evil dwells within.", icon: "🏚️", imageUrl: '/assets/darkforest-mansionhall.jpg' }, count: 1 },
+        { card: { name: "The Mansion", type: "treasure", description: "A decrepit mansion looms in the darkness. Something evil dwells within.", icon: "🏚️", imageUrl: '/assets/darkforest-mansion.jpg' }, count: 1 },
     ],
 
     // --- Mansion Boss Area ---
@@ -663,8 +663,8 @@ export const cardPools = {
                     { range: [1, 1], action: 'miss', message: "The Vampire's strike goes wide!" },
                     { range: [2, 6], action: 'special', message: "Take Flight! The Vampire soars into the air!" },
                     { range: [7, 13], action: 'attack', attackRange: 'melee', damage: 7, damageType: 'Physical', debuff: { type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' }, message: "Gouge! Deals 7 Physical Damage and causes heavy Bleeding!" },
-                    { range: [14, 17], action: 'special', message: "Blood Fountain! The Vampire drains the blood of the wounded!" },
-                    { range: [18, 20], action: 'special', message: "From The Shadows! The Vampire targets the weakest prey!" }
+                    { range: [14, 17], action: 'special', attackRange: 'ranged', damage: 8, message: "Blood Fountain! The Vampire drains the blood of the wounded!" },
+                    { range: [18, 20], action: 'special', attackRange: 'melee', damage: 8, message: "From The Shadows! The Vampire targets the weakest prey!" }
                 ],
                 guaranteedLoot: { gold: true, minGold: 100, maxGold: 200 },
                 lootTable: [
