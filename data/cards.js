@@ -167,7 +167,7 @@ export const cardPools = {
                 description: "A rugged-looking adventurer.",
                 icon: "🕵️‍♂️",
                 imageUrl: '/assets/goblincaves-treasurehunter.jpg',
-                quests: [{ id: "LUCKY_CHARM_HUNT", title: "The Lucky Charm", turnInItems: { "Goblin Lucky Charm": 1 }, reward: { gold: 50, qp: 1, spellReward: { name: 'Stealth' } }, prerequisite: { qp: 2 } }],
+                quests: [{ id: "LUCKY_CHARM_HUNT", title: "The Lucky Charm", turnInItems: { "Goblin Lucky Charm": 1 }, reward: { gold: 50, qp: 1, itemReward: { name: 'Shadow Spell Scroll', quantity: 1 } }, prerequisite: { qp: 2 } }],
                 dialogue: {
                     LUCKY_CHARM_HUNT_start: { text: "You look like you've seen a thing or two. I'm after a rare trinket—a Goblin Lucky Charm. Find one for me, and I'll teach you a trick for staying out of sight.", options: [{ text: "I'll keep an eye out.", questId: "LUCKY_CHARM_HUNT", next: "LUCKY_CHARM_HUNT_inProgress" }, { text: "I have other priorities.", next: "farewell" }] },
                     LUCKY_CHARM_HUNT_inProgress: { text: "They say those charms are hidden away in old chests. Keep searching!", options: [{ text: "Will do.", next: "farewell" }] },
@@ -291,7 +291,7 @@ export const cardPools = {
                 icon: "🧘‍♂️",
                 imageUrl: '/assets/town-brotherthatch.jpg',
                 quests: [
-                    { id: "MONK_FOCUS_QUEST", title: "A Test of Focus", turnInItems: { "Wheat": 3, "Fish": 3 }, reward: { spellReward: { name: "Monk's Training" } } }
+                    { id: "MONK_FOCUS_QUEST", title: "A Test of Focus", turnInItems: { "Wheat": 3, "Fish": 3 }, reward: { itemReward: { name: "Physical Spell Scroll", quantity: 1 } } }
                 ],
                 dialogue: {
                     MONK_FOCUS_QUEST_start: { text: "Greetings, traveler. The path to strength is not through the clash of steel alone, but through the quiet focus of the mind. What do you seek?", options: [{ text: "I seek strength. Can you teach me?", next: "MONK_FOCUS_QUEST_offer" }, { text: "Just passing through.", next: "farewell" }] },
@@ -583,7 +583,7 @@ export const cardPools = {
                 icon: "👩",
                 imageUrl: '/assets/darkforest-mary.jpg',
                 quests: [
-                    { id: "VAMPIRE_HUNT", title: "The Inheritance", target: "Vampire", required: 1, reward: { qp: 1, spellReward: { name: 'Backstab' } }, prerequisite: null }
+                    { id: "VAMPIRE_HUNT", title: "The Inheritance", target: "Vampire", required: 1, reward: { qp: 1, itemReward: { name: "Physical Spell Scroll", quantity: 1 } }, prerequisite: null }
                 ],
                 dialogue: {
                     VAMPIRE_HUNT_start: { text: "Please, you must help me! I married Lord Ashworth for his fortune, but that wretched old man just won't die! He never leaves his mansion, never eats... I just want what's mine. Can you... deal with him?", options: [{ text: "I'll pay the lord a visit.", questId: "VAMPIRE_HUNT", next: "VAMPIRE_HUNT_inProgress" }, { text: "This isn't my concern.", next: "farewell" }] },

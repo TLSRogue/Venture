@@ -144,8 +144,9 @@ export const allSpells = [
     {
         name: "Stealth",
         cost: 1,
+        scrollCost: "Shadow Spell Scroll",
         cooldown: 3,
-        school: "Physical",
+        school: "Shadow",
         range: "self",
         description: "Melt into shadows. 1 AP, 3 CD | D20+Agi (10+) | Gain Stealth (1 Turn). Incoming attacks -5 Hit.",
         type: "buff",
@@ -355,6 +356,7 @@ export const allSpells = [
     // --- Dark Forest Quest Reward ---
     {
         name: "Backstab",
+        scrollCost: "Physical Spell Scroll",
         cost: 2,
         cooldown: 2,
         school: "Physical",

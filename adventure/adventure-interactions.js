@@ -498,6 +498,16 @@ export function processDialogueChoice(io, player, party, payload) {
                             });
                         }
 
+                        if (reward.itemReward) {
+                            const items = Array.isArray(reward.itemReward) ? reward.itemReward : [reward.itemReward];
+                            items.forEach(rewardItem => {
+                                const itemData = gameData.allItems.find(i => i.name === rewardItem.name);
+                                if (itemData) {
+                                    addItemToInventoryServer(member, itemData, rewardItem.quantity || 1);
+                                }
+                            });
+                        }
+
                         if (memberPlayer.id) io.to(memberPlayer.id).emit('characterUpdate', memberPlayer.character);
                     }
                 }
