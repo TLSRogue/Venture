@@ -9,6 +9,8 @@ import * as TownUI from './ui-town.js';
 import * as AdventureUI from './ui-adventure.js';
 import * as UIParty from './ui-party.js';
 
+let activeSpellbookCategory = 'Physical'; // Default category
+
 // --- MAIN RENDER ORCHESTRATOR ---
 
 export function renderAll() {
@@ -289,8 +291,12 @@ export function showItemActions(itemIndex) {
 export function renderSpells() {
     const equippedContainer = document.getElementById('spells-grid');
     const spellbookContainer = document.getElementById('spellbook-grid');
+    const categoriesContainer = document.getElementById('spellbook-categories');
+
     equippedContainer.innerHTML = '';
     spellbookContainer.innerHTML = '';
+    categoriesContainer.innerHTML = '';
+
     const canSwap = gameState.currentZone === null && !gameState.inDuel;
 
     let spellCooldowns = gameState.spellCooldowns;
@@ -304,6 +310,7 @@ export function renderSpells() {
         if (localPlayerState) spellCooldowns = localPlayerState.spellCooldowns;
     }
 
+    // --- RENDER EQUIPPED SPELLS ---
     for (let i = 0; i < 5; i++) {
         const slot = document.createElement('div');
 
@@ -342,12 +349,44 @@ export function renderSpells() {
         equippedContainer.appendChild(slot);
     }
 
-    gameState.spellbook.forEach((spell, index) => {
+    // --- RENDER SPELLBOOK TABS ---
+    const availableCategories = [...new Set(gameState.spellbook.map(s => s.school || 'Physical'))];
+    availableCategories.sort();
+
+    // Ensure active category is valid
+    if (!availableCategories.includes(activeSpellbookCategory) && availableCategories.length > 0) {
+        activeSpellbookCategory = availableCategories[0];
+    }
+
+    availableCategories.forEach(category => {
+        const tab = document.createElement('button');
+        tab.className = `category-tab ${activeSpellbookCategory === category ? 'active' : ''}`;
+        tab.textContent = category;
+        tab.onclick = () => {
+            activeSpellbookCategory = category;
+            renderSpells(); // Re-render to update grid
+        };
+        categoriesContainer.appendChild(tab);
+    });
+
+    // --- RENDER SPELLBOOK GRID ---
+    const spellsToDisplay = gameState.spellbook.filter(s => (s.school || 'Physical') === activeSpellbookCategory);
+
+    if (spellsToDisplay.length === 0 && gameState.spellbook.length > 0) {
+        spellbookContainer.innerHTML = '<p>No spells in this category.</p>';
+    } else if (gameState.spellbook.length === 0) {
+        spellbookContainer.innerHTML = '<p>You have not learned any spells yet.</p>';
+    }
+
+    spellsToDisplay.forEach((spell) => {
+        // Find original index in full spellbook for the equip action
+        const originalIndex = gameState.spellbook.indexOf(spell);
+
         const card = document.createElement('div');
         card.className = `spell-card ${spell.type}`;
         let equipButton = '';
         if (canSwap && gameState.equippedSpells.length < 5) {
-            equipButton = `<button class="btn btn-success btn-sm" data-spell-action="equip" data-index="${index}">Equip</button>`;
+            equipButton = `<button class="btn btn-success btn-sm" data-spell-action="equip" data-index="${originalIndex}">Equip</button>`;
         }
         card.innerHTML = `
             <div><strong>${spell.icon || '✨'} ${spell.name}</strong></div>

@@ -911,6 +911,7 @@ body {
     color: #888;
     cursor: not-allowed;
 }
+
 /* --- END CRAFTING CARD STYLES --- */
 
 .spell-card.reaction {
@@ -1199,7 +1200,8 @@ body.show-spell-details .spell-card .spell-details {
 }
 
 .modal-content.modal-wide {
-    max-width: 700px;
+    max-width: 1000px;
+    width: 95vw;
 }
 
 #tooltip {
