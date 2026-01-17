@@ -1,5 +1,84 @@
 // /data/items.js
 export const allItems = [
+    // --- Spell Scrolls (Training System) ---
+    {
+        name: "Fire Spell Scroll",
+        price: 1, // Testing price
+        type: "scroll",
+        tier: 1,
+        description: "A scroll containing the secrets of Fire magic. Used to learn Fire spells.",
+        icon: "📜",
+        rarity: "uncommon",
+        permanentMerchantStock: true, // For testing
+        canBeInMerchantWares: false,  // Not in rotating stock
+    },
+    {
+        name: "Holy Spell Scroll",
+        price: 1,
+        type: "scroll",
+        tier: 1,
+        description: "A scroll containing the secrets of Holy magic. Used to learn Holy spells.",
+        icon: "📜",
+        rarity: "uncommon",
+        permanentMerchantStock: true,
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Physical Spell Scroll",
+        price: 1,
+        type: "scroll",
+        tier: 1,
+        description: "A scroll containing martial techniques. Used to learn Physical skills.",
+        icon: "📜",
+        rarity: "uncommon",
+        permanentMerchantStock: true,
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Arcane Spell Scroll",
+        price: 1,
+        type: "scroll",
+        tier: 1,
+        description: "A scroll containing the secrets of Arcane magic. Used to learn Arcane spells.",
+        icon: "📜",
+        rarity: "uncommon",
+        permanentMerchantStock: true,
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Frost Spell Scroll",
+        price: 1,
+        type: "scroll",
+        tier: 1,
+        description: "A scroll containing the secrets of Frost magic. Used to learn Frost spells.",
+        icon: "📜",
+        rarity: "uncommon",
+        permanentMerchantStock: true,
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Nature Spell Scroll",
+        price: 1,
+        type: "scroll",
+        tier: 1,
+        description: "A scroll containing the secrets of Nature magic. Used to learn Nature spells.",
+        icon: "📜",
+        rarity: "uncommon",
+        permanentMerchantStock: true,
+        canBeInMerchantWares: false,
+    },
+    {
+        name: "Shadow Spell Scroll",
+        price: 1,
+        type: "scroll",
+        tier: 1,
+        description: "A scroll containing the secrets of Shadow magic. Used to learn Shadow spells.",
+        icon: "📜",
+        rarity: "uncommon",
+        permanentMerchantStock: true,
+        canBeInMerchantWares: false,
+    },
+
     // --- NEW: High-Tier Materials for PvP Zone ---
     {
         name: "Obsidian Chunk",

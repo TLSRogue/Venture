@@ -76,11 +76,23 @@ function handleCraftItem(character, payload) {
 }
 
 function handleBuySpell(character, payload) {
-    const spell = gameData.allSpells.find(s => s.name === payload.spellName && s.price > 0);
-    if (spell && character.gold >= spell.price) {
-        character.gold -= spell.price;
-        character.spellbook.push({ ...spell });
-        return true;
+    const spell = gameData.allSpells.find(s => s.name === payload.spellName && s.scrollCost);
+    if (spell) {
+        // Find the scroll in inventory
+        const scrollIndex = character.inventory.findIndex(i => i && i.name === spell.scrollCost);
+        if (scrollIndex !== -1) {
+            const scrollItem = character.inventory[scrollIndex];
+
+            // Consume scroll
+            scrollItem.quantity = (scrollItem.quantity || 1) - 1;
+            if (scrollItem.quantity <= 0) {
+                character.inventory[scrollIndex] = null;
+            }
+
+            // Learn spell
+            character.spellbook.push({ ...spell });
+            return true;
+        }
     }
     return false;
 }

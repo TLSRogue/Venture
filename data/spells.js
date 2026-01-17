@@ -44,7 +44,7 @@ export const allSpells = [
     },
     {
         name: "Fireball",
-        price: 100,
+        scrollCost: "Fire Spell Scroll",
         cost: 1,
         cooldown: 2,
         school: "Fire",
@@ -60,7 +60,7 @@ export const allSpells = [
     },
     {
         name: "Flash Heal",
-        price: 100,
+        scrollCost: "Holy Spell Scroll",
         cost: 1,
         cooldown: 2,
         school: "Holy",
@@ -75,7 +75,7 @@ export const allSpells = [
     },
     {
         name: "Holy Shock",
-        price: 100,
+        scrollCost: "Holy Spell Scroll",
         cost: 1,
         cooldown: 1,
         school: "Holy",
@@ -91,7 +91,7 @@ export const allSpells = [
     },
     {
         name: "Shield Bash",
-        price: 100,
+        scrollCost: "Physical Spell Scroll",
         cost: 1,
         cooldown: 3,
         school: "Physical",
@@ -109,7 +109,7 @@ export const allSpells = [
     },
     {
         name: "Aim True",
-        price: 100,
+        scrollCost: "Physical Spell Scroll",
         cost: 1,
         cooldown: 3,
         school: "Physical",
@@ -126,7 +126,7 @@ export const allSpells = [
     },
     {
         name: "Flame Strike",
-        price: 100,
+        scrollCost: "Fire Spell Scroll",
         cost: 1,
         cooldown: 4,
         school: "Fire",
@@ -157,7 +157,7 @@ export const allSpells = [
     },
     {
         name: "Warrior's Might",
-        price: 100,
+        scrollCost: "Physical Spell Scroll",
         cost: 1,
         cooldown: 3,
         school: "Physical",
@@ -173,7 +173,7 @@ export const allSpells = [
     },
     {
         name: "Ambush",
-        price: 100,
+        scrollCost: "Physical Spell Scroll",
         cost: 1,
         cooldown: 3,
         school: "Physical",
@@ -190,7 +190,7 @@ export const allSpells = [
     },
     {
         name: "Dagger Throw",
-        price: 100,
+        scrollCost: "Physical Spell Scroll",
         cost: 1,
         cooldown: 3,
         school: "Physical",
@@ -207,7 +207,7 @@ export const allSpells = [
     },
     {
         name: "Magic Barrier",
-        price: 100,
+        scrollCost: "Arcane Spell Scroll",
         cost: 1,
         cooldown: 3,
         school: "Arcane",
@@ -222,7 +222,7 @@ export const allSpells = [
     },
     {
         name: "Crushing Blow",
-        price: 100,
+        scrollCost: "Physical Spell Scroll",
         cost: 1,
         cooldown: 3,
         school: "Physical",
@@ -240,7 +240,7 @@ export const allSpells = [
     },
     {
         name: "Monk's Training",
-        price: 100,
+        scrollCost: "Physical Spell Scroll",
         cost: 1,
         cooldown: 4,
         school: "Physical",
@@ -254,7 +254,7 @@ export const allSpells = [
     },
     {
         name: "Split Shot",
-        price: 100,
+        scrollCost: "Physical Spell Scroll",
         cost: 1,
         cooldown: 4,
         school: "Physical",
@@ -271,7 +271,7 @@ export const allSpells = [
     },
     {
         name: "Evasive Shot",
-        price: 100,
+        scrollCost: "Physical Spell Scroll",
         cooldown: 2,
         school: "Physical",
         range: "ranged",
@@ -289,7 +289,7 @@ export const allSpells = [
     },
     {
         name: "Parry",
-        price: 100,
+        scrollCost: "Physical Spell Scroll",
         cooldown: 3,
         school: "Physical",
         range: "melee",
@@ -308,7 +308,7 @@ export const allSpells = [
     },
     {
         name: "Revive",
-        price: 250,
+        scrollCost: "Holy Spell Scroll",
         cost: 3,
         cooldown: 10,
         school: "Holy",
@@ -320,7 +320,7 @@ export const allSpells = [
     },
     {
         name: "Cone of Cold",
-        price: 150,
+        scrollCost: "Frost Spell Scroll",
         cost: 1,
         cooldown: 3,
         school: "Frost",
@@ -338,7 +338,7 @@ export const allSpells = [
     },
     {
         name: "Entangling Roots",
-        price: 150,
+        scrollCost: "Nature Spell Scroll",
         cost: 1,
         cooldown: 3,
         school: "Nature",
