@@ -94,7 +94,13 @@ try {
             // --- END BOW SPELL MIGRATION ---
 
             // --- T2 RECIPE BACKFILL MIGRATION ---
-            const steelQuest = character.quests.find(q => q.details.id === 'STEEL_ARMOR_QUEST' && q.status === 'completed');
+            // Debug: Log quests for this character
+            const completedQuests = (character.quests || []).filter(q => q.status === 'completed').map(q => q.details?.id || q.id || 'unknown');
+            if (completedQuests.length > 0) {
+                console.log(`[Migration] ${characterName} has completed quests: ${completedQuests.join(', ')}`);
+            }
+
+            const steelQuest = character.quests.find(q => q.details?.id === 'STEEL_ARMOR_QUEST' && q.status === 'completed');
             if (steelQuest) {
                 const newSteelRecipes = ['Steel Helm (T2)', 'Steel Boots (T2)'];
                 newSteelRecipes.forEach(recipeName => {
@@ -106,7 +112,7 @@ try {
                 });
             }
 
-            const silkQuest = character.quests.find(q => q.details.id === 'TAILOR_SILK_QUEST' && q.status === 'completed');
+            const silkQuest = character.quests.find(q => q.details?.id === 'TAILOR_SILK_QUEST' && q.status === 'completed');
             if (silkQuest) {
                 const newSilkRecipes = ['Silk Wizard Robes (T2)', 'Silk Wizard Hat (T2)', 'Silk Wizard Boots (T2)'];
                 newSilkRecipes.forEach(recipeName => {
