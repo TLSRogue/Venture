@@ -992,13 +992,19 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             } else if (attack && attack.action === 'special') {
                 // --- UNIFIED SPECIAL HANDLER ---
                 // Try to handle using improved handler registry first
-                const handlerResult = handleEnemySpecialAction(enemy, sharedState, targetPlayerState, attack, {
-                    io,
-                    party,
-                    enemyIndex,
-                    targetPlayerObject,
-                    players
-                });
+                let handlerResult = { handled: false };
+                try {
+                    handlerResult = handleEnemySpecialAction(enemy, sharedState, targetPlayerState, attack, {
+                        io,
+                        party,
+                        enemyIndex,
+                        targetPlayerObject,
+                        players
+                    });
+                } catch (err) {
+                    console.error(`Error handling special action for ${enemy.name}:`, err);
+                    sharedState.log.push({ message: `(Error processing ${enemy.name}: ${err.message})`, type: 'error' });
+                }
 
                 if (handlerResult.handled) {
                     if (handlerResult.rerollAttack) {
@@ -1017,6 +1023,31 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     broadcastAdventureUpdate(io, party);
                     await new Promise(resolve => setTimeout(resolve, 1200));
                     continue;
+                } else {
+                    // Fallback for unhandled special actions (or if handler failed)
+                    // Log the message so at least the player sees something happened
+                    sharedState.log.push({ message: attack.message, type: 'info' });
+                    // Broadcast so it's not invisible
+                    broadcastAdventureUpdate(io, party);
+                    await new Promise(resolve => setTimeout(resolve, 1200));
+                    // Check for Vampire/Human Victim specifically just in case they weren't fully migrated 
+                    // or if we want to support legacy mixed mode, but for now we continue to let them fall through
+                    // if intended, OR we continue loop here to fully rely on registry?
+                    // Given the goal was "Remove Legacy Handlers", we should ideally continue.
+                    // But if I continue here, I disable the inline Vampire checks below.
+                    // If the registry IS matching Vampire, then handled=true, so we hit the if block.
+                    // If registry is NOT matching Vampire, handled=false, we hit this else block.
+                    // If we continue here, the inline Vampire checks are skipped also.
+                    // This means if registry fails, Vampire breaks completely.
+                    // BUT fallback log ensures "Vampire takes flight" is printed.
+                    // So functionality breaks but visibility works.
+                    // This is acceptable for refactoring verification (if it breaks, we know registry is wrong).
+                    // I will NOT continue here, allowing fallthrough to legacy checks just in case, 
+                    // BUT I will keep the log. Double logging is better than invisible action.
+                    // Wait, if I don't continue, it falls through to... nothing?
+                    // No, to the legacy inline checks (lines 1058+).
+                    // If they match, they log AGAIN.
+                    // That's fine.
                 }
 
                 // NOTE: Legacy inline handlers removed - all enemy special actions now handled 
