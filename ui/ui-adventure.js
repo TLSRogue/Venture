@@ -720,7 +720,7 @@ export function renderPlayerActionBars() {
                 <div class="cooldown-overlay" style="height: ${cooldown > 0 ? '100' : '0'}%">${cooldown}</div>
             `;
 
-            if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile' || spell.type === 'revive') {
+            if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile' || spell.type === 'revive' || spell.type === 'debuff') {
                 slotEl.dataset.action = 'select';
                 slotEl.dataset.actionData = JSON.stringify({ type: 'spell', data: spell, index: i });
             } else if (spell.type === 'heal' || spell.type === 'buff' || spell.type === 'utility') {
@@ -761,7 +761,7 @@ export function updateActionUI() {
         const actionType = gameState.turnState.selectedAction.type;
 
         // Weapons and attack spells target enemies
-        if (action.type === 'attack' || action.type === 'aoe' || action.type === 'versatile' || action.weaponDamage) {
+        if (action.type === 'attack' || action.type === 'aoe' || action.type === 'versatile' || action.type === 'debuff' || action.weaponDamage) {
             document.querySelectorAll('#zone-cards .card.enemy').forEach(enemyCard => {
                 enemyCard.classList.add('targetable');
             });
