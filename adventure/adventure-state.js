@@ -1012,6 +1012,10 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     if (!handlerResult.skipEndOfTurn) {
                         processEndOfTurn();
                     }
+
+                    // Update client and wait so the special action can be seen
+                    broadcastAdventureUpdate(io, party);
+                    await new Promise(resolve => setTimeout(resolve, 1200));
                     continue;
                 }
 
