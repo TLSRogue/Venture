@@ -338,7 +338,8 @@ export function calculateSpellDamage(spell, character, actingPlayerState, target
     }
     else if (spell.baseEffect) {
         // Versatile spells use baseEffect only - stats affect hit chance, power affects damage
-        baseDamage = spell.baseEffect;
+        // Use 1 as minimum in case baseEffect is missing from old saved spells
+        baseDamage = spell.baseEffect || 1;
     }
 
     // Add power bonus based on damage type (from socketed gems)

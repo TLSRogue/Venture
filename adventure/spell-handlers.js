@@ -68,8 +68,9 @@ export function getSpecialSpellDamage(spell, character, actingPlayerState, bonus
     }
 
     // --- Holy Shock (Versatile): Base + Holy Power ---
+    // Always use at least 1 as base effect (in case old saved spells are missing baseEffect)
     if (spell.name === 'Holy Shock') {
-        return (spell.baseEffect || 0) + (bonuses.holyPower || 0);
+        return (spell.baseEffect || 1) + (bonuses.holyPower || 0);
     }
 
     // --- Bow/Crossbow Spells: Weapon Damage ---

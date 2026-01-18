@@ -1064,46 +1064,8 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     // That's fine.
                 }
 
-                // NOTE: Legacy inline handlers removed - all enemy special actions now handled 
-                // by the centralized registry in enemy-handlers.js via handleEnemySpecialAction()
-
-                if (availableReactions.length > 0 && !isFleeing) {
-                    // FIX: Process end of turn effects BEFORE waiting for reaction
-                    if (processEndOfTurn()) {
-                        broadcastAdventureUpdate(io, party);
-                        continue;
-                    }
-
-                    sharedState.pendingReaction = {
-                        attackerName: enemy.name,
-                        attackerIndex: enemyIndex,
-                        targetName: targetPlayerState.name,
-                        damage: attack.damage,
-                        damageType: attack.damageType || 'Physical',
-                        attackRange: attack.attackRange || 'melee',
-                        debuff: attack.debuff || null,
-                        message: attack.message,
-                        isFleeing: isFleeing,
-                        endOfTurnProcessed: true,
-                        isSpecial: true // Flag to know we need to call special handler after reaction
-                    };
-                    const reactionPayload = {
-                        damage: attack.damage,
-                        attacker: enemy.name,
-                        attackMessage: attack.message,
-                        availableReactions: availableReactions.map(r => ({ name: r.name })),
-                        timer: REACTION_TIMER_MS
-                    };
-                    io.to(targetPlayerState.playerId).emit('party:requestReaction', reactionPayload);
-                    party.reactionTimeout = setTimeout(() => {
-                        const playerSocket = io.sockets.sockets.get(targetPlayerState.playerId);
-                        if (playerSocket) {
-                            handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
-                        }
-                    }, REACTION_TIMER_MS);
-                    broadcastAdventureUpdate(io, party);
-                    return;
-                }
+                // NOTE: Legacy inline handlers below should eventually be migrated to the registry
+                // For now, they provide fallback handling for special attacks not yet in registry
 
                 // --- VAMPIRE: Take Flight (gain Flying buff + attack bonus) ---
                 if (enemy.name === 'Vampire' && attack.message.includes('Take Flight')) {

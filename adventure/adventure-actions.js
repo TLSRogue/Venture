@@ -586,7 +586,8 @@ export async function processCastSpell(io, party, player, payload) {
 
             // Versatile Logic
             if (spell.type === 'versatile') {
-                let effectVal = spell.baseEffect || 0;
+                // Use 1 as minimum for versatile spells (e.g., Holy Shock) in case baseEffect is missing
+                let effectVal = spell.baseEffect || 1;
 
                 // Holy Shock Scaling
                 if (spell.school === 'Holy') {
