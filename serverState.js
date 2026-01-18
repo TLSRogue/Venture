@@ -68,7 +68,7 @@ try {
                 }
             }
 
-            // --- BOW SPELL CROSSBOW MIGRATION ---
+            // --- BOW SPELL MIGRATION ---
             // Force update all bow spells to current definitions (ensures crossbow support)
             const bowSpellNames = ['Aim True', 'Split Shot', 'Evasive Shot'];
             bowSpellNames.forEach(spellName => {
@@ -92,6 +92,32 @@ try {
                 }
             });
             // --- END BOW SPELL MIGRATION ---
+
+            // --- T2 RECIPE BACKFILL MIGRATION ---
+            const steelQuest = character.quests.find(q => q.details.id === 'STEEL_ARMOR_QUEST' && q.status === 'completed');
+            if (steelQuest) {
+                const newSteelRecipes = ['Steel Helm (T2)', 'Steel Boots (T2)'];
+                newSteelRecipes.forEach(recipeName => {
+                    if (!character.knownRecipes.includes(recipeName)) {
+                        character.knownRecipes.push(recipeName);
+                        console.log(`Backfilled recipe ${recipeName} for ${characterName}.`);
+                        dataWasMigrated = true;
+                    }
+                });
+            }
+
+            const silkQuest = character.quests.find(q => q.details.id === 'TAILOR_SILK_QUEST' && q.status === 'completed');
+            if (silkQuest) {
+                const newSilkRecipes = ['Silk Wizard Robes (T2)', 'Silk Wizard Hat (T2)', 'Silk Wizard Boots (T2)'];
+                newSilkRecipes.forEach(recipeName => {
+                    if (!character.knownRecipes.includes(recipeName)) {
+                        character.knownRecipes.push(recipeName);
+                        console.log(`Backfilled recipe ${recipeName} for ${characterName}.`);
+                        dataWasMigrated = true;
+                    }
+                });
+            }
+            // --- END T2 RECIPE BACKFILL MIGRATION ---
 
             players[characterName] = {
                 id: null,
