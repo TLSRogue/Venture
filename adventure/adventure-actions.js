@@ -317,8 +317,13 @@ export async function processCastSpell(io, party, player, payload) {
     // --- EARLY VALIDATION FOR ATTACK SPELLS ---
     // Only validate single-target attack spells (not versatile or aoe which have their own targeting logic)
     if (spell.type === 'attack' && !spell.aoeTargeting) {
-        // Single-target attack spell needs a valid enemy target
-        if (!target || (!target.isPlayer && target.state?.type !== 'enemy')) {
+        // Single-target attack spell needs a valid hostile target
+        // In PVP: enemy team player. In PVE: enemy card.
+        const isHostileTarget = target && (
+            (isPvP && target.isPlayer && target.team !== actingPlayerState.team) ||
+            (!isPvP && !target.isPlayer && target.state?.type === 'enemy')
+        );
+        if (!isHostileTarget) {
             const log = isPvP ? pvpEncounters[sharedState.pvpEncounterId].log : sharedState.log;
             log.push({ message: "Invalid target!", type: 'info' });
             broadcastAdventureUpdate(io, party);
@@ -492,8 +497,13 @@ export async function processCastSpell(io, party, player, payload) {
         }
     }
     else if (spell.type === 'debuff') {
-        // Debuff spells (like Silence) apply debuffs to enemies
-        if (!target || target.isPlayer) {
+        // Debuff spells (like Silence) apply debuffs to hostile targets (enemies or enemy players)
+        // In PVP: valid target is enemy team player. In PVE: valid target is enemy card.
+        const isHostileTarget = target && (
+            (isPvP && target.isPlayer && target.team !== actingPlayerState.team) ||
+            (!isPvP && !target.isPlayer && target.state?.type === 'enemy')
+        );
+        if (!isHostileTarget) {
             log.push({ message: "Invalid target for debuff spell!", type: 'info' });
             broadcastAdventureUpdate(io, party);
             await checkAndEndTurnForPlayer(io, party, player);
@@ -511,30 +521,48 @@ export async function processCastSpell(io, party, player, payload) {
         log.push({ message: `${target.name} is now ${debuff.type.charAt(0).toUpperCase() + debuff.type.slice(1)}ed!`, type: 'damage' });
     }
     else if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile') {
-        // Collect Targets
-        // Collect Targets
+        // Collect Targets - UNIFIED: enemy players in PVP are treated the same as enemies in PVE
         let targets = [];
-        if (spell.aoeTargeting === 'all' && !isPvP) {
-            sharedState.zoneCards.forEach((c, i) => {
-                if (c && c.type === 'enemy') targets.push(normalizeTarget(sharedState, i, null));
-            });
-        } else if (spell.aoeTargeting === 'adjacent' && !isPvP && target) {
-            targets.push(target);
-            const enemyIdx = parseInt(targetIndex);
-            [-1, 1].forEach(offset => {
-                const adj = normalizeTarget(sharedState, enemyIdx + offset, null);
-                if (adj) targets.push(adj);
-            });
+        if (spell.aoeTargeting === 'all') {
+            if (isPvP) {
+                // PVP: Target all enemy team players
+                encounter.playerStates.forEach(p => {
+                    if (p.team !== actingPlayerState.team && !p.isDead) {
+                        targets.push(normalizeTarget(sharedState, p.playerId, encounter));
+                    }
+                });
+            } else {
+                // PVE: Target all enemies in zone
+                sharedState.zoneCards.forEach((c, i) => {
+                    if (c && c.type === 'enemy') targets.push(normalizeTarget(sharedState, i, null));
+                });
+            }
+        } else if (spell.aoeTargeting === 'adjacent') {
+            // Adjacent targeting - include primary target first
+            if (target) targets.push(target);
+            if (!isPvP) {
+                // PVE: Include spatially adjacent enemies
+                const enemyIdx = parseInt(targetIndex);
+                [-1, 1].forEach(offset => {
+                    const adj = normalizeTarget(sharedState, enemyIdx + offset, null);
+                    if (adj) targets.push(adj);
+                });
+            }
+            // In PVP, 'adjacent' just hits the single target (no spatial positions)
         } else if (target) {
-            if ((target.isPlayer) || (target.state && target.state.type === 'enemy')) {
+            // Single target attack/versatile - validate it's a hostile target
+            const isHostile = (isPvP && target.isPlayer && target.team !== actingPlayerState.team) ||
+                (!isPvP && target.state?.type === 'enemy');
+            // Versatile spells can also target friendlies for healing (handled later)
+            const isFriendly = (isPvP && target.team === actingPlayerState.team) ||
+                (!isPvP && target.isPlayer);
+            if (isHostile || (spell.type === 'versatile' && isFriendly)) {
                 targets.push(target);
             } else {
-                if (target.state && target.state.type !== 'enemy') {
-                    log.push({ message: "Invalid target!", type: 'info' });
-                    broadcastAdventureUpdate(io, party);
-                    await checkAndEndTurnForPlayer(io, party, player);
-                    return;
-                }
+                log.push({ message: "Invalid target!", type: 'info' });
+                broadcastAdventureUpdate(io, party);
+                await checkAndEndTurnForPlayer(io, party, player);
+                return;
             }
         } else {
             log.push({ message: "Invalid target!", type: 'info' });
