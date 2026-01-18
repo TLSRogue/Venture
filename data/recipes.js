@@ -46,5 +46,19 @@ export const craftingRecipes = [
     { result: { name: "Gem of Nature" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
     { result: { name: "Gem of Might" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
     { result: { name: "Gem of Frost" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
+    // --- Tier 2 Armor Sets ---
+    { result: { name: "Steel Helm (T2)" }, materials: { "Steel Bar": 2 }, category: "Blacksmithing", requiresDiscovery: true },
+    { result: { name: "Steel Boots (T2)" }, materials: { "Steel Bar": 2 }, category: "Blacksmithing", requiresDiscovery: true },
+
+    { result: { name: "Ranger Armor (T2)" }, materials: { "Leather": 3 }, category: "Leatherworking", requiresDiscovery: true },
+    { result: { name: "Ranger Cowl (T2)" }, materials: { "Leather": 2 }, category: "Leatherworking", requiresDiscovery: true },
+    { result: { name: "Ranger Boots (T2)" }, materials: { "Leather": 2 }, category: "Leatherworking", requiresDiscovery: true },
+
+    { result: { name: "Silk Wizard Robes (T2)" }, materials: { "Silk": 3 }, category: "Tailoring", requiresDiscovery: true },
+    { result: { name: "Silk Wizard Hat (T2)" }, materials: { "Silk": 2 }, category: "Tailoring", requiresDiscovery: true },
+    { result: { name: "Silk Wizard Boots (T2)" }, materials: { "Silk": 2 }, category: "Tailoring", requiresDiscovery: true },
+
+    { result: { name: "Silk" }, materials: { "Spider Silk": 1, "Thread": 1 }, category: "Tailoring" },
+
     { result: { name: "Gem of Holy" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
 ];

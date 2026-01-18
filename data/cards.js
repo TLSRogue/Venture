@@ -116,7 +116,8 @@ export const cardPools = {
                 ],
                 guaranteedLoot: { gold: true, minGold: 1, maxGold: 3, items: ["Cloth"] },
                 lootTable: [
-                    { range: [1, 19], randomItems: { pool: ['Wheat', 'Carrot', 'Apple', 'Seeds'], count: 1 } },
+                    { range: [1, 15], randomItems: { pool: ['Wheat', 'Carrot', 'Apple', 'Seeds'], count: 1 } },
+                    { range: [16, 19], items: ["Thread"] },
                     { range: [20, 20], items: ["Pitchfork"] }
                 ]
             }, count: 3
@@ -200,8 +201,8 @@ export const cardPools = {
                 lootTable: [
                     { range: [1, 5], fromCategory: "T1 Material", count: 1 },
                     { range: [6, 10], fromCategory: "T2 Material", count: 1 },
-                    { range: [11, 15], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
-                    { range: [16, 19], fromCategories: ["T2 Weapon", "T2 Equipment"], count: 1 },
+                    { range: [11, 14], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
+                    { range: [15, 19], items: ["Thread", "Magic Essence"] },
                     { range: [20, 20], items: ["Shaman's Fetish"] }
                 ]
             }, count: 5
@@ -225,8 +226,8 @@ export const cardPools = {
                 lootTable: [
                     { range: [1, 5], fromCategory: "T1 Material", count: 1 },
                     { range: [6, 10], fromCategory: "T2 Material", count: 1 },
-                    { range: [11, 15], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
-                    { range: [16, 19], fromCategories: ["T2 Weapon", "T2 Equipment"], count: 1 },
+                    { range: [11, 14], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
+                    { range: [15, 19], items: ["Thread", "Feather"] },
                     { range: [20, 20], items: ["Archer's Shortbow"] }
                 ]
             }, count: 6
@@ -250,8 +251,8 @@ export const cardPools = {
                 lootTable: [
                     { range: [1, 5], fromCategory: "T1 Material", count: 1 },
                     { range: [6, 10], fromCategory: "T2 Material", count: 1 },
-                    { range: [11, 15], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
-                    { range: [16, 19], fromCategories: ["T2 Weapon", "T2 Equipment"], count: 1 },
+                    { range: [11, 14], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
+                    { range: [15, 19], items: ["Thread", "Whetstone"] },
                     { range: [20, 20], items: ["Warrior's Cleaver"] }
                 ]
             }, count: 7
@@ -313,7 +314,7 @@ export const cardPools = {
                 icon: "🔨",
                 imageUrl: '/assets/town-blacksmith.jpg',
                 quests: [
-                    { id: "STEEL_ARMOR_QUEST", title: "Steel Armor Forging", turnInItems: { "Steel Bar": 3 }, reward: { gold: 50, qp: 1, recipeReward: "Steel Armor" }, prerequisite: null }
+                    { id: "STEEL_ARMOR_QUEST", title: "Steel Armor Forging", turnInItems: { "Steel Bar": 3 }, reward: { gold: 50, qp: 1, recipeReward: ["Steel Armor", "Steel Helm (T2)", "Steel Boots (T2)"] }, prerequisite: null }
                 ],
                 dialogue: {
                     STEEL_ARMOR_QUEST_start: { text: "Hail, adventurer! I see you've got some steel on ya. If you can bring me three Steel Bars, I'll teach you the art of forging proper Steel Armor. It's tougher than iron, and it'll save your hide more than once.", options: [{ text: "I'll bring you the steel.", questId: "STEEL_ARMOR_QUEST", next: "STEEL_ARMOR_QUEST_inProgress" }, { text: "Maybe another time.", next: "farewell" }] },
@@ -353,8 +354,8 @@ export const cardPools = {
                 ],
                 guaranteedLoot: { gold: true, minGold: 5, maxGold: 25 },
                 lootTable: [
-                    { range: [1, 10], items: [] },
-                    { range: [11, 20], items: ["Mugger's Knife"] }
+                    { range: [1, 15], items: ["Thread"] },
+                    { range: [16, 20], items: ["Mugger's Knife"] }
                 ]
             }, count: 1
         },
@@ -388,14 +389,22 @@ export const cardPools = {
                 description: "A skilled craftsman who makes arrows and other sharp implements.",
                 icon: "🏹",
                 imageUrl: '/assets/town-fletcher.jpg',
+                quests: [
+                    { id: "RANGER_SET_QUEST", title: "Ranger's Training", turnInItems: { "Leather": 3 }, reward: { gold: 50, qp: 1, recipeReward: ["Ranger Armor (T2)", "Ranger Cowl (T2)", "Ranger Boots (T2)"] }, prerequisite: null }
+                ],
                 dialogue: {
                     start: {
                         text: "Ah, a customer! I craft the finest arrows and bolts in the region. Looking for something sharp?", options: [
                             { text: "Tell me about your work.", next: "about" },
                             { text: "I have a Rooster Spur. Can you do anything with it?", next: "spurRecipe", requiresItem: "Rooster Spur" },
+                            { text: "I'm interested in Ranger gear.", next: "RANGER_SET_QUEST_start" },
                             { text: "Just browsing.", next: "farewell" }
                         ]
                     },
+                    RANGER_SET_QUEST_start: { text: "So you want to dress like a ranger? It takes more than just looking the part. Bring me 3 pieces of cured Leather, and I'll teach you how to craft a full Ranger set.", options: [{ text: "I'll bring the leather.", questId: "RANGER_SET_QUEST", next: "RANGER_SET_QUEST_inProgress" }, { text: "Maybe later.", next: "farewell" }] },
+                    RANGER_SET_QUEST_inProgress: { text: "You can craft Leather from Hides using a tanning agent. I need 3 pieces.", options: [{ text: "I'm on it.", next: "farewell" }] },
+                    RANGER_SET_QUEST_ready: { text: "Good quality leather. Fine work. Here, let me show you the patterns for the Ranger Armor, Cowl, and Boots. They'll serve you well in the wild.", options: [{ text: "Thanks for the training.", questComplete: "RANGER_SET_QUEST", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "Stay sharp out there. A ranger is only as good as their gear.", options: [{ text: "Farewell.", next: "farewell" }] },
                     about: { text: "I've been fletching for decades. Arrows, bolts, throwing knives... if it flies and sticks, I can make it.", options: [{ text: "Interesting.", next: "farewell" }] },
                     spurRecipe: { text: "A Rooster Spur? Now that's a nasty little thing. Sharp as any blade I've seen. Tell you what\u2014I'll teach you how to fashion it into a proper dagger. You'll need some Dark Wood for the handle.", options: [{ text: "Teach me.", teachRecipe: "Spur Dagger", next: "spurRecipeLearned" }] },
                     spurRecipeLearned: { text: "There you go. Spur Dagger\u2014fast, light, and it'll make your enemies bleed. Good hunting!", options: [{ text: "Thanks.", next: "farewell" }] },
@@ -435,15 +444,15 @@ export const cardPools = {
                 imageUrl: '/assets/town-tailor.jpg',
                 quests: [
                     { id: "TAILOR_CLOTH_QUEST", title: "Fine Fabrics", turnInItems: { "Cloth": 5 }, reward: { gold: 25, qp: 1, recipeReward: "Cloth Armor" }, prerequisite: null },
-                    { id: "TAILOR_SILK_QUEST", title: "Silken Threads", turnInItems: { "Spider Silk": 3 }, reward: { gold: 50, qp: 1, recipeReward: "Silk Robe" }, prerequisite: "TAILOR_CLOTH_QUEST" }
+                    { id: "TAILOR_SILK_QUEST", title: "Silken Threads", turnInItems: { "Silk": 3 }, reward: { gold: 50, qp: 1, recipeReward: ["Silk Wizard Robes (T2)", "Silk Wizard Hat (T2)", "Silk Wizard Boots (T2)"] }, prerequisite: "TAILOR_CLOTH_QUEST" }
                 ],
                 dialogue: {
                     TAILOR_CLOTH_QUEST_start: { text: "Welcome to my shop! I'm always in need of quality materials. Bring me some Cloth, and I'll teach you to craft proper armor with it.", options: [{ text: "I'll find some cloth.", questId: "TAILOR_CLOTH_QUEST", next: "TAILOR_CLOTH_QUEST_inProgress" }, { text: "Not interested in sewing.", next: "farewell" }] },
                     TAILOR_CLOTH_QUEST_inProgress: { text: "Farmhands usually carry Cloth. You can also find Hemp in the fields to weave your own.", options: [{ text: "I'll keep looking.", next: "farewell" }] },
                     TAILOR_CLOTH_QUEST_ready: { text: "Wonderful! This is fine material. Let me show you how to craft Cloth Armor—it's lightweight but protective.", options: [{ text: "Thank you.", questComplete: "TAILOR_CLOTH_QUEST", next: "TAILOR_SILK_QUEST_start" }] },
-                    TAILOR_SILK_QUEST_start: { text: "You have a steady hand! Now, for something more elegant. Spider Silk makes the finest robes. Bring me 3 strands.", options: [{ text: "I'll hunt some spiders.", questId: "TAILOR_SILK_QUEST", next: "TAILOR_SILK_QUEST_inProgress" }, { text: "Spiders aren't my thing.", next: "farewell" }] },
-                    TAILOR_SILK_QUEST_inProgress: { text: "The Dark Forest is crawling with spiders. Be careful—they're venomous!", options: [{ text: "I'll manage.", next: "farewell" }] },
-                    TAILOR_SILK_QUEST_ready: { text: "Exquisite! This silk is perfect. Here's how you craft a Silk Robe—fit for a mage.", options: [{ text: "Amazing craftsmanship.", questComplete: "TAILOR_SILK_QUEST", next: "allQuestsDone" }] },
+                    TAILOR_SILK_QUEST_start: { text: "You have a steady hand! Now, for something more elegant. I need 3 bolts of refined Silk.", options: [{ text: "I'll find the silk.", questId: "TAILOR_SILK_QUEST", next: "TAILOR_SILK_QUEST_inProgress" }, { text: "Spiders aren't my thing.", next: "farewell" }] },
+                    TAILOR_SILK_QUEST_inProgress: { text: "You can weave Silk from Spider Silk and Thread. The spiders in the Dark Forest carry the raw silk.", options: [{ text: "I'll manage.", next: "farewell" }] },
+                    TAILOR_SILK_QUEST_ready: { text: "Exquisite! This silk is perfect. Here's how you craft a full Silk Wizard set—robes, hat, and boots.", options: [{ text: "Amazing craftsmanship.", questComplete: "TAILOR_SILK_QUEST", next: "allQuestsDone" }] },
                     allQuestsDone: { text: "You're a natural tailor! Come back if you need any repairs.", options: [{ text: "Farewell.", next: "farewell" }] },
                     farewell: { text: "May your threads never fray!", options: [] }
                 }
