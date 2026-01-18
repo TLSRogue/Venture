@@ -78,6 +78,7 @@ function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlaye
         const reactionPayload = {
             damage: actionDetails.damage,
             attacker: attackerCharacter.characterName || attackerCharacter.name,
+            attackMessage: actionDetails.message,
             availableReactions: availableReactions,
             timer: 10000
         };
@@ -417,11 +418,13 @@ export async function processCastSpell(io, party, player, payload) {
         let baseDmg = specialBase !== null ? specialBase : (spell.damage || (spell.baseEffect + attackResult.modifiers.statValue));
 
         let debuffToUse = spell.debuff ? { ...spell.debuff } : null;
-        // Debuff scaling logic
-        if (debuffToUse && debuffToUse.scaling === 'wisdom') {
+        // UNIFIED: Debuff damage scales with power bonuses based on damage type (same as PVE)
+        if (debuffToUse && debuffToUse.damageType) {
             const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
-            const wis = (character.wisdom || 0) + (bonuses.wisdom || 0);
-            debuffToUse.damage = Math.max(1, (debuffToUse.baseDamage || 0) + wis);
+            const powerKey = debuffToUse.damageType.toLowerCase() + 'Power';
+            const powerBonus = bonuses[powerKey] || 0;
+            const baseDmg = debuffToUse.baseDamage ?? debuffToUse.damage ?? 0;
+            debuffToUse.damage = baseDmg + powerBonus;
         }
 
         const actionDetails = {

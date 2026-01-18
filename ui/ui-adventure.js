@@ -787,7 +787,7 @@ export function updateActionUI() {
     }
 }
 
-export function showReactionModal({ damage, attacker, availableReactions, timer }) {
+export function showReactionModal({ damage, attacker, attackMessage, availableReactions, timer }) {
     if (reactionTimerInterval) clearInterval(reactionTimerInterval);
 
     let buttons = '';
@@ -800,10 +800,15 @@ export function showReactionModal({ damage, attacker, availableReactions, timer 
         timerHtml = `<div class="reaction-timer"><span id="reaction-timer-countdown">${timer / 1000}</span>s</div>`;
     }
 
+    // Show attack message if available, otherwise just show damage
+    const attackDescription = attackMessage
+        ? `<p><strong>${attacker}</strong> ${attackMessage}</p><p>Incoming damage: <strong>${damage}</strong></p>`
+        : `<p>${attacker} is about to deal ${damage} damage to you!</p>`;
+
     const modalContent = `
         <h2>Reaction!</h2>
         ${timerHtml}
-        <p>${attacker} is about to deal ${damage} damage to you!</p>
+        ${attackDescription}
         <div class="action-buttons" id="reaction-buttons">
             ${buttons}
             <button class="btn btn-danger" data-reaction="take_damage">Take Damage</button>

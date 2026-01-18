@@ -975,6 +975,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     const reactionPayload = {
                         damage: attack.damage,
                         attacker: enemy.name,
+                        attackMessage: attack.message,
                         availableReactions: availableReactions.map(r => ({ name: r.name })),
                         timer: REACTION_TIMER_MS
                     };
@@ -1089,6 +1090,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     const reactionPayload = {
                         damage: attack.damage,
                         attacker: enemy.name,
+                        attackMessage: attack.message,
                         availableReactions: availableReactions.map(r => ({ name: r.name })),
                         timer: REACTION_TIMER_MS
                     };
@@ -1207,6 +1209,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                                 const reactionPayload = {
                                     damage: 8,
                                     attacker: enemy.name,
+                                    attackMessage: 'strikes from the shadows!',
                                     availableReactions: availableReactions.map(r => ({ name: r.name })),
                                     timer: REACTION_TIMER_MS
                                 };
