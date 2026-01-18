@@ -252,10 +252,10 @@ export async function processCastSpell(io, party, player, payload) {
     if (actingPlayerState.actionPoints < cost) return;
     if ((actingPlayerState.spellCooldowns[spell.name] || 0) > 0) return;
 
-    // Silence Check - silenced players cannot cast spells
+    // Silence Check - silenced players cannot cast MAGIC spells
     const silenceDebuff = (actingPlayerState.debuffs || []).find(d => d.type.toLowerCase() === 'silence');
-    if (silenceDebuff) {
-        log.push({ message: `${actingPlayerState.name} is Silenced and cannot cast spells!`, type: 'info' });
+    if (silenceDebuff && spell.isMagic) {
+        log.push({ message: `${actingPlayerState.name} is Silenced and cannot use magic!`, type: 'info' });
         broadcastAdventureUpdate(io, party);
         return;
     }
