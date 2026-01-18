@@ -373,7 +373,12 @@ function handleBlackWidowConsume(enemy, sharedState, target, attack, ctx) {
 
 // --- GRAY WOLF HANDLERS ---
 function handleGrayWolfHowl(enemy, sharedState, target, attack, ctx) {
-    const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+    // Find empty slot OR an area card that allows spawning over it
+    let emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+    if (emptySlotIndex === -1) {
+        emptySlotIndex = sharedState.zoneCards.findIndex(c => c && c.type === 'area' && c.allowSpawnOver);
+    }
+
     if (emptySlotIndex !== -1) {
         const newWolf = {
             ...gameData.specialCards.grayWolf,

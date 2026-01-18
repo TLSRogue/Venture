@@ -18,6 +18,7 @@ const PVP_ZONES = ['blighted_wastes'];
  */
 function getZoneAreaCard(zoneName, index = 0) {
     const zoneAreaCards = {
+        farmlands: gameData.specialCards.farmlandsArea,
         sewers: gameData.specialCards.emptyCanal,
         goblinCaves: gameData.specialCards.goblinCavesTunnel,
         darkForest: gameData.specialCards.darkForestTrail,

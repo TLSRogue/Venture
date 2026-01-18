@@ -13,6 +13,7 @@ import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
  */
 function getZoneAreaCard(zoneName, index = 0) {
     const zoneAreaCards = {
+        farmlands: gameData.specialCards.farmlandsArea,
         sewers: gameData.specialCards.emptyCanal,
         goblinCaves: gameData.specialCards.goblinCavesTunnel,
         darkForest: gameData.specialCards.darkForestTrail,
@@ -253,7 +254,7 @@ export async function processInteractWithCard(io, party, player, payload) {
         }
         else if (card.type === 'treasure') {
             const lootTable = card.loot ? card.loot.map(item => gameData.allItems.find(i => i.name === item.name) || item) : gameData.genericTreasureLoot.map(item => gameData.allItems.find(i => i.name === item.name) || item);
-            const numItems = Math.floor(Math.random() * 2) + 1;
+            const numItems = 3; // Always drop 3 items from treasure chests
             let foundItemsLog = '';
 
             for (let i = 0; i < numItems; i++) {

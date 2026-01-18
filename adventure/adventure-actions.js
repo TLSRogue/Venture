@@ -414,8 +414,8 @@ export async function processCastSpell(io, party, player, payload) {
 
     // Check PvP Reaction for Attack Spells
     if (isPvP && target && (spell.type === 'attack' || (spell.type === 'versatile' && target.team !== actingPlayerState.team))) {
-        let specialBase = getSpecialSpellDamage(spell, character, actingPlayerState);
-        let baseDmg = specialBase !== null ? specialBase : (spell.damage || (spell.baseEffect + attackResult.modifiers.statValue));
+        let specialBase = getSpecialSpellDamage(spell, character, actingPlayerState, bonuses);
+        let baseDmg = specialBase !== null ? specialBase : (spell.damage || spell.baseEffect || 1);
 
         let debuffToUse = spell.debuff ? { ...spell.debuff } : null;
         // UNIFIED: Debuff damage scales with power bonuses based on damage type (same as PVE)
