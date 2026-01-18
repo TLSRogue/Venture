@@ -47,6 +47,31 @@ function refreshPlayerSpells(character, characterName) {
     });
 }
 
+/**
+ * Backfills T2 crafting recipes for players who completed quests before the recipe rewards were expanded.
+ */
+function backfillT2Recipes(character, characterName) {
+    if (!character.quests || !character.knownRecipes) return;
+
+    const backfillRules = [
+        { questId: 'STEEL_ARMOR_QUEST', recipes: ['Steel Helm (T2)', 'Steel Boots (T2)'] },
+        { questId: 'TAILOR_SILK_QUEST', recipes: ['Silk Wizard Robes (T2)', 'Silk Wizard Hat (T2)', 'Silk Wizard Boots (T2)'] },
+        // Note: RANGER_SET_QUEST is new, so no backfill needed
+    ];
+
+    backfillRules.forEach(({ questId, recipes }) => {
+        const completedQuest = character.quests.find(q => q.details?.id === questId && q.status === 'completed');
+        if (completedQuest) {
+            recipes.forEach(recipeName => {
+                if (!character.knownRecipes.includes(recipeName)) {
+                    character.knownRecipes.push(recipeName);
+                    console.log(`[Recipe Backfill] Added ${recipeName} for ${characterName}`);
+                }
+            });
+        }
+    });
+}
+
 export const registerConnectionHandlers = (io, socket) => {
 
     const handlePlayerLogin = (characterDataFromClient) => {
@@ -102,6 +127,10 @@ export const registerConnectionHandlers = (io, socket) => {
         // --- RUNTIME SPELL REFRESH ---
         // Always update spells to current definitions to ensure new properties are applied
         refreshPlayerSpells(characterToUpdate, name);
+
+        // --- RUNTIME RECIPE BACKFILL ---
+        // Add recipes for players who completed quests before reward expansion
+        backfillT2Recipes(characterToUpdate, name);
 
         // Send the authoritative state to the client for this session
         if (characterToUpdate.duelId && duels[characterToUpdate.duelId]) {
