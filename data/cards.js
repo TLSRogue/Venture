@@ -110,7 +110,8 @@ export const cardPools = {
                 name: "Angry Farmhand", type: "enemy", health: 4, maxHealth: 4, description: "An angry local. Wants you off his land.", icon: "🧑‍🌾", imageUrl: '/assets/farmlands-angryfarmhand.jpg',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
-                    { range: [4, 13], action: 'special', message: "The Farmhand weighs his options..." },
+                    { range: [4, 6], action: 'special', message: "The Farmhand weighs his options..." },
+                    { range: [7, 13], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Pitchfork Jab! Deals 2 Physical Damage and Bleeds!" },
                     { range: [14, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Fire', debuff: { type: 'burn', duration: 2, damage: 1, damageType: 'Fire' }, message: "Torch Throw! Deals 2 Fire Damage and Burns!" }
                 ],
                 guaranteedLoot: { gold: true, minGold: 1, maxGold: 3, items: ["Cloth"] },
@@ -191,9 +192,9 @@ export const cardPools = {
                 imageUrl: '/assets/goblincaves-shaman.jpg',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The Shaman's hex fizzles. Miss!" },
-                    { range: [4, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Nature', message: "Hex! Deals 3 Nature Damage!" },
-                    { range: [13, 17], action: 'attack', attackRange: 'ranged', damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Toxic Curse! Deals 2 Nature Damage and Poisons!" },
-                    { range: [18, 20], action: 'special', message: "The Shaman chants and heals an ally!" }
+                    { range: [4, 12], action: 'attack', attackRange: 'ranged', isMagic: true, damage: 3, damageType: 'Nature', message: "Hex! Deals 3 Nature Damage!" },
+                    { range: [13, 17], action: 'attack', attackRange: 'ranged', isMagic: true, damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Toxic Curse! Deals 2 Nature Damage and Poisons!" },
+                    { range: [18, 20], action: 'special', isMagic: true, message: "The Shaman chants and heals an ally!" }
                 ],
                 guaranteedLoot: { gold: true, minGold: 1, maxGold: 15 },
                 lootTable: [
@@ -737,7 +738,7 @@ export const cardPools = {
                     { range: [1, 1], action: 'miss', message: "The Vampire's strike goes wide!" },
                     { range: [2, 6], action: 'special', message: "Take Flight! The Vampire soars into the air!" },
                     { range: [7, 13], action: 'attack', attackRange: 'melee', damage: 7, damageType: 'Physical', debuff: { type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' }, message: "Gouge! Deals 7 Physical Damage and causes heavy Bleeding!" },
-                    { range: [14, 17], action: 'special', attackRange: 'ranged', damage: 8, message: "Blood Fountain! The Vampire drains the blood of the wounded!" },
+                    { range: [14, 17], action: 'special', attackRange: 'ranged', isMagic: true, damage: 8, message: "Blood Fountain! The Vampire drains the blood of the wounded!" },
                     { range: [18, 20], action: 'special', attackRange: 'melee', damage: 8, message: "From The Shadows! The Vampire targets the weakest prey!" }
                 ],
                 guaranteedLoot: { gold: true, minGold: 100, maxGold: 200 },

@@ -857,6 +857,19 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 sharedState.log.push({ message: `${enemy.name}'s attack is hindered by shadows! (-5 to hit)`, type: 'info' });
             }
             const attack = enemy.attackTable ? enemy.attackTable.find(a => modifiedRoll >= a.range[0] && modifiedRoll <= a.range[1]) : null;
+
+            // Check for Silence - prevents magic attacks
+            if (attack && attack.isMagic) {
+                const silenceDebuff = (enemy.debuffs || []).find(d => d.type.toLowerCase() === 'silence');
+                if (silenceDebuff) {
+                    sharedState.log.push({ message: `${enemy.name} is Silenced and cannot use magic!`, type: 'info' });
+                    processEndOfTurn();
+                    broadcastAdventureUpdate(io, party);
+                    await new Promise(resolve => setTimeout(resolve, 1200));
+                    continue;
+                }
+            }
+
             if (attack && attack.action === 'attack') {
                 const targetCharacter = targetPlayerObject.character;
                 let damageToDeal = attack.damage;

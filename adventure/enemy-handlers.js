@@ -242,10 +242,8 @@ function handlePowderKegDetonate(enemy, sharedState, target, attack, ctx) {
 }
 
 // --- ANGRY FARMHAND HANDLERS ---
+// Now only handles the flee check - Pitchfork attack is in the attack table as a regular attack
 function handleFarmhandTactics(enemy, sharedState, target, attack, ctx) {
-    const { enemyIndex, targetPlayerObject } = ctx;
-    const targetPlayerState = target;
-
     const allEffects = (enemy.buffs || []).concat(enemy.debuffs || []);
     const isTrapped = allEffects.some(b => ['trapped', 'root', 'stun', 'daze', 'entangling roots'].includes(b.type.toLowerCase()));
 
@@ -253,20 +251,10 @@ function handleFarmhandTactics(enemy, sharedState, target, attack, ctx) {
         sharedState.log.push({ message: "The Farmhand panics and runs away!", type: 'reaction' });
         return { handled: true, removeEnemy: true, skipEndOfTurn: true };
     } else {
-        const bonuses = getBonusStatsForPlayer(targetPlayerObject.character, targetPlayerState);
-        const resistance = bonuses.physicalResistance || 0;
-        const damageToDeal = Math.max(1, 2 - resistance);
-
-        applyDamage(targetPlayerState, damageToDeal);
-        if (!targetPlayerState.debuffs) targetPlayerState.debuffs = [];
-        targetPlayerState.debuffs.push({ type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' });
-
-        let msg = `Pitchfork Jab: Deals ${damageToDeal} Physical Damage and Bleeds!`;
-        if (enemy.health <= 2 && isTrapped) msg = `Trapped! The Farmhand fights in desperation! ${msg}`;
-
-        sharedState.log.push({ message: msg, type: 'damage' });
+        // If not fleeing, just log and let the turn pass (no damage from special)
+        sharedState.log.push({ message: "The Farmhand sizes you up...", type: 'info' });
+        return { handled: true };
     }
-    return { handled: true };
 }
 
 // --- VEXOR HANDLERS ---
