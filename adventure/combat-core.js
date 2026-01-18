@@ -516,3 +516,33 @@ export function checkVampirePhaseTransition(target, sharedState, gameData, log) 
         log.push({ message: `The Vampire hisses in fury! "Assist me, minion!" A Vampire's Assistant emerges from the shadows!`, type: 'reaction' });
     }
 }
+
+// --- DOT PROCESSING ---
+
+/**
+ * Apply damage-over-time effects to a state object (player or enemy).
+ * Processes ALL matching debuffs of each type to support stacking.
+ * 
+ * @param {Object} state - The state object with health, debuffs, and name
+ * @param {Array} log - The log array to push messages to
+ * @returns {boolean} True if any damage was dealt
+ */
+export function applyDoTEffects(state, log) {
+    if (state.isDead || state.health <= 0) return false;
+    let tookDamage = false;
+
+    const dotTypes = ['bleed', 'burn', 'poison', 'entangling roots'];
+
+    dotTypes.forEach(type => {
+        const matchingDebuffs = (state.debuffs || []).filter(d => d.type.toLowerCase() === type);
+        matchingDebuffs.forEach(debuff => {
+            applyDamage(state, debuff.damage);
+            const typeName = type.charAt(0).toUpperCase() + type.slice(1);
+            const dmgType = debuff.damageType || (type === 'burn' ? 'Fire' : (type === 'poison' ? 'Nature' : 'Physical'));
+            log.push({ message: `${state.name} takes ${debuff.damage} ${dmgType} damage from ${typeName}.`, type: 'damage' });
+            tookDamage = true;
+        });
+    });
+
+    return tookDamage;
+}

@@ -7,7 +7,7 @@
 import { players, parties, pvpEncounters } from '../serverState.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 import { createStateForClient } from '../utilsHelpers.js';
-import { applyDamage } from './combat-core.js';
+import { applyDamage, applyDoTEffects } from './combat-core.js';
 import { PVP_TURN_DURATION_MS } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
 
@@ -350,7 +350,7 @@ export async function processPvpPlayerEndTurn(io, encounter, playerState) {
     if (!playerState || playerState.turnEnded) return;
 
     // Apply DoT
-    applyDoTEffectsPvp(playerState, encounter.log);
+    applyDoTEffects(playerState, encounter.log);
 
     // Check Death
     if (playerState.health <= 0) {
@@ -381,18 +381,4 @@ export async function processPvpPlayerEndTurn(io, encounter, playerState) {
 /**
  * Apply DoT effects to a player state (PvP version).
  */
-function applyDoTEffectsPvp(playerState, logTarget) {
-    if (playerState.isDead) return false;
-    let tookDamage = false;
-    ['bleed', 'burn', 'poison', 'entangling roots'].forEach(type => {
-        const debuff = playerState.debuffs.find(d => d.type.toLowerCase() === type);
-        if (debuff) {
-            applyDamage(playerState, debuff.damage);
-            let typeName = type.charAt(0).toUpperCase() + type.slice(1);
-            let dmgType = debuff.damageType || (type === 'burn' ? 'Fire' : (type === 'poison' ? 'Nature' : 'Physical'));
-            logTarget.push({ message: `${playerState.name} takes ${debuff.damage} ${dmgType} damage from ${typeName}.`, type: 'damage' });
-            tookDamage = true;
-        }
-    });
-    return tookDamage;
-}
+// applyDoTEffects is now imported from combat-core.js

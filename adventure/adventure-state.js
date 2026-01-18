@@ -4,7 +4,7 @@ import { players, parties, pvpZoneQueues, pvpEncounters } from '../serverState.j
 import { gameData, lootPools } from '../data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js';
-import { applyDamage } from './combat-core.js';
+import { applyDamage, applyDoTEffects } from './combat-core.js';
 import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
 import { processEnemyEndOfTurn, handleEnemySpecialAction } from './enemy-handlers.js';
@@ -1428,21 +1428,7 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
     }
 }
 
-function applyDoTEffects(playerState, logTarget) {
-    if (playerState.isDead) return false;
-    let tookDamage = false;
-    ['bleed', 'burn', 'poison', 'entangling roots'].forEach(type => {
-        const debuff = playerState.debuffs.find(d => d.type.toLowerCase() === type);
-        if (debuff) {
-            applyDamage(playerState, debuff.damage);
-            let typeName = type.charAt(0).toUpperCase() + type.slice(1);
-            let dmgType = debuff.damageType || (type === 'burn' ? 'Fire' : (type === 'poison' ? 'Nature' : 'Physical'));
-            logTarget.push({ message: `${playerState.name} takes ${debuff.damage} ${dmgType} damage from ${typeName}.`, type: 'damage' });
-            tookDamage = true;
-        }
-    });
-    return tookDamage;
-}
+// applyDoTEffects is now imported from combat-core.js
 
 /**
  * Process end-of-turn effects for all living party members.

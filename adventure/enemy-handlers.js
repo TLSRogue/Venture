@@ -4,7 +4,7 @@
 import { players } from '../serverState.js';
 import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer } from '../utilsHelpers.js';
-import { applyDamage } from './combat-core.js';
+import { applyDamage, applyDoTEffects } from './combat-core.js';
 
 /**
  * Rat types that can be summoned by the Rat King
@@ -696,19 +696,8 @@ export function handleEnemySpecialAction(enemy, sharedState, targetPlayerState, 
 export function processEnemyEndOfTurn(enemy, sharedState) {
     if (!enemy || enemy.health <= 0) return true;
 
-    let tookDamage = false;
-
-    // Process DOT effects
-    ['bleed', 'burn', 'poison', 'entangling roots'].forEach(type => {
-        const debuff = (enemy.debuffs || []).find(d => d.type.toLowerCase() === type);
-        if (debuff) {
-            applyDamage(enemy, debuff.damage);
-            const typeName = type.charAt(0).toUpperCase() + type.slice(1);
-            const dmgType = debuff.damageType || (type === 'burn' ? 'Fire' : (type === 'poison' ? 'Nature' : 'Physical'));
-            sharedState.log.push({ message: `${enemy.name} takes ${debuff.damage} ${dmgType} damage from ${typeName}.`, type: 'damage' });
-            tookDamage = true;
-        }
-    });
+    // Process DOT effects using shared function
+    const tookDamage = applyDoTEffects(enemy, sharedState.log);
 
     // Check if enemy died from DOT
     if (enemy.health <= 0) {
