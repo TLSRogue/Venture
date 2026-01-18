@@ -5,7 +5,7 @@ import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
 import { checkAndEndTurnForPlayer, defeatEnemyInParty } from './adventure-state.js';
 import { handleResolveReaction } from './reaction-handlers.js';
-import { applyDamage, normalizeTarget, resolveAttackRoll, calculateWeaponDamage, calculateSpellDamage, getWeaponDebuff } from './combat-core.js';
+import { applyDamage, normalizeTarget, resolveAttackRoll, calculateWeaponDamage, calculateSpellDamage, getWeaponDebuff, checkVexorDodge, checkVampirePhaseTransition } from './combat-core.js';
 import { SpellHandlers, getSpecialSpellDamage } from './spell-handlers.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 
@@ -177,15 +177,10 @@ export async function processWeaponAttack(io, party, player, payload) {
         const dmgResult = calculateWeaponDamage(weapon, target, bonuses);
 
         // Vexor Check (Zone-specific boss mechanic)
-        if (target.name === 'Vexor, Lord of the Arena') {
-            const columns = sharedState.zoneCards.filter(c => c && c.name === 'Stone Column');
-            if (columns.length > 0 && Math.floor(Math.random() * 20) + 1 >= 10) {
-                log.push({ message: `Vexor, Lord of the Arena's Dodge: Jumps behind a Stone Column! Avoided!`, type: 'reaction' });
-                log.push({ message: `(Tip: Destroy the Stone Columns!)`, type: 'info' });
-                broadcastAdventureUpdate(io, party);
-                await checkAndEndTurnForPlayer(io, party, player);
-                return;
-            }
+        if (checkVexorDodge(target, sharedState, log)) {
+            broadcastAdventureUpdate(io, party);
+            await checkAndEndTurnForPlayer(io, party, player);
+            return;
         }
 
         // Flying Check - melee attacks cannot hit flying enemies
@@ -210,24 +205,7 @@ export async function processWeaponAttack(io, party, player, payload) {
         log.push({ message: logMessage, type: 'damage' });
 
         // Vampire Phase Transition (spawn Vampire's Assistant at 60HP)
-        if (target.name === 'Vampire' && target.state && target.state.health <= 60 && !target.state.phaseTriggered) {
-            target.state.phaseTriggered = true;
-            let emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
-            if (emptySlotIndex === -1) {
-                // Try to overwrite an area card (e.g. Mansion Hall)
-                emptySlotIndex = sharedState.zoneCards.findIndex(c => c && (c.type === 'area' || c.name === 'Mansion Hall'));
-            }
-            if (emptySlotIndex !== -1) {
-                const assistant = {
-                    ...gameData.specialCards.vampireAssistant,
-                    id: Date.now(),
-                    debuffs: [],
-                    buffs: []
-                };
-                sharedState.zoneCards[emptySlotIndex] = assistant;
-                log.push({ message: `The Vampire hisses in fury! "Assist me, minion!" A Vampire's Assistant emerges from the shadows!`, type: 'reaction' });
-            }
-        }
+        checkVampirePhaseTransition(target, sharedState, gameData, log);
 
         // Kill Logic
         if (target.isDead()) {
@@ -618,13 +596,8 @@ export async function processCastSpell(io, party, player, payload) {
             }
 
             // --- VEXOR DODGE ---
-            if (target.name === 'Vexor, Lord of the Arena') {
-                const columns = sharedState.zoneCards.filter(c => c && c.name === 'Stone Column');
-                if (columns.length > 0 && Math.floor(Math.random() * 20) + 1 >= 10) {
-                    log.push({ message: `Vexor, Lord of the Arena's Dodge: Jumps behind a Stone Column! Avoided!`, type: 'reaction' });
-                    log.push({ message: `(Tip: Destroy the Stone Columns!)`, type: 'info' });
-                    return;
-                }
+            if (checkVexorDodge(target, sharedState, log)) {
+                return;
             }
 
             let hitDescription = '';
@@ -664,24 +637,7 @@ export async function processCastSpell(io, party, player, payload) {
             log.push({ message: hitDescription.trim(), type: 'damage' });
 
             // Vampire Phase Transition (spawn Vampire's Assistant at 60HP)
-            if (target.name === 'Vampire' && target.state && target.state.health <= 60 && target.state.health > 0 && !target.state.phaseTriggered) {
-                target.state.phaseTriggered = true;
-                let emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
-                if (emptySlotIndex === -1) {
-                    // Try to overwrite an area card
-                    emptySlotIndex = sharedState.zoneCards.findIndex(c => c && (c.type === 'area' || c.name === 'Mansion Hall'));
-                }
-                if (emptySlotIndex !== -1) {
-                    const assistant = {
-                        ...gameData.specialCards.vampireAssistant,
-                        id: Date.now(),
-                        debuffs: [],
-                        buffs: []
-                    };
-                    sharedState.zoneCards[emptySlotIndex] = assistant;
-                    log.push({ message: `The Vampire hisses in fury! "Assist me, minion!" A Vampire's Assistant emerges from the shadows!`, type: 'reaction' });
-                }
-            }
+            checkVampirePhaseTransition(target, sharedState, gameData, log);
 
             // Check for death
             if (target.state.health <= 0) {

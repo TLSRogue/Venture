@@ -461,3 +461,58 @@ export function applyDamage(targetState, amount) {
 
     return amount; // Return remaining damage (if any) or amount applied
 }
+
+// --- BOSS MECHANIC HELPERS ---
+
+/**
+ * Check if Vexor dodges behind a Stone Column.
+ * Returns true if the attack was dodged, false otherwise.
+ * @param {object} target - The normalized target
+ * @param {object} sharedState - Party shared state
+ * @param {Array} log - Log array to push messages to
+ * @returns {boolean} True if attack was dodged
+ */
+export function checkVexorDodge(target, sharedState, log) {
+    if (target.name !== 'Vexor, Lord of the Arena') return false;
+
+    const columns = sharedState.zoneCards.filter(c => c && c.name === 'Stone Column');
+    if (columns.length > 0 && Math.floor(Math.random() * 20) + 1 >= 10) {
+        log.push({ message: `Vexor, Lord of the Arena's Dodge: Jumps behind a Stone Column! Avoided!`, type: 'reaction' });
+        log.push({ message: `(Tip: Destroy the Stone Columns!)`, type: 'info' });
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Check if Vampire should spawn the Vampire's Assistant at 60HP threshold.
+ * @param {object} target - The normalized target  
+ * @param {object} sharedState - Party shared state
+ * @param {object} gameData - Game data containing special cards
+ * @param {Array} log - Log array to push messages to
+ */
+export function checkVampirePhaseTransition(target, sharedState, gameData, log) {
+    if (target.name !== 'Vampire') return;
+    if (!target.state || target.state.health > 60 || target.state.health <= 0) return;
+    if (target.state.phaseTriggered) return;
+
+    target.state.phaseTriggered = true;
+
+    // Find a slot for the assistant
+    let emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+    if (emptySlotIndex === -1) {
+        // Try to overwrite an area card
+        emptySlotIndex = sharedState.zoneCards.findIndex(c => c && (c.type === 'area' || c.name === 'Mansion Hall'));
+    }
+
+    if (emptySlotIndex !== -1) {
+        const assistant = {
+            ...gameData.specialCards.vampireAssistant,
+            id: Date.now(),
+            debuffs: [],
+            buffs: []
+        };
+        sharedState.zoneCards[emptySlotIndex] = assistant;
+        log.push({ message: `The Vampire hisses in fury! "Assist me, minion!" A Vampire's Assistant emerges from the shadows!`, type: 'reaction' });
+    }
+}
