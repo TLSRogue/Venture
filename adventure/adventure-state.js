@@ -675,6 +675,10 @@ export async function processEndAdventure(io, player, party) {
             endTheAdventure();
         }
     } else {
+        // Process end-of-turn effects (DoT, buff/debuff durations) before leaving
+        processPartyEndOfTurn(sharedState);
+        broadcastAdventureUpdate(io, party);
+
         sharedState.log.push({ message: "The party returns home.", type: 'info' });
         endTheAdventure();
     }
@@ -752,8 +756,18 @@ export async function processVentureDeeper(io, player, party) {
             sharedState.log.push({ message: "The party was wiped out while trying to flee!", type: 'damage' });
         }
     } else {
-        sharedState.log.push({ message: "The party ventures deeper into the zone!", type: 'info' });
-        proceedToNextArea();
+        // Process end-of-turn effects (DoT, buff/debuff durations) before leaving
+        processPartyEndOfTurn(sharedState);
+        broadcastAdventureUpdate(io, party);
+
+        // Check if anyone died from DoT before proceeding
+        const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);
+        if (alivePlayers.length === 0) {
+            sharedState.log.push({ message: "The party succumbed to their wounds before they could venture deeper!", type: 'damage' });
+        } else {
+            sharedState.log.push({ message: "The party ventures deeper into the zone!", type: 'info' });
+            proceedToNextArea();
+        }
     }
     broadcastAdventureUpdate(io, party);
 }
@@ -1839,6 +1853,45 @@ function applyDoTEffects(playerState, logTarget) {
         }
     });
     return tookDamage;
+}
+
+/**
+ * Process end-of-turn effects for all living party members.
+ * Used during area transitions (Venture Deeper, Return Home) to ensure DoTs deal damage
+ * and buff/debuff durations decrement properly.
+ * @param {Object} sharedState - The party's shared adventure state
+ * @returns {boolean} - True if any player died from DoT damage
+ */
+function processPartyEndOfTurn(sharedState) {
+    let anyPlayerDied = false;
+
+    for (const playerState of sharedState.partyMemberStates) {
+        if (playerState.isDead) continue;
+
+        // 1. Apply DoT Damage
+        applyDoTEffects(playerState, sharedState.log);
+
+        // 2. Check for death from DoT
+        if (playerState.health <= 0) {
+            playerState.health = 0;
+            playerState.isDead = true;
+            sharedState.log.push({ message: `${playerState.name} has succumbed to their wounds!`, type: 'damage' });
+            anyPlayerDied = true;
+            continue; // Skip buff processing for dead player
+        }
+
+        // 3. Decrement buff/debuff durations
+        if (playerState.buffs) {
+            playerState.buffs.forEach(b => b.duration--);
+            playerState.buffs = playerState.buffs.filter(b => b.duration > 0);
+        }
+        if (playerState.debuffs) {
+            playerState.debuffs.forEach(d => d.duration--);
+            playerState.debuffs = playerState.debuffs.filter(d => d.duration > 0);
+        }
+    }
+
+    return anyPlayerDied;
 }
 
 export async function processPvpPlayerEndTurn(io, encounter, playerState) {

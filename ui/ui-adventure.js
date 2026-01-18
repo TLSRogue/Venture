@@ -232,8 +232,12 @@ export function renderAdventureScreen() {
     // --- END ZONE BACKGROUND ---
 
     // ** FIX: Use the new isLoadingNextArea flag for consistent behavior **
-    const shouldDisableVenture = gameState.pvpEncounter || gameState.isLoadingNextArea;
+    // Also disable during enemy turn (isPlayerTurn === false) to prevent clicking during enemy phase
+    const duringEnemyTurn = gameState.isPlayerTurn === false;
+    const shouldDisableVenture = gameState.pvpEncounter || gameState.isLoadingNextArea || duringEnemyTurn;
+    const shouldDisableHome = duringEnemyTurn;
     ventureArrow.disabled = shouldDisableVenture;
+    homeArrow.disabled = shouldDisableHome;
 
     ventureArrow.style.display = 'flex';
     homeArrow.style.display = 'flex';

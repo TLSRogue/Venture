@@ -299,6 +299,11 @@ export const registerAdventureHandlers = (io, socket) => {
             if (hasPendingReaction && !allowedDuringReaction.includes(action.type)) return;
 
             if (action.type === 'returnHome' || action.type === 'ventureDeeper') {
+                // Block these actions during enemy turn (server-side safety check)
+                if (party.sharedState.isPlayerTurn === false) {
+                    return; // Silently ignore - client should have blocked this
+                }
+
                 // Allow action if player is leader, OR if it's a solo party, OR JUST ALLOW ANYONE TO DO IT TO PREVENT STUCK STATES
                 // Decision: Allow any party member to proceed/return. This prevents hostage holding.
                 // if (name === party.leaderId || (party.isSoloParty && party.members.includes(name))) {

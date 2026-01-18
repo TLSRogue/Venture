@@ -954,6 +954,13 @@ async function ventureDeeper(buttonElement) {
     if (buttonElement && buttonElement.disabled) return;
     if (buttonElement) buttonElement.disabled = true;
 
+    // Block action during enemy turn
+    if (gameState.isPlayerTurn === false) {
+        UIMain.showInfoModal("Wait for the enemy turn to complete.");
+        if (buttonElement) buttonElement.disabled = false;
+        return;
+    }
+
     if (gameState.partyId && gameState.isPartyLeader) {
         Network.emitPartyAction({ type: 'ventureDeeper' });
     }

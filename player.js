@@ -121,6 +121,12 @@ export function unsocketGem(equipmentSlot) {
 
 export function returnToHome() {
     if (gameState.currentZone && gameState.partyId) {
+        // Block action during enemy turn
+        if (gameState.isPlayerTurn === false) {
+            UIMain.showInfoModal("Wait for the enemy turn to complete.");
+            return;
+        }
+
         if (gameState.isPartyLeader) {
             Network.emitPartyAction({ type: 'returnHome' });
         } else {
