@@ -9,7 +9,7 @@ export const cardPools = {
                 maxHealth: 15,
                 description: "An enraged bull, kicking up dust.",
                 icon: "🐂",
-                imageUrl: '/assets/farmlands-ragingbull.png',
+                imageUrl: '/assets/farmlands-ragingbull.jpg',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The bull snorts and misses!" },
                     { range: [4, 12], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Charge! Deals 3 Physical Damage!" },
@@ -24,7 +24,7 @@ export const cardPools = {
                 type: "npc",
                 description: "A friendly farmer.",
                 icon: "👨‍🌾",
-                imageUrl: '/assets/farmlands-farmer.png',
+                imageUrl: '/assets/farmlands-farmer.jpg',
                 quests: [
                     { id: "FARMHAND_TROUBLE", title: "Farmhand Trouble", target: "Angry Farmhand", required: 2, reward: { gold: 20, qp: 1 }, prerequisite: null },
                     { id: "BULL_RAGE", title: "Kill the Raging Bull", target: "Raging Bull", required: 1, reward: { gold: 50, qp: 1, titleReward: "Bull-Slayer" }, prerequisite: "FARMHAND_TROUBLE" }
@@ -47,7 +47,7 @@ export const cardPools = {
                 type: "npc",
                 description: "She seems worried about something.",
                 icon: "👩‍🌾",
-                imageUrl: '/assets/farmlands-farmerswife.png',
+                imageUrl: '/assets/farmlands-farmerswife.jpg',
                 quests: [{ id: "BAKERS_REQUEST", title: "A Birthday Surprise", turnInItems: { "Egg": 1, "Milk": 1, "Wheat": 1 }, reward: { gold: 25, qp: 1, recipeReward: "Birthday Cake" }, prerequisite: null }],
                 dialogue: {
                     BAKERS_REQUEST_start: { text: "Oh, hello there. My husband's birthday is soon, and I'd love to surprise him with a cake. Could you possibly gather the ingredients for one?", options: [{ text: "I'd be happy to help.", questId: "BAKERS_REQUEST", next: "BAKERS_REQUEST_inProgress" }, { text: "I'm not much of a baker.", next: "farewell" }] },
@@ -77,7 +77,7 @@ export const cardPools = {
         },
         {
             card: {
-                name: "Pig", type: "enemy", health: 3, maxHealth: 3, description: "A muddy pig", icon: "🐷", imageUrl: '/assets/farmlands-pig.png',
+                name: "Pig", type: "enemy", health: 3, maxHealth: 3, description: "A muddy pig", icon: "🐷", imageUrl: '/assets/farmlands-pig.jpg',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
                     { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 1, damageType: 'Physical', message: "Slam! Deals 1 Physical Damage!" },
@@ -92,7 +92,7 @@ export const cardPools = {
         },
         {
             card: {
-                name: "Cow", type: "enemy", health: 4, maxHealth: 4, description: "A gentle cow", icon: "🐮", imageUrl: '/assets/farmlands-cow.png',
+                name: "Cow", type: "enemy", health: 4, maxHealth: 4, description: "A gentle cow", icon: "🐮", imageUrl: '/assets/farmlands-cow.jpg',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
                     { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Kick! Deals 2 Physical Damage!" },
@@ -120,9 +120,9 @@ export const cardPools = {
                 ]
             }, count: 3
         },
-        { card: { name: "Iron Node", type: "resource", skill: "mining", description: "Requires Mining Tool (T1). Rare chance for gemstones.", lootPool: [{ name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Tier 1 Gemstone" }], toolType: "mining", toolTier: 1, charges: 3, icon: "⛏️", imageUrl: '/assets/farmlands-ironnode.png' }, count: 6 },
-        { card: { name: "Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T1)", loot: { name: "Wood", type: "material", price: 5 }, toolType: "woodcutting", toolTier: 1, charges: 3, icon: "🌲", imageUrl: '/assets/farmlands-tree.png' }, count: 6 },
-        { card: { name: "River", type: "resource", skill: "fishing", description: "Requires Fishing Tool (T1)", loot: { name: "Fish", type: "material", price: 5 }, toolType: "fishing", toolTier: 1, charges: 3, icon: "🎣", imageUrl: '/assets/farmlands-river.png' }, count: 6 },
+        { card: { name: "Iron Node", type: "resource", skill: "mining", description: "Requires Mining Tool (T1). Rare chance for gemstones.", lootPool: [{ name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Tier 1 Gemstone" }], toolType: "mining", toolTier: 1, charges: 3, icon: "⛏️", imageUrl: '/assets/farmlands-ironnode.jpg' }, count: 6 },
+        { card: { name: "Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T1)", loot: { name: "Wood", type: "material", price: 5 }, toolType: "woodcutting", toolTier: 1, charges: 3, icon: "🌲", imageUrl: '/assets/farmlands-tree.jpg' }, count: 6 },
+        { card: { name: "River", type: "resource", skill: "fishing", description: "Requires Fishing Tool (T1)", loot: { name: "Fish", type: "material", price: 5 }, toolType: "fishing", toolTier: 1, charges: 3, icon: "🎣", imageUrl: '/assets/farmlands-river.jpg' }, count: 6 },
         { card: { name: "Crops", type: "resource", skill: "harvesting", description: "Requires Harvesting Tool (T1)", lootPool: [{ name: "Wheat" }, { name: "Carrot" }, { name: "Hemp" }], toolType: "harvesting", toolTier: 1, charges: 3, icon: "🌾", imageUrl: '/assets/farmlands-crops.jpg' }, count: 5 },
         {
             card: {
@@ -135,6 +135,7 @@ export const cardPools = {
                 spawnsEnemy: "angryRooster"
             }, count: 1
         },
+        { card: { name: "Farmlands", type: "area", description: "Open farmland stretching to the horizon.", icon: "🌾", imageUrl: '/assets/farmlands-area.jpg', allowSpawnOver: true }, count: 3 },
     ],
 
     goblinCaves: [
@@ -398,6 +399,79 @@ export const cardPools = {
                     spurRecipe: { text: "A Rooster Spur? Now that's a nasty little thing. Sharp as any blade I've seen. Tell you what\u2014I'll teach you how to fashion it into a proper dagger. You'll need some Dark Wood for the handle.", options: [{ text: "Teach me.", teachRecipe: "Spur Dagger", next: "spurRecipeLearned" }] },
                     spurRecipeLearned: { text: "There you go. Spur Dagger\u2014fast, light, and it'll make your enemies bleed. Good hunting!", options: [{ text: "Thanks.", next: "farewell" }] },
                     farewell: { text: "Stay sharp out there.", options: [] }
+                }
+            }, count: 1
+        },
+        {
+            card: {
+                name: "Chef",
+                type: "npc",
+                description: "A cheerful chef with a passion for culinary arts.",
+                icon: "👨‍🍳",
+                imageUrl: '/assets/town-chef.jpg',
+                quests: [
+                    { id: "CHEF_MEAT_QUEST", title: "Fresh Ingredients", turnInItems: { "Pork": 2, "Raw Chicken": 2 }, reward: { gold: 30, qp: 1, recipeReward: "Meat Pie" }, prerequisite: null },
+                    { id: "CHEF_FISH_QUEST", title: "Catch of the Day", turnInItems: { "Fish": 5 }, reward: { gold: 40, qp: 1, recipeReward: "Fish Stew" }, prerequisite: "CHEF_MEAT_QUEST" }
+                ],
+                dialogue: {
+                    CHEF_MEAT_QUEST_start: { text: "Ah, a fellow food lover! My kitchen is running low on supplies. Bring me some Pork and Chicken, and I'll teach you the secret to my famous Meat Pie!", options: [{ text: "I'll gather the ingredients.", questId: "CHEF_MEAT_QUEST", next: "CHEF_MEAT_QUEST_inProgress" }, { text: "Maybe another time.", next: "farewell" }] },
+                    CHEF_MEAT_QUEST_inProgress: { text: "The farmlands are full of livestock. Bring me 2 Pork and 2 Raw Chicken!", options: [{ text: "I'm working on it.", next: "farewell" }] },
+                    CHEF_MEAT_QUEST_ready: { text: "Perfect! These are exactly what I needed. Watch closely—here's how you make a proper Meat Pie.", options: [{ text: "Thank you, Chef.", questComplete: "CHEF_MEAT_QUEST", next: "CHEF_FISH_QUEST_start" }] },
+                    CHEF_FISH_QUEST_start: { text: "You have a natural talent! Now, for something more refined. Bring me 5 Fish, and I'll share my Fish Stew recipe.", options: [{ text: "I'll go fishing.", questId: "CHEF_FISH_QUEST", next: "CHEF_FISH_QUEST_inProgress" }, { text: "That's enough cooking for now.", next: "farewell" }] },
+                    CHEF_FISH_QUEST_inProgress: { text: "The rivers are teeming with fish. Keep at it!", options: [{ text: "I'll be back.", next: "farewell" }] },
+                    CHEF_FISH_QUEST_ready: { text: "Magnificent! These are beautifully fresh. Here's the recipe for my hearty Fish Stew.", options: [{ text: "Thanks for the recipes.", questComplete: "CHEF_FISH_QUEST", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "You've become quite the chef yourself! Good luck on your adventures.", options: [{ text: "Farewell.", next: "farewell" }] },
+                    farewell: { text: "Bon appétit!", options: [] }
+                }
+            }, count: 1
+        },
+        {
+            card: {
+                name: "Tailor",
+                type: "npc",
+                description: "A skilled seamstress surrounded by bolts of fine fabric.",
+                icon: "🧵",
+                imageUrl: '/assets/town-tailor.jpg',
+                quests: [
+                    { id: "TAILOR_CLOTH_QUEST", title: "Fine Fabrics", turnInItems: { "Cloth": 5 }, reward: { gold: 25, qp: 1, recipeReward: "Cloth Armor" }, prerequisite: null },
+                    { id: "TAILOR_SILK_QUEST", title: "Silken Threads", turnInItems: { "Spider Silk": 3 }, reward: { gold: 50, qp: 1, recipeReward: "Silk Robe" }, prerequisite: "TAILOR_CLOTH_QUEST" }
+                ],
+                dialogue: {
+                    TAILOR_CLOTH_QUEST_start: { text: "Welcome to my shop! I'm always in need of quality materials. Bring me some Cloth, and I'll teach you to craft proper armor with it.", options: [{ text: "I'll find some cloth.", questId: "TAILOR_CLOTH_QUEST", next: "TAILOR_CLOTH_QUEST_inProgress" }, { text: "Not interested in sewing.", next: "farewell" }] },
+                    TAILOR_CLOTH_QUEST_inProgress: { text: "Farmhands usually carry Cloth. You can also find Hemp in the fields to weave your own.", options: [{ text: "I'll keep looking.", next: "farewell" }] },
+                    TAILOR_CLOTH_QUEST_ready: { text: "Wonderful! This is fine material. Let me show you how to craft Cloth Armor—it's lightweight but protective.", options: [{ text: "Thank you.", questComplete: "TAILOR_CLOTH_QUEST", next: "TAILOR_SILK_QUEST_start" }] },
+                    TAILOR_SILK_QUEST_start: { text: "You have a steady hand! Now, for something more elegant. Spider Silk makes the finest robes. Bring me 3 strands.", options: [{ text: "I'll hunt some spiders.", questId: "TAILOR_SILK_QUEST", next: "TAILOR_SILK_QUEST_inProgress" }, { text: "Spiders aren't my thing.", next: "farewell" }] },
+                    TAILOR_SILK_QUEST_inProgress: { text: "The Dark Forest is crawling with spiders. Be careful—they're venomous!", options: [{ text: "I'll manage.", next: "farewell" }] },
+                    TAILOR_SILK_QUEST_ready: { text: "Exquisite! This silk is perfect. Here's how you craft a Silk Robe—fit for a mage.", options: [{ text: "Amazing craftsmanship.", questComplete: "TAILOR_SILK_QUEST", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "You're a natural tailor! Come back if you need any repairs.", options: [{ text: "Farewell.", next: "farewell" }] },
+                    farewell: { text: "May your threads never fray!", options: [] }
+                }
+            }, count: 1
+        },
+        {
+            card: {
+                name: "Wizard",
+                type: "npc",
+                description: "An elderly mage studying an ancient tome, arcane symbols floating around him.",
+                icon: "🧙",
+                imageUrl: '/assets/town-wizard.jpg',
+                quests: [
+                    { id: "WIZARD_ESSENCE_QUEST", title: "Arcane Components", turnInItems: { "Magic Essence": 3 }, reward: { qp: 1, itemReward: { name: "Arcane Spell Scroll", quantity: 1 } }, prerequisite: null },
+                    { id: "WIZARD_CRYSTAL_QUEST", title: "Crystal Power", turnInItems: { "Dark Crystal": 2 }, reward: { qp: 1, itemReward: { name: "Fire Spell Scroll", quantity: 1 } }, prerequisite: "WIZARD_ESSENCE_QUEST" },
+                    { id: "WIZARD_PLAGUE_QUEST", title: "Plague Research", turnInItems: { "Plague Essence": 1 }, reward: { qp: 1, itemReward: { name: "Nature Spell Scroll", quantity: 1 } }, prerequisite: "WIZARD_CRYSTAL_QUEST" }
+                ],
+                dialogue: {
+                    WIZARD_ESSENCE_QUEST_start: { text: "Ah, an adventurer with potential! The arcane arts require rare components. Bring me 3 Magic Essences from the goblin shamans, and I shall reward you with knowledge of the arcane.", options: [{ text: "I'll gather the essences.", questId: "WIZARD_ESSENCE_QUEST", next: "WIZARD_ESSENCE_QUEST_inProgress" }, { text: "Magic isn't my path.", next: "farewell" }] },
+                    WIZARD_ESSENCE_QUEST_inProgress: { text: "Goblin Shamans in the caves carry Magic Essence. Defeat them and bring me their magical remains.", options: [{ text: "I'll find them.", next: "farewell" }] },
+                    WIZARD_ESSENCE_QUEST_ready: { text: "Excellent! These essences pulse with power. Take this scroll—it contains arcane knowledge.", options: [{ text: "Thank you, wise one.", questComplete: "WIZARD_ESSENCE_QUEST", next: "WIZARD_CRYSTAL_QUEST_start" }] },
+                    WIZARD_CRYSTAL_QUEST_start: { text: "Your potential grows! Dark Crystals from the forest contain trapped fire magic. Bring me 2, and I'll give you a scroll of fire.", options: [{ text: "I'll venture into the forest.", questId: "WIZARD_CRYSTAL_QUEST", next: "WIZARD_CRYSTAL_QUEST_inProgress" }, { text: "Perhaps later.", next: "farewell" }] },
+                    WIZARD_CRYSTAL_QUEST_inProgress: { text: "The Dark Forest hides many secrets. The crystal nodes there contain what I need.", options: [{ text: "I'm on it.", next: "farewell" }] },
+                    WIZARD_CRYSTAL_QUEST_ready: { text: "These crystals are magnificent! The fire within them is ancient. Here—master the flames.", options: [{ text: "I feel the power!", questComplete: "WIZARD_CRYSTAL_QUEST", next: "WIZARD_PLAGUE_QUEST_start" }] },
+                    WIZARD_PLAGUE_QUEST_start: { text: "For your final test, I need something truly rare. Plague Essence from the sewer's depths. Dangerous, yes, but the nature magic within is unparalleled.", options: [{ text: "I'll brave the sewers.", questId: "WIZARD_PLAGUE_QUEST", next: "WIZARD_PLAGUE_QUEST_inProgress" }, { text: "That sounds too dangerous.", next: "farewell" }] },
+                    WIZARD_PLAGUE_QUEST_inProgress: { text: "The Plague Rats carry what I need. Be careful—their disease is deadly.", options: [{ text: "I'll be cautious.", next: "farewell" }] },
+                    WIZARD_PLAGUE_QUEST_ready: { text: "You've done it! This essence is perfect for studying nature's darker side. Take this scroll—you've earned it.", options: [{ text: "Thank you for everything.", questComplete: "WIZARD_PLAGUE_QUEST", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "You've proven yourself a true student of magic. May your spells strike true!", options: [{ text: "Farewell, master.", next: "farewell" }] },
+                    farewell: { text: "The arcane waits for no one...", options: [] }
                 }
             }, count: 1
         },
@@ -785,6 +859,15 @@ export const specialCards = {
         description: "A dark, empty sewer canal.",
         icon: "🕳️",
         imageUrl: '/assets/sewers-emptycanal.jpg',
+        allowSpawnOver: true
+    },
+    // --- Farmlands Area Cards ---
+    farmlandsArea: {
+        name: "Farmlands",
+        type: "area",
+        description: "Open farmland stretching to the horizon.",
+        icon: "🌾",
+        imageUrl: '/assets/farmlands-area.jpg',
         allowSpawnOver: true
     },
     // --- Goblin Caves Area Cards ---
