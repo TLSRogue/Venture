@@ -491,6 +491,25 @@ export async function processCastSpell(io, party, player, payload) {
             log.push({ message: `${buffTarget.name} gains ${buff.type}${buff.value ? ` (${buff.value})` : ''}! [id:${tId}]`, type: 'heal' });
         }
     }
+    else if (spell.type === 'debuff') {
+        // Debuff spells (like Silence) apply debuffs to enemies
+        if (!target || target.isPlayer) {
+            log.push({ message: "Invalid target for debuff spell!", type: 'info' });
+            broadcastAdventureUpdate(io, party);
+            await checkAndEndTurnForPlayer(io, party, player);
+            return;
+        }
+
+        const debuff = { ...spell.debuff };
+        if (!target.state.debuffs) target.state.debuffs = [];
+
+        // Replace existing debuff of same type
+        const existingIndex = target.state.debuffs.findIndex(d => d.type.toLowerCase() === debuff.type.toLowerCase());
+        if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
+        target.state.debuffs.push(debuff);
+
+        log.push({ message: `${target.name} is now ${debuff.type.charAt(0).toUpperCase() + debuff.type.slice(1)}ed!`, type: 'damage' });
+    }
     else if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile') {
         // Collect Targets
         // Collect Targets
