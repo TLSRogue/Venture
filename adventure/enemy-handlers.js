@@ -243,7 +243,8 @@ function handlePowderKegDetonate(enemy, sharedState, target, attack, ctx) {
 
 // --- ANGRY FARMHAND HANDLERS ---
 function handleFarmhandTactics(enemy, sharedState, target, attack, ctx) {
-    const { enemyIndex, targetPlayerState, targetPlayerObject } = ctx;
+    const { enemyIndex, targetPlayerObject } = ctx;
+    const targetPlayerState = target;
 
     const allEffects = (enemy.buffs || []).concat(enemy.debuffs || []);
     const isTrapped = allEffects.some(b => ['trapped', 'root', 'stun', 'daze', 'entangling roots'].includes(b.type.toLowerCase()));
@@ -539,7 +540,8 @@ function handleLootGoblinEscape(enemy, sharedState, target, attack, ctx) {
 
 // --- RAGING BULL HANDLERS ---
 function handleRagingBullThickHide(enemy, sharedState, target, attack, ctx) {
-    const { targetPlayerState, targetPlayerObject } = ctx;
+    const { targetPlayerObject } = ctx;
+    const targetPlayerState = target;
 
     const hasThickHide = enemy.buffs && enemy.buffs.some(b => b.type === 'Thick Hide');
     if (hasThickHide || enemy.usedThickHideThisTurn) {
