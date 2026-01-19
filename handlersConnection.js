@@ -48,6 +48,56 @@ function refreshPlayerSpells(character, characterName) {
 }
 
 /**
+ * Refreshes player equipment to match current item definitions.
+ * This ensures existing items get new properties (like gemSlots for Staff).
+ */
+function refreshPlayerEquipment(character, characterName) {
+    // Items that need property updates
+    const itemUpdates = {
+        'Staff': { gemSlots: 1 }
+    };
+
+    // Update equipment slots
+    if (character.equipment) {
+        for (const slot in character.equipment) {
+            const item = character.equipment[slot];
+            if (item && itemUpdates[item.name]) {
+                const updates = itemUpdates[item.name];
+                let updated = false;
+                for (const prop in updates) {
+                    if (item[prop] === undefined) {
+                        item[prop] = updates[prop];
+                        updated = true;
+                    }
+                }
+                if (updated) {
+                    console.log(`[Equipment Refresh] Added properties to ${item.name} for ${characterName} (${slot})`);
+                }
+            }
+        }
+    }
+
+    // Update inventory items
+    if (character.inventory) {
+        character.inventory.forEach((item, index) => {
+            if (item && itemUpdates[item.name]) {
+                const updates = itemUpdates[item.name];
+                let updated = false;
+                for (const prop in updates) {
+                    if (item[prop] === undefined) {
+                        item[prop] = updates[prop];
+                        updated = true;
+                    }
+                }
+                if (updated) {
+                    console.log(`[Equipment Refresh] Added properties to ${item.name} for ${characterName} (inventory[${index}])`);
+                }
+            }
+        });
+    }
+}
+
+/**
  * Backfills T2 crafting recipes for players who completed quests before the recipe rewards were expanded.
  */
 function backfillT2Recipes(character, characterName) {
@@ -128,6 +178,10 @@ export const registerConnectionHandlers = (io, socket) => {
         // --- RUNTIME SPELL REFRESH ---
         // Always update spells to current definitions to ensure new properties are applied
         refreshPlayerSpells(characterToUpdate, name);
+
+        // --- RUNTIME EQUIPMENT REFRESH ---
+        // Update existing items with new properties (e.g., gem slots)
+        refreshPlayerEquipment(characterToUpdate, name);
 
         // --- RUNTIME RECIPE BACKFILL ---
         // Add recipes for players who completed quests before reward expansion

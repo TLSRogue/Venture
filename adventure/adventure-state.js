@@ -716,6 +716,27 @@ export async function processVentureDeeper(io, player, party) {
         sharedState.isPlayerTurn = true;
     };
 
+    // Helper: End adventure when party wipes (all dead)
+    const endTheAdventureAfterWipe = () => {
+        sharedState.isLoadingNextArea = false;
+        party.members.forEach(memberName => {
+            const memberPlayer = players[memberName];
+            const memberCharacter = memberPlayer?.character;
+            if (memberCharacter) {
+                // Don't restore health for dead players
+                if (memberPlayer.id) {
+                    io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
+                    io.to(memberPlayer.id).emit('party:adventureEnded');
+                }
+            }
+        });
+        if (party.isSoloParty) {
+            PartyManager.cleanupSoloParty(io, party, player);
+        } else {
+            PartyManager.endPartyAdventure(io, party.id);
+        }
+    };
+
     sharedState.isLoadingNextArea = true;
     broadcastAdventureUpdate(io, party);
 
@@ -755,6 +776,9 @@ export async function processVentureDeeper(io, player, party) {
             proceedToNextArea();
         } else {
             sharedState.log.push({ message: "The party was wiped out while trying to flee!", type: 'damage' });
+            broadcastAdventureUpdate(io, party);
+            endTheAdventureAfterWipe();
+            return;
         }
     } else {
         // Process end-of-turn effects (DoT, buff/debuff durations) before leaving
@@ -765,6 +789,9 @@ export async function processVentureDeeper(io, player, party) {
         const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);
         if (alivePlayers.length === 0) {
             sharedState.log.push({ message: "The party succumbed to their wounds before they could venture deeper!", type: 'damage' });
+            broadcastAdventureUpdate(io, party);
+            endTheAdventureAfterWipe();
+            return;
         } else {
             sharedState.log.push({ message: "The party ventures deeper into the zone!", type: 'info' });
             proceedToNextArea();
