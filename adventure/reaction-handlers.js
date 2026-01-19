@@ -93,7 +93,7 @@ export async function handleResolveReaction(io, socket, payload) {
                 logMessage = `${name}'s Block: ${rollDisplay} Critical Failure!`;
             } else if (isSuccess) {
                 const damageReduction = shield.reaction.value;
-                finalDamage = Math.max(1, finalDamage - damageReduction);
+                finalDamage = Math.max(0, finalDamage - damageReduction);
                 blocked = true;
                 logMessage = `${name}'s Block: ${rollDisplay} Blocked ${damageReduction} damage!`;
             } else {

@@ -306,6 +306,9 @@ export function calculateSpellDamage(spell, character, actingPlayerState, target
         }
         baseDamage = 1 + highestFireWeaponDamage;
     }
+    else if (spell.name === 'Slash') {
+        baseDamage = character.equipment.mainHand?.weaponDamage || 0;
+    }
     else if (spell.name === 'Split Shot' || spell.name === 'Aim True') {
         const mainHand = character.equipment.mainHand;
         const offHand = character.equipment.offHand;

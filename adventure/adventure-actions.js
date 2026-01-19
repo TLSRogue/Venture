@@ -398,8 +398,25 @@ export async function processCastSpell(io, party, player, payload) {
     }
 
     // --- Roll Resolution ---
+    let spellStat = spell.stat || 'wisdom';
+    // Handle array of stats (highest one used)
+    if (Array.isArray(spellStat)) {
+        const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+        let bestStat = spellStat[0];
+        let maxVal = -Infinity;
+
+        spellStat.forEach(stat => {
+            const val = (character[stat] || 0) + (bonuses[stat] || 0);
+            if (val > maxVal) {
+                maxVal = val;
+                bestStat = stat;
+            }
+        });
+        spellStat = bestStat;
+    }
+
     // If target is null (e.g. AoE or Self Buff), we pass null. `resolveAttackRoll` handles null target (stealth check won't run).
-    const attackResult = resolveAttackRoll(actingPlayerState, character, target ? target.state : null, spell.stat || 'wisdom', spell.hit || 15);
+    const attackResult = resolveAttackRoll(actingPlayerState, character, target ? target.state : null, spellStat, spell.hit || 15);
 
     // Consume Resources
     actingPlayerState.actionPoints -= cost;
