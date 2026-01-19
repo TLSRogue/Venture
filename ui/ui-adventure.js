@@ -831,6 +831,64 @@ export function showReactionModal({ damage, attacker, attackMessage, availableRe
     }
 }
 
+export function showInterveneModal({ attacker, target, damage, attackMessage, timer }) {
+    import('../network.js').then(Network => {
+        if (reactionTimerInterval) clearInterval(reactionTimerInterval);
+
+        let timerHtml = '';
+        if (timer) {
+            timerHtml = `<div class="reaction-timer"><span id="intervene-timer-countdown">${timer / 1000}</span>s</div>`;
+        }
+
+        const attackDescription = attackMessage
+            ? `<p><strong>${attacker}</strong> ${attackMessage}</p><p>Incoming damage: <strong>${damage}</strong></p>`
+            : `<p>${attacker} is about to deal ${damage} damage to ${target}!</p>`;
+
+        const modalContent = `
+            <h2>🛡️ Intervene?</h2>
+            ${timerHtml}
+            <p><strong>${attacker}</strong> is attacking <strong>${target}</strong>!</p>
+            ${attackDescription}
+            <p>Do you want to intercept this attack?</p>
+            <div class="action-buttons" id="intervene-buttons">
+                <button class="btn btn-success" id="intervene-accept-btn">Intervene!</button>
+                <button class="btn btn-danger" id="intervene-decline-btn">Decline</button>
+            </div>
+        `;
+        showModal(modalContent);
+
+        // Handle button clicks
+        document.getElementById('intervene-accept-btn').addEventListener('click', () => {
+            Network.emitPartyAction({ type: 'resolveIntervene', payload: { accept: true } });
+            hideModal();
+            if (reactionTimerInterval) clearInterval(reactionTimerInterval);
+        });
+
+        document.getElementById('intervene-decline-btn').addEventListener('click', () => {
+            Network.emitPartyAction({ type: 'resolveIntervene', payload: { accept: false } });
+            hideModal();
+            if (reactionTimerInterval) clearInterval(reactionTimerInterval);
+        });
+
+        if (timer) {
+            const countdownEl = document.getElementById('intervene-timer-countdown');
+            let secondsLeft = timer / 1000;
+            reactionTimerInterval = setInterval(() => {
+                secondsLeft--;
+                if (countdownEl) {
+                    countdownEl.textContent = Math.max(0, secondsLeft);
+                }
+                if (secondsLeft <= 0) {
+                    clearInterval(reactionTimerInterval);
+                    // Auto-decline on timeout
+                    Network.emitPartyAction({ type: 'resolveIntervene', payload: { accept: false } });
+                    hideModal();
+                }
+            }, 1000);
+        }
+    });
+}
+
 export function showDebuffSelectionModal({ targetName, debuffs, maxSelectable, casterName }) {
     import('../network.js').then(Network => {
         const debuffCheckboxes = debuffs.map((debuff, i) => {

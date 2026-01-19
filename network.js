@@ -31,6 +31,7 @@ export function initSocketListeners(handlers) {
     socket.on('party:hideDialogue', handlers.onHideDialogue);
     socket.on('party:adventureEnded', handlers.onPartyAdventureEnded);
     socket.on('party:requestReaction', handlers.onPartyRequestReaction);
+    socket.on('party:requestIntervene', handlers.onPartyRequestIntervene);
     socket.on('party:requestDebuffSelection', handlers.onPartyRequestDebuffSelection);
 
     // Loot Roll Listeners

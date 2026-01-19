@@ -5,7 +5,7 @@ import { gameData, lootPools } from '../data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js';
 import { applyDamage, applyDoTEffects } from './combat-core.js';
-import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS } from '../constants.js';
+import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS, INTERVENE_TIMER_MS } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
 import { processEnemyEndOfTurn, handleEnemySpecialAction } from './enemy-handlers.js';
 import {
@@ -41,7 +41,211 @@ function getZoneAreaCard(zoneName, index = 0) {
     return areaCard ? { ...areaCard, id: Date.now() + 1000 + index } : null;
 }
 
+/**
+ * Helper function to proceed to normal reaction after intervene phase is complete.
+ * Called either when no one intervenes or after intervene roll fails.
+ */
+function proceedToNormalReaction(io, party, targetPlayerState, availableReactions, attack, enemy, enemyIndex, isFleeing) {
+    const { sharedState } = party;
 
+    // Clear intervene state
+    if (sharedState.interveneTimeout) {
+        clearTimeout(sharedState.interveneTimeout);
+        sharedState.interveneTimeout = null;
+    }
+    sharedState.pendingIntervene = null;
+
+    // Set up normal reaction
+    sharedState.pendingReaction = {
+        attackerName: enemy.name,
+        attackerIndex: enemyIndex,
+        targetName: targetPlayerState.name,
+        damage: attack.damage,
+        damageType: attack.damageType,
+        attackRange: attack.attackRange || 'melee',
+        debuff: attack.debuff || null,
+        message: attack.message,
+        isFleeing: isFleeing,
+        endOfTurnProcessed: true
+    };
+
+    const reactionPayload = {
+        damage: attack.damage,
+        attacker: enemy.name,
+        attackMessage: attack.message,
+        availableReactions: availableReactions.map(r => ({ name: r.name })),
+        timer: REACTION_TIMER_MS
+    };
+
+    io.to(targetPlayerState.playerId).emit('party:requestReaction', reactionPayload);
+    party.reactionTimeout = setTimeout(() => {
+        const playerSocket = io.sockets.sockets.get(targetPlayerState.playerId);
+        if (playerSocket) {
+            // Use the handleResolveReaction function defined in this file
+            handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
+        }
+    }, REACTION_TIMER_MS);
+
+    broadcastAdventureUpdate(io, party);
+}
+
+/**
+ * Handle a player's response to an intervene prompt.
+ * @param {Object} io - Socket.io instance
+ * @param {Object} socket - The socket of the responding player
+ * @param {Object} payload - { accept: boolean }
+ */
+export async function resolveIntervene(io, socket, payload) {
+    const name = socket.characterName;
+    const player = players[name];
+    if (!player?.character?.partyId) return;
+
+    const party = parties[player.character.partyId];
+    if (!party?.sharedState?.pendingIntervene) return;
+
+    const { sharedState } = party;
+    const interveneData = sharedState.pendingIntervene;
+
+    // Verify this player is a potential intervenor
+    if (!interveneData.potentialIntervenors.includes(name)) return;
+
+    // Mark as responded
+    if (!interveneData.respondedIntervenors.includes(name)) {
+        interveneData.respondedIntervenors.push(name);
+    }
+
+    const intervenorState = sharedState.partyMemberStates.find(p => p.name === name);
+    if (!intervenorState || intervenorState.isDead) return;
+
+    if (payload.accept) {
+        // Clear the timeout since someone is intervening
+        if (sharedState.interveneTimeout) {
+            clearTimeout(sharedState.interveneTimeout);
+            sharedState.interveneTimeout = null;
+        }
+
+        // Get intervene spell
+        const interveneSpell = player.character.equippedSpells.find(s => s.isIntervene);
+        if (!interveneSpell) return;
+
+        // Put spell on cooldown
+        intervenorState.spellCooldowns[interveneSpell.name] = interveneSpell.cooldown;
+
+        // Roll for intervene success
+        const bonuses = getBonusStatsForPlayer(player.character, intervenorState);
+        const defenseValue = player.character.defense + (bonuses.defense || 0);
+        const roll = Math.floor(Math.random() * 20) + 1;
+        const total = roll + defenseValue;
+        const isSuccess = roll !== 1 && total >= interveneSpell.hit;
+
+        const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
+        const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+
+        if (roll === 1) {
+            // Critical failure - intervenor takes damage, no second reaction
+            sharedState.log.push({ message: `${name}'s Intervene: ${rollDisplay} Critical Failure!`, type: 'damage' });
+
+            const damageToDeal = interveneData.damage;
+            applyDamage(intervenorState, damageToDeal);
+
+            sharedState.log.push({
+                message: `${interveneData.attackerName} ${interveneData.message} ${name} intercepts but takes ${damageToDeal} damage! [id:${intervenorState.playerId}]`,
+                type: 'damage'
+            });
+
+            if (intervenorState.health <= 0) {
+                intervenorState.isDead = true;
+                intervenorState.lootableInventory = [...player.character.inventory.filter(Boolean)];
+                player.character.inventory = Array(28).fill(null);
+                io.to(player.id).emit('characterUpdate', player.character);
+                sharedState.log.push({ message: `${name} has been defeated!`, type: 'damage' });
+            }
+
+            sharedState.pendingIntervene = null;
+
+            // Continue enemy phase
+            const lastAttackerIndex = interveneData.attackerIndex;
+            const enemies = sharedState.zoneCards.map((c, i) => ({ card: c, index: i })).filter(e => e.card && e.card.type === 'enemy');
+            const lastEnemyListIndex = enemies.findIndex(e => e.index === lastAttackerIndex);
+
+            broadcastAdventureUpdate(io, party);
+            await runEnemyPhaseForParty(io, party.id, false, lastEnemyListIndex + 1);
+
+        } else if (isSuccess) {
+            // Success - intervenor becomes new target and gets their own reactions
+            sharedState.log.push({ message: `${name}'s Intervene: ${rollDisplay} Success! Intercepting attack!`, type: 'success' });
+
+            // Build available reactions for the intervenor
+            const newAvailableReactions = [];
+
+            // Check for dodge
+            const dodgeSpell = player.character.equippedSpells.find(s => s.name === "Dodge");
+            if (dodgeSpell && (intervenorState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
+                newAvailableReactions.push({ name: 'Dodge' });
+            }
+
+            // Check for block
+            const shield = player.character.equipment.offHand;
+            if (shield && shield.type === 'shield' && shield.reaction && (intervenorState.itemCooldowns[shield.name] || 0) <= 0) {
+                newAvailableReactions.push({ name: 'Block' });
+            }
+
+            // Clear intervene state
+            sharedState.pendingIntervene = null;
+
+            // Set up reaction for the intervenor as the new target
+            const enemy = sharedState.zoneCards[interveneData.attackerIndex];
+            proceedToNormalReaction(io, party, intervenorState, newAvailableReactions,
+                { damage: interveneData.damage, damageType: interveneData.damageType, attackRange: interveneData.attackRange, debuff: interveneData.debuff, message: interveneData.message },
+                enemy, interveneData.attackerIndex, interveneData.isFleeing);
+
+        } else {
+            // Failed roll - intervenor takes full damage with no second reaction
+            sharedState.log.push({ message: `${name}'s Intervene: ${rollDisplay} Failed!`, type: 'damage' });
+
+            const damageToDeal = interveneData.damage;
+            applyDamage(intervenorState, damageToDeal);
+
+            sharedState.log.push({
+                message: `${interveneData.attackerName} ${interveneData.message} ${name} intercepts but takes ${damageToDeal} damage! [id:${intervenorState.playerId}]`,
+                type: 'damage'
+            });
+
+            if (intervenorState.health <= 0) {
+                intervenorState.isDead = true;
+                intervenorState.lootableInventory = [...player.character.inventory.filter(Boolean)];
+                player.character.inventory = Array(28).fill(null);
+                io.to(player.id).emit('characterUpdate', player.character);
+                sharedState.log.push({ message: `${name} has been defeated!`, type: 'damage' });
+            }
+
+            sharedState.pendingIntervene = null;
+
+            // Continue enemy phase
+            const lastAttackerIndex = interveneData.attackerIndex;
+            const enemies = sharedState.zoneCards.map((c, i) => ({ card: c, index: i })).filter(e => e.card && e.card.type === 'enemy');
+            const lastEnemyListIndex = enemies.findIndex(e => e.index === lastAttackerIndex);
+
+            broadcastAdventureUpdate(io, party);
+            await runEnemyPhaseForParty(io, party.id, false, lastEnemyListIndex + 1);
+        }
+    } else {
+        // Declined - check if all potential intervenors have responded
+        const allResponded = interveneData.potentialIntervenors.every(name =>
+            interveneData.respondedIntervenors.includes(name)
+        );
+
+        if (allResponded) {
+            // Everyone declined - proceed to normal target
+            const originalTargetState = sharedState.partyMemberStates.find(p => p.name === interveneData.originalTargetName);
+            const enemy = sharedState.zoneCards[interveneData.attackerIndex];
+
+            proceedToNormalReaction(io, party, originalTargetState, interveneData.availableReactions,
+                { damage: interveneData.damage, damageType: interveneData.damageType, attackRange: interveneData.attackRange, debuff: interveneData.debuff, message: interveneData.message },
+                enemy, interveneData.attackerIndex, interveneData.isFleeing);
+        }
+    }
+}
 
 
 
@@ -644,6 +848,75 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         broadcastAdventureUpdate(io, party);
                         continue;
                     }
+
+                    // --- INTERVENE CHECK ---
+                    // Check if any OTHER party member can intervene before we offer reactions to target
+                    const potentialIntervenors = [];
+                    sharedState.partyMemberStates.forEach(pmState => {
+                        if (pmState.name === targetPlayerState.name || pmState.isDead) return;
+                        const pmPlayer = players[pmState.name];
+                        if (!pmPlayer?.character) return;
+
+                        // Check for Intervene spell
+                        const interveneSpell = pmPlayer.character.equippedSpells.find(s => s.isIntervene);
+                        if (!interveneSpell) return;
+
+                        // Check cooldown
+                        if ((pmState.spellCooldowns[interveneSpell.name] || 0) > 0) return;
+
+                        // Check for shield equipped
+                        const shield = pmPlayer.character.equipment.offHand;
+                        if (!shield || shield.type !== 'shield') return;
+
+                        potentialIntervenors.push({
+                            playerState: pmState,
+                            player: pmPlayer,
+                            spell: interveneSpell
+                        });
+                    });
+
+                    // If there are potential intervenors, ask them first
+                    if (potentialIntervenors.length > 0) {
+                        // Store the attack info so we can resume after intervene decision
+                        sharedState.pendingIntervene = {
+                            attackerName: enemy.name,
+                            attackerIndex: enemyIndex,
+                            originalTargetName: targetPlayerState.name,
+                            damage: attack.damage,
+                            damageType: attack.damageType,
+                            attackRange: attack.attackRange || 'melee',
+                            debuff: attack.debuff || null,
+                            message: attack.message,
+                            availableReactions: availableReactions,
+                            potentialIntervenors: potentialIntervenors.map(pi => pi.playerState.name),
+                            respondedIntervenors: [],
+                            isFleeing: isFleeing,
+                            endOfTurnProcessed: true
+                        };
+
+                        // Notify all potential intervenors
+                        const intervenePayload = {
+                            attacker: enemy.name,
+                            target: targetPlayerState.name,
+                            damage: attack.damage,
+                            attackMessage: attack.message,
+                            timer: INTERVENE_TIMER_MS
+                        };
+
+                        potentialIntervenors.forEach(pi => {
+                            io.to(pi.playerState.playerId).emit('party:requestIntervene', intervenePayload);
+                        });
+
+                        // Set timeout for intervene response
+                        sharedState.interveneTimeout = setTimeout(() => {
+                            // Nobody intervened in time - continue to normal target
+                            proceedToNormalReaction(io, party, targetPlayerState, availableReactions, attack, enemy, enemyIndex, isFleeing);
+                        }, INTERVENE_TIMER_MS);
+
+                        broadcastAdventureUpdate(io, party);
+                        return;
+                    }
+                    // --- END INTERVENE CHECK ---
 
                     sharedState.pendingReaction = {
                         attackerName: enemy.name,

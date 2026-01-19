@@ -37,6 +37,7 @@ function initGame() {
         onPartyAdventureStarted: handlePartyAdventureStarted,
         onPartyAdventureUpdate: handlePartyAdventureUpdate,
         onPartyRequestReaction: UIAdventure.showReactionModal,
+        onPartyRequestIntervene: UIAdventure.showInterveneModal,
         onPartyRequestDebuffSelection: UIAdventure.showDebuffSelectionModal,
         onShowDialogue: UIParty.showNPCDialogueFromServer,
         onHideDialogue: UIMain.hideModal,

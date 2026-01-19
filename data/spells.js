@@ -409,5 +409,21 @@ export const allSpells = [
         requires: { weaponType: ["Dagger"] },
         icon: "🗡️",
         rarity: "rare",
+    },
+    // --- Tank/Shield Abilities ---
+    {
+        name: "Intervene",
+        scrollCost: "Physical Spell Scroll",
+        cooldown: 3,
+        school: "Physical",
+        range: "melee",
+        description: "Intercept attack. Requires Shield. 3 CD | D20+Def (10+) | Take attack meant for ally. (Reaction)",
+        type: "reaction",
+        stat: "defense",
+        hit: 10,
+        requires: { weaponType: ["Shield"] },
+        isIntervene: true,
+        icon: "🛡️⚔️",
+        rarity: "uncommon",
     }
 ];

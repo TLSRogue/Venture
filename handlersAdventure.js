@@ -262,6 +262,11 @@ export const registerAdventureHandlers = (io, socket) => {
                 return;
             }
 
+            if (action.type === 'resolveIntervene') {
+                await state.resolveIntervene(io, socket, action.payload);
+                return;
+            }
+
             if (action.type === 'resolveReaction') {
                 await state.handleResolveReaction(io, socket, action.payload);
                 return;

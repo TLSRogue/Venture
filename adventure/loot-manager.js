@@ -1,6 +1,7 @@
 
 import { players, parties } from '../serverState.js';
 import { addItemToInventoryServer } from '../utilsHelpers.js';
+import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 import { LOOT_ROLL_DURATION_MS } from '../constants.js';
 
 export function determineLootWinnerAndDistribute(io, partyId) {
@@ -48,6 +49,9 @@ export function determineLootWinnerAndDistribute(io, partyId) {
             io.to(member.id).emit('party:lootRollEnded');
         }
     });
+
+    // Broadcast the log updates to all party members
+    broadcastAdventureUpdate(io, party);
 
     // Process next item in the queue if any
     processNextLootRoll(io, party);
