@@ -73,13 +73,11 @@ export function renderOnlinePlayers(onlinePlayers) {
         return;
     }
 
-    const canInvite = gameState.partyId !== null;
-
     const playersList = otherPlayers.map(player => `
         <li class="party-member-list-item" style="display: flex; justify-content: space-between; align-items: center;">
             <span>${player.name}</span>
             <div style="display: flex; gap: 5px;">
-                ${canInvite ? `<button class="btn btn-primary btn-sm" data-action="invite" data-id="${player.name}">Invite</button>` : ''}
+                <button class="btn btn-primary btn-sm" data-action="invite" data-id="${player.name}">Invite</button>
                 <button class="btn btn-success btn-sm" data-action="trade" data-id="${player.name}">Trade</button>
                 <button class="btn btn-danger btn-sm" data-action="duel" data-id="${player.name}">Duel</button>
             </div>
@@ -213,7 +211,6 @@ export function showNPCDialogueFromServer({ npcName, node, cardIndex }) {
 
     let modalContent = `<h2>${npcName}</h2><p>${node.text}</p>`;
     let buttons = '<div class="action-buttons" id="npc-dialogue-options" style="flex-direction: column; gap: 10px;">';
-    const isPartyLeader = gameState.isPartyLeader;
 
     node.options.forEach(option => {
         const payload = {
@@ -228,14 +225,11 @@ export function showNPCDialogueFromServer({ npcName, node, cardIndex }) {
             action = `data-action="hide"`;
         }
 
-        buttons += `<button class="btn btn-primary" ${action} ${!isPartyLeader ? 'disabled' : ''}>${option.text}</button>`;
+        // Any party member can now interact with dialogue (no leader-only check)
+        buttons += `<button class="btn btn-primary" ${action}>${option.text}</button>`;
     });
 
     buttons += `<button class="btn" data-action="hide">Leave Conversation</button>`;
-
-    if (!isPartyLeader) {
-        buttons += `<p style="margin-top: 15px; font-style: italic; opacity: 0.7;">Only the party leader can make dialogue choices.</p>`;
-    }
 
     buttons += '</div>';
     modalContent += buttons;

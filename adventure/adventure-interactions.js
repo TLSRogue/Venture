@@ -242,9 +242,7 @@ export async function processInteractWithCard(io, party, player, payload) {
         return;
     }
 
-    else if (card.type === 'npc' && player.character.characterName !== party.leaderId) {
-        return;
-    }
+    // NPCs are now interactable by any party member (removed leader-only check)
 
     else if (actingPlayerState.actionPoints >= 1) {
         actingPlayerState.actionPoints--;
@@ -298,7 +296,7 @@ export async function processInteractWithCard(io, party, player, payload) {
 }
 
 export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNodeKey = 'start') {
-    const leaderCharacter = player.character;
+    const interactingCharacter = player.character;
 
     // Fallback for NPCs without dialogue defined
     if (!npc.dialogue) {
@@ -311,10 +309,8 @@ export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNode
             node: genericDialogue,
             cardIndex: cardIndex
         };
-        party.members.forEach(memberName => {
-            const member = players[memberName];
-            if (member && member.id) io.to(member.id).emit('party:showDialogue', payload);
-        });
+        // Only show dialogue to the player who initiated the conversation
+        io.to(player.id).emit('party:showDialogue', payload);
         return;
     }
 
@@ -332,10 +328,8 @@ export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNode
                 node: genericDialogue,
                 cardIndex: cardIndex
             };
-            party.members.forEach(memberName => {
-                const member = players[memberName];
-                if (member && member.id) io.to(member.id).emit('party:showDialogue', payload);
-            });
+            // Only show dialogue to the player who initiated
+            io.to(player.id).emit('party:showDialogue', payload);
             return;
         }
 
@@ -344,7 +338,7 @@ export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNode
         if (currentNode.options) {
             const filteredOptions = currentNode.options.filter(opt => {
                 if (opt.requiresItem) {
-                    return leaderCharacter.inventory.some(item => item && item.name === opt.requiresItem);
+                    return interactingCharacter.inventory.some(item => item && item.name === opt.requiresItem);
                 }
                 return true;
             });
@@ -356,10 +350,8 @@ export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNode
             node: filteredNode,
             cardIndex: cardIndex
         };
-        party.members.forEach(memberName => {
-            const member = players[memberName];
-            if (member && member.id) io.to(member.id).emit('party:showDialogue', payload);
-        });
+        // Only show dialogue to the player who initiated
+        io.to(player.id).emit('party:showDialogue', payload);
         return;
     }
 
@@ -367,15 +359,15 @@ export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNode
     if (dialogueNodeKey === 'start') {
         npc.quests.forEach(questDef => {
             if (questDef.turnInItems) {
-                const playerQuest = leaderCharacter.quests.find(q => q.details.id === questDef.id);
+                const playerQuest = interactingCharacter.quests.find(q => q.details.id === questDef.id);
                 if (playerQuest && playerQuest.status === 'active') {
                     let hasAllItems = true;
                     for (const itemName in questDef.turnInItems) {
                         const requiredAmount = questDef.turnInItems[itemName];
-                        const inventoryAmount = leaderCharacter.inventory
+                        const inventoryAmount = interactingCharacter.inventory
                             .filter(i => i && i.name === itemName)
                             .reduce((total, item) => total + (item.quantity || 1), 0);
-                        const bankAmount = leaderCharacter.bank
+                        const bankAmount = interactingCharacter.bank
                             .filter(i => i && i.name === itemName)
                             .reduce((total, item) => total + (item.quantity || 1), 0);
                         const currentAmount = inventoryAmount + bankAmount;
@@ -393,7 +385,7 @@ export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNode
 
         let nextQuestDef = null;
         for (const quest of npc.quests) {
-            const playerQuest = leaderCharacter.quests.find(q => q.details.id === quest.id);
+            const playerQuest = interactingCharacter.quests.find(q => q.details.id === quest.id);
             if (!playerQuest || playerQuest.status !== 'completed') {
                 nextQuestDef = quest;
                 break;
@@ -401,7 +393,7 @@ export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNode
         }
 
         if (nextQuestDef) {
-            const playerQuest = leaderCharacter.quests.find(q => q.details.id === nextQuestDef.id);
+            const playerQuest = interactingCharacter.quests.find(q => q.details.id === nextQuestDef.id);
             if (!playerQuest) {
                 currentDialogueNodeKey = `${nextQuestDef.id}_start`;
             } else if (playerQuest.status === 'readyToTurnIn') {
@@ -421,7 +413,7 @@ export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNode
     if (currentNode && currentNode.options) {
         const filteredOptions = currentNode.options.filter(opt => {
             if (opt.requiresItem) {
-                return leaderCharacter.inventory.some(item => item && item.name === opt.requiresItem);
+                return interactingCharacter.inventory.some(item => item && item.name === opt.requiresItem);
             }
             return true;
         });
@@ -434,10 +426,8 @@ export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNode
         cardIndex: cardIndex
     };
 
-    party.members.forEach(memberName => {
-        const member = players[memberName];
-        if (member && member.id) io.to(member.id).emit('party:showDialogue', payload);
-    });
+    // Only show dialogue to the player who initiated
+    io.to(player.id).emit('party:showDialogue', payload);
 }
 
 export function processDialogueChoice(io, player, party, payload) {
@@ -448,14 +438,12 @@ export function processDialogueChoice(io, player, party, payload) {
     if (choice.questId) {
         const questDetails = npc.quests.find(q => q.id === choice.questId);
         if (questDetails) {
-            party.members.forEach(memberName => {
-                const member = players[memberName]?.character;
-                if (member && !member.quests.some(q => q.details.id === choice.questId)) {
-                    member.quests.push({ details: questDetails, status: 'active', progress: 0 });
-                    if (players[memberName].id) io.to(players[memberName].id).emit('characterUpdate', member);
-                }
-            });
-            party.sharedState.log.push({ message: `Party accepted Quest: ${questDetails.title}`, type: 'success' });
+            // Only add quest to the player who accepted
+            if (!character.quests.some(q => q.details.id === choice.questId)) {
+                character.quests.push({ details: questDetails, status: 'active', progress: 0 });
+                io.to(player.id).emit('characterUpdate', character);
+            }
+            party.sharedState.log.push({ message: `${character.characterName} accepted Quest: ${questDetails.title}`, type: 'success' });
         }
     }
 
@@ -466,76 +454,63 @@ export function processDialogueChoice(io, player, party, payload) {
                 consumeMaterials(character, questToComplete.details.turnInItems);
             }
 
-            party.members.forEach(memberName => {
-                const memberPlayer = players[memberName];
-                const member = memberPlayer?.character;
-                if (member) {
-                    const memberQuest = member.quests.find(q => q.details.id === choice.questComplete);
-                    if (memberQuest) {
-                        const reward = memberQuest.details.reward;
-                        memberQuest.status = 'completed';
+            // Only complete quest for the player who turned it in
+            const reward = questToComplete.details.reward;
+            questToComplete.status = 'completed';
 
-                        if (reward.gold) member.gold += reward.gold;
-                        if (reward.qp) member.questPoints += reward.qp;
+            if (reward.gold) character.gold += reward.gold;
+            if (reward.qp) character.questPoints += reward.qp;
 
-                        if (reward.titleReward && !member.unlockedTitles.includes(reward.titleReward)) {
-                            member.unlockedTitles.push(reward.titleReward);
-                        }
+            if (reward.titleReward && !character.unlockedTitles.includes(reward.titleReward)) {
+                character.unlockedTitles.push(reward.titleReward);
+            }
 
-                        if (reward.spellReward) {
-                            const spellData = gameData.allSpells.find(s => s.name === reward.spellReward.name);
-                            const alreadyHasSpell = member.spellbook.some(s => s.name === spellData.name) || member.equippedSpells.some(s => s.name === spellData.name);
-                            if (spellData && !alreadyHasSpell) {
-                                member.spellbook.push({ ...spellData });
-                            }
-                        }
-
-                        if (reward.recipeReward) {
-                            const recipes = Array.isArray(reward.recipeReward) ? reward.recipeReward : [reward.recipeReward];
-                            recipes.forEach(recipe => {
-                                if (!member.knownRecipes.includes(recipe)) {
-                                    member.knownRecipes.push(recipe);
-                                }
-                            });
-                        }
-
-                        if (reward.itemReward) {
-                            const items = Array.isArray(reward.itemReward) ? reward.itemReward : [reward.itemReward];
-                            items.forEach(rewardItem => {
-                                const itemData = gameData.allItems.find(i => i.name === rewardItem.name);
-                                if (itemData) {
-                                    addItemToInventoryServer(member, itemData, rewardItem.quantity || 1);
-                                }
-                            });
-                        }
-
-                        if (memberPlayer.id) io.to(memberPlayer.id).emit('characterUpdate', memberPlayer.character);
-                    }
+            if (reward.spellReward) {
+                const spellData = gameData.allSpells.find(s => s.name === reward.spellReward.name);
+                const alreadyHasSpell = character.spellbook.some(s => s.name === spellData.name) || character.equippedSpells.some(s => s.name === spellData.name);
+                if (spellData && !alreadyHasSpell) {
+                    character.spellbook.push({ ...spellData });
                 }
-            });
-            party.sharedState.log.push({ message: `Party completed Quest: ${questToComplete.details.title}`, type: 'success' });
+            }
+
+            if (reward.recipeReward) {
+                const recipes = Array.isArray(reward.recipeReward) ? reward.recipeReward : [reward.recipeReward];
+                recipes.forEach(recipe => {
+                    if (!character.knownRecipes.includes(recipe)) {
+                        character.knownRecipes.push(recipe);
+                    }
+                });
+            }
+
+            if (reward.itemReward) {
+                const items = Array.isArray(reward.itemReward) ? reward.itemReward : [reward.itemReward];
+                items.forEach(rewardItem => {
+                    const itemData = gameData.allItems.find(i => i.name === rewardItem.name);
+                    if (itemData) {
+                        addItemToInventoryServer(character, itemData, rewardItem.quantity || 1);
+                    }
+                });
+            }
+
+            io.to(player.id).emit('characterUpdate', character);
+            party.sharedState.log.push({ message: `${character.characterName} completed Quest: ${questToComplete.details.title}`, type: 'success' });
         }
     }
 
     // Handle teachRecipe - NPC teaches a recipe to the player
     if (choice.teachRecipe) {
         const recipeName = choice.teachRecipe;
-        party.members.forEach(memberName => {
-            const memberPlayer = players[memberName];
-            const member = memberPlayer?.character;
-            if (member && !member.knownRecipes.includes(recipeName)) {
-                member.knownRecipes.push(recipeName);
-                if (memberPlayer.id) io.to(memberPlayer.id).emit('characterUpdate', member);
-            }
-        });
-        party.sharedState.log.push({ message: `${npc.name} taught the party how to craft: ${recipeName}!`, type: 'success' });
+        // Only teach recipe to the player who initiated the dialogue
+        if (!character.knownRecipes.includes(recipeName)) {
+            character.knownRecipes.push(recipeName);
+            io.to(player.id).emit('characterUpdate', character);
+        }
+        party.sharedState.log.push({ message: `${npc.name} taught ${character.characterName} how to craft: ${recipeName}!`, type: 'success' });
     }
 
     if (choice.next === 'farewell') {
-        party.members.forEach(memberName => {
-            const member = players[memberName];
-            if (member && member.id) io.to(member.id).emit('party:hideDialogue')
-        });
+        // Only hide dialogue for the interacting player
+        io.to(player.id).emit('party:hideDialogue');
     } else {
         startNPCDialogue(io, player, party, npc, cardIndex, choice.next);
     }

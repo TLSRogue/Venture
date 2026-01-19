@@ -281,11 +281,20 @@ export function sendPartyInvite(io, socket, targetCharacterName) {
     const inviterName = socket.characterName;
     const inviter = players[inviterName];
     const target = players[targetCharacterName];
-    const partyId = inviter?.character?.partyId;
+    let partyId = inviter?.character?.partyId;
 
-    if (!inviter || !inviter.character || !partyId) {
-        return socket.emit('partyError', 'You must be in a party to invite someone.');
+    if (!inviter || !inviter.character) {
+        return socket.emit('partyError', 'Unable to send invite.');
     }
+
+    // Auto-create party if inviter doesn't have one
+    if (!partyId) {
+        partyId = createParty(io, socket);
+        if (!partyId) {
+            return socket.emit('partyError', 'Failed to create party.');
+        }
+    }
+
     if (!target || !target.id) {
         return socket.emit('partyError', 'The player you are trying to invite is not online.');
     }

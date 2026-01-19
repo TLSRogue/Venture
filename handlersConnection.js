@@ -205,6 +205,8 @@ export const registerConnectionHandlers = (io, socket) => {
                 // Clear stale partyId if the party no longer exists
                 console.log(`Clearing stale partyId ${partyId} for character ${name}.`);
                 characterToUpdate.partyId = null;
+                // Sync the corrected state to client so localStorage is updated
+                socket.emit('characterUpdate', characterToUpdate);
             }
         }
 
