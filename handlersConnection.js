@@ -22,7 +22,7 @@ function refreshPlayerSpells(character, characterName) {
     // List of spells that may need updates
     // Include all magic spells that have isMagic: true, so Silence can block them correctly
     const spellsToRefresh = [
-        'Aim True', 'Split Shot', 'Evasive Shot', 'Dagger Throw', 'Ambush', 'Magic Barrier',
+        'Aim True', 'Split Shot', 'Evasive Shot', 'Dagger Throw', 'Ambush', 'Magic Barrier', 'Slash',
         // Magic spells (isMagic: true) - needed for Silence to work
         'Fireball', 'Flash Heal', 'Holy Shock', 'Flame Strike', 'Stealth', 'Silence', 'Revive', 'Cone of Cold', 'Entangling Roots', 'Cleanse'
     ];
