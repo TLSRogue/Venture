@@ -720,7 +720,7 @@ export function renderPlayerActionBars() {
                 <div class="cooldown-overlay" style="height: ${cooldown > 0 ? '100' : '0'}%">${cooldown}</div>
             `;
 
-            if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile' || spell.type === 'revive' || spell.type === 'debuff') {
+            if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile' || spell.type === 'revive' || spell.type === 'debuff' || spell.type === 'cleanse') {
                 slotEl.dataset.action = 'select';
                 slotEl.dataset.actionData = JSON.stringify({ type: 'spell', data: spell, index: i });
             } else if (spell.type === 'heal' || spell.type === 'buff' || spell.type === 'utility') {
@@ -766,8 +766,8 @@ export function updateActionUI() {
                 enemyCard.classList.add('targetable');
             });
         }
-        // Heal/buff/versatile spells target allies (versatile can do both!)
-        if (action.type === 'heal' || action.type === 'buff' || action.type === 'versatile') {
+        // Heal/buff/versatile/cleanse spells target allies (versatile can do both!)
+        if (action.type === 'heal' || action.type === 'buff' || action.type === 'versatile' || action.type === 'cleanse') {
             document.querySelectorAll('#party-cards-container .card.player:not(.dead), #zone-cards .card.player:not(.dead)').forEach(playerCard => {
                 playerCard.classList.add('targetable');
             });
