@@ -291,6 +291,23 @@ export const allSpells = [
         rarity: "rare",
     },
     {
+        name: "Whirlwind",
+        scrollCost: "Physical Spell Scroll",
+        cost: 1,
+        cooldown: 5,
+        school: "Physical",
+        range: "melee",
+        description: "Spin to win. Requires 2H Weapon. 5CD | D20+Str (10+) | Deal Weap. Dmg to ALL enemies. Consumes ALL AP to repeat attack per AP.",
+        type: "attack",
+        stat: "strength",
+        hit: 10,
+        aoeTargeting: 'all', // Hits all enemies
+        damageType: 'Physical',
+        requires: { weaponType: ["Two-Hand Mace", "Two-Hand Sword", "Two-Hand Axe"] },
+        icon: "🌪️",
+        rarity: "epic",
+    },
+    {
         name: "Crushing Blow",
         scrollCost: "Physical Spell Scroll",
         cost: 1,

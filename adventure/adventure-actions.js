@@ -221,12 +221,29 @@ export async function processWeaponAttack(io, party, player, payload) {
             return;
         }
 
+        // Handle On-Hit Threshold Effects (Bonus Damage, Special Debuffs)
+        if (weapon.onHit && attackResult.total >= (weapon.onHit.threshold || 20)) {
+            if (weapon.onHit.damageBonus) {
+                dmgResult.finalDamage += weapon.onHit.damageBonus;
+                logMessage += ` (Bonus Damage Triggered!)`;
+            }
+        }
+
         // Apply Damage
         target.applyDamage(dmgResult.finalDamage);
         logMessage += ` Deals ${dmgResult.finalDamage} ${dmgResult.damageType} damage! [id:${target.id}]`;
 
         // Apply Debuffs (Unified)
-        const debuff = getWeaponDebuff(weapon, attackResult.isCriticalHit);
+        let debuff = getWeaponDebuff(weapon, attackResult.isCriticalHit);
+
+        // Check for Threshold Debuffs (e.g. 15+ Daze/Bleed)
+        if (weapon.onHit && weapon.onHit.debuff && attackResult.total >= (weapon.onHit.threshold || 20)) {
+            debuff = weapon.onHit.debuff; // Prioritize threshold debuff or stack? Usually override or stack. 
+            // For these weapons, it's the main effect.
+            // If critical hit usually applies something else, we might need merging.
+            // But valid assumption: specific threshold effect takes precedence or is the only one.
+        }
+
         if (debuff) {
             target.applyDebuff(debuff);
             logMessage += attackResult.isCriticalHit ? ` CRIT! Applies ${debuff.type}!` : ` Applies ${debuff.type}!`;
@@ -666,131 +683,141 @@ export async function processCastSpell(io, party, player, payload) {
         // Deduplicate targets
         const uniqueTargets = [...new Map(targets.map(t => [t.id, t])).values()];
 
-        // --- UNIFIED: Calculate and apply damage to each target ---
-        uniqueTargets.forEach(target => {
-            if (target.state.health <= 0) return;
+        // Whirlwind Logic: Determine number of attacks
+        let numAttacks = 1;
+        if (spell.name === 'Whirlwind') {
+            numAttacks += actingPlayerState.actionPoints;
+            actingPlayerState.actionPoints = 0; // Consume all AP
+            log.push({ message: `${character.characterName} spins into a Whirlwind! ${numAttacks} total attacks!`, type: 'info' });
+        }
 
-            // Darkness/Light Source Check
-            if (target.state && target.state.darknessShrouded) {
-                const hasLight = (actingPlayerState.buffs || []).some(b => b.type === 'Light Source');
-                if (!hasLight) {
-                    log.push({ message: `${target.name} is hidden in darkness! Spell missed!`, type: 'info' });
+        // --- UNIFIED: Calculate and apply damage to each target ---
+        for (let i = 0; i < numAttacks; i++) {
+            uniqueTargets.forEach(target => {
+                if (target.state.health <= 0) return;
+
+                // Darkness/Light Source Check
+                if (target.state && target.state.darknessShrouded) {
+                    const hasLight = (actingPlayerState.buffs || []).some(b => b.type === 'Light Source');
+                    if (!hasLight) {
+                        log.push({ message: `${target.name} is hidden in darkness! Spell missed!`, type: 'info' });
+                        return;
+                    }
+                }
+
+                let baseDamage = spell.damage || 0;
+                let isHeal = false;
+
+                // Versatile Logic
+                if (spell.type === 'versatile') {
+                    // Use 1 as minimum for versatile spells (e.g., Holy Shock) in case baseEffect is missing
+                    let effectVal = spell.baseEffect || 1;
+
+                    // Holy Shock Scaling
+                    if (spell.school === 'Holy') {
+                        effectVal += (bonuses.holyPower || 0);
+                    } else {
+                        // Fallback for other versatile spells (if any)
+                        effectVal += attackResult.modifiers.statValue;
+                    }
+
+                    // Check if target is friendly
+                    const isFriendly = (isPvP && target.team === actingPlayerState.team) || (!isPvP && target.isPlayer);
+
+                    if (isFriendly) {
+                        // Heal Friendly
+                        target.heal(effectVal);
+                        log.push({ message: `Healed ${target.name} for ${effectVal} HP.`, type: 'heal' });
+                        isHeal = true;
+                    } else {
+                        baseDamage = effectVal;
+                    }
+                }
+
+                // Special spell damage calculations - use unified handler
+                if (!isHeal) {
+                    const specialResult = getSpecialSpellDamage(spell, character, actingPlayerState, bonuses, target);
+
+                    if (specialResult !== null && typeof specialResult === 'object') {
+                        baseDamage = specialResult.damage;
+                        // Warning: This modifies the spell object in place, which is how Ambush was handled.
+                        // Ideally we should use a temporary debuff variable, but downstream logic uses spell.debuff
+                        if (specialResult.debuff) spell.debuff = { ...specialResult.debuff };
+                        if (specialResult.logMessage) log.push({ message: specialResult.logMessage, type: 'reaction' });
+                    } else if (specialResult !== null) {
+                        baseDamage = specialResult;
+                    }
+
+                    // Ambush applies bleed debuff if not already defined
+                    if (spell.name === 'Ambush' && !spell.debuff) {
+                        spell.debuff = { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' };
+                    }
+                }
+
+                // Apply resistance
+                const resistance = target.getResistance(spell.damageType);
+                const damageToDeal = baseDamage > 0 ? Math.max(1, baseDamage - resistance) : 0;
+
+                // --- FLYING CHECK (melee spells) ---
+                if (spell.range === 'melee' && (target.state.buffs || []).some(b => b.type === 'Flying')) {
+                    log.push({ message: `${target.name} is flying! Melee attacks cannot reach them!`, type: 'info' });
                     return;
                 }
-            }
 
-            let baseDamage = spell.damage || 0;
-            let isHeal = false;
-
-            // Versatile Logic
-            if (spell.type === 'versatile') {
-                // Use 1 as minimum for versatile spells (e.g., Holy Shock) in case baseEffect is missing
-                let effectVal = spell.baseEffect || 1;
-
-                // Holy Shock Scaling
-                if (spell.school === 'Holy') {
-                    effectVal += (bonuses.holyPower || 0);
-                } else {
-                    // Fallback for other versatile spells (if any)
-                    effectVal += attackResult.modifiers.statValue;
+                // --- VEXOR DODGE ---
+                if (checkVexorDodge(target, sharedState, log)) {
+                    return;
                 }
 
-                // Check if target is friendly
-                const isFriendly = (isPvP && target.team === actingPlayerState.team) || (!isPvP && target.isPlayer);
-
-                if (isFriendly) {
-                    // Heal Friendly
-                    target.heal(effectVal);
-                    log.push({ message: `Healed ${target.name} for ${effectVal} HP.`, type: 'heal' });
-                    isHeal = true;
-                } else {
-                    baseDamage = effectVal;
-                }
-            }
-
-            // Special spell damage calculations - use unified handler
-            if (!isHeal) {
-                const specialResult = getSpecialSpellDamage(spell, character, actingPlayerState, bonuses, target);
-
-                if (specialResult !== null && typeof specialResult === 'object') {
-                    baseDamage = specialResult.damage;
-                    // Warning: This modifies the spell object in place, which is how Ambush was handled.
-                    // Ideally we should use a temporary debuff variable, but downstream logic uses spell.debuff
-                    if (specialResult.debuff) spell.debuff = { ...specialResult.debuff };
-                    if (specialResult.logMessage) log.push({ message: specialResult.logMessage, type: 'reaction' });
-                } else if (specialResult !== null) {
-                    baseDamage = specialResult;
+                let hitDescription = '';
+                if (baseDamage > 0) {
+                    applyDamage(target.state, damageToDeal);
+                    hitDescription = `Dealt ${damageToDeal} ${spell.damageType || 'Magic'} damage to ${target.name} [id:${target.id}].`;
+                    if (damageToDeal < baseDamage) hitDescription += ` (${baseDamage - damageToDeal} resisted)`;
                 }
 
-                // Ambush applies bleed debuff if not already defined
-                if (spell.name === 'Ambush' && !spell.debuff) {
-                    spell.debuff = { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' };
+                // Apply debuffs
+                if (spell.debuff) {
+                    if (!target.state.debuffs) target.state.debuffs = [];
+                    const existingIndex = target.state.debuffs.findIndex(d => d.type.toLowerCase() === spell.debuff.type.toLowerCase());
+                    if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
+                    let debuffToApply = { ...spell.debuff };
+                    // DoT damage scales with power bonuses, not stats
+                    if (spell.debuff.damageType) {
+                        const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+                        const powerKey = spell.debuff.damageType.toLowerCase() + 'Power';
+                        const powerBonus = bonuses[powerKey] || 0;
+                        // Use baseDamage for scaling, fallback to existing damage value
+                        const baseDmg = spell.debuff.baseDamage ?? spell.debuff.damage ?? 0;
+                        debuffToApply.damage = baseDmg + powerBonus;
+                    }
+                    target.state.debuffs.push(debuffToApply);
+                    hitDescription += ` ${target.name} is now ${spell.debuff.type}!`;
                 }
-            }
 
-            // Apply resistance
-            const resistance = target.getResistance(spell.damageType);
-            const damageToDeal = baseDamage > 0 ? Math.max(1, baseDamage - resistance) : 0;
-
-            // --- FLYING CHECK (melee spells) ---
-            if (spell.range === 'melee' && (target.state.buffs || []).some(b => b.type === 'Flying')) {
-                log.push({ message: `${target.name} is flying! Melee attacks cannot reach them!`, type: 'info' });
-                return;
-            }
-
-            // --- VEXOR DODGE ---
-            if (checkVexorDodge(target, sharedState, log)) {
-                return;
-            }
-
-            let hitDescription = '';
-            if (baseDamage > 0) {
-                applyDamage(target.state, damageToDeal);
-                hitDescription = `Dealt ${damageToDeal} ${spell.damageType || 'Magic'} damage to ${target.name} [id:${target.id}].`;
-                if (damageToDeal < baseDamage) hitDescription += ` (${baseDamage - damageToDeal} resisted)`;
-            }
-
-            // Apply debuffs
-            if (spell.debuff) {
-                if (!target.state.debuffs) target.state.debuffs = [];
-                const existingIndex = target.state.debuffs.findIndex(d => d.type.toLowerCase() === spell.debuff.type.toLowerCase());
-                if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
-                let debuffToApply = { ...spell.debuff };
-                // DoT damage scales with power bonuses, not stats
-                if (spell.debuff.damageType) {
-                    const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
-                    const powerKey = spell.debuff.damageType.toLowerCase() + 'Power';
-                    const powerBonus = bonuses[powerKey] || 0;
-                    // Use baseDamage for scaling, fallback to existing damage value
-                    const baseDmg = spell.debuff.baseDamage ?? spell.debuff.damage ?? 0;
-                    debuffToApply.damage = baseDmg + powerBonus;
+                if (spell.onHit?.debuff && attackResult.total >= (spell.onHit.threshold || spell.hit)) { // Fixed 'total' and 'hitTarget' reference
+                    if (!target.state.debuffs) target.state.debuffs = [];
+                    const existingIndex = target.state.debuffs.findIndex(d => d.type === spell.onHit.debuff.type);
+                    if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
+                    target.state.debuffs.push({ ...spell.onHit.debuff });
+                    hitDescription += ` ${target.name} is now ${spell.onHit.debuff.type}!`;
                 }
-                target.state.debuffs.push(debuffToApply);
-                hitDescription += ` ${target.name} is now ${spell.debuff.type}!`;
-            }
 
-            if (spell.onHit?.debuff && attackResult.total >= (spell.onHit.threshold || spell.hit)) { // Fixed 'total' and 'hitTarget' reference
-                if (!target.state.debuffs) target.state.debuffs = [];
-                const existingIndex = target.state.debuffs.findIndex(d => d.type === spell.onHit.debuff.type);
-                if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
-                target.state.debuffs.push({ ...spell.onHit.debuff });
-                hitDescription += ` ${target.name} is now ${spell.onHit.debuff.type}!`;
-            }
+                log.push({ message: hitDescription.trim(), type: 'damage' });
 
-            log.push({ message: hitDescription.trim(), type: 'damage' });
+                // Vampire Phase Transition (spawn Vampire's Assistant at 60HP)
+                checkVampirePhaseTransition(target, sharedState, gameData, log);
 
-            // Vampire Phase Transition (spawn Vampire's Assistant at 60HP)
-            checkVampirePhaseTransition(target, sharedState, gameData, log);
-
-            // Check for death
-            if (target.state.health <= 0) {
-                if (target.isPvP) {
-                    defeatEnemyInParty(io, party, { playerId: target.id }, null);
-                } else {
-                    defeatEnemyInParty(io, party, target.state, target.cardIndex);
+                // Check for death
+                if (target.state.health <= 0) {
+                    if (target.isPvP) {
+                        defeatEnemyInParty(io, party, { playerId: target.id }, null);
+                    } else {
+                        defeatEnemyInParty(io, party, target.state, target.cardIndex);
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     broadcastAdventureUpdate(io, party);
