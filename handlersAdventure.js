@@ -10,6 +10,7 @@ import * as actions from './adventure/adventure-actions.js';
 import * as interactions from './adventure/adventure-interactions.js';
 import * as state from './adventure/adventure-state.js';
 import * as PartyManager from './party/party-manager.js';
+import * as LootManager from './adventure/loot-manager.js';
 
 export const registerAdventureHandlers = (io, socket) => {
     socket.on('party:enterZone', (zoneName) => {
@@ -255,7 +256,7 @@ export const registerAdventureHandlers = (io, socket) => {
 
                 const livingPlayers = sharedState.partyMemberStates.filter(p => !p.isDead).length;
                 if (rollData.rolls.length >= livingPlayers) {
-                    state.determineLootWinnerAndDistribute(io, partyId);
+                    LootManager.determineLootWinnerAndDistribute(io, partyId);
                 }
 
                 broadcastAdventureUpdate(io, partyId);

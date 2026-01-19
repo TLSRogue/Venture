@@ -86,12 +86,14 @@ export const SpellHandlers = {
  * 
  * @param {object} spell - The spell being cast
  * @param {object} character - The caster's character data
- * @param {object} actingPlayerState - The caster's combat state
- * @param {object} bonuses - Pre-calculated stat bonuses (optional, will be computed if not provided)
- * @returns {number|null} The calculated base damage, or null for default spell.damage behavior
+ * @param {object} actingPlayerState - The state of the player casting the spell.
+ * @param {object} bonuses - Calculated bonuses for the player.
+ * @param {object} target - The target of the spell (optional, for conditional damage).
+ * @returns {number|object|null} - The calculated special damage, or null if no special handling.
+ *                                 Can return object { damage, debuff, logMessage } for complex effects.
  */
-export function getSpecialSpellDamage(spell, character, actingPlayerState, bonuses = null) {
-    // Compute bonuses if not provided
+export function getSpecialSpellDamage(spell, character, actingPlayerState, bonuses, target = null) {
+    if (!spell) return null;   // Compute bonuses if not provided
     if (!bonuses) {
         bonuses = getBonusStatsForPlayer(character, actingPlayerState);
     }
@@ -169,6 +171,35 @@ export function getSpecialSpellDamage(spell, character, actingPlayerState, bonus
         }
 
         return bestDaggerDamage + (spell.damageBonus || 0);
+    }
+
+    // --- Backstab: Dagger Damage (Double if Stealthed/Target Bleeding) ---
+    if (spell.name === 'Backstab') {
+        let daggerDamage = 0;
+        ['mainHand', 'offHand'].forEach(hand => {
+            const weapon = character.equipment[hand];
+            if (weapon?.weaponType === 'Dagger') {
+                daggerDamage += weapon.weaponDamage || 0;
+            }
+        });
+
+        const hasStealthBuff = (actingPlayerState.buffs || []).some(b => b.type.toLowerCase() === 'stealth');
+        let targetBleeding = false;
+
+        // Check target bleed if target provided
+        if (target && target.state) {
+            targetBleeding = (target.state.debuffs || []).some(d => d.type.toLowerCase() === 'bleed');
+        }
+
+        if (hasStealthBuff || targetBleeding) {
+            return {
+                damage: daggerDamage * 2,
+                debuff: { type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' },
+                logMessage: `Backstab bonus! ${hasStealthBuff ? 'From the shadows!' : 'Targeting the wound!'}`
+            };
+        }
+
+        return daggerDamage;
     }
 
     // No special handling - return null to use default spell.damage

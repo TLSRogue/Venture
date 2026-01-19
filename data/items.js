@@ -752,7 +752,7 @@ export const allItems = [
         type: "accessory",
         slot: "accessory",
         bonus: { agility: 2, maxHealth: 2 },
-        activatedAbility: { name: "Cloak of Shadows", cost: 1, cooldown: 3, buff: { type: 'Stealth', duration: 1 }, bonusThreat: -4, description: "1AP 3CD: Gain Stealth for 1 turn and lose 4 Threat." },
+        activatedAbility: { name: "Cloak of Shadows", cost: 1, cooldown: 3, buff: { type: 'Stealth', duration: 2 }, bonusThreat: -4, description: "1AP 3CD: Gain Stealth for 2 turns and lose 4 Threat." },
         description: "A tattered cloak that bends the shadows around its wearer. +2 Agility, +2 Max HP. Ability: Gain Stealth.",
         tier: 3,
         icon: "🧥",

@@ -448,17 +448,26 @@ export async function processCastSpell(io, party, player, payload) {
 
     // Check PvP Reaction for Attack Spells
     if (isPvP && target && (spell.type === 'attack' || (spell.type === 'versatile' && target.team !== actingPlayerState.team))) {
-        let specialBase = getSpecialSpellDamage(spell, character, actingPlayerState, bonuses);
-        let baseDmg = specialBase !== null ? specialBase : (spell.damage || spell.baseEffect || 1);
+        // UNIFIED SPECIAL DAMAGE & EFFECTS (Backstab, etc.)
+        let specialResult = getSpecialSpellDamage(spell, character, actingPlayerState, bonuses, target);
 
+        let baseDmg = 0;
         let debuffToUse = spell.debuff ? { ...spell.debuff } : null;
+
+        if (specialResult !== null && typeof specialResult === 'object') {
+            baseDmg = specialResult.damage;
+            if (specialResult.debuff) debuffToUse = { ...specialResult.debuff };
+            if (specialResult.logMessage) log.push({ message: specialResult.logMessage, type: 'reaction' });
+        } else {
+            baseDmg = specialResult !== null ? specialResult : (spell.damage || spell.baseEffect || 1);
+        }
+
         // UNIFIED: Debuff damage scales with power bonuses based on damage type (same as PVE)
         if (debuffToUse && debuffToUse.damageType) {
-            const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
             const powerKey = debuffToUse.damageType.toLowerCase() + 'Power';
             const powerBonus = bonuses[powerKey] || 0;
-            const baseDmg = debuffToUse.baseDamage ?? debuffToUse.damage ?? 0;
-            debuffToUse.damage = baseDmg + powerBonus;
+            const debuffBaseDmg = debuffToUse.baseDamage ?? debuffToUse.damage ?? 0;
+            debuffToUse.damage = debuffBaseDmg + powerBonus;
         }
 
         const actionDetails = {
@@ -646,35 +655,21 @@ export async function processCastSpell(io, party, player, payload) {
 
             // Special spell damage calculations - use unified handler
             if (!isHeal) {
-                const specialDamage = getSpecialSpellDamage(spell, character, actingPlayerState, bonuses);
-                if (specialDamage !== null) {
-                    baseDamage = specialDamage;
+                const specialResult = getSpecialSpellDamage(spell, character, actingPlayerState, bonuses, target);
+
+                if (specialResult !== null && typeof specialResult === 'object') {
+                    baseDamage = specialResult.damage;
+                    // Warning: This modifies the spell object in place, which is how Ambush was handled.
+                    // Ideally we should use a temporary debuff variable, but downstream logic uses spell.debuff
+                    if (specialResult.debuff) spell.debuff = { ...specialResult.debuff };
+                    if (specialResult.logMessage) log.push({ message: specialResult.logMessage, type: 'reaction' });
+                } else if (specialResult !== null) {
+                    baseDamage = specialResult;
                 }
 
                 // Ambush applies bleed debuff if not already defined
                 if (spell.name === 'Ambush' && !spell.debuff) {
                     spell.debuff = { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' };
-                }
-
-                // Backstab - double damage + 3 turn bleed when stealthed or target is bleeding
-                if (spell.name === 'Backstab') {
-                    const hasStealthBuff = (actingPlayerState.buffs || []).some(b => b.type.toLowerCase() === 'stealth');
-                    const targetBleeding = (target.state.debuffs || []).some(d => d.type.toLowerCase() === 'bleed');
-
-                    // Get dagger damage
-                    const mainHand = character.equipment.mainHand;
-                    const offHand = character.equipment.offHand;
-                    let daggerDamage = 0;
-                    if (mainHand?.weaponType === 'Dagger') daggerDamage += mainHand.weaponDamage || 0;
-                    if (offHand?.weaponType === 'Dagger') daggerDamage += offHand.weaponDamage || 0;
-
-                    if (hasStealthBuff || targetBleeding) {
-                        baseDamage = daggerDamage * 2;
-                        spell.debuff = { type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' };
-                        log.push({ message: `Backstab bonus! ${hasStealthBuff ? 'From the shadows!' : 'Targeting the wound!'}`, type: 'reaction' });
-                    } else {
-                        baseDamage = daggerDamage;
-                    }
                 }
             }
 
