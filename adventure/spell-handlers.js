@@ -42,7 +42,7 @@ export const SpellHandlers = {
     'Cleanse': (spell, character, actingPlayerState, log, targetState, bonuses) => {
         if (!targetState) {
             log.push({ message: `${character.characterName} casts ${spell.name}, but there is no valid target!`, type: 'info' });
-            return true;
+            return { success: false };
         }
 
         // Calculate max debuffs to remove: 1 + Holy Power
@@ -53,41 +53,30 @@ export const SpellHandlers = {
         const debuffs = targetState.debuffs || [];
         if (debuffs.length === 0) {
             log.push({ message: `${character.characterName} casts ${spell.name} on ${targetState.name}, but there are no debuffs to remove!`, type: 'info' });
-            return true;
+            return { success: false };
         }
 
-        // Priority order for auto-cleanse: most harmful first
-        const debuffPriority = ['stun', 'silence', 'trap', 'entangling roots', 'poison', 'bleed', 'burn', 'daze'];
-
-        // Sort debuffs by priority (lower index = higher priority)
-        const sortedDebuffs = [...debuffs].sort((a, b) => {
-            const aIndex = debuffPriority.findIndex(p => a.type.toLowerCase().includes(p));
-            const bIndex = debuffPriority.findIndex(p => b.type.toLowerCase().includes(p));
-            const aPrio = aIndex === -1 ? 999 : aIndex;
-            const bPrio = bIndex === -1 ? 999 : bIndex;
-            return aPrio - bPrio;
-        });
-
-        // Remove up to maxDebuffsToRemove debuffs
-        const debuffsToRemove = sortedDebuffs.slice(0, maxDebuffsToRemove);
-        const removedNames = [];
-
-        debuffsToRemove.forEach(debuffToRemove => {
-            const idx = targetState.debuffs.findIndex(d => d === debuffToRemove);
-            if (idx !== -1) {
-                targetState.debuffs.splice(idx, 1);
-                removedNames.push(debuffToRemove.type);
-            }
-        });
-
-        if (removedNames.length > 0) {
+        // If only one debuff or can cleanse all, auto-cleanse
+        if (debuffs.length <= maxDebuffsToRemove) {
+            const removedNames = debuffs.map(d => d.type);
+            targetState.debuffs = [];
             log.push({ message: `${character.characterName} casts ${spell.name} on ${targetState.name}! [id:${targetState.playerId || targetState.id}]`, type: 'heal' });
             log.push({ message: `Cleansed: ${removedNames.join(', ')}!`, type: 'heal' });
-        } else {
-            log.push({ message: `${character.characterName} casts ${spell.name}, but nothing was cleansed!`, type: 'info' });
+            return { success: true };
         }
 
-        return true;
+        // Otherwise, return pending selection data for UI
+        return {
+            success: true,
+            pendingSelection: {
+                casterPlayerId: actingPlayerState.playerId,
+                targetPlayerId: targetState.playerId || targetState.id,
+                targetName: targetState.name,
+                debuffs: debuffs.map((d, i) => ({ index: i, type: d.type, duration: d.duration })),
+                maxSelectable: maxDebuffsToRemove,
+                casterName: character.characterName
+            }
+        };
     }
 };
 

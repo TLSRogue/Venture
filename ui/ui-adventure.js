@@ -831,6 +831,62 @@ export function showReactionModal({ damage, attacker, attackMessage, availableRe
     }
 }
 
+export function showDebuffSelectionModal({ targetName, debuffs, maxSelectable, casterName }) {
+    import('../network.js').then(Network => {
+        const debuffCheckboxes = debuffs.map((debuff, i) => {
+            const def = effectDefinitions[debuff.type.toLowerCase()] || { icon: '❓', description: 'Debuff' };
+            return `
+                <label class="debuff-option" style="display: flex; align-items: center; gap: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; margin-bottom: 5px; cursor: pointer;">
+                    <input type="checkbox" value="${debuff.index}" class="debuff-checkbox" style="width: 18px; height: 18px;">
+                    <span style="font-size: 1.5em;">${def.icon}</span>
+                    <span><strong>${debuff.type}</strong> (${debuff.duration} turns)</span>
+                </label>
+            `;
+        }).join('');
+
+        const modalContent = `
+            <h2>🌟 Cleanse - Select Debuffs</h2>
+            <p>Choose up to <strong>${maxSelectable}</strong> debuff(s) to remove from <strong>${targetName}</strong>:</p>
+            <div id="debuff-selection-list" style="max-height: 250px; overflow-y: auto; margin: 15px 0;">
+                ${debuffCheckboxes}
+            </div>
+            <div class="action-buttons" id="debuff-selection-buttons">
+                <button class="btn btn-primary" id="confirm-cleanse-btn">Cleanse Selected</button>
+                <button class="btn btn-danger" id="cancel-cleanse-btn">Cancel</button>
+            </div>
+        `;
+        showModal(modalContent);
+
+        // Limit selections to maxSelectable
+        const checkboxes = document.querySelectorAll('.debuff-checkbox');
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+                const checked = document.querySelectorAll('.debuff-checkbox:checked');
+                if (checked.length >= maxSelectable) {
+                    checkboxes.forEach(other => {
+                        if (!other.checked) other.disabled = true;
+                    });
+                } else {
+                    checkboxes.forEach(other => other.disabled = false);
+                }
+            });
+        });
+
+        // Confirm button
+        document.getElementById('confirm-cleanse-btn').addEventListener('click', () => {
+            const selected = Array.from(document.querySelectorAll('.debuff-checkbox:checked')).map(cb => parseInt(cb.value, 10));
+            Network.emitPartyAction({ type: 'submitDebuffSelection', payload: { selectedIndices: selected } });
+            hideModal();
+        });
+
+        // Cancel button
+        document.getElementById('cancel-cleanse-btn').addEventListener('click', () => {
+            Network.emitPartyAction({ type: 'submitDebuffSelection', payload: { selectedIndices: [] } });
+            hideModal();
+        });
+    });
+}
+
 export function showBackpack() {
     const modalContentEl = document.createElement('div');
     modalContentEl.id = 'backpack-modal';

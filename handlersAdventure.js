@@ -267,6 +267,57 @@ export const registerAdventureHandlers = (io, socket) => {
                 return;
             }
 
+            if (action.type === 'submitDebuffSelection') {
+                const { sharedState } = party;
+                const pendingCleanse = sharedState.pendingCleanse;
+
+                if (!pendingCleanse || pendingCleanse.casterPlayerId !== player.id) {
+                    return;
+                }
+
+                const { selectedIndices } = action.payload;
+                const targetState = sharedState.partyMemberStates.find(
+                    p => (p.playerId === pendingCleanse.targetPlayerId) || (p.id === pendingCleanse.targetPlayerId)
+                );
+
+                if (targetState && targetState.debuffs && selectedIndices.length > 0) {
+                    // Remove selected debuffs (reverse order to preserve indices)
+                    const removedNames = [];
+                    selectedIndices.sort((a, b) => b - a).forEach(idx => {
+                        if (targetState.debuffs[idx]) {
+                            removedNames.push(targetState.debuffs[idx].type);
+                            targetState.debuffs.splice(idx, 1);
+                        }
+                    });
+
+                    if (removedNames.length > 0) {
+                        sharedState.log.push({
+                            message: `${pendingCleanse.casterName} cleanses ${pendingCleanse.targetName}! [id:${pendingCleanse.targetPlayerId}]`,
+                            type: 'heal'
+                        });
+                        sharedState.log.push({ message: `Cleansed: ${removedNames.join(', ')}!`, type: 'heal' });
+                    }
+                } else if (selectedIndices.length === 0) {
+                    sharedState.log.push({ message: `${pendingCleanse.casterName} cancelled the cleanse.`, type: 'info' });
+                }
+
+                // Clear pending state
+                sharedState.pendingCleanse = null;
+
+                // End caster's turn
+                const casterState = sharedState.partyMemberStates.find(p => p.playerId === pendingCleanse.casterPlayerId);
+                if (casterState) {
+                    casterState.turnEnded = true;
+                    const allTurnsEnded = sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
+                    if (allTurnsEnded) {
+                        await state.processEnemyTurn(io, partyId);
+                    }
+                }
+
+                broadcastAdventureUpdate(io, party);
+                return;
+            }
+
             // **BUG FIX**: Handle surrender BEFORE the active team check so it works anytime
             if (action.type === 'surrender' && party.sharedState?.pvpEncounterId) {
                 const encounter = pvpEncounters[party.sharedState.pvpEncounterId];

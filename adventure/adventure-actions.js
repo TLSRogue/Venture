@@ -369,10 +369,29 @@ export async function processCastSpell(io, party, player, payload) {
         actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
 
         // Pass bonuses for Cleanse (Holy Power scaling)
-        handler(spell, character, actingPlayerState, log, handlerTarget, bonuses);
+        const result = handler(spell, character, actingPlayerState, log, handlerTarget, bonuses);
+
+        // Handle Cleanse debuff selection UI
+        if (result && result.pendingSelection) {
+            // Store pending cleanse state on party
+            sharedState.pendingCleanse = result.pendingSelection;
+
+            // Emit selection request to the caster
+            io.to(result.pendingSelection.casterPlayerId).emit('party:requestDebuffSelection', {
+                targetName: result.pendingSelection.targetName,
+                debuffs: result.pendingSelection.debuffs,
+                maxSelectable: result.pendingSelection.maxSelectable,
+                casterName: result.pendingSelection.casterName
+            });
+
+            log.push({ message: `${character.characterName} prepares to cleanse ${result.pendingSelection.targetName}...`, type: 'info' });
+            broadcastAdventureUpdate(io, party);
+            // Don't end turn - waiting for selection
+            return;
+        }
 
         // Always end turn after special spells?
-        // Revive: Yes. Monk's Training: Yes. Cleanse: Yes.
+        // Revive: Yes. Monk's Training: Yes. Cleanse: Yes (if no selection needed).
         broadcastAdventureUpdate(io, party);
         await checkAndEndTurnForPlayer(io, party, player);
         return;
