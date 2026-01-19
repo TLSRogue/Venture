@@ -54,7 +54,7 @@ function refreshPlayerSpells(character, characterName) {
 function refreshPlayerEquipment(character, characterName) {
     // Items that need property updates
     const itemUpdates = {
-        'Staff': { gemSlots: 1 }
+        'Staff': { gemSlot: 1 }
     };
 
     // Update equipment slots

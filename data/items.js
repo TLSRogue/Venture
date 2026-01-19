@@ -616,7 +616,7 @@ export const allItems = [
         traits: ['Staff', 'Ranged', 'Tier 1'],
         rarity: "uncommon",
         canBeInMerchantWares: true,
-        gemSlots: 1,
+        gemSlot: 1,
     },
     {
         name: "Sludge Staff",
