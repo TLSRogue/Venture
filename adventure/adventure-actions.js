@@ -692,16 +692,46 @@ export async function processCastSpell(io, party, player, payload) {
         }
 
         // --- UNIFIED: Calculate and apply damage to each target ---
-        for (let i = 0; i < numAttacks; i++) {
-            uniqueTargets.forEach(target => {
-                if (target.state.health <= 0) return;
+        // For Whirlwind: Re-roll attack for each swing
+        for (let attackNum = 0; attackNum < numAttacks; attackNum++) {
+            // Whirlwind: Re-roll attack for this swing
+            let currentAttackResult = attackResult; // Default to initial roll for non-Whirlwind
+            if (spell.name === 'Whirlwind' && attackNum > 0) {
+                // Re-roll for subsequent attacks
+                currentAttackResult = resolveAttackRoll(actingPlayerState, character, null, spell.stat || 'strength', spell.hit || 10);
+                const swingDescription = `Whirlwind Swing ${attackNum + 1}! ${currentAttackResult.rollDisplay}`;
+                if (!currentAttackResult.isHit) {
+                    log.push({ message: swingDescription + (currentAttackResult.roll === 1 ? ' Critical Miss!' : ' Miss!'), type: 'info' });
+                    broadcastAdventureUpdate(io, party);
+                    // Add delay for visual feedback
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    continue; // Skip damage but continue attacks
+                }
+                log.push({ message: swingDescription + ' Hit!', type: 'damage' });
+            } else if (spell.name === 'Whirlwind' && attackNum === 0) {
+                // First attack already rolled above, log if miss
+                if (!currentAttackResult.isHit) {
+                    log.push({ message: `Whirlwind Swing 1! ${currentAttackResult.rollDisplay} Miss!`, type: 'info' });
+                    broadcastAdventureUpdate(io, party);
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    continue;
+                }
+            }
+
+            // Add delay between attacks for visual feedback (PvE)
+            if (spell.name === 'Whirlwind' && attackNum > 0) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            for (const target of uniqueTargets) {
+                if (target.state.health <= 0) continue;
 
                 // Darkness/Light Source Check
                 if (target.state && target.state.darknessShrouded) {
                     const hasLight = (actingPlayerState.buffs || []).some(b => b.type === 'Light Source');
                     if (!hasLight) {
                         log.push({ message: `${target.name} is hidden in darkness! Spell missed!`, type: 'info' });
-                        return;
+                        continue;
                     }
                 }
 
@@ -718,7 +748,7 @@ export async function processCastSpell(io, party, player, payload) {
                         effectVal += (bonuses.holyPower || 0);
                     } else {
                         // Fallback for other versatile spells (if any)
-                        effectVal += attackResult.modifiers.statValue;
+                        effectVal += currentAttackResult.modifiers.statValue;
                     }
 
                     // Check if target is friendly
@@ -761,12 +791,12 @@ export async function processCastSpell(io, party, player, payload) {
                 // --- FLYING CHECK (melee spells) ---
                 if (spell.range === 'melee' && (target.state.buffs || []).some(b => b.type === 'Flying')) {
                     log.push({ message: `${target.name} is flying! Melee attacks cannot reach them!`, type: 'info' });
-                    return;
+                    continue;
                 }
 
                 // --- VEXOR DODGE ---
                 if (checkVexorDodge(target, sharedState, log)) {
-                    return;
+                    continue;
                 }
 
                 let hitDescription = '';
@@ -795,7 +825,7 @@ export async function processCastSpell(io, party, player, payload) {
                     hitDescription += ` ${target.name} is now ${spell.debuff.type}!`;
                 }
 
-                if (spell.onHit?.debuff && attackResult.total >= (spell.onHit.threshold || spell.hit)) { // Fixed 'total' and 'hitTarget' reference
+                if (spell.onHit?.debuff && currentAttackResult.total >= (spell.onHit.threshold || spell.hit)) {
                     if (!target.state.debuffs) target.state.debuffs = [];
                     const existingIndex = target.state.debuffs.findIndex(d => d.type === spell.onHit.debuff.type);
                     if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
@@ -816,7 +846,9 @@ export async function processCastSpell(io, party, player, payload) {
                         defeatEnemyInParty(io, party, target.state, target.cardIndex);
                     }
                 }
-            });
+            }
+            // Broadcast after each swing for visual feedback
+            broadcastAdventureUpdate(io, party);
         }
     }
 
