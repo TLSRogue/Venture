@@ -659,7 +659,7 @@ export function renderPlayerActionBars() {
                 </div>
                 <div class="cooldown-overlay" style="height: ${cooldown > 0 ? '100' : '0'}%">${cooldown}</div>
             `;
-        } else if (item && item.type === 'weapon') {
+        } else if (item && (item.type === 'weapon' || item.type === 'shield')) {
             if (item.hands === 2 && slotInfo.key === 'offHand') {
                 slotEl.className = 'action-slot';
                 slotEl.disabled = true;

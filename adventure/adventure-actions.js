@@ -115,7 +115,7 @@ export async function processWeaponAttack(io, party, player, payload) {
     const weapon = character.equipment[weaponSlot];
 
     // Basic Validation
-    if (!weapon || weapon.type !== 'weapon') return;
+    if (!weapon || (weapon.type !== 'weapon' && weapon.type !== 'shield')) return;
     if (actingPlayerState.actionPoints < weapon.cost) return;
     if ((actingPlayerState.weaponCooldowns[weaponSlot] || 0) > 0) return;
 
