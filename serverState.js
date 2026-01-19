@@ -123,6 +123,20 @@ try {
                     }
                 });
             }
+
+            // --- GEM RECIPE BACKFILL MIGRATION ---
+            const gemQuest = character.quests.find(q => q.details?.id === 'OLD_RECIPE_QUEST' && q.status === 'completed');
+            if (gemQuest) {
+                const newGemRecipes = ['Gem of Frost', 'Gem of Holy', 'Gem of Shadow'];
+                newGemRecipes.forEach(recipeName => {
+                    if (!character.knownRecipes.includes(recipeName)) {
+                        character.knownRecipes.push(recipeName);
+                        console.log(`Backfilled recipe ${recipeName} for ${characterName}.`);
+                        dataWasMigrated = true;
+                    }
+                });
+            }
+            // --- END GEM RECIPE BACKFILL MIGRATION ---
             // --- END T2 RECIPE BACKFILL MIGRATION ---
 
             players[characterName] = {

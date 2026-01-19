@@ -61,4 +61,5 @@ export const craftingRecipes = [
     { result: { name: "Silk" }, materials: { "Spider Silk": 1, "Thread": 1 }, category: "Tailoring" },
 
     { result: { name: "Gem of Holy" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
+    { result: { name: "Gem of Shadow" }, materials: { "Tier 1 Gemstone": 1, "Magic Essence": 1 }, category: "Artificing", requiresDiscovery: true },
 ];

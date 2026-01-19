@@ -333,7 +333,7 @@ export const cardPools = {
                 icon: "🔮",
                 imageUrl: '/assets/town-fortuneteller.jpg',
                 quests: [
-                    { id: "OLD_RECIPE_QUEST", title: "The Old Recipe", turnInItems: { "Old Family Recipe": 1 }, reward: { gold: 75, qp: 1, recipeReward: ["Gem of Strength", "Gem of Agility", "Gem of Wisdom", "Gem of Fortitude", "Gem of Fire", "Gem of Arcane", "Gem of Nature", "Gem of Might"] }, prerequisite: null }
+                    { id: "OLD_RECIPE_QUEST", title: "The Old Recipe", turnInItems: { "Old Family Recipe": 1 }, reward: { gold: 75, qp: 1, recipeReward: ["Gem of Strength", "Gem of Agility", "Gem of Wisdom", "Gem of Fortitude", "Gem of Fire", "Gem of Arcane", "Gem of Nature", "Gem of Might", "Gem of Frost", "Gem of Holy", "Gem of Shadow"] }, prerequisite: null }
                 ],
                 dialogue: {
                     OLD_RECIPE_QUEST_start: { text: "Ah, a seeker of secrets... I have foreseen your coming. I lost something precious long ago—a family recipe for imbuing gems with power. The goblins stole it generations past. If you find it, I will share the knowledge with you.", options: [{ text: "I'll search for your recipe.", questId: "OLD_RECIPE_QUEST", next: "OLD_RECIPE_QUEST_inProgress" }, { text: "I'm not interested in fortune telling.", next: "farewell" }] },

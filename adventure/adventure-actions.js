@@ -332,14 +332,28 @@ export async function processCastSpell(io, party, player, payload) {
         }
     }
 
-    if (SpellHandlers[spell.name] || spell.type === 'revive') {
+    if (SpellHandlers[spell.name] || spell.type === 'revive' || spell.type === 'cleanse') {
         const handler = SpellHandlers[spell.name] || SpellHandlers['Revive'];
 
-        // Revive Special Targeting Retrieval
+        // Special Targeting Retrieval for friendly-target spells
         let handlerTarget = target ? target.state : null;
+
+        // Revive targets dead party members
         if (spell.type === 'revive' && !handlerTarget && !isPvP && String(targetIndex).startsWith('p')) {
             const idx = parseInt(targetIndex.substring(1));
             if (sharedState.partyMemberStates[idx]) handlerTarget = sharedState.partyMemberStates[idx];
+        }
+
+        // Cleanse targets friendly party members (living)
+        if (spell.type === 'cleanse' && String(targetIndex).startsWith('p')) {
+            const idx = parseInt(targetIndex.substring(1));
+            if (sharedState.partyMemberStates[idx] && !sharedState.partyMemberStates[idx].isDead) {
+                handlerTarget = sharedState.partyMemberStates[idx];
+            }
+        }
+        // Also allow casting Cleanse on self if no target specified
+        if (spell.type === 'cleanse' && !handlerTarget) {
+            handlerTarget = actingPlayerState;
         }
 
         // Check if handler can run (e.g. Revive needs dead target)
@@ -354,10 +368,11 @@ export async function processCastSpell(io, party, player, payload) {
         actingPlayerState.actionPoints -= cost;
         actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
 
-        handler(spell, character, actingPlayerState, log, handlerTarget);
+        // Pass bonuses for Cleanse (Holy Power scaling)
+        handler(spell, character, actingPlayerState, log, handlerTarget, bonuses);
 
         // Always end turn after special spells?
-        // Revive: Yes. Monk's Training: Yes.
+        // Revive: Yes. Monk's Training: Yes. Cleanse: Yes.
         broadcastAdventureUpdate(io, party);
         await checkAndEndTurnForPlayer(io, party, player);
         return;

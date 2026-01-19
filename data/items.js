@@ -1297,6 +1297,17 @@ export const allItems = [
         rarity: "uncommon",
         canBeInMerchantWares: false,
     },
+    {
+        name: "Gem of Shadow",
+        type: "gem",
+        tier: 1,
+        price: 100,
+        gemBonus: { shadowPower: 1 },
+        description: "A dark gem wreathed in shadows. +1 Shadow Power when socketed.",
+        icon: "🌑",
+        rarity: "uncommon",
+        canBeInMerchantWares: false,
+    },
     // --- Leatherworking Materials ---
     {
         name: "Tanin",
