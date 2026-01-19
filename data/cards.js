@@ -140,6 +140,39 @@ export const cardPools = {
         { card: { name: "Farmlands", type: "area", description: "Open farmland stretching to the horizon.", icon: "🌾", imageUrl: '/assets/farmlands-area.jpg', allowSpawnOver: true }, count: 3 },
     ],
 
+    theDocks: [
+        {
+            card: {
+                name: "Blacktide Ship",
+                type: "npc",
+                description: "A weathered vessel bound for Blacktide Island.",
+                icon: "⛵",
+                imageUrl: '/assets/blacktide_ship.jpg',
+                dialogue: {
+                    default: {
+                        text: "We are going to Blacktide - if you want to go you will need a ticket!",
+                        options: [
+                            { text: "Use Boat Ticket", action: "useBoatTicket", next: "success" },
+                            { text: "Bribe the Captain (1000G)", action: "bribeCaptain", next: "success" },
+                            { text: "Try to Sneak Aboard", action: "sneakAboard", next: "sneakResult" },
+                            { text: "Nevermind", next: "farewell" }
+                        ]
+                    },
+                    success: {
+                        text: "Welcome aboard! ...Actually, we're not quite ready to set sail yet. Check back later!",
+                        options: [{ text: "Understood", next: "farewell" }]
+                    },
+                    sneakResult: {
+                        text: "The captain catches you trying to sneak aboard! 'Get out of here, stowaway!' You are banned from the docks for 10 minutes!",
+                        options: [{ text: "Fine...", action: "kickFromDocks", next: "farewell" }]
+                    },
+                    farewell: { text: "Safe travels.", options: [] }
+                }
+            }, count: 1
+        },
+        { card: { name: "Docks", type: "area", description: "Wooden planks stretching over the water.", icon: "🚢", imageUrl: '/assets/docks.jpg', allowSpawnOver: false }, count: 2 },
+    ],
+
     goblinCaves: [
         {
             card: {

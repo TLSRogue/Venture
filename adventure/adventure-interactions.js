@@ -508,6 +508,84 @@ export function processDialogueChoice(io, player, party, payload) {
         party.sharedState.log.push({ message: `${npc.name} taught ${character.characterName} how to craft: ${recipeName}!`, type: 'success' });
     }
 
+    // --- BLACKTIDE SHIP ACTIONS ---
+    if (choice.action === 'useBoatTicket') {
+        const ticketIndex = character.inventory.findIndex(item => item && item.name === 'Boat Ticket');
+        if (ticketIndex === -1) {
+            party.sharedState.log.push({ message: `${character.characterName} doesn't have a Boat Ticket!`, type: 'damage' });
+            io.to(player.id).emit('party:hideDialogue');
+            broadcastAdventureUpdate(io, party);
+            return;
+        }
+        // Consume ticket
+        character.inventory[ticketIndex] = null;
+        io.to(player.id).emit('characterUpdate', character);
+        party.sharedState.log.push({ message: `${character.characterName} used a Boat Ticket!`, type: 'success' });
+        // Continue to success dialogue (handled by choice.next)
+    }
+
+    if (choice.action === 'bribeCaptain') {
+        if (character.gold < 1000) {
+            party.sharedState.log.push({ message: `${character.characterName} doesn't have enough gold to bribe the captain!`, type: 'damage' });
+            io.to(player.id).emit('party:hideDialogue');
+            broadcastAdventureUpdate(io, party);
+            return;
+        }
+        character.gold -= 1000;
+        io.to(player.id).emit('characterUpdate', character);
+        party.sharedState.log.push({ message: `${character.characterName} bribed the captain with 1000 Gold!`, type: 'success' });
+        // Continue to success dialogue
+    }
+
+    if (choice.action === 'sneakAboard') {
+        const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.playerId === player.id);
+        const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+        const agilityValue = (character.agility || 0) + (bonuses.agility || 0);
+        const roll = Math.floor(Math.random() * 20) + 1;
+        const total = roll + agilityValue;
+
+        const rollColor = roll === 20 ? '#2ecc71' : '#e74c3c';
+        const rollDisplay = `<span style="color:${rollColor}">🎲${roll}+${agilityValue}=${total}</span>`;
+
+        if (roll === 20) {
+            party.sharedState.log.push({ message: `${character.characterName} attempts to sneak aboard! ${rollDisplay} Success!`, type: 'success' });
+            startNPCDialogue(io, player, party, npc, cardIndex, 'success');
+            broadcastAdventureUpdate(io, party);
+            return;
+        } else {
+            party.sharedState.log.push({ message: `${character.characterName} attempts to sneak aboard! ${rollDisplay} Caught!`, type: 'damage' });
+            startNPCDialogue(io, player, party, npc, cardIndex, 'sneakResult');
+            broadcastAdventureUpdate(io, party);
+            return;
+        }
+    }
+
+    if (choice.action === 'kickFromDocks') {
+        // Apply 10-minute lockout to the party
+        const lockoutDuration = 10 * 60 * 1000; // 10 minutes
+        party.sharedState.docksLockoutUntil = Date.now() + lockoutDuration;
+        party.sharedState.log.push({ message: `The party is banned from The Docks for 10 minutes!`, type: 'damage' });
+
+        // Return party to town
+        party.sharedState.currentZone = null;
+        party.sharedState.zoneCards = [];
+        party.sharedState.zoneDeck = [];
+        party.sharedState.groundLoot = [];
+
+        io.to(player.id).emit('party:hideDialogue');
+        broadcastAdventureUpdate(io, party);
+
+        // Notify all party members
+        party.members.forEach(memberName => {
+            const memberPlayer = players[memberName];
+            if (memberPlayer && memberPlayer.id) {
+                io.to(memberPlayer.id).emit('party:adventureEnded');
+            }
+        });
+        return;
+    }
+    // --- END BLACKTIDE SHIP ACTIONS ---
+
     if (choice.next === 'farewell') {
         // Only hide dialogue for the interacting player
         io.to(player.id).emit('party:hideDialogue');

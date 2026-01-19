@@ -95,6 +95,10 @@ body {
     background-image: url('/assets/backgrounds/duel.png');
 }
 
+#adventure-tab.zone-theDocks::before {
+    background-image: url('/assets/docks.jpg');
+}
+
 /* --- END ZONE BACKGROUNDS --- */
 
 /* --- END ZONE BACKGROUNDS --- */

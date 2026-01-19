@@ -36,6 +36,17 @@ export const registerAdventureHandlers = (io, socket) => {
             partyId = party.id;
         }
 
+        // --- THE DOCKS LOCKOUT CHECK ---
+        if (zoneName === 'theDocks') {
+            const lockoutUntil = party.sharedState?.docksLockoutUntil || player.character.docksLockoutUntil || 0;
+            if (Date.now() < lockoutUntil) {
+                const remainingMs = lockoutUntil - Date.now();
+                const remainingMin = Math.ceil(remainingMs / 60000);
+                return socket.emit('partyError', `You are banned from The Docks for ${remainingMin} more minute(s)!`);
+            }
+        }
+        // --- END LOCKOUT CHECK ---
+
         const deck = buildZoneDeckForServer(zoneName);
         party.sharedState = {
             currentZone: zoneName,

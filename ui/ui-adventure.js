@@ -216,7 +216,7 @@ export function renderAdventureScreen() {
 
     // --- APPLY ZONE BACKGROUND ---
     // Remove existing zone background classes
-    adventureTab.classList.remove('zone-bg', 'zone-farmlands', 'zone-goblinCaves', 'zone-town', 'zone-sewers', 'zone-arena', 'zone-blighted_wastes', 'zone-darkForest', 'zone-mansion', 'zone-duel');
+    adventureTab.classList.remove('zone-bg', 'zone-farmlands', 'zone-goblinCaves', 'zone-town', 'zone-sewers', 'zone-arena', 'zone-blighted_wastes', 'zone-darkForest', 'zone-mansion', 'zone-duel', 'zone-theDocks');
 
     // Determine current zone and apply appropriate background
     let currentZone = null;
