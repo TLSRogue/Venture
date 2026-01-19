@@ -657,13 +657,13 @@ export function renderPlayerActionBars() {
                     <span>⚡ ${item.activatedAbility.cost}</span>
                     <span>⏳ ${item.activatedAbility.cooldown}</span>
                 </div>
-                <div class="cooldown-overlay" style="height: ${cooldown > 0 ? '100' : '0'}%">${cooldown}</div>
-            `;
-        } else if (item && item.type === 'weapon') {
+                `< div class="cooldown-overlay" style = "height: ${cooldown > 0 ? '100' : '0'}%" > ${ cooldown }</div >
+                `;
+        } else if (item && (item.type === 'weapon' || (item.type === 'shield' && item.cost && item.weaponDamage))) {
             if (item.hands === 2 && slotInfo.key === 'offHand') {
                 slotEl.className = 'action-slot';
                 slotEl.disabled = true;
-                slotEl.innerHTML = `<div class="slot-name">(2H Weapon)</div>`;
+                slotEl.innerHTML = `< div class="slot-name" > (2H Weapon)</div > `;
             } else {
                 const cooldown = weaponCooldowns[slotInfo.key] || 0;
                 const canAttack = localPlayerAP >= item.cost && !localPlayerTurnEnded && cooldown <= 0;
@@ -673,27 +673,27 @@ export function renderPlayerActionBars() {
                 slotEl.dataset.slot = slotInfo.key;
                 slotEl.dataset.actionData = JSON.stringify({ type: 'weapon', data: item, slot: slotInfo.key });
                 slotEl.innerHTML = `
-                    <div class="item-icon">${item.icon || '⚔️'}</div>
+        < div class="item-icon" > ${ item.icon || '⚔️' }</div >
                     <div class="item-name">${item.name}</div>
                     <div class="item-details">
                         <span>⚡ ${item.cost}</span>
                         <span>⏳ ${item.cooldown}</span>
                     </div>
                     <div class="cooldown-overlay" style="height: ${cooldown > 0 ? '100' : '0'}%">${cooldown}</div>
-                `;
+    `;
             }
         } else if (item) {
             slotEl.className = 'action-slot';
             slotEl.disabled = true;
             let itemText = item.name;
             if (item.quantity > 1) {
-                itemText += ` <div class="item-quantity">${item.quantity}</div>`;
+                itemText += ` < div class="item-quantity" > ${ item.quantity }</div > `;
             }
-            slotEl.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div><div class="item-name">${itemText}</div><div class="slot-name">${slotInfo.name}</div>`;
+            slotEl.innerHTML = `< div class="item-icon" > ${ item.icon || '❓' }</div ><div class="item-name">${itemText}</div><div class="slot-name">${slotInfo.name}</div>`;
         } else {
             slotEl.className = 'action-slot empty';
             slotEl.disabled = true;
-            slotEl.innerHTML = `<div class="slot-name">${slotInfo.name}</div>`;
+            slotEl.innerHTML = `< div class="slot-name" > ${ slotInfo.name }</div > `;
         }
         equipmentContainer.appendChild(slotEl);
     });
@@ -711,14 +711,14 @@ export function renderPlayerActionBars() {
             slotEl.disabled = !canCast;
 
             slotEl.innerHTML = `
-                <div class="item-icon">${spell.icon || '✨'}</div>
+        < div class="item-icon" > ${ spell.icon || '✨' }</div >
                 <div class="item-name">${spell.name}</div>
                 <div class="item-details">
                     <span>⚡ ${spell.cost || 0}</span>
                     <span>⏳ ${spell.cooldown}</span>
                 </div>
                 <div class="cooldown-overlay" style="height: ${cooldown > 0 ? '100' : '0'}%">${cooldown}</div>
-            `;
+    `;
 
             if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile' || spell.type === 'revive' || spell.type === 'debuff' || spell.type === 'cleanse') {
                 slotEl.dataset.action = 'select';
@@ -732,7 +732,7 @@ export function renderPlayerActionBars() {
         } else {
             slotEl.className = 'action-slot empty';
             slotEl.disabled = true;
-            slotEl.innerHTML = `<div class="slot-name">Spell ${i + 1}</div>`;
+            slotEl.innerHTML = `< div class="slot-name" > Spell ${ i + 1 }</div > `;
         }
         spellContainer.appendChild(slotEl);
     }
@@ -747,7 +747,7 @@ export function updateActionUI() {
         // For spells, match by index
         let selectedBtn = null;
         if (selectedAction.type === 'weapon' && selectedAction.slot) {
-            selectedBtn = document.querySelector(`.action-slot[data-slot="${selectedAction.slot}"]`);
+            selectedBtn = document.querySelector(`.action - slot[data - slot="${selectedAction.slot}"]`);
         } else if (selectedAction.type === 'spell' && selectedAction.index !== undefined) {
             const spellSlots = document.querySelectorAll('#spell-bar .action-slot');
             selectedBtn = spellSlots[selectedAction.index];
@@ -792,27 +792,27 @@ export function showReactionModal({ damage, attacker, attackMessage, availableRe
 
     let buttons = '';
     availableReactions.forEach(reaction => {
-        buttons += `<button class="btn btn-primary" data-reaction="${reaction.name}">Use ${reaction.name}</button>`;
+        buttons += `< button class="btn btn-primary" data - reaction="${reaction.name}" > Use ${ reaction.name }</button > `;
     });
 
     let timerHtml = '';
     if (timer) {
-        timerHtml = `<div class="reaction-timer"><span id="reaction-timer-countdown">${timer / 1000}</span>s</div>`;
+        timerHtml = `< div class="reaction-timer" > <span id="reaction-timer-countdown">${timer / 1000}</span>s</div > `;
     }
 
     // Show attack message if available, otherwise just show damage
     const attackDescription = attackMessage
-        ? `<p><strong>${attacker}</strong> ${attackMessage}</p><p>Incoming damage: <strong>${damage}</strong></p>`
-        : `<p>${attacker} is about to deal ${damage} damage to you!</p>`;
+        ? `< p > <strong>${attacker}</strong> ${ attackMessage }</p > <p>Incoming damage: <strong>${damage}</strong></p>`
+        : `< p > ${ attacker } is about to deal ${ damage } damage to you!</p > `;
 
     const modalContent = `
-        <h2>Reaction!</h2>
-        ${timerHtml}
-        ${attackDescription}
-        <div class="action-buttons" id="reaction-buttons">
-            ${buttons}
-            <button class="btn btn-danger" data-reaction="take_damage">Take Damage</button>
-        </div>
+        < h2 > Reaction!</h2 >
+            ${ timerHtml }
+        ${ attackDescription }
+    <div class="action-buttons" id="reaction-buttons">
+        ${buttons}
+        <button class="btn btn-danger" data-reaction="take_damage">Take Damage</button>
+    </div>
     `;
     showModal(modalContent);
 
@@ -837,24 +837,24 @@ export function showInterveneModal({ attacker, target, damage, attackMessage, ti
 
         let timerHtml = '';
         if (timer) {
-            timerHtml = `<div class="reaction-timer"><span id="intervene-timer-countdown">${timer / 1000}</span>s</div>`;
+            timerHtml = `< div class="reaction-timer" > <span id="intervene-timer-countdown">${timer / 1000}</span>s</div > `;
         }
 
         const attackDescription = attackMessage
-            ? `<p><strong>${attacker}</strong> ${attackMessage}</p><p>Incoming damage: <strong>${damage}</strong></p>`
-            : `<p>${attacker} is about to deal ${damage} damage to ${target}!</p>`;
+            ? `< p > <strong>${attacker}</strong> ${ attackMessage }</p > <p>Incoming damage: <strong>${damage}</strong></p>`
+            : `< p > ${ attacker } is about to deal ${ damage } damage to ${ target } !</p > `;
 
         const modalContent = `
-            <h2>🛡️ Intervene?</h2>
-            ${timerHtml}
-            <p><strong>${attacker}</strong> is attacking <strong>${target}</strong>!</p>
-            ${attackDescription}
+        < h2 >🛡️ Intervene ?</h2 >
+            ${ timerHtml }
+    <p><strong>${attacker}</strong> is attacking <strong>${target}</strong>!</p>
+            ${ attackDescription }
             <p>Do you want to intercept this attack?</p>
             <div class="action-buttons" id="intervene-buttons">
                 <button class="btn btn-success" id="intervene-accept-btn">Intervene!</button>
                 <button class="btn btn-danger" id="intervene-decline-btn">Decline</button>
             </div>
-        `;
+    `;
         showModal(modalContent);
 
         // Handle button clicks
@@ -880,8 +880,7 @@ export function showInterveneModal({ attacker, target, damage, attackMessage, ti
                 }
                 if (secondsLeft <= 0) {
                     clearInterval(reactionTimerInterval);
-                    // Auto-decline on timeout
-                    Network.emitPartyAction({ type: 'resolveIntervene', payload: { accept: false } });
+                    // Just hide modal on timeout - server will handle the timeout logic
                     hideModal();
                 }
             }, 1000);
@@ -894,16 +893,16 @@ export function showDebuffSelectionModal({ targetName, debuffs, maxSelectable, c
         const debuffCheckboxes = debuffs.map((debuff, i) => {
             const def = effectDefinitions[debuff.type.toLowerCase()] || { icon: '❓', description: 'Debuff' };
             return `
-                <label class="debuff-option" style="display: flex; align-items: center; gap: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; margin-bottom: 5px; cursor: pointer;">
-                    <input type="checkbox" value="${debuff.index}" class="debuff-checkbox" style="width: 18px; height: 18px;">
-                    <span style="font-size: 1.5em;">${def.icon}</span>
-                    <span><strong>${debuff.type}</strong> (${debuff.duration} turns)</span>
-                </label>
-            `;
+        < label class="debuff-option" style = "display: flex; align-items: center; gap: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; margin-bottom: 5px; cursor: pointer;" >
+            <input type="checkbox" value="${debuff.index}" class="debuff-checkbox" style="width: 18px; height: 18px;">
+                <span style="font-size: 1.5em;">${def.icon}</span>
+                <span><strong>${debuff.type}</strong> (${debuff.duration} turns)</span>
+            </label>
+    `;
         }).join('');
 
         const modalContent = `
-            <h2>🌟 Cleanse - Select Debuffs</h2>
+        < h2 >🌟 Cleanse - Select Debuffs</h2 >
             <p>Choose up to <strong>${maxSelectable}</strong> debuff(s) to remove from <strong>${targetName}</strong>:</p>
             <div id="debuff-selection-list" style="max-height: 250px; overflow-y: auto; margin: 15px 0;">
                 ${debuffCheckboxes}
@@ -912,7 +911,7 @@ export function showDebuffSelectionModal({ targetName, debuffs, maxSelectable, c
                 <button class="btn btn-primary" id="confirm-cleanse-btn">Cleanse Selected</button>
                 <button class="btn btn-danger" id="cancel-cleanse-btn">Cancel</button>
             </div>
-        `;
+    `;
         showModal(modalContent);
 
         // Limit selections to maxSelectable
@@ -961,11 +960,11 @@ export function showBackpack() {
         slot.className = 'inventory-item';
 
         if (item) {
-            let tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
-            if (item.socketedGem) {
-                tooltipContent += `<hr style="margin: 5px 0;"><strong>Socketed:</strong><br>`;
-                tooltipContent += `<span class="gem-icon">${item.socketedGem.icon}</span> <strong>${item.socketedGem.name}</strong><br>`;
-                tooltipContent += `<small>${item.socketedGem.description}</small>`;
+            let tooltipContent = `< strong > ${ item.name }</strong > <br>${item.description}`;
+        if (item.socketedGem) {
+            tooltipContent += `<hr style="margin: 5px 0;"><strong>Socketed:</strong><br>`;
+        tooltipContent += `<span class="gem-icon">${item.socketedGem.icon}</span> <strong>${item.socketedGem.name}</strong><br>`;
+            tooltipContent += `<small>${item.socketedGem.description}</small>`;
             }
             slot.onmouseover = () => showTooltip(tooltipContent);
             slot.onmouseout = () => hideTooltip();
@@ -988,170 +987,170 @@ export function showBackpack() {
             actionButtonsHTML += `<button class="btn btn-danger btn-sm" data-inventory-action="dropItem" data-index="${i}">Drop</button>`;
 
             slot.innerHTML = `
-                ${itemText}
-                <div class="action-buttons" style="margin-top: 5px; flex-direction: column; gap: 5px;">
-                    ${actionButtonsHTML}
-                </div>
+            ${itemText}
+            <div class="action-buttons" style="margin-top: 5px; flex-direction: column; gap: 5px;">
+                ${actionButtonsHTML}
+            </div>
             `;
         } else {
-            slot.classList.add('empty');
+                slot.classList.add('empty');
             slot.textContent = '';
         }
-        itemsGrid.appendChild(slot);
+            itemsGrid.appendChild(slot);
     }
 
-    modalContentEl.appendChild(itemsGrid);
+            modalContentEl.appendChild(itemsGrid);
 
-    const closeButton = document.createElement('button');
-    closeButton.className = 'btn';
-    closeButton.style.marginTop = '20px';
-    closeButton.textContent = 'Close';
-    closeButton.onclick = hideModal;
-    modalContentEl.appendChild(closeButton);
+            const closeButton = document.createElement('button');
+            closeButton.className = 'btn';
+            closeButton.style.marginTop = '20px';
+            closeButton.textContent = 'Close';
+            closeButton.onclick = hideModal;
+            modalContentEl.appendChild(closeButton);
 
-    const modal = document.getElementById('modal');
-    const modalContentContainer = modal.querySelector('.modal-content');
-    modalContentContainer.classList.add('modal-wide');
+            const modal = document.getElementById('modal');
+            const modalContentContainer = modal.querySelector('.modal-content');
+            modalContentContainer.classList.add('modal-wide');
 
-    showModal(modalContentEl);
+            showModal(modalContentEl);
 }
 
-export function showCharacterSheet() {
+            export function showCharacterSheet() {
     const bonuses = getBonusStats();
-    const calculatedStats = {
-        strength: gameState.strength + bonuses.strength,
-        wisdom: gameState.wisdom + bonuses.wisdom,
-        agility: gameState.agility + bonuses.agility,
-        defense: gameState.defense + bonuses.defense,
-        luck: gameState.luck + bonuses.luck,
-        physicalResistance: (gameState.physicalResistance || 0) + (bonuses.physicalResistance || 0),
-        mining: gameState.mining + bonuses.mining,
-        fishing: gameState.fishing + bonuses.fishing,
-        woodcutting: gameState.woodcutting + bonuses.woodcutting,
-        harvesting: gameState.harvesting + bonuses.harvesting,
+            const calculatedStats = {
+                strength: gameState.strength + bonuses.strength,
+            wisdom: gameState.wisdom + bonuses.wisdom,
+            agility: gameState.agility + bonuses.agility,
+            defense: gameState.defense + bonuses.defense,
+            luck: gameState.luck + bonuses.luck,
+            physicalResistance: (gameState.physicalResistance || 0) + (bonuses.physicalResistance || 0),
+            mining: gameState.mining + bonuses.mining,
+            fishing: gameState.fishing + bonuses.fishing,
+            woodcutting: gameState.woodcutting + bonuses.woodcutting,
+            harvesting: gameState.harvesting + bonuses.harvesting,
     };
 
-    const slotNames = { mainHand: 'Main Hand', offHand: 'Off Hand', helmet: 'Helmet', armor: 'Armor', boots: 'Boots', accessory: 'Accessory', ammo: 'Ammo' };
-    let equipmentHTML = '<h3>Equipment</h3><div class="char-sheet-equipment">';
+            const slotNames = {mainHand: 'Main Hand', offHand: 'Off Hand', helmet: 'Helmet', armor: 'Armor', boots: 'Boots', accessory: 'Accessory', ammo: 'Ammo' };
+            let equipmentHTML = '<h3>Equipment</h3><div class="char-sheet-equipment">';
 
-    for (const slotKey in slotNames) {
+                for (const slotKey in slotNames) {
         const item = gameState.equipment[slotKey];
-        if (item) {
+                if (item) {
             if (slotKey === 'offHand' && gameState.equipment.mainHand?.hands === 2) continue;
-            equipmentHTML += `
+                equipmentHTML += `
                 <div class="equipped-item-row">
                     <span>${item.icon || '❓'} <strong>${slotNames[slotKey]}:</strong> ${item.name}</span>
                     <button class="btn btn-danger btn-sm" data-equipment-action="unequip" data-slot="${slotKey}">Unequip</button>
                 </div>
-            `;
+                `;
         }
     }
-    equipmentHTML += '</div>';
+                equipmentHTML += '</div>';
 
-    const modalContent = `
-        <h2>Character Sheet</h2>
-        <style>
-            .char-sheet-grid { display: flex; gap: 30px; text-align: left; }
-            .char-sheet-grid > div { flex: 1; }
-            .char-sheet-equipment { display: flex; flex-direction: column; gap: 8px; }
-            .equipped-item-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 5px 8px; border-radius: 4px;}
-            .equipped-item-row span { display: flex; align-items: center; gap: 8px; }
-        </style>
-        <div class="char-sheet-grid">
-            <div>
-                <h3>Attributes</h3>
-                <p>💪 Strength: ${calculatedStats.strength}</p>
-                <p>🏃 Agility: ${calculatedStats.agility}</p>
-                <p>🧠 Wisdom: ${calculatedStats.wisdom}</p>
-                <p>🛡️ Defense: ${calculatedStats.defense}</p>
-                <p>🍀 Luck: ${calculatedStats.luck}</p>
-                <hr>
-                <h3>Resistances</h3>
-                <p>💎 Physical Resistance: ${calculatedStats.physicalResistance}</p>
+            const modalContent = `
+            <h2>Character Sheet</h2>
+            <style>
+                .char-sheet-grid {display: flex; gap: 30px; text-align: left; }
+            .char-sheet-grid > div {flex: 1; }
+                .char-sheet-equipment {display: flex; flex-direction: column; gap: 8px; }
+                .equipped-item-row {display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 5px 8px; border-radius: 4px;}
+                .equipped-item-row span {display: flex; align-items: center; gap: 8px; }
+            </style>
+            <div class="char-sheet-grid">
+                <div>
+                    <h3>Attributes</h3>
+                    <p>💪 Strength: ${calculatedStats.strength}</p>
+                    <p>🏃 Agility: ${calculatedStats.agility}</p>
+                    <p>🧠 Wisdom: ${calculatedStats.wisdom}</p>
+                    <p>🛡️ Defense: ${calculatedStats.defense}</p>
+                    <p>🍀 Luck: ${calculatedStats.luck}</p>
+                    <hr>
+                        <h3>Resistances</h3>
+                        <p>💎 Physical Resistance: ${calculatedStats.physicalResistance}</p>
+                </div>
+                <div>
+                    ${equipmentHTML}
+                    <hr>
+                        <h3>Professions</h3>
+                        <p>⛏️ Mining: ${calculatedStats.mining}</p>
+                        <p>🌲 Woodcutting: ${calculatedStats.woodcutting}</p>
+                        <p>🎣 Fishing: ${calculatedStats.fishing}</p>
+                </div>
             </div>
-            <div>
-                ${equipmentHTML}
-                <hr>
-                <h3>Professions</h3>
-                <p>⛏️ Mining: ${calculatedStats.mining}</p>
-                <p>🌲 Woodcutting: ${calculatedStats.woodcutting}</p>
-                <p>🎣 Fishing: ${calculatedStats.fishing}</p>
-            </div>
-        </div>
-        <button class="btn btn-primary" style="margin-top: 20px;" onclick="this.closest('.modal-overlay').classList.add('hidden')">Close</button>
-    `;
-    showModal(modalContent);
+            <button class="btn btn-primary" style="margin-top: 20px;" onclick="this.closest('.modal-overlay').classList.add('hidden')">Close</button>
+            `;
+            showModal(modalContent);
 }
 
-function renderGroundLootButton() {
+            function renderGroundLootButton() {
     const container = document.getElementById('ground-loot-container');
-    if (!container) return;
-    container.innerHTML = '';
+            if (!container) return;
+            container.innerHTML = '';
 
-    const groundLoot = gameState.pvpEncounter ? gameState.pvpEncounter.groundLoot : gameState.groundLoot;
+            const groundLoot = gameState.pvpEncounter ? gameState.pvpEncounter.groundLoot : gameState.groundLoot;
 
     if (groundLoot && groundLoot.length > 0 && (gameState.currentZone || gameState.pvpEncounter)) {
         const button = document.createElement('button');
-        button.id = 'ground-loot-btn';
-        button.title = `View items on the ground (${groundLoot.length})`;
-        button.innerHTML = `
+            button.id = 'ground-loot-btn';
+            button.title = `View items on the ground (${groundLoot.length})`;
+            button.innerHTML = `
             <div class="ground-loot-icon">💰</div>
-        `;
-        container.appendChild(button);
+            `;
+            container.appendChild(button);
     }
 }
 
-export function showGroundLootModal() {
+            export function showGroundLootModal() {
     const modalContentEl = document.createElement('div');
-    modalContentEl.id = 'ground-loot-modal';
-    modalContentEl.innerHTML = '<h2>Ground Loot & Inventory</h2><p>Take items from the ground or drop items from your inventory to make space.</p>';
+            modalContentEl.id = 'ground-loot-modal';
+            modalContentEl.innerHTML = '<h2>Ground Loot & Inventory</h2><p>Take items from the ground or drop items from your inventory to make space.</p>';
 
-    const storageGrid = document.createElement('div');
-    storageGrid.className = 'storage-grid';
+            const storageGrid = document.createElement('div');
+            storageGrid.className = 'storage-grid';
 
-    const groundLootSide = document.createElement('div');
-    groundLootSide.innerHTML = '<h3>On The Ground</h3>';
-    const groundGrid = document.createElement('div');
-    groundGrid.className = 'inventory-grid';
+            const groundLootSide = document.createElement('div');
+            groundLootSide.innerHTML = '<h3>On The Ground</h3>';
+            const groundGrid = document.createElement('div');
+            groundGrid.className = 'inventory-grid';
 
-    const groundLoot = gameState.pvpEncounter ? gameState.pvpEncounter.groundLoot : gameState.groundLoot;
+            const groundLoot = gameState.pvpEncounter ? gameState.pvpEncounter.groundLoot : gameState.groundLoot;
 
     if (groundLoot && groundLoot.length > 0) {
-        groundLoot.forEach((item, index) => {
-            const itemEl = document.createElement('div');
-            itemEl.className = 'inventory-item ground-loot-item';
+                groundLoot.forEach((item, index) => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'inventory-item ground-loot-item';
 
-            // Build tooltip using helper
-            const tooltipContent = buildItemTooltip(item, { action: 'Click Take to pick up' });
-            itemEl.onmouseover = () => showTooltip(tooltipContent);
-            itemEl.onmouseout = () => hideTooltip();
+                    // Build tooltip using helper
+                    const tooltipContent = buildItemTooltip(item, { action: 'Click Take to pick up' });
+                    itemEl.onmouseover = () => showTooltip(tooltipContent);
+                    itemEl.onmouseout = () => hideTooltip();
 
-            let itemHtml = `<div class="item-icon">${item.icon || '❓'}</div>`;
-            if (item.quantity > 1) {
-                itemHtml += `<div class="item-quantity">${item.quantity}</div>`;
-            }
-            itemHtml += `<button class="btn btn-success btn-sm ground-loot-take-btn" data-action="takeGroundLoot" data-index="${index}">Take</button>`;
+                    let itemHtml = `<div class="item-icon">${item.icon || '❓'}</div>`;
+                    if (item.quantity > 1) {
+                        itemHtml += `<div class="item-quantity">${item.quantity}</div>`;
+                    }
+                    itemHtml += `<button class="btn btn-success btn-sm ground-loot-take-btn" data-action="takeGroundLoot" data-index="${index}">Take</button>`;
 
-            itemEl.innerHTML = itemHtml;
-            groundGrid.appendChild(itemEl);
-        });
+                    itemEl.innerHTML = itemHtml;
+                    groundGrid.appendChild(itemEl);
+                });
     } else {
-        groundGrid.innerHTML = '<p>Nothing on the ground.</p>';
+                groundGrid.innerHTML = '<p>Nothing on the ground.</p>';
     }
-    groundLootSide.appendChild(groundGrid);
+            groundLootSide.appendChild(groundGrid);
 
-    const inventorySide = document.createElement('div');
-    inventorySide.innerHTML = '<h3>Your Inventory</h3>';
-    const inventoryGrid = document.createElement('div');
-    inventoryGrid.className = 'inventory-grid';
+            const inventorySide = document.createElement('div');
+            inventorySide.innerHTML = '<h3>Your Inventory</h3>';
+            const inventoryGrid = document.createElement('div');
+            inventoryGrid.className = 'inventory-grid';
 
-    for (let i = 0; i < 28; i++) {
+            for (let i = 0; i < 28; i++) {
         const item = gameState.inventory[i];
-        const itemEl = document.createElement('div');
-        itemEl.className = 'inventory-item';
-        if (item) {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'inventory-item';
+            if (item) {
             // Build tooltip using helper
-            const tooltipContent = buildItemTooltip(item, { action: 'Click Drop to put on ground' });
+            const tooltipContent = buildItemTooltip(item, {action: 'Click Drop to put on ground' });
             itemEl.onmouseover = () => showTooltip(tooltipContent);
             itemEl.onmouseout = () => hideTooltip();
 
@@ -1162,26 +1161,26 @@ export function showGroundLootModal() {
             itemHtml += `<button class="btn btn-danger btn-sm ground-loot-take-btn" data-inventory-action="dropItem" data-index="${i}">Drop</button>`;
             itemEl.innerHTML = itemHtml;
         } else {
-            itemEl.classList.add('empty');
+                itemEl.classList.add('empty');
         }
-        inventoryGrid.appendChild(itemEl);
+            inventoryGrid.appendChild(itemEl);
     }
-    inventorySide.appendChild(inventoryGrid);
+            inventorySide.appendChild(inventoryGrid);
 
-    storageGrid.appendChild(groundLootSide);
-    storageGrid.appendChild(inventorySide);
-    modalContentEl.appendChild(storageGrid);
+            storageGrid.appendChild(groundLootSide);
+            storageGrid.appendChild(inventorySide);
+            modalContentEl.appendChild(storageGrid);
 
-    const closeButton = document.createElement('button');
-    closeButton.className = 'btn';
-    closeButton.style.marginTop = '20px';
-    closeButton.textContent = 'Close';
-    closeButton.onclick = hideModal;
-    modalContentEl.appendChild(closeButton);
+            const closeButton = document.createElement('button');
+            closeButton.className = 'btn';
+            closeButton.style.marginTop = '20px';
+            closeButton.textContent = 'Close';
+            closeButton.onclick = hideModal;
+            modalContentEl.appendChild(closeButton);
 
-    const modal = document.getElementById('modal');
-    const modalContentContainer = modal.querySelector('.modal-content');
-    modalContentContainer.classList.add('modal-wide');
+            const modal = document.getElementById('modal');
+            const modalContentContainer = modal.querySelector('.modal-content');
+            modalContentContainer.classList.add('modal-wide');
 
-    showModal(modalContentEl);
+            showModal(modalContentEl);
 }
