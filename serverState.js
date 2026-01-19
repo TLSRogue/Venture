@@ -70,7 +70,7 @@ try {
 
             // --- BOW SPELL MIGRATION ---
             // Force update all bow spells to current definitions (ensures crossbow support)
-            const bowSpellNames = ['Aim True', 'Split Shot', 'Evasive Shot'];
+            const bowSpellNames = ['Aim True', 'Split Shot', 'Evasive Shot', 'Slash'];
             bowSpellNames.forEach(spellName => {
                 const currentSpellDef = gameData.allSpells.find(s => s.name === spellName);
                 if (!currentSpellDef) return;

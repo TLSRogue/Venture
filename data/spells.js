@@ -54,7 +54,7 @@ export const allSpells = [
         stat: ["strength", "agility"],
         hit: 15,
         damageType: 'Physical',
-        requires: { weaponType: ["Sword", "One-Hand Sword", "Dagger"], hand: "mainHand" },
+        requires: { weaponType: ["Sword", "One-Hand Sword", "Two-Hand Sword", "Dagger"], hand: "mainHand" },
         icon: "🗡️",
         rarity: "common",
     },
