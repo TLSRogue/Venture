@@ -13,6 +13,24 @@ function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlaye
     const defendingPlayerObject = players[defendingPlayerState.name];
     const defendingCharacter = defendingPlayerObject.character;
 
+    // --- Time Stop Logic ---
+    // 1. Prevent reaction if defender is under Time Stop
+    if ((defendingPlayerState.debuffs || []).some(d => d.type === 'Time Stop')) {
+        return false;
+    }
+
+    // 2. Prevent reaction if attack is Time Stop and Caster has 5+ Arcane Power
+    if (actionDetails.spellName === 'Time Stop') {
+        // We need attacker state to check bonuses
+        const attackerState = encounter.playerStates.find(p => p.playerId === attackerCharacter.playerId);
+        if (attackerState) {
+            const bonuses = getBonusStatsForPlayer(attackerCharacter, attackerState);
+            if ((bonuses.arcanePower || 0) >= 5) {
+                return false;
+            }
+        }
+    }
+
     const availableReactions = [];
     const dodgeSpell = defendingCharacter.equippedSpells.find(s => s.name === "Dodge");
     if (dodgeSpell && (defendingPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
