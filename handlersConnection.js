@@ -56,6 +56,7 @@ function backfillT2Recipes(character, characterName) {
     const backfillRules = [
         { questId: 'STEEL_ARMOR_QUEST', recipes: ['Steel Helm (T2)', 'Steel Boots (T2)'] },
         { questId: 'TAILOR_SILK_QUEST', recipes: ['Silk Wizard Robes (T2)', 'Silk Wizard Hat (T2)', 'Silk Wizard Boots (T2)'] },
+        { questId: 'OLD_RECIPE_QUEST', recipes: ['Gem of Frost', 'Gem of Holy', 'Gem of Shadow'] },
         // Note: RANGER_SET_QUEST is new, so no backfill needed
     ];
 
