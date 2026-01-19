@@ -157,6 +157,10 @@ export function getSpecialSpellDamage(spell, character, actingPlayerState, bonus
         return (character.equipment.mainHand?.weaponDamage || 0) + (spell.damageBonus || 0);
     }
 
+    if (spell.name === 'Slash') {
+        return character.equipment.mainHand?.weaponDamage || 0;
+    }
+
     // --- Dagger Throw: Use highest damage dagger from either hand ---
     if (spell.name === 'Dagger Throw') {
         const mainHand = character.equipment.mainHand;
