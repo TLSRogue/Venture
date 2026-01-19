@@ -177,7 +177,6 @@ export async function resolveIntervene(io, socket, payload) {
 
             // Build available reactions for the intervenor
             const newAvailableReactions = [];
-            const isMeleeAttack = interveneData.attackRange === 'melee';
 
             // Check for dodge
             const dodgeSpell = player.character.equippedSpells.find(s => s.name === "Dodge");
@@ -185,35 +184,10 @@ export async function resolveIntervene(io, socket, payload) {
                 newAvailableReactions.push({ name: 'Dodge' });
             }
 
-            // Check for Parry - only works against melee attacks and requires melee weapon
-            const parrySpell = player.character.equippedSpells.find(s => s.name === "Parry");
-            if (parrySpell && (intervenorState.spellCooldowns[parrySpell.name] || 0) <= 0) {
-                const mainHand = player.character.equipment.mainHand;
-                const rangedWeaponTypes = ['Two-Hand Bow', 'Two-Hand Staff'];
-                const hasMeleeWeapon = mainHand && mainHand.type === 'weapon' &&
-                    (mainHand.range === 'melee' || (!mainHand.range && !rangedWeaponTypes.includes(mainHand.weaponType)));
-                if (isMeleeAttack && hasMeleeWeapon) {
-                    newAvailableReactions.push({ name: 'Parry' });
-                }
-            }
-
             // Check for block
             const shield = player.character.equipment.offHand;
             if (shield && shield.type === 'shield' && shield.reaction && (intervenorState.itemCooldowns[shield.name] || 0) <= 0) {
                 newAvailableReactions.push({ name: 'Block' });
-            }
-
-            // Check for Evasive Shot
-            const evasiveShotSpell = player.character.equippedSpells.find(s => s.name === "Evasive Shot");
-            if (evasiveShotSpell && (intervenorState.spellCooldowns[evasiveShotSpell.name] || 0) <= 0) {
-                const mainHand = player.character.equipment.mainHand;
-                const offHand = player.character.equipment.offHand;
-                const requiredTypes = evasiveShotSpell.requires?.weaponType || [];
-                const hasRangedWeapon = (mainHand && requiredTypes.includes(mainHand.weaponType)) ||
-                    (offHand && requiredTypes.includes(offHand?.weaponType));
-                if (hasRangedWeapon) {
-                    newAvailableReactions.push({ name: 'Evasive Shot' });
-                }
             }
 
             // Clear intervene state
