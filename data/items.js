@@ -268,7 +268,7 @@ export const allItems = [
         type: "consumable",
         tier: 1,
         cost: 0,
-        buff: { type: 'Light Source', duration: 4 },
+        buff: { type: 'Light Source', duration: 3 },
         description: "A flickering flame atop a wooden stick. Illuminates dark areas for 3 turns. Free to use.",
         icon: "🔥",
         rarity: "common",

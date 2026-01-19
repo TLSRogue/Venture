@@ -184,6 +184,17 @@ export async function processWeaponAttack(io, party, player, payload) {
             return;
         }
 
+        // Darkness/Light Source Check
+        if (target.state && target.state.darknessShrouded) {
+            const hasLight = (actingPlayerState.buffs || []).some(b => b.type === 'Light Source');
+            if (!hasLight) {
+                log.push({ message: `${target.name} is shrouded in darkness! You cannot target them without a light source!`, type: 'info' });
+                broadcastAdventureUpdate(io, party);
+                await checkAndEndTurnForPlayer(io, party, player);
+                return;
+            }
+        }
+
         // Flying Check - melee attacks cannot hit flying enemies
         if (weapon.range === 'melee' && target.state && (target.state.buffs || []).some(b => b.type === 'Flying')) {
             log.push({ message: `${target.name} is flying! Melee attacks cannot reach them!`, type: 'info' });
@@ -640,6 +651,15 @@ export async function processCastSpell(io, party, player, payload) {
         // --- UNIFIED: Calculate and apply damage to each target ---
         uniqueTargets.forEach(target => {
             if (target.state.health <= 0) return;
+
+            // Darkness/Light Source Check
+            if (target.state && target.state.darknessShrouded) {
+                const hasLight = (actingPlayerState.buffs || []).some(b => b.type === 'Light Source');
+                if (!hasLight) {
+                    log.push({ message: `${target.name} is hidden in darkness! Spell missed!`, type: 'info' });
+                    return;
+                }
+            }
 
             let baseDamage = spell.damage || 0;
             let isHeal = false;

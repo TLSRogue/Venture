@@ -143,6 +143,28 @@ export const cardPools = {
     goblinCaves: [
         {
             card: {
+                name: "Cyclops",
+                type: "enemy",
+                health: 10,
+                maxHealth: 10,
+                description: "A one-eyed giant lurking in the dark.",
+                icon: "👁️",
+                imageUrl: '/assets/cyclops.jpg',
+                darknessShrouded: true,
+                attackTable: [
+                    { range: [1, 5], action: 'miss', message: "The Cyclops swings blindly in the dark. Miss!" },
+                    { range: [6, 15], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Club Smash! Deals 4 Physical Damage!" },
+                    { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', debuff: { type: 'daze', duration: 1 }, message: "Heavy Blow! Deals 5 Physical Damage and Dazes!" }
+                ],
+                guaranteedLoot: { gold: true, minGold: 5, maxGold: 15 },
+                lootTable: [
+                    { range: [1, 10], items: ["Whetstone"] },
+                    { range: [11, 20], items: ["Goblin Lucky Charm"] } // Rare drop
+                ]
+            }, count: 1
+        },
+        {
+            card: {
                 name: "Gorbon the Goblin King",
                 type: "enemy",
                 health: 30,
