@@ -248,9 +248,8 @@ export const registerAdventureHandlers = (io, socket) => {
 
                 rollData.rolls.push({ playerName: name, choice, roll: rollValue });
 
-                if (choice !== 'pass') {
-                    sharedState.log.push({ message: `${name} rolls ${rollValue} (${choice}) for [${rollData.item.name}].`, type: 'info' });
-                } else {
+                // Only log passes immediately - rolls are shown in consolidated summary when determining winner
+                if (choice === 'pass') {
                     sharedState.log.push({ message: `${name} passes on [${rollData.item.name}].`, type: 'info' });
                 }
 
@@ -385,7 +384,7 @@ export const registerAdventureHandlers = (io, socket) => {
 
             if (!actingPlayerState || actingPlayerState.isDead) return;
             if (actingPlayerState.turnEnded && action.type !== 'dialogueChoice') return;
-            if (action.type === 'dialogueChoice' && name !== party.leaderId) return;
+            // Removed leader-only check: Any party member can now make dialogue choices
 
             switch (action.type) {
                 case 'weaponAttack':

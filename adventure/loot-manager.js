@@ -12,6 +12,17 @@ export function determineLootWinnerAndDistribute(io, partyId) {
     let winner = null;
     const needRolls = rollData.rolls.filter(r => r.choice === 'need');
     const greedRolls = rollData.rolls.filter(r => r.choice === 'greed');
+
+    // Build consolidated roll summary
+    const rollSummary = rollData.rolls
+        .filter(r => r.choice !== 'pass')
+        .map(r => `${r.playerName}: ${r.roll} (${r.choice})`)
+        .join(', ');
+
+    if (rollSummary) {
+        party.sharedState.log.push({ message: `Loot Rolls for [${rollData.item.name}] — ${rollSummary}`, type: 'info' });
+    }
+
     if (needRolls.length > 0) {
         winner = needRolls.reduce((highest, current) => (current.roll > highest.roll ? current : highest), needRolls[0]);
     } else if (greedRolls.length > 0) {
@@ -20,7 +31,7 @@ export function determineLootWinnerAndDistribute(io, partyId) {
     if (winner) {
         const winnerPlayer = players[winner.playerName];
         if (winnerPlayer && addItemToInventoryServer(winnerPlayer.character, rollData.item, 1, party.sharedState.groundLoot)) {
-            party.sharedState.log.push({ message: `${winner.playerName} won ${rollData.item.name} with a roll of ${winner.roll} (${winner.choice}).`, type: 'success' });
+            party.sharedState.log.push({ message: `${winner.playerName} won ${rollData.item.name} with ${winner.roll}!`, type: 'success' });
             io.to(winnerPlayer.id).emit('characterUpdate', winnerPlayer.character);
         } else if (winnerPlayer) {
             party.sharedState.log.push({ message: `${winner.playerName} won ${rollData.item.name}, but their inventory was full! The item was dropped on the ground.`, type: 'damage' });

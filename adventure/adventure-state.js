@@ -181,34 +181,49 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
             if (itemData) lootToDistribute.push(itemData);
         });
     }
+
+    // Collect dropped items for consolidated log message
+    const droppedItemNames = [];
+    const rollableItems = [];
+
     lootToDistribute.forEach(itemData => {
         if (itemData.rarity === 'uncommon' || itemData.rarity === 'rare') {
-            if (sharedState.pendingLootRoll) {
-                // Queue the item for rolling after current roll completes
-                if (!sharedState.lootRollQueue) sharedState.lootRollQueue = [];
-                sharedState.lootRollQueue.push(itemData);
-                sharedState.log.push({ message: `Found ${itemData.name}! Queued for rolling.`, type: 'info' });
-            } else {
-                sharedState.log.push({ message: `Party found: [${itemData.name}]! A roll will begin.`, type: 'success' });
-                sharedState.pendingLootRoll = {
-                    item: itemData,
-                    rolls: [],
-                    endTime: Date.now() + LOOT_ROLL_DURATION_MS,
-                };
-                party.members.forEach(memberName => {
-                    const member = players[memberName];
-                    if (member && member.id) {
-                        io.to(member.id).emit('party:lootRollStarted', sharedState.pendingLootRoll);
-                    }
-                });
-                setTimeout(() => {
-                    determineLootWinnerAndDistribute(io, party.id);
-                }, LOOT_ROLL_DURATION_MS);
-            }
+            rollableItems.push(itemData);
         } else {
             // Non-rare loot drops to the ground - party decides who picks it up
             sharedState.groundLoot.push({ ...itemData, quantity: 1 });
-            sharedState.log.push({ message: `${enemy.name} dropped: ${itemData.name}!`, type: 'success' });
+            droppedItemNames.push(itemData.name);
+        }
+    });
+
+    // Log all dropped items in a single message
+    if (droppedItemNames.length > 0) {
+        sharedState.log.push({ message: `${enemy.name} dropped: ${droppedItemNames.join(', ')}!`, type: 'success' });
+    }
+
+    // Process rollable items (uncommon/rare) separately with their own messages
+    rollableItems.forEach(itemData => {
+        if (sharedState.pendingLootRoll) {
+            // Queue the item for rolling after current roll completes
+            if (!sharedState.lootRollQueue) sharedState.lootRollQueue = [];
+            sharedState.lootRollQueue.push(itemData);
+            sharedState.log.push({ message: `Found ${itemData.name}! Queued for rolling.`, type: 'info' });
+        } else {
+            sharedState.log.push({ message: `Party found: [${itemData.name}]! A roll will begin.`, type: 'success' });
+            sharedState.pendingLootRoll = {
+                item: itemData,
+                rolls: [],
+                endTime: Date.now() + LOOT_ROLL_DURATION_MS,
+            };
+            party.members.forEach(memberName => {
+                const member = players[memberName];
+                if (member && member.id) {
+                    io.to(member.id).emit('party:lootRollStarted', sharedState.pendingLootRoll);
+                }
+            });
+            setTimeout(() => {
+                determineLootWinnerAndDistribute(io, party.id);
+            }, LOOT_ROLL_DURATION_MS);
         }
     });
     party.members.forEach(memberName => {
