@@ -387,6 +387,10 @@ export function renderCrafting() {
         tab.className = `category-tab ${activeCraftingCategory === category ? 'active' : ''}`;
         tab.dataset.category = category;
         tab.textContent = category;
+        tab.onclick = () => {
+            setActiveCraftingCategory(category);
+            renderCrafting();
+        };
         categoriesContainer.appendChild(tab);
     });
 
@@ -428,6 +432,10 @@ export function renderCrafting() {
             btn.className = `subtab-btn ${activeCraftingSubtab === subtab ? 'active' : ''}`;
             btn.dataset.subtab = subtab;
             btn.textContent = subtab;
+            btn.onclick = () => {
+                setActiveCraftingSubtab(subtab);
+                renderCrafting();
+            };
             subtabContainer.appendChild(btn);
         });
         gridContainer.appendChild(subtabContainer);
@@ -442,64 +450,76 @@ export function renderCrafting() {
         return a.result.name.localeCompare(b.result.name);
     });
 
-    recipesToDisplay.forEach((recipe) => {
-        const recipeEl = document.createElement('div');
-        const canCraft = hasMaterials(recipe.materials);
-        recipeEl.className = `crafting-card ${canCraft ? 'craftable' : 'not-craftable'}`;
+    // Create a wrapper for the grid items to separate them from the subtabs
+    const cardsWrapper = document.createElement('div');
+    cardsWrapper.className = 'crafting-grid';
+    // Remove the display grid from the parent container if we are using a wrapper,
+    // but here gridContainer IS the target. Actually the CSS styles .crafting-grid.
+    // The previous implementation appended subtabs directly to #crafting-grid.
+    // I should probably append subtabs (flex) then a NEW div for the grid content.
+    // BUT the CSS I wrote aims at .crafting-grid which IS gridContainer in HTML.
+    // So the subtabs would be grid items if I'm not careful.
+    // FIX: Render subtabs OUTSIDE grid or use full-width span.
+    // The previous code appended subtabs to gridContainer.
+    // Let's create a NEW container for the cards.
+    // Actually, looking at HTML structure `div id="crafting-grid" class="crafting-grid"`
+    // I should change the ID or structure slightly.
+    // The easiest fix: Make gridContainer display: block, append subtabs, append a NEW div with class 'crafting-grid'.
+    gridContainer.className = ''; // Remove grid class from container so subtabs stack normally
 
+    if (subtabNames.length > 1) {
+        // Appended subtabs above
+    }
+
+    const itemsGrid = document.createElement('div');
+    itemsGrid.className = 'crafting-grid'; // This gets the grid styles
+    itemsGrid.style.marginTop = '10px';
+
+    recipesToDisplay.forEach((recipe) => {
+        const canCraft = hasMaterials(recipe.materials);
         const resultItem = gameData.allItems.find(i => i.name === recipe.result.name);
         const recipeIndex = gameData.craftingRecipes.indexOf(recipe);
 
-        // Build material list with owned/required counts
-        let materialsHtml = '';
-        for (const materialName in recipe.materials) {
-            const required = recipe.materials[materialName];
-            const owned = getMaterialCount(materialName);
-            const isSufficient = owned >= required;
-            const materialItem = gameData.allItems.find(i => i.name === materialName);
-            const icon = materialItem?.icon || '📦';
-            materialsHtml += `
-                <div class="crafting-material ${isSufficient ? 'sufficient' : 'insufficient'}">
-                    <span class="material-icon">${icon}</span>
-                    <span class="material-name">${materialName}</span>
-                    <span class="material-count">${owned}/${required}</span>
-                    <span class="material-status">${isSufficient ? '✓' : '✗'}</span>
-                </div>
-            `;
+        const card = document.createElement('div');
+        card.className = `crafting-item-card ${canCraft ? 'craftable' : 'disabled'}`;
+
+        let quantityBadge = '';
+        if (recipe.result.quantity > 1) {
+            quantityBadge = `<span class="quantity-badge">${recipe.result.quantity}</span>`;
         }
 
-        recipeEl.innerHTML = `
-            <div class="crafting-card-header">
-                <span class="crafting-card-icon">${resultItem?.icon || '❓'}</span>
-                <span class="crafting-card-name">${recipe.result.quantity > 1 ? recipe.result.quantity + 'x ' : ''}${recipe.result.name}</span>
-            </div>
-            <div class="crafting-materials-list">
-                ${materialsHtml}
-            </div>
-            <button class="btn btn-sm ${canCraft ? 'btn-success' : 'btn-disabled'}" data-craft-index="${recipeIndex}" ${!canCraft ? 'disabled' : ''}>Craft</button>
+        card.innerHTML = `
+            <div class="icon">${resultItem?.icon || '📦'}</div>
+            ${quantityBadge}
         `;
 
-        // Build tooltip content for item details
-        let tooltipContent = `<strong>${resultItem?.name || recipe.result.name}</strong>`;
-        if (resultItem?.description) {
-            tooltipContent += `<br>${resultItem.description}`;
-        }
-        if (resultItem?.bonus) {
-            tooltipContent += `<hr style="margin: 5px 0;"><strong>Bonuses:</strong><br>`;
-            for (const stat in resultItem.bonus) {
-                tooltipContent += `${stat.charAt(0).toUpperCase() + stat.slice(1)}: +${resultItem.bonus[stat]}<br>`;
-            }
-        }
+        // Tooltip logic
+        let tooltip = `<strong>${resultItem?.name || recipe.result.name}</strong>`;
         if (resultItem?.type === 'weapon') {
-            tooltipContent += `<hr style="margin: 5px 0;"><strong>Weapon:</strong><br>`;
-            tooltipContent += `${resultItem.weaponDamage} ${resultItem.damageType} Dmg`;
+            tooltip += `<br><span style="color:#aaa">${resultItem.weaponDamage} ${resultItem.damageType} Dmg</span>`;
+        }
+        tooltip += `<hr style="margin: 5px 0;"><strong>Requires:</strong>`;
+
+        for (const [matName, reqQty] of Object.entries(recipe.materials)) {
+            const owned = getMaterialCount(matName);
+            const color = owned >= reqQty ? '#2ecc71' : '#e74c3c'; // Green or Red
+            tooltip += `<br><span style="color:${color}">${matName}: ${owned}/${reqQty}</span>`;
         }
 
-        recipeEl.addEventListener('mouseenter', () => showTooltip(tooltipContent));
-        recipeEl.addEventListener('mouseleave', () => hideTooltip());
+        if (canCraft) {
+            tooltip += `<br><br><em style="color:#f1c40f">Click to Craft</em>`;
+            card.onclick = () => showCraftingModal(recipeIndex);
+        } else {
+            tooltip += `<br><br><em style="color:#aaa">Insufficient Materials</em>`;
+        }
 
-        gridContainer.appendChild(recipeEl);
+        card.onmouseover = () => showTooltip(tooltip);
+        card.onmouseout = () => hideTooltip();
+
+        itemsGrid.appendChild(card);
     });
+
+    gridContainer.appendChild(itemsGrid);
 }
 
 export function showCraftingModal(recipeIndex) {
