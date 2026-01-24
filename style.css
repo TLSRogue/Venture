@@ -1165,47 +1165,43 @@ body.show-spell-details .spell-card .spell-details {
     border-left-color: var(--success-color);
 }
 
-/* Fix Character Page Layout to prevent scrolling */
+/* Fix Character Page Layout to prevent scrolling - REVERTED per user feedback */
+/*
 #character-tab {
     height: calc(100vh - 220px);
-    /* Adjust based on header/tabs height */
     overflow: hidden;
     display: flex;
     flex-direction: column;
 }
+*/
+/* Revert to default flow */
+#character-tab {
+    display: block;
+    height: auto;
+    overflow: visible;
+}
 
 #character-tab .storage-grid {
-    flex: 1;
-    overflow: hidden;
-    /* Prevent grid container from scrolling */
-    gap: 15px;
-    height: 100%;
+    /* Revert flow */
+    height: auto;
+    overflow: visible;
 }
 
 #character-tab .storage-grid>div {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    overflow: hidden;
+    height: auto;
+    overflow: visible;
 }
 
-#character-tab h3 {
-    flex-shrink: 0;
-    /* Headers don't shrink */
-    margin-bottom: 10px;
-}
-
-/* Make internal grids scrollable if needed */
+/* Revert scrollbars on internal grids */
 #inventory-grid,
 #equipment-grid,
 #spells-grid,
 .spell-grid,
 #spellbook-grid {
-    overflow-y: auto;
-    padding-right: 5px;
-    /* Space for scrollbar */
-    scrollbar-width: thin;
-    scrollbar-color: var(--primary-color) rgba(0, 0, 0, 0.3);
+    overflow-y: visible;
+    height: auto;
 }
 
 /* Base Storage Grid logic (for Bank/Merchant which might not need fixed height) */
@@ -1517,12 +1513,15 @@ hr {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    padding: 12px 24px;
-    font-size: 1.1em;
+    gap: 8px;
+    /* Reduced gap */
+    padding: 8px 16px;
+    /* Reduced padding */
+    font-size: 0.9em;
+    /* Reduced font size */
     font-weight: bold;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     border: none;
     border-radius: 50px;
     /* Pill shape */
@@ -1530,7 +1529,8 @@ hr {
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     z-index: 100;
-    min-width: 180px;
+    min-width: 140px;
+    /* Reduced width */
 }
 
 .btn-nav:hover:not(:disabled) {
