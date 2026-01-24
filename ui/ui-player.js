@@ -384,16 +384,31 @@ export function renderSpells() {
         tabsContainer.appendChild(tab);
     });
 
-    // --- RENDER SPELLBOOK GRID ---
-    const spellsToDisplay = gameState.spellbook.filter(s => (s.school || 'Physical') === activeSpellbookCategory);
+    // --- PAGINATION LOGIC ---
+    const ITEMS_PER_PAGE = 6;
+    const totalPages = Math.ceil(spellsToDisplay.length / ITEMS_PER_PAGE);
 
-    if (spellsToDisplay.length === 0 && gameState.spellbook.length > 0) {
-        spellbookContainer.innerHTML = '<p>No spells in this category.</p>';
+    // Ensure current page is valid
+    if (window.spellbookPage === undefined) window.spellbookPage = 1;
+    if (window.spellbookPage > totalPages) window.spellbookPage = totalPages || 1;
+    if (window.spellbookPage < 1) window.spellbookPage = 1;
+
+    const startIndex = (window.spellbookPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const spellsOnPage = spellsToDisplay.slice(startIndex, endIndex);
+
+    if (spellsOnPage.length === 0 && gameState.spellbook.length > 0) {
+        if (spellsToDisplay.length === 0) {
+            spellbookContainer.innerHTML = '<p>No spells in this category.</p>';
+        } else {
+            // Should not happen if logic is correct, but fallback
+            spellbookContainer.innerHTML = '<p>Page empty.</p>';
+        }
     } else if (gameState.spellbook.length === 0) {
         spellbookContainer.innerHTML = '<p>You have not learned any spells yet.</p>';
     }
 
-    spellsToDisplay.forEach((spell) => {
+    spellsOnPage.forEach((spell) => {
         // Find original index in full spellbook for the equip action
         const originalIndex = gameState.spellbook.indexOf(spell);
 
@@ -421,6 +436,39 @@ export function renderSpells() {
 
         spellbookContainer.appendChild(card);
     });
+
+    // --- RENDER PAGINATION CONTROLS ---
+    if (totalPages > 1) {
+        const paginationControls = document.createElement('div');
+        paginationControls.className = 'spellbook-pagination';
+        paginationControls.style.display = 'flex';
+        paginationControls.style.justifyContent = 'center';
+        paginationControls.style.alignItems = 'center';
+        paginationControls.style.gap = '10px';
+        paginationControls.style.marginTop = '10px';
+
+        paginationControls.innerHTML = `
+            <button class="btn btn-sm" id="prev-page-btn" ${window.spellbookPage === 1 ? 'disabled' : ''}>Prev</button>
+            <span>Page ${window.spellbookPage} of ${totalPages}</span>
+            <button class="btn btn-sm" id="next-page-btn" ${window.spellbookPage === totalPages ? 'disabled' : ''}>Next</button>
+        `;
+
+        spellbookContainer.appendChild(paginationControls);
+
+        // Attach listeners (using manual binding to avoid inline onclick issues with scope)
+        // We use setTimeout to ensure elements are in DOM or just direct bind
+        const prevBtn = paginationControls.querySelector('#prev-page-btn');
+        const nextBtn = paginationControls.querySelector('#next-page-btn');
+
+        if (prevBtn) prevBtn.onclick = () => {
+            window.spellbookPage--;
+            renderSpells();
+        };
+        if (nextBtn) nextBtn.onclick = () => {
+            window.spellbookPage++;
+            renderSpells();
+        };
+    }
 }
 
 export function renderEquipment() {
