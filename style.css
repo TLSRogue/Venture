@@ -2261,5 +2261,7 @@ hr {
 
 .character-left-col .equipment-grid,
 .character-left-col .spell-grid {
+    display: grid;
     grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 10px;
 }

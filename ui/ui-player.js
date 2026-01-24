@@ -304,11 +304,9 @@ export function showItemActions(itemIndex) {
 export function renderSpells() {
     const equippedContainer = document.getElementById('spells-grid');
     const spellbookContainer = document.getElementById('spellbook-grid');
-    const categoriesContainer = document.getElementById('spellbook-categories');
 
     equippedContainer.innerHTML = '';
     spellbookContainer.innerHTML = '';
-    categoriesContainer.innerHTML = '';
 
     const canSwap = gameState.currentZone === null && !gameState.inDuel;
 
