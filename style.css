@@ -104,21 +104,16 @@ body {
 /* --- END ZONE BACKGROUNDS --- */
 
 #player-action-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 10px;
     border-top: 2px solid var(--primary-color);
     display: none;
-    /* Toggled via JS */
     justify-content: center;
     align-items: center;
     gap: 15px;
     z-index: 1000;
-    backdrop-filter: blur(5px);
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    border-radius: 8px;
 }
 
 #player-action-bar.disabled-during-reaction {
@@ -1445,11 +1440,36 @@ hr {
     pointer-events: none;
 }
 
-/* Old ID selectors removed to allow .btn-icon class to take precedence */
-/*
 #backpack-btn,
-#character-sheet-btn { ... }
-*/
+#character-sheet-btn {
+    background: #34495e;
+    border: 2px solid #7f8c8d;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+#backpack-btn:hover,
+#character-sheet-btn:hover {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 10px var(--accent-color);
+    transform: scale(1.1);
+}
+
+#backpack-btn svg,
+#character-sheet-btn svg {
+    width: 28px;
+    height: 28px;
+    fill: #ecf0f1;
+    stroke: #ecf0f1;
+}
 
 .card.targetable {
     animation: pulse 1.5s infinite;
