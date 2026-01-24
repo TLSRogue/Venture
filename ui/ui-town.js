@@ -495,36 +495,9 @@ export function renderCrafting() {
 
         // Tooltip logic
         let tooltip = `<strong>${resultItem?.name || recipe.result.name}</strong>`;
-        if (resultItem?.description) {
-            tooltip += `<br>${resultItem.description}`;
+        if (resultItem?.type === 'weapon') {
+            tooltip += `<br><span style="color:#aaa">${resultItem.weaponDamage} ${resultItem.damageType} Dmg</span>`;
         }
-
-        // Add full item details if available
-        if (resultItem) {
-            if (resultItem.bonus) {
-                tooltip += '<hr style="margin: 5px 0;"><strong>Bonuses:</strong><br>';
-                for (const stat in resultItem.bonus) {
-                    tooltip += `${stat.charAt(0).toUpperCase() + stat.slice(1)}: +${resultItem.bonus[stat]}<br>`;
-                }
-            }
-            if (resultItem.type === 'weapon') {
-                tooltip += `<hr style="margin: 5px 0;"><strong>Weapon:</strong><br>`;
-                tooltip += `Cost: ${resultItem.cost} AP | CD: ${resultItem.cooldown}<br>`;
-                const statName = (resultItem.stat || 'strength').charAt(0).toUpperCase() + (resultItem.stat || 'strength').slice(1);
-                tooltip += `Roll: D20 + ${statName} (${resultItem.hit}+)<br>`;
-                tooltip += `Deals ${resultItem.weaponDamage} ${resultItem.damageType} Damage.`;
-                if (resultItem.onCrit && resultItem.onCrit.debuff) {
-                    tooltip += `<br>On Crit (20): Apply ${resultItem.onCrit.debuff.type}.`;
-                }
-            }
-            if (resultItem.type === 'consumable') {
-                tooltip += `<hr style="margin: 5px 0;"><strong>Consumable</strong>`;
-            }
-            if (resultItem.traits) {
-                tooltip += `<hr style="margin: 5px 0;"><strong>Traits:</strong> ${resultItem.traits.join(', ')}`;
-            }
-        }
-
         tooltip += `<hr style="margin: 5px 0;"><strong>Requires:</strong>`;
 
         for (const [matName, reqQty] of Object.entries(recipe.materials)) {
