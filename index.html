@@ -22,8 +22,14 @@
                 <img id="character-avatar-display" src="" class="header-avatar"
                     style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; margin-right: 15px; display: none;">
                 <div>
-                    <h1 id="character-name-display"></h1>
-                    <p id="character-title-display"></p>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <h1 id="character-name-display" style="margin: 0;"></h1>
+                        <button id="change-avatar-btn" class="btn-xs" title="Change Avatar">✏️</button>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <p id="character-title-display" style="margin: 0;"></p>
+                        <button id="change-title-btn" class="btn-xs" title="Change Title">🏆</button>
+                    </div>
                 </div>
             </div>
             <h1 id="default-header-title">⚔️ Venture - Card Game RPG ⚔️</h1>
@@ -98,21 +104,22 @@
             <div id="character-tab" class="tab-content" style="display: none;">
                 <h2>👤 Character</h2>
                 <div class="storage-grid">
-                    <div>
+                    <div class="character-left-col">
                         <h3>⚔️ Equipment</h3>
                         <div id="equipment-grid" class="equipment-grid"></div>
-                        <div id="character-title-section" style="margin-top: 20px;">
-                            <h3>🏆 Select Title</h3>
-                            <div id="title-selection-container" class="action-buttons"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <h3>🎒 Inventory (24 slots)</h3>
-                        <div id="inventory-grid" class="inventory-grid"></div>
+
                         <h3 style="margin-top: 20px;">✨ Equipped Spells (5 max)</h3>
                         <div id="spells-grid" class="spell-grid"></div>
-                        <h3>📖 Spellbook</h3>
-                        <div id="spellbook-categories" class="tabs" style="margin-bottom: 15px;"></div>
+                    </div>
+                    <div class="character-right-col">
+                        <h3>🎒 Inventory (24 slots)</h3>
+                        <div id="inventory-grid" class="inventory-grid"></div>
+
+                        <h3 style="margin-top: 20px;">📖 Spellbook</h3>
+                        <!-- New Tabbed Spellbook Interface -->
+                        <div id="spellbook-tabs" class="merchant-sell-tabs">
+                            <!-- JS will populate these based on schools: Arcane, Fire, etc. -->
+                        </div>
                         <div id="spellbook-grid" class="spell-grid"></div>
                     </div>
                 </div>

@@ -74,7 +74,7 @@ export function showTab(tabName) {
         renderInventory();
         renderSpells();
         renderEquipment();
-        renderTitleSelection();
+        // renderTitleSelection() removed - now handled via header button modal
     }
 }
 
@@ -100,6 +100,19 @@ export function renderHeader() {
         } else {
             avatarEl.style.display = 'none';
         }
+
+        // Attach listeners if not already attached (simple check or re-attach safely)
+        const changeAvatarBtn = document.getElementById('change-avatar-btn');
+        const changeTitleBtn = document.getElementById('change-title-btn');
+
+        // Use onclick to prevent multiple listeners accumulation on re-render
+        if (changeAvatarBtn) {
+            changeAvatarBtn.onclick = () => UIParty.showAvatarSelectionModal();
+        }
+        if (changeTitleBtn) {
+            changeTitleBtn.onclick = () => showTitleSelectionModal();
+        }
+
     } else {
         charInfo.style.display = 'none';
         defaultTitleEl.style.display = 'block';
@@ -350,6 +363,7 @@ export function renderSpells() {
     }
 
     // --- RENDER SPELLBOOK TABS ---
+    const tabsContainer = document.getElementById('spellbook-tabs');
     const availableCategories = [...new Set(gameState.spellbook.map(s => s.school || 'Physical'))];
     availableCategories.sort();
 
@@ -358,15 +372,18 @@ export function renderSpells() {
         activeSpellbookCategory = availableCategories[0];
     }
 
+    // Always clear container to avoid duplicates
+    tabsContainer.innerHTML = '';
+
     availableCategories.forEach(category => {
         const tab = document.createElement('button');
-        tab.className = `category-tab ${activeSpellbookCategory === category ? 'active' : ''}`;
+        tab.className = `tab-btn ${activeSpellbookCategory === category ? 'active' : ''}`;
         tab.textContent = category;
         tab.onclick = () => {
             activeSpellbookCategory = category;
             renderSpells(); // Re-render to update grid
         };
-        categoriesContainer.appendChild(tab);
+        tabsContainer.appendChild(tab);
     });
 
     // --- RENDER SPELLBOOK GRID ---
@@ -563,36 +580,33 @@ export function showQuestLogModal() {
     showModal(content);
 }
 
-export function renderTitleSelection() {
-    const container = document.getElementById('title-selection-container');
-    if (!container || !gameState.characterName) return;
+export function showTitleSelectionModal() {
+    if (!gameState.characterName) return;
 
-    container.innerHTML = '';
+    let modalContent = '<h2>Select Title</h2><div class="action-buttons">';
 
     gameState.unlockedTitles.forEach(title => {
-        const btn = document.createElement('button');
-        btn.className = 'btn';
-        btn.textContent = title;
-        if (title === gameState.title) {
-            btn.classList.add('btn-success');
-            btn.disabled = true;
-        } else {
-            btn.classList.add('btn-primary');
-        }
-        btn.dataset.title = title;
-        container.appendChild(btn);
+        const isCurrent = title === gameState.title;
+        modalContent += `
+            <button class="btn ${isCurrent ? 'btn-success' : 'btn-primary'}" 
+                ${isCurrent ? 'disabled' : ''} 
+                onclick="window.setPlayerTitle('${title}')">
+                ${title}
+            </button>
+        `;
     });
 
-    const divider = document.createElement('hr');
-    divider.style.width = '100%';
-    divider.style.margin = '10px 0';
-    container.appendChild(divider);
+    modalContent += '</div>';
+    modalContent += `<div class="action-buttons" style="margin-top: 20px;"><button class="btn" onclick="document.getElementById('modal').classList.add('hidden')">Close</button></div>`;
 
-    const avatarBtn = document.createElement('button');
-    avatarBtn.className = 'btn btn-primary';
-    avatarBtn.textContent = 'Change Avatar';
-    avatarBtn.addEventListener('click', () => {
-        UIParty.showAvatarSelectionModal();
-    });
-    container.appendChild(avatarBtn);
+    showModal(modalContent);
 }
+
+// Global helper for the onclick
+window.setPlayerTitle = (title) => {
+    Network.emitPlayerAction('setTitle', { title }); // Assuming this event exists or needs to be handled
+    // Optimistic update
+    gameState.title = title;
+    renderHeader();
+    showTitleSelectionModal(); // Re-render modal to update buttons
+};
