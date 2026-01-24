@@ -384,6 +384,9 @@ export function renderSpells() {
         tabsContainer.appendChild(tab);
     });
 
+    // --- RENDER SPELLBOOK GRID ---
+    const spellsToDisplay = gameState.spellbook.filter(s => (s.school || 'Physical') === activeSpellbookCategory);
+
     // --- PAGINATION LOGIC ---
     const ITEMS_PER_PAGE = 6;
     const totalPages = Math.ceil(spellsToDisplay.length / ITEMS_PER_PAGE);
