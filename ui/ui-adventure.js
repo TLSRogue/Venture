@@ -543,6 +543,35 @@ function renderZoneCards(cards) {
             barsDiv.innerHTML = createHealthBarHTML(card.health, card.maxHealth, null, shield);
             cardEl.appendChild(barsDiv);
             cardEl.appendChild(createEffectsContainer(card));
+
+            // Display reaction cooldowns if the enemy has reactions
+            if (card.reactions && card.reactions.length > 0) {
+                const reactionsDiv = document.createElement('div');
+                reactionsDiv.className = 'enemy-reactions';
+                reactionsDiv.style.cssText = 'display: flex; gap: 4px; justify-content: center; margin-top: 4px;';
+
+                card.reactions.forEach(reaction => {
+                    const cooldown = card.reactionCooldowns?.[reaction.name] || 0;
+                    const reactionSpan = document.createElement('span');
+                    reactionSpan.style.cssText = `
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                        font-size: 11px;
+                        background: ${cooldown > 0 ? 'rgba(150, 50, 50, 0.8)' : 'rgba(50, 150, 50, 0.8)'};
+                        color: white;
+                        display: flex;
+                        align-items: center;
+                        gap: 3px;
+                    `;
+                    reactionSpan.innerHTML = cooldown > 0
+                        ? `🛡️ ${reaction.name} <span style="color: #ff6b6b;">(${cooldown})</span>`
+                        : `🛡️ ${reaction.name}`;
+                    reactionSpan.title = `${reaction.name}: Triggers on ${reaction.triggerOn} attacks. Roll ${reaction.roll}+ to succeed. ${cooldown > 0 ? `Cooldown: ${cooldown} turns` : 'Ready!'}`;
+                    reactionsDiv.appendChild(reactionSpan);
+                });
+
+                cardEl.appendChild(reactionsDiv);
+            }
         } else if (card.type === 'resource' && card.charges !== undefined) {
             // Add green charge bar for resources
             const maxCharges = card.maxCharges || 3;
