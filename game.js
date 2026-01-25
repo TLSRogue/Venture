@@ -14,7 +14,16 @@ import * as UIPlayer from './ui/ui-player.js';
 import * as UITown from './ui/ui-town.js';
 import * as UITrade from './ui/ui-trade.js';
 import { ARENA_ENTRY_FEE } from './constants.js';
-import { preloadAllSounds, playSound } from './audio/sound-manager.js';
+import {
+    preloadAllSounds,
+    playSound,
+    getMasterVolume,
+    setMasterVolume,
+    getMusicVolume,
+    setMusicVolume,
+    getSfxVolume,
+    setSfxVolume
+} from './audio/sound-manager.js';
 
 
 // --- STATE VARIABLES ---
@@ -25,6 +34,7 @@ let pvpTurnTimerInterval = null;
 // --- INITIALIZATION ---
 function initGame() {
     preloadAllSounds(); // Preload all game audio
+    initVolumeControls(); // Setup volume control UI
     addEventListeners();
     Network.initSocketListeners({
         onConnect: handleConnect,
@@ -668,6 +678,46 @@ function finalizeCharacterCreation(slotIndex) {
     activeSlotIndex = slotIndex;
     Network.emitRegisterPlayer(gameState);
     UIMain.showModal('<h2>Creating character...</h2>');
+}
+
+// --- VOLUME CONTROLS ---
+function initVolumeControls() {
+    const masterSlider = document.getElementById('master-volume');
+    const musicSlider = document.getElementById('music-volume');
+    const sfxSlider = document.getElementById('sfx-volume');
+
+    if (!masterSlider || !musicSlider || !sfxSlider) return;
+
+    // Load saved values
+    masterSlider.value = Math.round(getMasterVolume() * 100);
+    musicSlider.value = Math.round(getMusicVolume() * 100);
+    sfxSlider.value = Math.round(getSfxVolume() * 100);
+
+    // Update displays
+    document.getElementById('master-volume-display').textContent = masterSlider.value + '%';
+    document.getElementById('music-volume-display').textContent = musicSlider.value + '%';
+    document.getElementById('sfx-volume-display').textContent = sfxSlider.value + '%';
+
+    // Add event listeners
+    masterSlider.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value, 10);
+        document.getElementById('master-volume-display').textContent = value + '%';
+        setMasterVolume(value / 100);
+    });
+
+    musicSlider.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value, 10);
+        document.getElementById('music-volume-display').textContent = value + '%';
+        setMusicVolume(value / 100);
+    });
+
+    sfxSlider.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value, 10);
+        document.getElementById('sfx-volume-display').textContent = value + '%';
+        setSfxVolume(value / 100);
+        // Play a test sound when adjusting SFX
+        playSound('click', 0.5);
+    });
 }
 
 // --- EVENT LISTENERS ---

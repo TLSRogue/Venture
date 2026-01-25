@@ -2,7 +2,9 @@
 // A simple sound manager for game audio effects
 
 const sounds = {};
-let masterVolume = 0.5;
+let masterVolume = 0.8;
+let musicVolume = 0.5;
+let sfxVolume = 0.8;
 let soundEnabled = true;
 
 /**
@@ -19,7 +21,7 @@ export function preloadSound(name, path) {
 /**
  * Play a sound effect
  * @param {string} name - Sound identifier
- * @param {number} volume - Volume from 0.0 to 1.0 (relative to master volume)
+ * @param {number} volume - Volume from 0.0 to 1.0 (relative to master/sfx volume)
  */
 export function playSound(name, volume = 1.0) {
     if (!soundEnabled || !sounds[name]) return;
@@ -27,7 +29,8 @@ export function playSound(name, volume = 1.0) {
     try {
         // Clone the audio to allow overlapping sounds
         const sound = sounds[name].cloneNode();
-        sound.volume = Math.min(1.0, volume * masterVolume);
+        const effectiveVolume = volume * masterVolume * sfxVolume;
+        sound.volume = Math.min(1.0, effectiveVolume);
         sound.play().catch(e => {
             // Browsers often block autoplay, this is expected
             console.debug('Audio play blocked:', e.message);
@@ -43,7 +46,7 @@ export function playSound(name, volume = 1.0) {
  */
 export function setMasterVolume(volume) {
     masterVolume = Math.max(0, Math.min(1, volume));
-    localStorage.setItem('soundVolume', masterVolume.toString());
+    localStorage.setItem('masterVolume', masterVolume.toString());
 }
 
 /**
@@ -52,6 +55,41 @@ export function setMasterVolume(volume) {
  */
 export function getMasterVolume() {
     return masterVolume;
+}
+
+/**
+ * Set the music volume
+ * @param {number} volume - Volume from 0.0 to 1.0
+ */
+export function setMusicVolume(volume) {
+    musicVolume = Math.max(0, Math.min(1, volume));
+    localStorage.setItem('musicVolume', musicVolume.toString());
+    // TODO: Apply to any playing background music
+}
+
+/**
+ * Get the current music volume
+ * @returns {number}
+ */
+export function getMusicVolume() {
+    return musicVolume;
+}
+
+/**
+ * Set the sound effects volume
+ * @param {number} volume - Volume from 0.0 to 1.0
+ */
+export function setSfxVolume(volume) {
+    sfxVolume = Math.max(0, Math.min(1, volume));
+    localStorage.setItem('sfxVolume', sfxVolume.toString());
+}
+
+/**
+ * Get the current SFX volume
+ * @returns {number}
+ */
+export function getSfxVolume() {
+    return sfxVolume;
 }
 
 /**
@@ -75,15 +113,15 @@ export function isSoundEnabled() {
  * Initialize sound settings from localStorage
  */
 export function initSoundSettings() {
-    const savedVolume = localStorage.getItem('soundVolume');
+    const savedMaster = localStorage.getItem('masterVolume');
+    const savedMusic = localStorage.getItem('musicVolume');
+    const savedSfx = localStorage.getItem('sfxVolume');
     const savedEnabled = localStorage.getItem('soundEnabled');
 
-    if (savedVolume !== null) {
-        masterVolume = parseFloat(savedVolume);
-    }
-    if (savedEnabled !== null) {
-        soundEnabled = savedEnabled === 'true';
-    }
+    if (savedMaster !== null) masterVolume = parseFloat(savedMaster);
+    if (savedMusic !== null) musicVolume = parseFloat(savedMusic);
+    if (savedSfx !== null) sfxVolume = parseFloat(savedSfx);
+    if (savedEnabled !== null) soundEnabled = savedEnabled === 'true';
 }
 
 /**

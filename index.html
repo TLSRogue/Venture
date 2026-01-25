@@ -77,8 +77,23 @@
                     </button>
                 </div>
                 <hr>
-                <h3>Game Options</h3>
-                <div class="action-buttons">
+                <h3>⚙️ Game Options</h3>
+                <div id="game-options" class="game-options-panel">
+                    <div class="volume-control">
+                        <label for="master-volume">🔊 Master Volume</label>
+                        <input type="range" id="master-volume" min="0" max="100" value="80">
+                        <span id="master-volume-display">80%</span>
+                    </div>
+                    <div class="volume-control">
+                        <label for="music-volume">🎵 Music</label>
+                        <input type="range" id="music-volume" min="0" max="100" value="50">
+                        <span id="music-volume-display">50%</span>
+                    </div>
+                    <div class="volume-control">
+                        <label for="sfx-volume">🔔 Sound Effects</label>
+                        <input type="range" id="sfx-volume" min="0" max="100" value="80">
+                        <span id="sfx-volume-display">80%</span>
+                    </div>
                 </div>
                 <h3>Global Chat</h3>
                 <div id="global-chat-container">
