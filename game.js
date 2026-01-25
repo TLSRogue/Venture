@@ -109,7 +109,8 @@ function getEffectsFromLog(logEntries) {
         }
 
         // PATTERN 3a: Punch spell success (play punch sound instead of generic)
-        match = entry.message.match(/(.+) casts Punch!.*color:#2ecc71/);
+        // PATTERN 3a: Punch spell success (play punch sound instead of generic)
+        match = entry.message.match(/(.+) casts Punch!/);
         if (match) {
             effects.push({ targetName: match[1], type: 'success', text: 'Hit!' });
             playSound('punch', 0.6);
@@ -134,7 +135,9 @@ function getEffectsFromLog(logEntries) {
         }
 
         // PATTERN 3c: Attack spell success (shows Hit! for attack spells)
-        match = entry.message.match(/(.+) casts (.+)!.*color:#2ecc71/);
+        // PATTERN 3c: Attack spell success (shows Hit! for attack spells)
+        // Matches: "Name casts SpellName!" followed typically by damage/miss info, but here we capture the cast event
+        match = entry.message.match(/(.+) casts (.+)!/);
         if (match) {
             const casterName = match[1];
             const spellName = match[2];
@@ -210,6 +213,7 @@ function getEffectsFromLog(logEntries) {
         }
 
         // PATTERN 9: Block (e.g., "Name's Block: ... Blocked")
+        // PATTERN 10: Block (e.g., "Name's Block: ... Blocked")
         match = entry.message.match(/(.+?)'s Block: .+ Blocked/);
         if (match) {
             effects.push({ targetName: match[1], type: 'success', text: 'Blocked!' });
@@ -217,11 +221,13 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-        // PATTERN 10: Parry (e.g., "Name's Parry: ... Deflected")
-        match = entry.message.match(/(.+?)'s Parry: .+ Deflected!/);
+        // PATTERN 11: Dodge / Parry / Evasive Shot (Unified Avoidance)
+        // Matches: "Name's Parry: ... Deflected!" or "Name's Dodge: ... Avoided!"
+        match = entry.message.match(/(.+?)'s (?:Dodge|Evasive Shot|Parry): .+ (?:Avoided|Deflected)!/);
         if (match) {
-            effects.push({ targetName: match[1], type: 'success', text: 'Parried!' });
-            playSound('parry', 0.5);
+            const actionType = entry.message.includes('Deflected') ? 'Parried!' : 'Dodged!';
+            effects.push({ targetName: match[1], type: 'success', text: actionType });
+            playSound('dodge', 0.5); // User requested dodge-generic for all these
             return;
         }
 
