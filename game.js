@@ -137,6 +137,16 @@ function getEffectsFromLog(logEntries) {
         // PATTERN 3c: Attack spell success (shows Hit! for attack spells)
         // PATTERN 3c: Attack spell success (shows Hit! for attack spells)
         // Matches: "Name casts SpellName!" followed typically by damage/miss info, but here we capture the cast event
+        // PATTERN 6: Spell fizzle / Critical Failure
+        match = entry.message.match(/(.+?) casts .+!.*(?:Critical Failure|Fizzle)/i);
+        if (match) {
+            effects.push({ targetName: match[1], type: 'fail', text: 'Fail!' });
+            playSound('miss', 0.4);
+            return;
+        }
+
+        // PATTERN 3c: Attack spell success (shows Hit! for attack spells)
+        // Matches: "Name casts SpellName!" followed typically by damage/miss info, but here we capture the cast event
         match = entry.message.match(/(.+) casts (.+)!/);
         if (match) {
             const casterName = match[1];
@@ -169,13 +179,7 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-        // PATTERN 6: Spell fizzle / Critical Failure
-        match = entry.message.match(/(.+?) casts .+!.*(?:Critical Failure|Fizzle)/i);
-        if (match) {
-            effects.push({ targetName: match[1], type: 'fail', text: 'Fail!' });
-            playSound('miss', 0.4);
-            return;
-        }
+
 
         // PATTERN 7: Healing
         match = entry.message.match(/Healed (.+?) for (\d+) HP/);
