@@ -160,6 +160,24 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Section Headers for tabs */
+.section-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.section-header h2 {
+    margin: 0 0 5px 0;
+    font-size: 1.8em;
+}
+
+.section-desc {
+    margin: 0;
+    color: #8899aa;
+    font-size: 0.95em;
+}
+
 .compact-stat {
     display: flex;
     align-items: center;
@@ -733,28 +751,37 @@ body {
     gap: 8px;
     margin-bottom: 15px;
     flex-wrap: wrap;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .subtab-btn {
-    padding: 6px 14px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #ccc;
+    padding: 8px 20px;
+    min-width: 90px;
+    background: rgba(44, 62, 80, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #aab;
     cursor: pointer;
-    border-radius: 15px;
+    border-radius: 6px;
     font-size: 0.85em;
+    font-weight: 500;
     transition: all 0.2s ease;
+    text-align: center;
 }
 
 .subtab-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(52, 152, 219, 0.3);
     color: #fff;
+    border-color: rgba(52, 152, 219, 0.5);
 }
 
 .subtab-btn.active {
     background: var(--primary-color);
     border-color: var(--primary-color);
     color: #fff;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
 }
 
 .crafting-row,

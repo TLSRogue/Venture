@@ -108,26 +108,39 @@ function handleEquipItem(character, payload) {
     const currentlyEquipped = character.equipment[chosenSlot];
 
     if (itemToEquip.hands === 2) {
+        // Equipping a 2-hand weapon - need to clear both main and off hand
         const mainHandItem = character.equipment.mainHand;
         const offHandItem = character.equipment.offHand;
         const freeSlots = character.inventory.filter(i => !i).length;
-        const slotsToFree = (mainHandItem ? 1 : 0) + (offHandItem && offHandItem !== mainHandItem ? 1 : 0);
+        // Check if mainHand and offHand are the same item (another 2-hander)
+        const isSameItem = mainHandItem && offHandItem && mainHandItem === offHandItem;
+        const slotsToFree = (mainHandItem ? 1 : 0) + (offHandItem && !isSameItem ? 1 : 0);
 
         if (slotsToFree > freeSlots + 1) return false;
 
         character.inventory[itemIndex] = null;
         if (mainHandItem) addItemToInventoryServer(character, mainHandItem);
-        if (offHandItem && offHandItem !== mainHandItem) addItemToInventoryServer(character, offHandItem);
+        // Only add offHand if it's different from mainHand (not a 2-hander)
+        if (offHandItem && !isSameItem) addItemToInventoryServer(character, offHandItem);
 
         character.equipment.mainHand = itemToEquip;
         character.equipment.offHand = itemToEquip;
     } else {
-        if (['mainHand', 'offHand'].includes(chosenSlot) && character.equipment.mainHand && character.equipment.mainHand.hands === 2) {
+        // Equipping a 1-hand weapon - check if currently have a 2-hander equipped
+        const currentMainHand = character.equipment.mainHand;
+        if (['mainHand', 'offHand'].includes(chosenSlot) && currentMainHand && currentMainHand.hands === 2) {
+            // Replacing a 2-hand weapon with a 1-hand weapon
+            // Return the 2-hander to inventory first
+            character.inventory[itemIndex] = null;
+            addItemToInventoryServer(character, currentMainHand);
             character.equipment.mainHand = null;
             character.equipment.offHand = null;
+            character.equipment[chosenSlot] = itemToEquip;
+        } else {
+            // Normal 1-hand swap
+            character.equipment[chosenSlot] = itemToEquip;
+            character.inventory[itemIndex] = currentlyEquipped;
         }
-        character.equipment[chosenSlot] = itemToEquip;
-        character.inventory[itemIndex] = currentlyEquipped;
     }
     return true;
 }
