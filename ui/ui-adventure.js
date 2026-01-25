@@ -590,6 +590,16 @@ function renderZoneCards(cards) {
 
         zoneContainer.appendChild(cardEl);
     });
+
+    // Add Deck Counter Display
+    if (gameState.zoneDeck) {
+        const deckCount = gameState.zoneDeck.length;
+        const deckCounterEl = document.createElement('div');
+        deckCounterEl.className = 'zone-deck-counter';
+        deckCounterEl.innerHTML = `<div class="deck-count-number">${deckCount}</div>`;
+        deckCounterEl.title = "Remaining cards in zone deck";
+        zoneContainer.appendChild(deckCounterEl);
+    }
 }
 
 function createEffectsContainer(stateObject) {
