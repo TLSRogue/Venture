@@ -706,6 +706,15 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 if (enemy.buffs) { enemy.buffs.forEach(b => b.duration--); enemy.buffs = enemy.buffs.filter(b => b.duration > 0); }
                 if (enemy.debuffs) { enemy.debuffs.forEach(d => d.duration--); enemy.debuffs = enemy.debuffs.filter(d => d.duration > 0); }
 
+                // Decrement enemy reaction cooldowns
+                if (enemy.reactionCooldowns) {
+                    for (const reactionName in enemy.reactionCooldowns) {
+                        if (enemy.reactionCooldowns[reactionName] > 0) {
+                            enemy.reactionCooldowns[reactionName]--;
+                        }
+                    }
+                }
+
                 if (damageTaken) broadcastAdventureUpdate(io, party);
                 return false;
             };

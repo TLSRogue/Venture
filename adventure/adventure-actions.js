@@ -833,6 +833,34 @@ export async function processCastSpell(io, party, player, payload) {
                     continue;
                 }
 
+                // --- ENEMY REACTION CHECK (melee spells) ---
+                if (!isPvP && !target.isPlayer && target.state && spell.range === 'melee') {
+                    const reactionResult = checkEnemyReaction(target.state, 'melee', actingPlayerState, log);
+
+                    if (reactionResult.negated) {
+                        log.push({ message: `${target.name} parries the ${spell.name}!`, type: 'info' });
+
+                        // Apply counter-damage to the player
+                        if (reactionResult.counterDamage > 0) {
+                            const resistance = reactionResult.counterDamageType === 'Physical' ? (bonuses.physicalResistance || 0) : 0;
+                            const counterDmg = Math.max(1, reactionResult.counterDamage - resistance);
+
+                            applyDamage(actingPlayerState, counterDmg);
+                            let counterMsg = `${actingPlayerState.name} takes ${counterDmg} ${reactionResult.counterDamageType} damage from the counter-attack!`;
+                            if (resistance > 0) counterMsg += ` (${resistance} resisted)`;
+                            log.push({ message: counterMsg, type: 'damage' });
+
+                            // Check if player died from counter-attack
+                            if (actingPlayerState.health <= 0) {
+                                actingPlayerState.health = 0;
+                                actingPlayerState.isDead = true;
+                                log.push({ message: `${actingPlayerState.name} has been defeated!`, type: 'damage' });
+                            }
+                        }
+                        continue; // Skip this target's damage
+                    }
+                }
+
                 // --- VEXOR DODGE ---
                 if (checkVexorDodge(target, sharedState, log)) {
                     continue;
