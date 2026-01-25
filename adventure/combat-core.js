@@ -566,13 +566,21 @@ export function applyDoTEffects(state, log) {
  * @param {Array} log - The log array to push messages to
  * @returns {object} { reacted: boolean, negated: boolean, blockAmount: number, counterDamage: number, counterDamageType: string }
  */
-export function checkEnemyReaction(enemy, attackType, attackerPlayerState, log) {
+export function checkEnemyReaction(enemy, attackTypeInput, attackerPlayerState, log) {
     const result = { reacted: false, negated: false, blockAmount: 0, counterDamage: 0, counterDamageType: 'Physical' };
+
+    // Check for Time Stop
+    if (enemy.debuffs && enemy.debuffs.some(d => d.type === 'Time Stop')) {
+        return result;
+    }
 
     // Check if enemy has reactions defined
     if (!enemy.reactions || enemy.reactions.length === 0) {
         return result;
     }
+
+    // Normalize incoming attack types to array
+    const incomingTypes = Array.isArray(attackTypeInput) ? attackTypeInput : [attackTypeInput];
 
     // Initialize reaction cooldowns if not present
     if (!enemy.reactionCooldowns) {
@@ -581,9 +589,13 @@ export function checkEnemyReaction(enemy, attackType, attackerPlayerState, log) 
 
     // Find an available reaction that matches the attack type
     for (const reaction of enemy.reactions) {
-        // Check if the reaction matches the attack type (supports array or string)
-        const triggers = Array.isArray(reaction.triggerOn) ? reaction.triggerOn : [reaction.triggerOn];
-        if (!triggers.includes(attackType)) {
+        // Check if the reaction triggers on any of the incoming types
+        const reactionTriggers = Array.isArray(reaction.triggerOn) ? reaction.triggerOn : [reaction.triggerOn];
+
+        // Check intersection: Does any incoming type match any reaction trigger?
+        const hasMatch = incomingTypes.some(type => reactionTriggers.includes(type));
+
+        if (!hasMatch) {
             continue;
         }
 

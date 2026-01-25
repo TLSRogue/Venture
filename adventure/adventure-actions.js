@@ -841,17 +841,15 @@ export async function processCastSpell(io, party, player, payload) {
 
                 // --- ENEMY REACTION CHECK (melee, ranged, and magic spells) ---
                 if (!isPvP && !target.isPlayer && target.state) {
-                    // Determine attack type: 'melee', 'ranged', or 'magic'
-                    let attackType = spell.range; // 'melee' or 'ranged'
-                    if (spell.isMagic) {
-                        attackType = 'magic';
-                    }
+                    // Determine attack types (can be multiple, e.g. ranged + magic)
+                    const attackTypes = [];
+                    if (spell.range) attackTypes.push(spell.range); // 'melee' or 'ranged'
+                    if (spell.isMagic) attackTypes.push('magic');
 
-                    const reactionResult = checkEnemyReaction(target.state, attackType, actingPlayerState, log);
+                    const reactionResult = checkEnemyReaction(target.state, attackTypes, actingPlayerState, log);
 
                     if (reactionResult.negated) {
-                        // Full parry/deflect - attack is completely negated
-                        const actionVerb = attackType === 'magic' ? 'deflects' : 'parries';
+                        const actionVerb = attackTypes.includes('magic') ? 'deflects' : 'parries';
                         log.push({ message: `${target.name} ${actionVerb} the ${spell.name}!`, type: 'info' });
 
                         // Apply counter-damage to the player
