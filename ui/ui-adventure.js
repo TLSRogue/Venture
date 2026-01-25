@@ -543,40 +543,6 @@ function renderZoneCards(cards) {
             barsDiv.innerHTML = createHealthBarHTML(card.health, card.maxHealth, null, shield);
             cardEl.appendChild(barsDiv);
             cardEl.appendChild(createEffectsContainer(card));
-
-            // DEBUG: Log enemy card data to check for reactions
-            console.log(`Enemy card ${card.name}:`, { hasReactions: !!card.reactions, reactions: card.reactions });
-
-            // Display reaction cooldowns if the enemy has reactions
-            if (card.reactions && card.reactions.length > 0) {
-                const reactionsDiv = document.createElement('div');
-                reactionsDiv.className = 'enemy-reactions';
-                reactionsDiv.style.cssText = 'display: flex; gap: 4px; justify-content: center; margin-top: 6px; flex-wrap: wrap;';
-
-                card.reactions.forEach(reaction => {
-                    const cooldown = card.reactionCooldowns?.[reaction.name] || 0;
-                    const reactionSpan = document.createElement('span');
-                    const isReady = cooldown <= 0;
-                    reactionSpan.style.cssText = `
-                        padding: 3px 8px;
-                        border-radius: 4px;
-                        font-size: 10px;
-                        font-weight: bold;
-                        background: ${isReady ? '#2a7a2a' : '#7a2a2a'};
-                        color: white;
-                        border: 1px solid ${isReady ? '#4a4' : '#a44'};
-                        text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
-                        cursor: help;
-                    `;
-                    reactionSpan.textContent = isReady
-                        ? `⚔ ${reaction.name}`
-                        : `⚔ ${reaction.name} (${cooldown})`;
-                    reactionSpan.title = `${reaction.name}: Triggers on ${reaction.triggerOn} attacks. Roll ${reaction.roll}+ to succeed. ${isReady ? 'Ready!' : `Cooldown: ${cooldown} turns`}`;
-                    reactionsDiv.appendChild(reactionSpan);
-                });
-
-                cardEl.appendChild(reactionsDiv);
-            }
         } else if (card.type === 'resource' && card.charges !== undefined) {
             // Add green charge bar for resources
             const maxCharges = card.maxCharges || 3;
@@ -598,6 +564,27 @@ function renderZoneCards(cards) {
 function createEffectsContainer(stateObject) {
     const effectsContainer = document.createElement('div');
     effectsContainer.className = 'player-card-effects';
+
+    // Display reactions (for enemies)
+    if (stateObject.reactions) {
+        stateObject.reactions.forEach(reaction => {
+            const cooldown = stateObject.reactionCooldowns?.[reaction.name] || 0;
+            const isReady = cooldown <= 0;
+
+            const reactionSpan = document.createElement('span');
+            reactionSpan.className = `player-card-effect ${isReady ? 'buff' : 'debuff'}`;
+            reactionSpan.textContent = '⚔️';
+            reactionSpan.style.cssText = isReady ? '' : 'opacity: 0.5;';
+
+            const tooltipText = isReady
+                ? `⚔️ <strong>${reaction.name}</strong><br>Triggers on ${reaction.triggerOn} attacks<br>Roll ${reaction.roll}+ to parry<br><span style="color:#2ecc71">Ready!</span>`
+                : `⚔️ <strong>${reaction.name}</strong><br>Triggers on ${reaction.triggerOn} attacks<br>Roll ${reaction.roll}+ to parry<br><span style="color:#e74c3c">Cooldown: ${cooldown} turns</span>`;
+
+            reactionSpan.addEventListener('mouseover', () => showTooltip(tooltipText));
+            reactionSpan.addEventListener('mouseout', () => hideTooltip());
+            effectsContainer.appendChild(reactionSpan);
+        });
+    }
 
     if (stateObject.buffs) {
         stateObject.buffs.forEach(buff => {
