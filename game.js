@@ -141,7 +141,7 @@ function getEffectsFromLog(logEntries) {
         match = entry.message.match(/(.+?) casts .+!.*(?:Critical Failure|Fizzle)/i);
         if (match) {
             effects.push({ targetName: match[1], type: 'fail', text: 'Fail!' });
-            playSound('miss', 0.4);
+            playSound('fail', 0.4);
             return;
         }
 
@@ -175,7 +175,7 @@ function getEffectsFromLog(logEntries) {
         match = entry.message.match(/^(.+?) attacks .+ with .+!.*Miss!/);
         if (match) {
             effects.push({ targetName: match[1], type: 'fail', text: 'Miss!' });
-            playSound('miss', 0.4);
+            playSound('fail', 0.4);
             return;
         }
 

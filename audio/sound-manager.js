@@ -137,6 +137,7 @@ export function preloadAllSounds() {
     preloadSound('parry', '/assets/sounds/parry.mp3');
     preloadSound('dodge', '/assets/sounds/dodge-generic.wav');
     preloadSound('takedamage', '/assets/sounds/takedamage-generic.wav');
+    preloadSound('fail', '/assets/sounds/fail-generic.wav');
 
     // Magic sounds
     preloadSound('spell_fire', '/assets/sounds/spell_fire.mp3');
