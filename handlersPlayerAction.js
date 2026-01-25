@@ -111,17 +111,24 @@ function handleEquipItem(character, payload) {
         // Equipping a 2-hand weapon - need to clear both main and off hand
         const mainHandItem = character.equipment.mainHand;
         const offHandItem = character.equipment.offHand;
-        const freeSlots = character.inventory.filter(i => !i).length;
+
         // Check if mainHand and offHand are the same item (another 2-hander)
         const isSameItem = mainHandItem && offHandItem && mainHandItem === offHandItem;
-        const slotsToFree = (mainHandItem ? 1 : 0) + (offHandItem && !isSameItem ? 1 : 0);
 
-        if (slotsToFree > freeSlots + 1) return false;
+        // For 2-handers replacing other items, do a simple swap into the original slot
+        if (isSameItem) {
+            // Swapping 2-hander for 2-hander - put old one in the slot where new one was
+            character.inventory[itemIndex] = mainHandItem;
+        } else {
+            // Swapping 2-hander for 1-handers - need extra slots
+            const freeSlots = character.inventory.filter(i => !i).length;
+            const slotsToFree = (mainHandItem ? 1 : 0) + (offHandItem ? 1 : 0);
+            if (slotsToFree > freeSlots + 1) return false;
 
-        character.inventory[itemIndex] = null;
-        if (mainHandItem) addItemToInventoryServer(character, mainHandItem);
-        // Only add offHand if it's different from mainHand (not a 2-hander)
-        if (offHandItem && !isSameItem) addItemToInventoryServer(character, offHandItem);
+            character.inventory[itemIndex] = null;
+            if (mainHandItem) addItemToInventoryServer(character, mainHandItem);
+            if (offHandItem) addItemToInventoryServer(character, offHandItem);
+        }
 
         character.equipment.mainHand = itemToEquip;
         character.equipment.offHand = itemToEquip;
