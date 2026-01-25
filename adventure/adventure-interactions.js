@@ -252,12 +252,27 @@ export async function processInteractWithCard(io, party, player, payload) {
         }
         else if (card.type === 'treasure') {
             const lootTable = card.loot ? card.loot.map(item => gameData.allItems.find(i => i.name === item.name) || item) : gameData.genericTreasureLoot.map(item => gameData.allItems.find(i => i.name === item.name) || item);
-            const numItems = 3; // Always drop 3 items from treasure chests
+            const numItems = card.lootCount || 3; // Default to 3 if not specified
             let foundItemsLog = '';
+
+            const droppedItemsThisChest = new Set();
 
             for (let i = 0; i < numItems; i++) {
                 if (lootTable.length > 0) {
-                    const randomLoot = { ...lootTable[Math.floor(Math.random() * lootTable.length)] };
+                    // Filter out already dropped unique/quest items from the pool for this roll
+                    const availableLoot = lootTable.filter(item => {
+                        if (droppedItemsThisChest.has(item.name)) {
+                            // If explicit 'unique' flag or type 'questItem' or 'bossExclusive', remove from pool
+                            if (item.type === 'questItem' || item.unique || item.bossExclusive) return false;
+                        }
+                        return true;
+                    });
+
+                    if (availableLoot.length === 0) break;
+
+                    const randomLoot = { ...availableLoot[Math.floor(Math.random() * availableLoot.length)] };
+                    droppedItemsThisChest.add(randomLoot.name);
+
                     if (randomLoot.gold) {
                         const goldPerPlayer = Math.floor(randomLoot.gold / party.members.length);
                         party.members.forEach(memberName => {

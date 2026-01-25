@@ -468,7 +468,8 @@ export const allItems = [
         tier: 1,
         icon: "🔪",
         rarity: "uncommon",
-        canBeInMerchantWares: true,
+        canBeInMerchantWares: false,
+        bossExclusive: true,
     },
     {
         name: "Spur Dagger",

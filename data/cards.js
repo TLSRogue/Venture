@@ -191,8 +191,7 @@ export const cardPools = {
                 ],
                 guaranteedLoot: { gold: true, minGold: 5, maxGold: 15 },
                 lootTable: [
-                    { range: [1, 10], items: ["Whetstone"] },
-                    { range: [11, 20], items: ["Goblin Lucky Charm"] } // Rare drop
+                    { range: [1, 20], items: ["Whetstone"] }
                 ]
             }, count: 1
         },
@@ -247,7 +246,7 @@ export const cardPools = {
                 }
             }, count: 1
         },
-        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", loot: [{ name: "Goblin Lucky Charm", type: "questItem", price: 0, description: "A strange, surprisingly shiny goblin trinket." }], icon: "📦", imageUrl: '/assets/goblincaves-treasure.jpg' }, count: 1 },
+        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", loot: [{ name: "Goblin Lucky Charm", type: "questItem", price: 0, description: "A strange, surprisingly shiny goblin trinket." }, { name: "Gold Pouch" }, { name: "Healing Potion" }, { name: "Whetstone" }, { name: "Thread" }, { name: "Iron" }, { name: "Coal" }], lootCount: 3, icon: "📦", imageUrl: '/assets/goblincaves-treasure.jpg' }, count: 1 },
         {
             card: {
                 name: "Goblin Shaman",
@@ -595,8 +594,9 @@ export const cardPools = {
                     { range: [1, 3], action: 'miss', message: "Miss!" },
                     { range: [4, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Bite! Deals 2 Physical Damage!" }
                 ],
+                guaranteedLoot: { items: ["Rat Meat"] },
                 lootTable: [
-                    { range: [1, 10], items: ["Rat Meat", "Hide"] },
+                    { range: [1, 10], items: ["Hide"] },
                     { range: [11, 18], items: ["Rat Tail"] },
                     { range: [19, 20], items: ["Rat Eye"] }
                 ]
@@ -611,8 +611,9 @@ export const cardPools = {
                     { range: [4, 14], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Maul! Deals 3 Physical Damage!" },
                     { range: [15, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Infectious Bite! Deals 2 Nature Damage and Poisons!" }
                 ],
+                guaranteedLoot: { items: ["Rat Meat"] },
                 lootTable: [
-                    { range: [1, 10], items: ["Rat Meat", "Rat Eye"] },
+                    { range: [1, 10], items: ["Rat Eye"] },
                     { range: [11, 18], items: ["Rat Tail"] },
                     { range: [19, 20], items: ["Plague Essence"] }
                 ]
@@ -794,8 +795,8 @@ export const cardPools = {
                 ],
                 lootTable: [
                     { range: [1, 10], items: ["Spider Leg"] },
-                    { range: [11, 19], items: ["Spider Silk"] },
-                    { range: [20, 20], items: ["Spider Leg", "Spider Silk"] }
+                    { range: [11, 18], items: ["Spider Silk"] },
+                    { range: [19, 20], items: ["Venom Sac"] }
                 ]
             }, count: 6
         },
