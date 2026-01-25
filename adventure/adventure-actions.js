@@ -227,6 +227,7 @@ export async function processWeaponAttack(io, party, player, payload) {
             const reactionResult = checkEnemyReaction(target.state, weapon.range, actingPlayerState, log);
 
             if (reactionResult.negated) {
+                // Full parry - attack is completely negated
                 logMessage += ` But the attack was parried!`;
                 log.push({ message: logMessage, type: 'info' });
 
@@ -257,6 +258,11 @@ export async function processWeaponAttack(io, party, player, payload) {
                 broadcastAdventureUpdate(io, party);
                 await checkAndEndTurnForPlayer(io, party, player);
                 return;
+            } else if (reactionResult.blockAmount > 0) {
+                // Block-style - reduce damage by blockAmount
+                const blockedDmg = Math.min(reactionResult.blockAmount, dmgResult.finalDamage);
+                dmgResult.finalDamage = Math.max(1, dmgResult.finalDamage - blockedDmg);
+                logMessage += ` (${blockedDmg} blocked!)`;
             }
         }
 
@@ -833,12 +839,20 @@ export async function processCastSpell(io, party, player, payload) {
                     continue;
                 }
 
-                // --- ENEMY REACTION CHECK (melee spells) ---
-                if (!isPvP && !target.isPlayer && target.state && spell.range === 'melee') {
-                    const reactionResult = checkEnemyReaction(target.state, 'melee', actingPlayerState, log);
+                // --- ENEMY REACTION CHECK (melee, ranged, and magic spells) ---
+                if (!isPvP && !target.isPlayer && target.state) {
+                    // Determine attack type: 'melee', 'ranged', or 'magic'
+                    let attackType = spell.range; // 'melee' or 'ranged'
+                    if (spell.isMagic) {
+                        attackType = 'magic';
+                    }
+
+                    const reactionResult = checkEnemyReaction(target.state, attackType, actingPlayerState, log);
 
                     if (reactionResult.negated) {
-                        log.push({ message: `${target.name} parries the ${spell.name}!`, type: 'info' });
+                        // Full parry/deflect - attack is completely negated
+                        const actionVerb = attackType === 'magic' ? 'deflects' : 'parries';
+                        log.push({ message: `${target.name} ${actionVerb} the ${spell.name}!`, type: 'info' });
 
                         // Apply counter-damage to the player
                         if (reactionResult.counterDamage > 0) {
@@ -858,6 +872,11 @@ export async function processCastSpell(io, party, player, payload) {
                             }
                         }
                         continue; // Skip this target's damage
+                    } else if (reactionResult.blockAmount > 0) {
+                        // Block-style - reduce damage by blockAmount
+                        const blockedDmg = Math.min(reactionResult.blockAmount, baseDamage);
+                        baseDamage = Math.max(1, baseDamage - blockedDmg);
+                        damageToDeal = Math.max(1, damageToDeal - blockedDmg);
                     }
                 }
 

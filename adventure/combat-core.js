@@ -141,7 +141,10 @@ export function normalizeTarget(sharedState, targetIndex, encounter) {
         cardIndex: targetIndex,
         getResistanceImpl: (damageType) => {
             if (damageType === 'Physical') {
-                return enemy.buffs?.find(b => b.bonus?.physicalResistance)?.bonus.physicalResistance || 0;
+                // Check for base resistance + buff resistance
+                const baseResistance = enemy.physicalResistance || 0;
+                const buffResistance = enemy.buffs?.find(b => b.bonus?.physicalResistance)?.bonus.physicalResistance || 0;
+                return baseResistance + buffResistance;
             }
             return 0;
         }
@@ -555,16 +558,16 @@ export function applyDoTEffects(state, log) {
 
 /**
  * Check if an enemy can use a reaction against an incoming attack.
- * If successful, the attack is negated and counter-damage is applied to the attacker.
+ * If successful, the attack is either negated (with counter-damage) or blocked (damage reduced).
  * 
  * @param {object} enemy - The enemy card that might react
- * @param {string} attackRange - 'melee' or 'ranged' - the type of incoming attack
+ * @param {string} attackType - 'melee', 'ranged', or 'magic' - the type of incoming attack
  * @param {object} attackerPlayerState - The attacking player's combat state
  * @param {Array} log - The log array to push messages to
- * @returns {object} { reacted: boolean, negated: boolean, counterDamage: number, counterDamageType: string }
+ * @returns {object} { reacted: boolean, negated: boolean, blockAmount: number, counterDamage: number, counterDamageType: string }
  */
-export function checkEnemyReaction(enemy, attackRange, attackerPlayerState, log) {
-    const result = { reacted: false, negated: false, counterDamage: 0, counterDamageType: 'Physical' };
+export function checkEnemyReaction(enemy, attackType, attackerPlayerState, log) {
+    const result = { reacted: false, negated: false, blockAmount: 0, counterDamage: 0, counterDamageType: 'Physical' };
 
     // Check if enemy has reactions defined
     if (!enemy.reactions || enemy.reactions.length === 0) {
@@ -578,8 +581,9 @@ export function checkEnemyReaction(enemy, attackRange, attackerPlayerState, log)
 
     // Find an available reaction that matches the attack type
     for (const reaction of enemy.reactions) {
-        // Check if the reaction matches the attack type
-        if (reaction.triggerOn !== attackRange) {
+        // Check if the reaction matches the attack type (supports array or string)
+        const triggers = Array.isArray(reaction.triggerOn) ? reaction.triggerOn : [reaction.triggerOn];
+        if (!triggers.includes(attackType)) {
             continue;
         }
 
@@ -603,14 +607,24 @@ export function checkEnemyReaction(enemy, attackRange, attackerPlayerState, log)
         const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
 
         if (isSuccess) {
-            result.negated = true;
-            result.counterDamage = reaction.damage;
-            result.counterDamageType = reaction.damageType || 'Physical';
-
-            log.push({
-                message: `${enemy.name}'s ${reaction.name}: ${rollDisplay} ${reaction.message}`,
-                type: 'reaction'
-            });
+            // Check if this is a block-style reaction (damage reduction) or negate-style (full parry)
+            if (reaction.blockAmount) {
+                // Block-style: reduces damage by blockAmount
+                result.blockAmount = reaction.blockAmount;
+                log.push({
+                    message: `${enemy.name}'s ${reaction.name}: ${rollDisplay} ${reaction.message}`,
+                    type: 'reaction'
+                });
+            } else {
+                // Negate-style: full parry with counter-damage
+                result.negated = true;
+                result.counterDamage = reaction.damage || 0;
+                result.counterDamageType = reaction.damageType || 'Physical';
+                log.push({
+                    message: `${enemy.name}'s ${reaction.name}: ${rollDisplay} ${reaction.message}`,
+                    type: 'reaction'
+                });
+            }
         } else {
             log.push({
                 message: `${enemy.name}'s ${reaction.name}: ${rollDisplay} Failed!`,

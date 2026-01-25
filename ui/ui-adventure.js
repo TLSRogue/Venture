@@ -506,6 +506,12 @@ function renderZoneCards(cards) {
 
         if (card.type === 'enemy' || card.type === 'treasure' || card.type === 'npc') {
             let tooltipContent = `<strong>${card.name}</strong><br>${card.description || ''}`;
+
+            // Add Passives to Tooltip
+            if (card.physicalResistance) {
+                tooltipContent += `<br><span style="color: #aaa; font-size: 0.9em;">🛡️ Physical Resistance: ${card.physicalResistance}</span>`;
+            }
+
             if (card.attackTable) {
                 tooltipContent += `<hr style="margin: 5px 0;"><strong>Attacks:</strong>`;
                 card.attackTable.forEach(attack => {
@@ -531,6 +537,15 @@ function renderZoneCards(cards) {
             <div class="card-title">${card.name}</div>
             ${visualHTML}
         `;
+
+        // Display Physical Resistance on Card
+        if (card.physicalResistance) {
+            const resistanceBadge = document.createElement('div');
+            resistanceBadge.className = 'card-resistance-badge';
+            resistanceBadge.innerHTML = `🛡️ ${card.physicalResistance}`;
+            resistanceBadge.title = `Physical Resistance: ${card.physicalResistance}`;
+            cardEl.appendChild(resistanceBadge);
+        }
 
         if (card.type === 'enemy') {
             // Add health bar for enemies

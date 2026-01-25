@@ -205,11 +205,22 @@ export const cardPools = {
                 description: "The formidable king of the goblins.",
                 icon: "👺",
                 imageUrl: '/assets/goblincaves-king.jpg',
+                physicalResistance: 1,
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The King stumbles on his royal robes. Miss!" },
                     { range: [4, 10], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Royal Mace! Deals 4 Physical Damage!" },
                     { range: [11, 15], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Crushing Blow! Deals 5 Physical Damage and Dazes!" },
                     { range: [16, 20], action: 'special', message: "FOR THE HORDE! Gorbon rallies his minions!" }
+                ],
+                reactions: [
+                    {
+                        name: "Block",
+                        cooldown: 2,
+                        triggerOn: ["melee", "magic"],
+                        roll: 11,
+                        blockAmount: 4,
+                        message: "Gorbon braces and blocks the attack!"
+                    }
                 ],
                 guaranteedLoot: { gold: true, items: ["Gold Nugget", "Gold Nugget", "Gold Nugget"] },
                 lootTable: [
@@ -252,6 +263,16 @@ export const cardPools = {
                     { range: [13, 17], action: 'attack', attackRange: 'ranged', isMagic: true, damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Toxic Curse! Deals 2 Nature Damage and Poisons!" },
                     { range: [18, 20], action: 'special', isMagic: true, message: "The Shaman chants and heals an ally!" }
                 ],
+                reactions: [
+                    {
+                        name: "Hex Ward",
+                        cooldown: 2,
+                        triggerOn: "magic",
+                        roll: 11,
+                        blockAmount: 3,
+                        message: "The Shaman's ward absorbs the magic!"
+                    }
+                ],
                 guaranteedLoot: { gold: true, minGold: 1, maxGold: 15 },
                 lootTable: [
                     { range: [1, 5], fromCategory: "T1 Material", count: 1 },
@@ -276,6 +297,17 @@ export const cardPools = {
                     { range: [4, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Physical', message: "Barbed Arrow! Deals 3 Physical Damage!" },
                     { range: [13, 17], action: 'attack', attackRange: 'ranged', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Serrated Arrow! Deals 2 Physical Damage and causes Bleed!" },
                     { range: [18, 20], action: 'attack', attackRange: 'ranged', damage: 4, damageType: 'Physical', debuff: { type: 'trap', duration: 1 }, message: "Net Trap! Deals 4 Physical Damage and Traps you!" }
+                ],
+                reactions: [
+                    {
+                        name: "Evasive Shot",
+                        cooldown: 2,
+                        triggerOn: ["melee", "ranged"],
+                        roll: 11,
+                        damage: 3,
+                        damageType: "Physical",
+                        message: "The Archer dodges and fires a quick shot!"
+                    }
                 ],
                 guaranteedLoot: { gold: true, minGold: 1, maxGold: 10 },
                 lootTable: [
