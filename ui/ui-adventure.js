@@ -551,25 +551,27 @@ function renderZoneCards(cards) {
             if (card.reactions && card.reactions.length > 0) {
                 const reactionsDiv = document.createElement('div');
                 reactionsDiv.className = 'enemy-reactions';
-                reactionsDiv.style.cssText = 'display: flex; gap: 4px; justify-content: center; margin-top: 4px;';
+                reactionsDiv.style.cssText = 'display: flex; gap: 4px; justify-content: center; margin-top: 6px; flex-wrap: wrap;';
 
                 card.reactions.forEach(reaction => {
                     const cooldown = card.reactionCooldowns?.[reaction.name] || 0;
                     const reactionSpan = document.createElement('span');
+                    const isReady = cooldown <= 0;
                     reactionSpan.style.cssText = `
-                        padding: 2px 6px;
+                        padding: 3px 8px;
                         border-radius: 4px;
-                        font-size: 11px;
-                        background: ${cooldown > 0 ? 'rgba(150, 50, 50, 0.8)' : 'rgba(50, 150, 50, 0.8)'};
+                        font-size: 10px;
+                        font-weight: bold;
+                        background: ${isReady ? '#2a7a2a' : '#7a2a2a'};
                         color: white;
-                        display: flex;
-                        align-items: center;
-                        gap: 3px;
+                        border: 1px solid ${isReady ? '#4a4' : '#a44'};
+                        text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+                        cursor: help;
                     `;
-                    reactionSpan.innerHTML = cooldown > 0
-                        ? `🛡️ ${reaction.name} <span style="color: #ff6b6b;">(${cooldown})</span>`
-                        : `🛡️ ${reaction.name}`;
-                    reactionSpan.title = `${reaction.name}: Triggers on ${reaction.triggerOn} attacks. Roll ${reaction.roll}+ to succeed. ${cooldown > 0 ? `Cooldown: ${cooldown} turns` : 'Ready!'}`;
+                    reactionSpan.textContent = isReady
+                        ? `⚔ ${reaction.name}`
+                        : `⚔ ${reaction.name} (${cooldown})`;
+                    reactionSpan.title = `${reaction.name}: Triggers on ${reaction.triggerOn} attacks. Roll ${reaction.roll}+ to succeed. ${isReady ? 'Ready!' : `Cooldown: ${cooldown} turns`}`;
                     reactionsDiv.appendChild(reactionSpan);
                 });
 
