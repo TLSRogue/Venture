@@ -555,7 +555,10 @@ function renderZoneCards(cards) {
             const resistanceBadge = document.createElement('div');
             resistanceBadge.className = 'card-resistance-badge';
             resistanceBadge.innerHTML = `🛡️ ${card.physicalResistance}`;
-            resistanceBadge.addEventListener('mouseover', () => showTooltip(`🛡️ <strong>Physical Resistance: ${card.physicalResistance}</strong><br><br>Reduces all Physical damage taken by ${card.physicalResistance}.<br><em>Use magic or elemental attacks to bypass!</em>`));
+            resistanceBadge.addEventListener('mouseover', (e) => {
+                e.stopPropagation();
+                showTooltip(`🛡️ <strong>Physical Resistance: ${card.physicalResistance}</strong><br><br>Reduces all Physical damage taken by ${card.physicalResistance}.<br><em>Use magic or elemental attacks to bypass!</em>`);
+            });
             resistanceBadge.addEventListener('mouseout', () => hideTooltip());
             cardEl.appendChild(resistanceBadge);
         }
@@ -620,7 +623,10 @@ function createEffectsContainer(stateObject) {
                 ? `⚔️ <strong>${reaction.name}</strong><br><em>${reaction.message || 'Reaction ability'}</em><br><br>Triggers on: ${triggerText} attacks<br>Success: Roll ${reaction.roll}+ on d20<br>${effectDetails}<br><br><span style="color:#2ecc71">✓ Ready!</span>`
                 : `⚔️ <strong>${reaction.name}</strong><br><em>${reaction.message || 'Reaction ability'}</em><br><br>Triggers on: ${triggerText} attacks<br>Success: Roll ${reaction.roll}+ on d20<br>${effectDetails}<br><br><span style="color:#e74c3c">⏳ Cooldown: ${cooldown} turns</span>`;
 
-            reactionSpan.addEventListener('mouseover', () => showTooltip(tooltipText));
+            reactionSpan.addEventListener('mouseover', (e) => {
+                e.stopPropagation();
+                showTooltip(tooltipText);
+            });
             reactionSpan.addEventListener('mouseout', () => hideTooltip());
             effectsContainer.appendChild(reactionSpan);
         });
@@ -634,7 +640,10 @@ function createEffectsContainer(stateObject) {
 
             buffSpan.className = 'player-card-effect buff';
             buffSpan.textContent = def.icon;
-            buffSpan.addEventListener('mouseover', () => showTooltip(`${def.icon} <strong>${buff.type}</strong><br>${def.description}<br>Turns Remaining: ${buff.duration}`));
+            buffSpan.addEventListener('mouseover', (e) => {
+                e.stopPropagation();
+                showTooltip(`${def.icon} <strong>${buff.type}</strong><br>${def.description}<br>Turns Remaining: ${buff.duration}`);
+            });
             buffSpan.addEventListener('mouseout', () => hideTooltip());
             effectsContainer.appendChild(buffSpan);
         });
@@ -648,7 +657,10 @@ function createEffectsContainer(stateObject) {
 
             debuffSpan.className = 'player-card-effect debuff';
             debuffSpan.textContent = def.icon;
-            debuffSpan.addEventListener('mouseover', () => showTooltip(`${def.icon} <strong>${debuff.type}</strong><br>${def.description}<br>Turns Remaining: ${debuff.duration}`));
+            debuffSpan.addEventListener('mouseover', (e) => {
+                e.stopPropagation();
+                showTooltip(`${def.icon} <strong>${debuff.type}</strong><br>${def.description}<br>Turns Remaining: ${debuff.duration}`);
+            });
             debuffSpan.addEventListener('mouseout', () => hideTooltip());
             effectsContainer.appendChild(debuffSpan);
         });
