@@ -40,31 +40,108 @@ const RAT_TYPES = [
 ];
 
 /**
- * Goblin types that can be spawned by Gorbon
+ * Goblin types that can be spawned by Gorbon - matches full card pool definitions
  */
 const GOBLIN_TYPES = [
     {
-        name: "Goblin Warrior", health: 10, maxHealth: 10, icon: "👺", attackTable: [
+        name: "Goblin Warrior",
+        type: "enemy",
+        health: 10,
+        maxHealth: 10,
+        description: "A brutish goblin warrior.",
+        icon: "👺",
+        imageUrl: '/assets/goblincaves-warrior.jpg',
+        attackTable: [
             { range: [1, 3], action: 'miss', message: "The warrior swings wildly. Miss!" },
             { range: [4, 12], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Brutal Swing! Deals 4 Physical Damage!" },
             { range: [13, 17], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Headbutt! Deals 3 Physical Damage and Dazes!" },
             { range: [18, 20], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', message: "Overhead Smash! Deals 5 Physical Damage!" }
+        ],
+        reactions: [
+            {
+                name: "Parry",
+                cooldown: 2,
+                triggerOn: "melee",
+                roll: 11,
+                damage: 3,
+                damageType: "Physical",
+                message: "The Goblin Warrior parries and counter-attacks!"
+            }
+        ],
+        guaranteedLoot: { gold: true, minGold: 1, maxGold: 10 },
+        lootTable: [
+            { range: [1, 5], fromCategory: "T1 Material", count: 1 },
+            { range: [6, 10], fromCategory: "T2 Material", count: 1 },
+            { range: [11, 14], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
+            { range: [15, 19], items: ["Thread", "Whetstone"] },
+            { range: [20, 20], items: ["Warrior's Cleaver"] }
         ]
     },
     {
-        name: "Goblin Archer", health: 8, maxHealth: 8, icon: "👺", attackTable: [
+        name: "Goblin Archer",
+        type: "enemy",
+        health: 8,
+        maxHealth: 8,
+        description: "A sneaky goblin archer.",
+        icon: "👺",
+        imageUrl: '/assets/goblincaves-archer.jpg',
+        attackTable: [
             { range: [1, 3], action: 'miss', message: "The arrow whizzes past. Miss!" },
             { range: [4, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Physical', message: "Barbed Arrow! Deals 3 Physical Damage!" },
             { range: [13, 17], action: 'attack', attackRange: 'ranged', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Serrated Arrow! Deals 2 Physical Damage and causes Bleed!" },
             { range: [18, 20], action: 'attack', attackRange: 'ranged', damage: 4, damageType: 'Physical', debuff: { type: 'trap', duration: 1 }, message: "Net Trap! Deals 4 Physical Damage and Traps you!" }
+        ],
+        reactions: [
+            {
+                name: "Evasive Shot",
+                cooldown: 2,
+                triggerOn: ["melee", "ranged"],
+                roll: 11,
+                damage: 3,
+                damageType: "Physical",
+                message: "The Archer dodges and fires a quick shot!"
+            }
+        ],
+        guaranteedLoot: { gold: true, minGold: 1, maxGold: 10 },
+        lootTable: [
+            { range: [1, 5], fromCategory: "T1 Material", count: 1 },
+            { range: [6, 10], fromCategory: "T2 Material", count: 1 },
+            { range: [11, 14], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
+            { range: [15, 19], items: ["Thread", "Feather"] },
+            { range: [20, 20], items: ["Archer's Shortbow"] }
         ]
     },
     {
-        name: "Goblin Shaman", health: 8, maxHealth: 8, icon: "👺", attackTable: [
+        name: "Goblin Shaman",
+        type: "enemy",
+        health: 8,
+        maxHealth: 8,
+        description: "A mystical goblin shaman.",
+        icon: "👺",
+        imageUrl: '/assets/goblincaves-shaman.jpg',
+        attackTable: [
             { range: [1, 3], action: 'miss', message: "The Shaman's hex fizzles. Miss!" },
-            { range: [4, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Nature', message: "Hex! Deals 3 Nature Damage!" },
-            { range: [13, 17], action: 'attack', attackRange: 'ranged', damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Toxic Curse! Deals 2 Nature Damage and Poisons!" },
-            { range: [18, 20], action: 'special', message: "The Shaman chants and heals an ally!" }
+            { range: [4, 12], action: 'attack', attackRange: 'ranged', isMagic: true, damage: 3, damageType: 'Nature', message: "Hex! Deals 3 Nature Damage!" },
+            { range: [13, 17], action: 'attack', attackRange: 'ranged', isMagic: true, damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Toxic Curse! Deals 2 Nature Damage and Poisons!" },
+            { range: [18, 20], action: 'special', isMagic: true, message: "The Shaman chants and heals an ally!" }
+        ],
+        reactions: [
+            {
+                name: "Hex Ward",
+                cooldown: 2,
+                triggerOn: "magic",
+                roll: 11,
+                blockAmount: 3,
+                message: "The Shaman's ward absorbs the magic!"
+            }
+        ],
+        guaranteedLoot: { gold: true, minGold: 1, maxGold: 15 },
+        lootTable: [
+            { range: [1, 5], fromCategory: "T1 Material", count: 1 },
+            { range: [6, 10], fromCategory: "T2 Material", count: 1 },
+            { range: [11, 14], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
+            { range: [15, 19], items: ["Thread", "Magic Essence"] },
+            { range: [20, 20], items: ["Shaman's Fetish"] }
         ]
     }
 ];

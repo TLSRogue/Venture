@@ -8,27 +8,39 @@ import { getBonusStats } from '../player.js';
 let reactionTimerInterval = null;
 
 const effectDefinitions = {
-    'bleed': { icon: '🩸', description: 'Taking Physical damage over time.' },
-    'burn': { icon: '🔥', description: 'Taking Fire damage over time.' },
-    'poison': { icon: '☠️', description: 'Taking Nature damage over time.' },
-    'entangling roots': { icon: '🌿', description: 'Rooted and taking Nature damage over time.' },
-    'stun': { icon: '💫', description: 'Stunned. Cannot act and AP reduced.' },
-    'daze': { icon: '😵', description: 'Dazed. -3 penalty to Attack Rolls.' },
-    'stealth': { icon: '🤫', description: 'Stealthed. Untargetable by most attacks.' },
-    'warrior\'s might': { icon: '💪', description: 'Increased Strength.' },
-    'war cry': { icon: '🗣️', description: 'Morale boosted. Increased stats.' },
-    'thick hide': { icon: '🛡️', description: 'Increased Armor.' },
-    'well fed (str)': { icon: '🍖', description: 'Well Fed (+Strength).' },
-    'well fed (agi)': { icon: '🐟', description: 'Well Fed (+Agility).' },
-    'well fed (wis)': { icon: '🥣', description: 'Well Fed (+Wisdom).' },
-    'light source': { icon: '🔥', description: 'Illuminating the area.' },
-    'focus': { icon: '🧘', description: 'Focused. Next ability is empowered.' },
-    'magic barrier': { icon: '💠', description: 'Protected by a magical barrier.' },
-    'flying': { icon: '🦇', description: 'Airborne. Cannot be hit by melee attacks.' },
-    'aerial strike': { icon: '🎯', description: 'Next attack has +5 to hit.' },
-    'rallied': { icon: '📢', description: 'Rallied! +2 damage bonus.' },
-    'enraged': { icon: '😡', description: 'Enraged! Increased damage and hit chance.' },
-    'trap': { icon: '🕸️', description: 'Trapped. Movement restricted.' }
+    // Debuffs (Damage over Time)
+    'bleed': { icon: '🩸', description: 'Bleeding: Takes Physical damage at the end of each turn.' },
+    'burn': { icon: '🔥', description: 'Burning: Takes Fire damage at the end of each turn.' },
+    'poison': { icon: '☠️', description: 'Poisoned: Takes Nature damage at the end of each turn.' },
+    'entangling roots': { icon: '🌿', description: 'Rooted: Cannot move and takes Nature damage each turn.' },
+
+    // Debuffs (Control)
+    'stun': { icon: '💫', description: 'Stunned: Cannot take any actions this turn.' },
+    'daze': { icon: '😵', description: 'Dazed: All attack rolls suffer a -3 penalty.' },
+    'trap': { icon: '🕸️', description: 'Trapped: Cannot flee or move to a new area.' },
+    'silence': { icon: '🔇', description: 'Silenced: Cannot cast spells or use magic abilities.' },
+
+    // Buffs (Stat Bonuses)
+    'stealth': { icon: '🤫', description: 'Stealthed: Enemies have -5 to hit. Breaks on attack.' },
+    'warrior\'s might': { icon: '💪', description: 'Warrior\'s Might: +2 Strength bonus to attacks.' },
+    'war cry': { icon: '🗣️', description: 'War Cry: +1 to attack rolls and damage.' },
+    'thick hide': { icon: '🛡️', description: 'Thick Hide: +1 Physical Resistance until next turn.' },
+    'focus': { icon: '🧘', description: 'Focused: Your next ability deals bonus damage.' },
+    'enraged': { icon: '😡', description: 'Enraged: +3 damage but -2 to defense rolls.' },
+    'rallied': { icon: '📢', description: 'Rallied: +2 bonus damage on all attacks.' },
+
+    // Buffs (Defensive)
+    'magic barrier': { icon: '💠', description: 'Magic Barrier: Absorbs incoming damage.' },
+    'flying': { icon: '🦇', description: 'Flying: Immune to melee attacks while airborne.' },
+    'aerial strike': { icon: '🎯', description: 'Aerial Strike: Next attack has +5 to hit.' },
+
+    // Buffs (Food)
+    'well fed (str)': { icon: '🍖', description: 'Well Fed: +1 Strength from hearty food.' },
+    'well fed (agi)': { icon: '🐟', description: 'Well Fed: +1 Agility from light food.' },
+    'well fed (wis)': { icon: '🥣', description: 'Well Fed: +1 Wisdom from nourishing food.' },
+
+    // Utility
+    'light source': { icon: '🔥', description: 'Light Source: Illuminates dark areas, revealing hidden enemies.' }
 };
 
 /**
@@ -543,7 +555,8 @@ function renderZoneCards(cards) {
             const resistanceBadge = document.createElement('div');
             resistanceBadge.className = 'card-resistance-badge';
             resistanceBadge.innerHTML = `🛡️ ${card.physicalResistance}`;
-            resistanceBadge.title = `Physical Resistance: ${card.physicalResistance}`;
+            resistanceBadge.addEventListener('mouseover', () => showTooltip(`🛡️ <strong>Physical Resistance: ${card.physicalResistance}</strong><br><br>Reduces all Physical damage taken by ${card.physicalResistance}.<br><em>Use magic or elemental attacks to bypass!</em>`));
+            resistanceBadge.addEventListener('mouseout', () => hideTooltip());
             cardEl.appendChild(resistanceBadge);
         }
 
@@ -591,9 +604,21 @@ function createEffectsContainer(stateObject) {
             reactionSpan.textContent = '⚔️';
             reactionSpan.style.cssText = isReady ? '' : 'opacity: 0.5;';
 
+            // Build detailed tooltip based on reaction properties
+            let effectDetails = '';
+            if (reaction.blockAmount) {
+                effectDetails = `Blocks up to ${reaction.blockAmount} damage`;
+            } else if (reaction.damage) {
+                effectDetails = `Counter-attacks for ${reaction.damage} ${reaction.damageType || 'Physical'} damage`;
+            }
+
+            const triggerText = Array.isArray(reaction.triggerOn)
+                ? reaction.triggerOn.join(' or ')
+                : reaction.triggerOn;
+
             const tooltipText = isReady
-                ? `⚔️ <strong>${reaction.name}</strong><br>Triggers on ${reaction.triggerOn} attacks<br>Roll ${reaction.roll}+ to parry<br><span style="color:#2ecc71">Ready!</span>`
-                : `⚔️ <strong>${reaction.name}</strong><br>Triggers on ${reaction.triggerOn} attacks<br>Roll ${reaction.roll}+ to parry<br><span style="color:#e74c3c">Cooldown: ${cooldown} turns</span>`;
+                ? `⚔️ <strong>${reaction.name}</strong><br><em>${reaction.message || 'Reaction ability'}</em><br><br>Triggers on: ${triggerText} attacks<br>Success: Roll ${reaction.roll}+ on d20<br>${effectDetails}<br><br><span style="color:#2ecc71">✓ Ready!</span>`
+                : `⚔️ <strong>${reaction.name}</strong><br><em>${reaction.message || 'Reaction ability'}</em><br><br>Triggers on: ${triggerText} attacks<br>Success: Roll ${reaction.roll}+ on d20<br>${effectDetails}<br><br><span style="color:#e74c3c">⏳ Cooldown: ${cooldown} turns</span>`;
 
             reactionSpan.addEventListener('mouseover', () => showTooltip(tooltipText));
             reactionSpan.addEventListener('mouseout', () => hideTooltip());
