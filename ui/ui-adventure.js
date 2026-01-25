@@ -544,6 +544,9 @@ function renderZoneCards(cards) {
             cardEl.appendChild(barsDiv);
             cardEl.appendChild(createEffectsContainer(card));
 
+            // DEBUG: Log enemy card data to check for reactions
+            console.log(`Enemy card ${card.name}:`, { hasReactions: !!card.reactions, reactions: card.reactions });
+
             // Display reaction cooldowns if the enemy has reactions
             if (card.reactions && card.reactions.length > 0) {
                 const reactionsDiv = document.createElement('div');
