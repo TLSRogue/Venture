@@ -822,6 +822,9 @@ body {
     gap: 10px;
     margin-bottom: 20px;
     flex-wrap: wrap;
+    grid-column: 1 / -1;
+    /* Span full width of parent grid */
+    width: 100%;
 }
 
 .subtab-btn {

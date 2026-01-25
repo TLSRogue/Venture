@@ -135,18 +135,24 @@ export function preloadAllSounds() {
     preloadSound('critical', '/assets/sounds/critical.mp3');
     preloadSound('block', '/assets/sounds/block.mp3');
     preloadSound('parry', '/assets/sounds/parry.mp3');
+    preloadSound('dodge', '/assets/sounds/dodge-generic.wav');
+    preloadSound('takedamage', '/assets/sounds/takedamage-generic.wav');
 
     // Magic sounds
     preloadSound('spell_fire', '/assets/sounds/spell_fire.mp3');
     preloadSound('spell_ice', '/assets/sounds/spell_ice.mp3');
     preloadSound('spell_heal', '/assets/sounds/spell_heal.mp3');
     preloadSound('spell_generic', '/assets/sounds/spell_generic.mp3');
+    preloadSound('fireball', '/assets/sounds/fireball-spell.wav');
+    preloadSound('flamestrike', '/assets/sounds/flamestrike-spell.wav');
+    preloadSound('heal', '/assets/sounds/heal-generic.wav');
 
     // UI sounds
     preloadSound('click', '/assets/sounds/click.mp3');
     preloadSound('open', '/assets/sounds/open.mp3');
     preloadSound('close', '/assets/sounds/close.mp3');
     preloadSound('error', '/assets/sounds/error.mp3');
+    preloadSound('sell', '/assets/sounds/sell-merchant.wav');
 
     // Reward sounds
     preloadSound('coins', '/assets/sounds/coins.mp3');

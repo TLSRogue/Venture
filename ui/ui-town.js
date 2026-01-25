@@ -4,6 +4,7 @@ import { gameData } from '../data/index.js';
 import { gameState } from '../state.js';
 import * as Network from '../network.js';
 import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip } from './ui-main.js';
+import { playSound } from '../audio/sound-manager.js';
 
 // --- LOCAL STATE & HELPERS ---
 
@@ -83,6 +84,7 @@ function showSellAllJunkModal(junkItems, totalValue) {
 
     document.getElementById('confirm-sell-junk-btn').addEventListener('click', () => {
         Network.emitPlayerAction('sellAllJunk');
+        playSound('sell', 0.6);
         hideModal();
     });
 }
@@ -370,6 +372,7 @@ export function showSellConfirmationModal(itemIndex, fromBank = false) {
 
     document.getElementById('confirm-sell-btn').addEventListener('click', () => {
         Network.emitPlayerAction('sellItem', { itemIndex, fromBank });
+        playSound('sell', 0.5);
         hideModal();
     });
 }

@@ -88,7 +88,7 @@ function getEffectsFromLog(logEntries) {
         match = entry.message.match(/[Dd]eal[ts]? (\d+).*damage.*\[id:(.+?)\]/i);
         if (match) {
             effects.push({ targetId: match[2].replace(']', ''), type: 'damage', text: `-${match[1]}` });
-            playSound('hit', 0.6);
+            playSound('takedamage', 0.5);
             return;
         }
 
@@ -96,7 +96,7 @@ function getEffectsFromLog(logEntries) {
         match = entry.message.match(/hits .+? for (\d+) damage.*\[id:(.+?)\]/i);
         if (match) {
             effects.push({ targetId: match[2].replace(']', ''), type: 'damage', text: `-${match[1]}` });
-            playSound('hit', 0.6);
+            playSound('takedamage', 0.5);
             return;
         }
 
@@ -104,7 +104,7 @@ function getEffectsFromLog(logEntries) {
         match = entry.message.match(/attacks .+ with .+!.*[Dd]eals (\d+) .* damage.*\[id:(.+?)\]/);
         if (match) {
             effects.push({ targetId: match[2].replace(']', ''), type: 'damage', text: `-${match[1]}` });
-            playSound('hit', 0.6);
+            playSound('takedamage', 0.5);
             return;
         }
 
@@ -138,9 +138,15 @@ function getEffectsFromLog(logEntries) {
         if (match) {
             const casterName = match[1];
             const spellName = match[2];
-            // For attack spells, we'll show Hit! on the caster (damage shows on target separately)
+            // Play spell-specific sounds
+            if (spellName === 'Fireball') {
+                playSound('fireball', 0.5);
+            } else if (spellName === 'Flamestrike') {
+                playSound('flamestrike', 0.5);
+            } else {
+                playSound('spell_generic', 0.5);
+            }
             effects.push({ targetName: casterName, type: 'success', text: 'Hit!' });
-            playSound('spell_generic', 0.5);
             return;
         }
 
@@ -172,7 +178,7 @@ function getEffectsFromLog(logEntries) {
         match = entry.message.match(/Healed (.+?) for (\d+) HP/);
         if (match) {
             effects.push({ targetName: match[1], type: 'heal', text: `+${match[2]}` });
-            playSound('spell_heal', 0.5);
+            playSound('heal', 0.5);
             return;
         }
 
@@ -220,10 +226,10 @@ function getEffectsFromLog(logEntries) {
         }
 
         // PATTERN 13: Dodge / Evasive Shot (e.g., "Name's Dodge: ... Avoided!")
-        match = entry.message.match(/(.+?)'s (?:Dodge|Evasive Shot): .+ Avoided!/);
+        match = entry.message.match(/(.+?)'s (?:Dodge|Evasive Shot|Parry): .+ (?:Avoided|Deflected)!/);
         if (match) {
             effects.push({ targetName: match[1], type: 'success', text: 'Dodged!' });
-            playSound('miss', 0.5); // Use miss sound for dodge
+            playSound('dodge', 0.5);
             return;
         }
 
