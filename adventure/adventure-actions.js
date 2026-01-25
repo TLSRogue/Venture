@@ -5,7 +5,7 @@ import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
 import { checkAndEndTurnForPlayer, defeatEnemyInParty } from './adventure-state.js';
 import { handleResolveReaction } from './reaction-handlers.js';
-import { applyDamage, normalizeTarget, resolveAttackRoll, calculateWeaponDamage, calculateSpellDamage, getWeaponDebuff, checkVexorDodge, checkVampirePhaseTransition } from './combat-core.js';
+import { applyDamage, normalizeTarget, resolveAttackRoll, calculateWeaponDamage, calculateSpellDamage, getWeaponDebuff, checkVexorDodge, checkVampirePhaseTransition, checkEnemyReaction } from './combat-core.js';
 import { SpellHandlers, getSpecialSpellDamage } from './spell-handlers.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 
@@ -219,6 +219,45 @@ export async function processWeaponAttack(io, party, player, payload) {
             broadcastAdventureUpdate(io, party);
             await checkAndEndTurnForPlayer(io, party, player);
             return;
+        }
+
+        // --- ENEMY REACTION CHECK ---
+        // Check if the enemy can react to this attack (only for PVE attacks against enemies)
+        if (!isPvP && !target.isPlayer && target.state) {
+            const reactionResult = checkEnemyReaction(target.state, weapon.range, actingPlayerState, log);
+
+            if (reactionResult.negated) {
+                logMessage += ` But the attack was parried!`;
+                log.push({ message: logMessage, type: 'info' });
+
+                // Apply counter-damage to the player
+                if (reactionResult.counterDamage > 0) {
+                    const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+                    const resistance = reactionResult.counterDamageType === 'Physical' ? (bonuses.physicalResistance || 0) : 0;
+                    const counterDmg = Math.max(1, reactionResult.counterDamage - resistance);
+
+                    applyDamage(actingPlayerState, counterDmg);
+                    let counterMsg = `${actingPlayerState.name} takes ${counterDmg} ${reactionResult.counterDamageType} damage from the counter-attack!`;
+                    if (resistance > 0) counterMsg += ` (${resistance} resisted)`;
+                    log.push({ message: counterMsg, type: 'damage' });
+
+                    // Check if player died from counter-attack
+                    if (actingPlayerState.health <= 0) {
+                        actingPlayerState.health = 0;
+                        actingPlayerState.isDead = true;
+                        if (player.character) {
+                            actingPlayerState.lootableInventory = [...player.character.inventory.filter(Boolean)];
+                            player.character.inventory = Array(28).fill(null);
+                            if (player.id) io.to(player.id).emit('characterUpdate', player.character);
+                        }
+                        log.push({ message: `${actingPlayerState.name} has been defeated!`, type: 'damage' });
+                    }
+                }
+
+                broadcastAdventureUpdate(io, party);
+                await checkAndEndTurnForPlayer(io, party, player);
+                return;
+            }
         }
 
         // Handle On-Hit Threshold Effects (Bonus Damage, Special Debuffs)

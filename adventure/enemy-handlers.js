@@ -4,7 +4,7 @@
 import { players } from '../serverState.js';
 import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer } from '../utilsHelpers.js';
-import { applyDamage, applyDoTEffects } from './combat-core.js';
+import { applyDamage, applyDoTEffects, decrementEnemyReactionCooldowns } from './combat-core.js';
 
 /**
  * Rat types that can be summoned by the Rat King
@@ -706,6 +706,9 @@ export function processEnemyEndOfTurn(enemy, sharedState) {
         enemy.debuffs.forEach(d => d.duration--);
         enemy.debuffs = enemy.debuffs.filter(d => d.duration > 0);
     }
+
+    // Decrement enemy reaction cooldowns
+    decrementEnemyReactionCooldowns(enemy);
 
     return false;
 }

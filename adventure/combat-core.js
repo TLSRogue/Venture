@@ -550,3 +550,94 @@ export function applyDoTEffects(state, log) {
 
     return tookDamage;
 }
+
+// --- ENEMY REACTION SYSTEM ---
+
+/**
+ * Check if an enemy can use a reaction against an incoming attack.
+ * If successful, the attack is negated and counter-damage is applied to the attacker.
+ * 
+ * @param {object} enemy - The enemy card that might react
+ * @param {string} attackRange - 'melee' or 'ranged' - the type of incoming attack
+ * @param {object} attackerPlayerState - The attacking player's combat state
+ * @param {Array} log - The log array to push messages to
+ * @returns {object} { reacted: boolean, negated: boolean, counterDamage: number, counterDamageType: string }
+ */
+export function checkEnemyReaction(enemy, attackRange, attackerPlayerState, log) {
+    const result = { reacted: false, negated: false, counterDamage: 0, counterDamageType: 'Physical' };
+
+    // Check if enemy has reactions defined
+    if (!enemy.reactions || enemy.reactions.length === 0) {
+        return result;
+    }
+
+    // Initialize reaction cooldowns if not present
+    if (!enemy.reactionCooldowns) {
+        enemy.reactionCooldowns = {};
+    }
+
+    // Find an available reaction that matches the attack type
+    for (const reaction of enemy.reactions) {
+        // Check if the reaction matches the attack type
+        if (reaction.triggerOn !== attackRange) {
+            continue;
+        }
+
+        // Check cooldown
+        const cooldownRemaining = enemy.reactionCooldowns[reaction.name] || 0;
+        if (cooldownRemaining > 0) {
+            continue;
+        }
+
+        // Found a valid reaction - trigger it!
+        result.reacted = true;
+
+        // Set cooldown for this reaction
+        enemy.reactionCooldowns[reaction.name] = reaction.cooldown;
+
+        // Roll D20 for the reaction
+        const roll = Math.floor(Math.random() * 20) + 1;
+        const isSuccess = roll >= reaction.roll;
+
+        const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
+        const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+
+        if (isSuccess) {
+            result.negated = true;
+            result.counterDamage = reaction.damage;
+            result.counterDamageType = reaction.damageType || 'Physical';
+
+            log.push({
+                message: `${enemy.name}'s ${reaction.name}: ${rollDisplay} ${reaction.message}`,
+                type: 'reaction'
+            });
+        } else {
+            log.push({
+                message: `${enemy.name}'s ${reaction.name}: ${rollDisplay} Failed!`,
+                type: 'info'
+            });
+        }
+
+        // Only one reaction per attack, so break here
+        break;
+    }
+
+    return result;
+}
+
+/**
+ * Decrement enemy reaction cooldowns at end of turn.
+ * Should be called during enemy end-of-turn processing.
+ * 
+ * @param {object} enemy - The enemy card
+ */
+export function decrementEnemyReactionCooldowns(enemy) {
+    if (!enemy.reactionCooldowns) return;
+
+    for (const reactionName in enemy.reactionCooldowns) {
+        if (enemy.reactionCooldowns[reactionName] > 0) {
+            enemy.reactionCooldowns[reactionName]--;
+        }
+    }
+}
+
