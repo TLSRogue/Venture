@@ -83,21 +83,32 @@ const GOBLIN_TYPES = [
 // --- RAT KING HANDLERS ---
 function handleRatKingSummon(enemy, sharedState, target, attack, ctx) {
     const randomRat = RAT_TYPES[Math.floor(Math.random() * RAT_TYPES.length)];
-    const ratCard = {
-        ...randomRat,
-        id: Date.now(),
-        debuffs: []
-    };
 
-    // Find empty slot OR an area card that allows spawning over it
+    // First try empty slots, then overlay non-enemy cards (but NOT other enemies)
     let spawnIndex = sharedState.zoneCards.findIndex(c => c === null);
+    let overlayedCard = null;
+
     if (spawnIndex === -1) {
-        spawnIndex = sharedState.zoneCards.findIndex(c => c && c.type === 'area' && c.allowSpawnOver);
+        // No empty slot - try to find a non-enemy card to overlay
+        spawnIndex = sharedState.zoneCards.findIndex(c => c && c.type !== 'enemy');
+        if (spawnIndex !== -1) {
+            overlayedCard = sharedState.zoneCards[spawnIndex];
+        }
     }
 
     if (spawnIndex !== -1) {
+        const ratCard = {
+            ...randomRat,
+            id: Date.now(),
+            debuffs: [],
+            overlayedCard: overlayedCard // Store original card to restore on death
+        };
         sharedState.zoneCards[spawnIndex] = ratCard;
-        sharedState.log.push({ message: `A ${randomRat.name} scurries into the battle!`, type: 'reaction' });
+        if (overlayedCard) {
+            sharedState.log.push({ message: `A ${randomRat.name} emerges from the ${overlayedCard.name}!`, type: 'reaction' });
+        } else {
+            sharedState.log.push({ message: `A ${randomRat.name} scurries into the battle!`, type: 'reaction' });
+        }
     } else {
         sharedState.log.push({ message: `The Rat King shrieks, but there's no room for more rats!`, type: 'info' });
     }
@@ -116,18 +127,34 @@ function handleGorbonRally(enemy, sharedState, target, attack, ctx) {
         sharedState.log.push({ message: `All goblins gain +2 damage for 2 turns!`, type: 'reaction' });
     } else {
         // No goblins to rally - spawn a random goblin reinforcement
-        const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
-        if (emptySlotIndex !== -1) {
+        // First try empty slots, then overlay non-enemy cards (but NOT other enemies)
+        let spawnIndex = sharedState.zoneCards.findIndex(c => c === null);
+        let overlayedCard = null;
+
+        if (spawnIndex === -1) {
+            // No empty slot - try to find a non-enemy card to overlay
+            spawnIndex = sharedState.zoneCards.findIndex(c => c && c.type !== 'enemy');
+            if (spawnIndex !== -1) {
+                overlayedCard = sharedState.zoneCards[spawnIndex];
+            }
+        }
+
+        if (spawnIndex !== -1) {
             const randomGoblin = GOBLIN_TYPES[Math.floor(Math.random() * GOBLIN_TYPES.length)];
             const newGoblin = {
                 ...randomGoblin,
                 type: 'enemy',
                 debuffs: [],
                 buffs: [{ type: 'Rallied', duration: 2, bonus: { damageBonus: 2 } }],
-                id: Date.now()
+                id: Date.now(),
+                overlayedCard: overlayedCard // Store original card to restore on death
             };
-            sharedState.zoneCards[emptySlotIndex] = newGoblin;
-            sharedState.log.push({ message: `Gorbon roars "FOR THE HORDE!" and a ${randomGoblin.name} answers his call!`, type: 'reaction' });
+            sharedState.zoneCards[spawnIndex] = newGoblin;
+            if (overlayedCard) {
+                sharedState.log.push({ message: `Gorbon roars "FOR THE HORDE!" and a ${randomGoblin.name} emerges from the ${overlayedCard.name}!`, type: 'reaction' });
+            } else {
+                sharedState.log.push({ message: `Gorbon roars "FOR THE HORDE!" and a ${randomGoblin.name} answers his call!`, type: 'reaction' });
+            }
         } else {
             sharedState.log.push({ message: `Gorbon roars, but there's no room for reinforcements!`, type: 'info' });
         }
@@ -373,21 +400,32 @@ function handleBlackWidowConsume(enemy, sharedState, target, attack, ctx) {
 
 // --- GRAY WOLF HANDLERS ---
 function handleGrayWolfHowl(enemy, sharedState, target, attack, ctx) {
-    // Find empty slot OR an area card that allows spawning over it
-    let emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
-    if (emptySlotIndex === -1) {
-        emptySlotIndex = sharedState.zoneCards.findIndex(c => c && c.type === 'area' && c.allowSpawnOver);
+    // First try empty slots, then overlay non-enemy cards (but NOT other enemies)
+    let spawnIndex = sharedState.zoneCards.findIndex(c => c === null);
+    let overlayedCard = null;
+
+    if (spawnIndex === -1) {
+        // No empty slot - try to find a non-enemy card to overlay
+        spawnIndex = sharedState.zoneCards.findIndex(c => c && c.type !== 'enemy');
+        if (spawnIndex !== -1) {
+            overlayedCard = sharedState.zoneCards[spawnIndex];
+        }
     }
 
-    if (emptySlotIndex !== -1) {
+    if (spawnIndex !== -1) {
         const newWolf = {
             ...gameData.specialCards.grayWolf,
             id: Date.now(),
             debuffs: [],
-            buffs: []
+            buffs: [],
+            overlayedCard: overlayedCard // Store original card to restore on death
         };
-        sharedState.zoneCards[emptySlotIndex] = newWolf;
-        sharedState.log.push({ message: `A Gray Wolf answers the call and joins the fight!`, type: 'reaction' });
+        sharedState.zoneCards[spawnIndex] = newWolf;
+        if (overlayedCard) {
+            sharedState.log.push({ message: `A Gray Wolf emerges from the ${overlayedCard.name} and joins the fight!`, type: 'reaction' });
+        } else {
+            sharedState.log.push({ message: `A Gray Wolf answers the call and joins the fight!`, type: 'reaction' });
+        }
     } else {
         sharedState.log.push({ message: `The howl echoes through the forest, but no wolves can join the fight!`, type: 'info' });
     }
@@ -457,21 +495,33 @@ function handleVampireFromTheShadows(enemy, sharedState, target, attack, ctx) {
 
 // --- VAMPIRE'S ASSISTANT HANDLERS ---
 function handleAssistantSpawnVictim(enemy, sharedState, target, attack, ctx) {
-    let emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
-    if (emptySlotIndex === -1) {
-        emptySlotIndex = sharedState.zoneCards.findIndex(c => c && c.type === 'area' && c.allowSpawnOver);
+    // First try empty slots, then overlay non-enemy cards (but NOT other enemies)
+    let spawnIndex = sharedState.zoneCards.findIndex(c => c === null);
+    let overlayedCard = null;
+
+    if (spawnIndex === -1) {
+        // No empty slot - try to find a non-enemy card to overlay
+        spawnIndex = sharedState.zoneCards.findIndex(c => c && c.type !== 'enemy');
+        if (spawnIndex !== -1) {
+            overlayedCard = sharedState.zoneCards[spawnIndex];
+        }
     }
 
-    if (emptySlotIndex !== -1) {
+    if (spawnIndex !== -1) {
         const newVictim = {
             ...gameData.specialCards.humanVictim,
             id: Date.now(),
             debuffs: [],
             buffs: [],
-            turnsUntilConsumed: 2
+            turnsUntilConsumed: 2,
+            overlayedCard: overlayedCard // Store original card to restore on death
         };
-        sharedState.zoneCards[emptySlotIndex] = newVictim;
-        sharedState.log.push({ message: `The Assistant drags in a helpless Human Victim! The Vampire will consume them in 2 turns!`, type: 'reaction' });
+        sharedState.zoneCards[spawnIndex] = newVictim;
+        if (overlayedCard) {
+            sharedState.log.push({ message: `The Assistant drags in a helpless Human Victim from the ${overlayedCard.name}! The Vampire will consume them in 2 turns!`, type: 'reaction' });
+        } else {
+            sharedState.log.push({ message: `The Assistant drags in a helpless Human Victim! The Vampire will consume them in 2 turns!`, type: 'reaction' });
+        }
     } else {
         sharedState.log.push({ message: `The Assistant tries to bring in a victim, but there's no room!`, type: 'info' });
     }

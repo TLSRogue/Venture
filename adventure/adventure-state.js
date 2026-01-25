@@ -330,7 +330,12 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         }
 
         // Skip normal loot processing for Loot Goblin
-        sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone);
+        // Restore overlayed card if enemy was spawned over one, otherwise use zone area card
+        if (enemy.overlayedCard) {
+            sharedState.zoneCards[enemyIndex] = { ...enemy.overlayedCard, id: Date.now() };
+        } else {
+            sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone);
+        }
         if (!sharedState.zoneCards.some(c => c && c.type === 'enemy')) {
             sharedState.log.push({ message: "Combat has ended! Action Points restored.", type: "success" });
             sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = 3; });
@@ -458,8 +463,12 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
         sharedState.log.push({ message: `${enemy.name} dropped gold, which was split among the party.`, type: 'success' });
     }
-    // Replace with zone-specific area card, or null if none defined
-    sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone);
+    // Restore overlayed card if enemy was spawned over one, otherwise use zone-specific area card
+    if (enemy.overlayedCard) {
+        sharedState.zoneCards[enemyIndex] = { ...enemy.overlayedCard, id: Date.now() };
+    } else {
+        sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone);
+    }
     if (!sharedState.zoneCards.some(c => c && c.type === 'enemy')) {
         sharedState.log.push({ message: "Combat has ended! Action Points restored.", type: "success" });
         sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = 3; });

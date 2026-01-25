@@ -1229,7 +1229,7 @@ body.show-spell-details .spell-card .spell-details {
 
 .card-resistance-badge {
     position: absolute;
-    top: 5px;
+    top: 35px;
     right: 5px;
     background: rgba(0, 0, 0, 0.7);
     border: 1px solid #7f8c8d;
