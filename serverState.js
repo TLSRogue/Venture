@@ -87,23 +87,19 @@ try {
                 // Update ALL instances in equipped spells
                 character.equippedSpells.forEach((s, idx) => {
                     if (s && s.name === spellName) {
-                        // Check if actually different to avoid unnecessary saves (except description)
-                        if (s.cost !== currentSpellDef.cost || s.cooldown !== currentSpellDef.cooldown || s.damageType !== currentSpellDef.damageType) {
-                            character.equippedSpells[idx] = { ...currentSpellDef };
-                            console.log(`[Migration] Updated ${spellName} (Equipped) for ${characterName}`);
-                            dataWasMigrated = true;
-                        }
+                        // Force update to ensure synchronization
+                        character.equippedSpells[idx] = { ...currentSpellDef };
+                        console.log(`[Migration] Updated ${spellName} (Equipped) for ${characterName}`);
+                        dataWasMigrated = true;
                     }
                 });
 
                 // Update ALL instances in spellbook
                 character.spellbook.forEach((s, idx) => {
                     if (s && s.name === spellName) {
-                        if (s.cost !== currentSpellDef.cost || s.cooldown !== currentSpellDef.cooldown || s.damageType !== currentSpellDef.damageType) {
-                            character.spellbook[idx] = { ...currentSpellDef };
-                            console.log(`[Migration] Updated ${spellName} (Spellbook) for ${characterName}`);
-                            dataWasMigrated = true;
-                        }
+                        character.spellbook[idx] = { ...currentSpellDef };
+                        console.log(`[Migration] Updated ${spellName} (Spellbook) for ${characterName}`);
+                        dataWasMigrated = true;
                     }
                 });
             });

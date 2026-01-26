@@ -655,7 +655,14 @@ function createEffectsContainer(stateObject) {
             const def = effectDefinitions[lowerType] || { icon: '✨', description: 'Beneficial effect' };
 
             buffSpan.className = 'player-card-effect buff';
-            buffSpan.textContent = def.icon;
+
+            // Show bonus value if present (e.g. "+3" for Spirit Call)
+            let bonusText = '';
+            if (buff.bonus) {
+                const val = Object.values(buff.bonus)[0];
+                if (val) bonusText = `<span style="font-size:0.75em; vertical-align: super; margin-left:2px;">+${val}</span>`;
+            }
+            buffSpan.innerHTML = `${def.icon}${bonusText}`;
             buffSpan.addEventListener('mouseover', (e) => {
                 e.stopPropagation();
                 let tooltip = `${def.icon} <strong>${buff.type}</strong><br>${def.description}`;
