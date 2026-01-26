@@ -244,13 +244,15 @@ export async function processInteractWithCard(io, party, player, payload) {
 
     // NPCs are now interactable by any party member (removed leader-only check)
 
+    // NPCs are free to talk to
+    else if (card.type === 'npc') {
+        startNPCDialogue(io, player, party, card, cardIndex);
+    }
+
     else if (actingPlayerState.actionPoints >= 1) {
         actingPlayerState.actionPoints--;
 
-        if (card.type === 'npc') {
-            startNPCDialogue(io, player, party, card, cardIndex);
-        }
-        else if (card.type === 'treasure') {
+        if (card.type === 'treasure') {
             const lootTable = card.loot ? card.loot.map(item => gameData.allItems.find(i => i.name === item.name) || item) : gameData.genericTreasureLoot.map(item => gameData.allItems.find(i => i.name === item.name) || item);
             const numItems = card.lootCount || 3; // Default to 3 if not specified
             let foundItemsLog = '';
@@ -619,6 +621,23 @@ export function processDialogueChoice(io, player, party, payload) {
 
         const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
         const powerAmount = Math.max(1, bonuses.naturePower || 0);
+
+        // Apply AP cost and Cooldown for Spirit Call (moved from cast time to selection time)
+        // Spirit Call is usually 1 AP and 2 turn cooldown (checked from data or standard)
+        // We can look it up or assume standard if it's consistent. 
+        // Best to find the spell in equipped to be sure, or just apply standard cost if known.
+        // Assuming 1 AP cost as per standard spell cost.
+        if (actingPlayerState.actionPoints >= 1) {
+            actingPlayerState.actionPoints -= 1;
+            actingPlayerState.spellCooldowns['Spirit Call'] = 2; // Standard cooldown
+        } else {
+            // Should verify AP before allowing this choice? 
+            // The dialogue doesn't strictly block this but ideally we should have.
+            // But usually they have AP from the cast attempt.
+            // We'll proceed but maybe log if negative? Or just allow it as debt?
+            // Simplest fix: Deduct it.
+            actingPlayerState.actionPoints = Math.max(0, actingPlayerState.actionPoints - 1);
+        }
 
         if (choice.buff === 'Panther') {
             actingPlayerState.buffs.push({

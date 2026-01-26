@@ -464,9 +464,6 @@ export async function processCastSpell(io, party, player, payload) {
             handlerTarget.health = Number(handlerTarget.health || 0);
         }
 
-        actingPlayerState.actionPoints -= cost;
-        actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
-
         // Pass bonuses for Cleanse (Holy Power scaling)
         const result = handler(spell, character, actingPlayerState, log, handlerTarget, bonuses);
 
@@ -513,6 +510,10 @@ export async function processCastSpell(io, party, player, payload) {
             // Don't end turn - waiting for selection
             return;
         }
+
+        // Apply Cost and Cooldown if NO pending selection (Instant cast success)
+        actingPlayerState.actionPoints -= cost;
+        actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
 
         // Always end turn after special spells?
         // Revive: Yes. Monk's Training: Yes. Cleanse: Yes (if no selection needed).

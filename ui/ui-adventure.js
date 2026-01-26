@@ -649,7 +649,6 @@ function createEffectsContainer(stateObject) {
     }
 
     if (stateObject.buffs) {
-        console.log(`Rendering buffs for ${stateObject.name}:`, stateObject.buffs);
         stateObject.buffs.forEach(buff => {
             const buffSpan = document.createElement('span');
             const lowerType = buff.type.toLowerCase();
