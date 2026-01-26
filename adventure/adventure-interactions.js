@@ -607,6 +607,46 @@ export function processDialogueChoice(io, player, party, payload) {
     } else {
         startNPCDialogue(io, player, party, npc, cardIndex, choice.next);
     }
+
+    // --- SPIRIT CALL SELECTION HANDLER ---
+    if (choice.action === 'spiritCallBuff') {
+        const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.playerId === player.id);
+        if (!actingPlayerState) return;
+
+        // Clear existing Spirit Call buff if any
+        const oldBuffIndex = actingPlayerState.buffs.findIndex(b => ['Panther Spirit', 'Bear Spirit', 'Tree Spirit'].includes(b.type));
+        if (oldBuffIndex !== -1) actingPlayerState.buffs.splice(oldBuffIndex, 1);
+
+        const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+        const powerAmount = Math.max(1, bonuses.naturePower || 0);
+
+        if (choice.buff === 'Panther') {
+            actingPlayerState.buffs.push({
+                type: 'Panther Spirit',
+                duration: 2,
+                bonus: { agility: powerAmount }
+            });
+            party.sharedState.log.push({ message: `${character.characterName} calls the Panther Spirit! (+${powerAmount} Agi)`, type: 'success' });
+        } else if (choice.buff === 'Bear') {
+            actingPlayerState.buffs.push({
+                type: 'Bear Spirit',
+                duration: 2,
+                bonus: { strength: powerAmount }
+            });
+            party.sharedState.log.push({ message: `${character.characterName} calls the Bear Spirit! (+${powerAmount} Str)`, type: 'success' });
+        } else if (choice.buff === 'Tree') {
+            actingPlayerState.buffs.push({
+                type: 'Tree Spirit',
+                duration: 2,
+                bonus: { defense: powerAmount }
+            });
+            party.sharedState.log.push({ message: `${character.characterName} calls the Tree Spirit! (+${powerAmount} Def)`, type: 'success' });
+        }
+
+        io.to(player.id).emit('party:hideDialogue');
+        io.to(player.id).emit('characterUpdate', character); // Sync stats if needed, though mostly server state
+        broadcastAdventureUpdate(io, party);
+    }
 }
 
 export function processLootPlayer(io, player, party, payload) {

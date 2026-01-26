@@ -40,7 +40,13 @@ const effectDefinitions = {
     'well fed (wis)': { icon: '🥣', description: 'Well Fed: +1 Wisdom from nourishing food.' },
 
     // Utility
-    'light source': { icon: '🔥', description: 'Light Source: Illuminates dark areas, revealing hidden enemies.' }
+    'light source': { icon: '🔥', description: 'Light Source: Illuminates dark areas, revealing hidden enemies.' },
+
+    // Nature Spells
+    'rejuvenate': { icon: '🌱', description: 'Rejuvenate: Heals at the end of each turn.' },
+    'panther spirit': { icon: '🐆', description: 'Panther Spirit: Increased Agility.' },
+    'bear spirit': { icon: '🐻', description: 'Bear Spirit: Increased Strength.' },
+    'tree spirit': { icon: '🌳', description: 'Tree Spirit: Increased Defense.' }
 };
 
 /**

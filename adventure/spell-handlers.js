@@ -21,6 +21,18 @@ export const SpellHandlers = {
         }
     },
 
+    'Spirit Call': (spell, character, actingPlayerState, log) => {
+        // Trigger dialog for choice
+        return {
+            success: true,
+            pendingSelection: {
+                type: 'spiritCall', // Custom type for interactions handler
+                casterPlayerId: actingPlayerState.playerId,
+                casterName: character.characterName
+            }
+        };
+    },
+
     'Revive': (spell, character, actingPlayerState, log, targetState) => {
         if (!targetState || !targetState.isDead) { // targetState needs to be the raw state object here usually
             log.push({ message: `${character.characterName} casts ${spell.name}, but there is no valid target!`, type: 'info' });
@@ -102,6 +114,12 @@ export function getSpecialSpellDamage(spell, character, actingPlayerState, bonus
     if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
         const fireBonus = bonuses.firePower || 0;
         return (spell.damage || 1) + fireBonus;
+    }
+
+    // --- Nature Spells: Moonbeam (Base + Nature Power / 2) ---
+    if (spell.name === 'Moonbeam') {
+        const natureBonus = Math.floor((bonuses.naturePower || 0) / 2);
+        return (spell.damage || 1) + natureBonus;
     }
 
     // --- Frost Spells: Base + Frost Power ---

@@ -1342,7 +1342,39 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
     if (!playerState) return;
 
     // 1. Process DoT Damage
-    const tookDotDamage = applyDoTEffects(playerState, sharedState.log);
+    applyDoTEffects(playerState, sharedState.log);
+
+    // 1a. Process Rejuvenate Healing
+    const rejuvenateBuff = (playerState.buffs || []).find(b => b.type === 'Rejuvenate');
+    if (rejuvenateBuff) {
+        if (!playerState.isDead) { // Only heal living players
+            const playerChar = players[playerName].character;
+            const bonuses = getBonusStatsForPlayer(playerChar, playerState);
+            const healAmount = 1 + (bonuses.naturePower || 0);
+            playerState.health = Math.min(playerState.maxHealth, playerState.health + healAmount);
+            sharedState.log.push({ message: `${playerState.name}'s Rejuvenate heals for ${healAmount} HP.`, type: 'heal' });
+            if (playerState.playerId) io.to(playerState.playerId).emit('characterUpdate', playerChar);
+        }
+    }
+
+    // 1b. Process Tree Form Healing (AoE)
+    const treeFormBuff = (playerState.buffs || []).find(b => b.type === 'Tree Form');
+    if (treeFormBuff && !playerState.isDead) {
+        const playerChar = players[playerName].character;
+        const bonuses = getBonusStatsForPlayer(playerChar, playerState);
+        const healAmount = 1 + (bonuses.naturePower || 0);
+
+        sharedState.partyMemberStates.forEach(member => {
+            if (!member.isDead) {
+                member.health = Math.min(member.maxHealth, member.health + healAmount);
+                if (member.playerId) {
+                    const memberChar = players[member.name]?.character;
+                    if (memberChar) io.to(member.playerId).emit('characterUpdate', memberChar);
+                }
+            }
+        });
+        sharedState.log.push({ message: `${playerState.name}'s Tree Form heals the party for ${healAmount} HP!`, type: 'heal' });
+    }
 
     if (playerState.health <= 0) {
         playerState.health = 0;
