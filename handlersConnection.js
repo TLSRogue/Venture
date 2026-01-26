@@ -24,7 +24,9 @@ function refreshPlayerSpells(character, characterName) {
     const spellsToRefresh = [
         'Aim True', 'Split Shot', 'Evasive Shot', 'Dagger Throw', 'Ambush', 'Magic Barrier', 'Slash',
         // Magic spells (isMagic: true) - needed for Silence to work
-        'Fireball', 'Flash Heal', 'Holy Shock', 'Flame Strike', 'Stealth', 'Silence', 'Revive', 'Cone of Cold', 'Entangling Roots', 'Cleanse'
+        'Fireball', 'Flash Heal', 'Holy Shock', 'Flame Strike', 'Stealth', 'Silence', 'Revive', 'Cone of Cold', 'Entangling Roots', 'Cleanse',
+        // Nature Update
+        'Moonbeam', 'Rejuvenate', 'Spirit Call', 'Tree Form'
     ];
 
     spellsToRefresh.forEach(spellName => {

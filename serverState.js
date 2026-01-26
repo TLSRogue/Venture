@@ -74,36 +74,6 @@ try {
                 }
             }
 
-            // --- SPELL MIGRATION (V2) ---
-            // Force update spells to current definitions to ensure any balance changes are applied to existing saves.
-            const spellsToMigrate = [
-                'Aim True', 'Split Shot', 'Evasive Shot', 'Slash',
-                'Moonbeam', 'Rejuvenate', 'Spirit Call', 'Entangling Roots', 'Tree Form'
-            ];
-            spellsToMigrate.forEach(spellName => {
-                const currentSpellDef = gameData.allSpells.find(s => s.name === spellName);
-                if (!currentSpellDef) return;
-
-                // Update ALL instances in equipped spells
-                character.equippedSpells.forEach((s, idx) => {
-                    if (s && s.name === spellName) {
-                        // Force update to ensure synchronization
-                        character.equippedSpells[idx] = { ...currentSpellDef };
-                        console.log(`[Migration] Updated ${spellName} (Equipped) for ${characterName}`);
-                        dataWasMigrated = true;
-                    }
-                });
-
-                // Update ALL instances in spellbook
-                character.spellbook.forEach((s, idx) => {
-                    if (s && s.name === spellName) {
-                        character.spellbook[idx] = { ...currentSpellDef };
-                        console.log(`[Migration] Updated ${spellName} (Spellbook) for ${characterName}`);
-                        dataWasMigrated = true;
-                    }
-                });
-            });
-            // --- END SPELL MIGRATION ---
 
             // --- T2 RECIPE BACKFILL MIGRATION ---
             // Debug: Log quests for this character
