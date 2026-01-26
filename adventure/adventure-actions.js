@@ -146,8 +146,14 @@ export async function processWeaponAttack(io, party, player, payload) {
 
     // PvP Reaction Check
     if (isPvP && target.isPlayer) {
+        // Calculate total damage with bonuses for the reaction prompt
+        const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+        const powerKey = (weapon.damageType || 'Physical').toLowerCase() + 'Power';
+        const powerBonus = bonuses[powerKey] || 0;
+        const totalPotentialDamage = (weapon.weaponDamage || 0) + powerBonus;
+
         const actionDetails = {
-            damage: weapon.weaponDamage,
+            damage: totalPotentialDamage,
             damageType: weapon.damageType,
             attackRange: weapon.range,
             message: `attacks with ${weapon.name}.`,
