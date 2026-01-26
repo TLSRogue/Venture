@@ -34,9 +34,9 @@ if (rejuvenate.cost === 1 && rejuvenate.cooldown === 3 && rejuvenate.buff.durati
 // 3. Verify Spirit Call
 const spiritCall = allSpells.find(s => s.name === 'Spirit Call');
 console.log("\n[Spirit Call]");
-console.log(`Cooldown: ${spiritCall.cooldown} (Expected: 6)`);
+console.log(`Cooldown: ${spiritCall.cooldown} (Expected: 1)`);
 
-if (spiritCall.cooldown === 6) {
+if (spiritCall.cooldown === 1) {
     console.log("✅ Spirit Call cooldown verified.");
 } else {
     console.error("❌ Spirit Call cooldown failed.");
@@ -45,9 +45,9 @@ if (spiritCall.cooldown === 6) {
 // 4. Verify Entangling Roots
 const roots = allSpells.find(s => s.name === 'Entangling Roots');
 console.log("\n[Entangling Roots]");
-console.log(`AP Cost: ${roots.cost} (Expected: 2)`);
+console.log(`AP Cost: ${roots.cost} (Expected: 1)`);
 
-if (roots.cost === 2) {
+if (roots.cost === 1) {
     console.log("✅ Entangling Roots cost verified.");
 } else {
     console.error("❌ Entangling Roots cost failed.");

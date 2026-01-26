@@ -1350,8 +1350,10 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
         const playerChar = players[playerName]?.character;
         if (playerChar) {
             const bonuses = getBonusStatsForPlayer(playerChar, playerState);
-            const healAmount = rejuvenateBuff.healAmount || Math.max(1, 1 + (bonuses.naturePower || 0));
-            playerState.health = Math.min(playerState.maxHealth, (playerState.health || 0) + healAmount);
+            const healAmount = Number(rejuvenateBuff.healAmount || Math.max(1, 1 + (bonuses.naturePower || 0)));
+            const currentHealth = Number(playerState.health || 0);
+            const maxHealth = Number(playerState.maxHealth || 10);
+            playerState.health = Math.min(maxHealth, currentHealth + (isNaN(healAmount) ? 0 : healAmount));
             sharedState.log.push({ message: `${playerState.name}'s Rejuvenate heals for ${healAmount} HP.`, type: 'heal' });
             if (playerState.playerId) io.to(playerState.playerId).emit('characterUpdate', playerChar);
         }
@@ -1419,8 +1421,10 @@ function processPartyEndOfTurn(sharedState) {
             const playerChar = players[playerState.name]?.character;
             if (playerChar) {
                 const bonuses = getBonusStatsForPlayer(playerChar, playerState);
-                const healAmount = rejuvenateBuff.healAmount || Math.max(1, 1 + (bonuses.naturePower || 0));
-                playerState.health = Math.min(playerState.maxHealth, (playerState.health || 0) + healAmount);
+                const healAmount = Number(rejuvenateBuff.healAmount || Math.max(1, 1 + (bonuses.naturePower || 0)));
+                const currentHealth = Number(playerState.health || 0);
+                const maxHealth = Number(playerState.maxHealth || 10);
+                playerState.health = Math.min(maxHealth, currentHealth + (isNaN(healAmount) ? 0 : healAmount));
                 sharedState.log.push({ message: `${playerState.name}'s Rejuvenate heals for ${healAmount} HP.`, type: 'heal' });
             }
         }

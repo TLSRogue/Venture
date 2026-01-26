@@ -389,7 +389,10 @@ export async function processCastSpell(io, party, player, payload) {
                 actingPlayerState.buffs.push({ ...buff });
             },
             heal: (amount) => {
-                actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + amount);
+                const current = Number(actingPlayerState.health || 0);
+                const max = Number(actingPlayerState.maxHealth || 10);
+                const healAmt = Number(amount || 0);
+                actingPlayerState.health = Math.min(max, current + (isNaN(healAmt) ? 0 : healAmt));
             },
             isDead: () => actingPlayerState.isDead
         };
@@ -455,6 +458,11 @@ export async function processCastSpell(io, party, player, payload) {
         // OR we should check before consuming. 
         // Original code: Consumed resources BEFORE checking target validity for Revive? 
         // Original: `actingPlayerState.actionPoints -= cost;` THEN `if (!reviveTarget) log...`. So yes, wasted AP.
+
+        // Defensive check: ensure health is a number
+        if (handlerTarget) {
+            handlerTarget.health = Number(handlerTarget.health || 0);
+        }
 
         actingPlayerState.actionPoints -= cost;
         actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
@@ -625,7 +633,12 @@ export async function processCastSpell(io, party, player, payload) {
         const healTarget = validTarget || {
             name: actingPlayerState.name,
             state: actingPlayerState,
-            heal: (amt) => actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + amt),
+            heal: (amt) => {
+                const current = Number(actingPlayerState.health || 0);
+                const max = Number(actingPlayerState.maxHealth || 10);
+                const healAmt = Number(amt || 0);
+                actingPlayerState.health = Math.min(max, current + (isNaN(healAmt) ? 0 : healAmt));
+            },
             id: actingPlayerState.playerId,
             isPvP: isPvP
         };

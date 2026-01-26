@@ -40,6 +40,12 @@ try {
                 console.log(`Initialized missing 'debuffs' array for ${characterName}.`);
                 dataWasMigrated = true;
             }
+            // --- BUG FIX: Ensure health is never null or NaN ---
+            if (character.health === null || isNaN(character.health)) {
+                character.health = character.maxHealth || 10;
+                console.log(`Fixed null/NaN health for ${characterName}.`);
+                dataWasMigrated = true;
+            }
             // --- BUG FIX END ---
 
             // --- INVENTORY SIZE UPGRADE: Extend 24-slot inventories to 28 slots ---
@@ -68,8 +74,8 @@ try {
                 }
             }
 
-            // --- SPELL MIGRATION ---
-            // Force update spells to current definitions
+            // --- SPELL MIGRATION (V2) ---
+            // Force update spells to current definitions to ensure any balance changes are applied to existing saves.
             const spellsToMigrate = [
                 'Aim True', 'Split Shot', 'Evasive Shot', 'Slash',
                 'Moonbeam', 'Rejuvenate', 'Spirit Call', 'Entangling Roots', 'Tree Form'
@@ -78,21 +84,28 @@ try {
                 const currentSpellDef = gameData.allSpells.find(s => s.name === spellName);
                 if (!currentSpellDef) return;
 
-                // Force update equipped spells to current definition
-                const equippedIdx = character.equippedSpells.findIndex(s => s && s.name === spellName);
-                if (equippedIdx !== -1) {
-                    character.equippedSpells[equippedIdx] = { ...currentSpellDef };
-                    console.log(`Force-updated ${spellName} for ${characterName} in equipped spells.`);
-                    dataWasMigrated = true;
-                }
+                // Update ALL instances in equipped spells
+                character.equippedSpells.forEach((s, idx) => {
+                    if (s && s.name === spellName) {
+                        // Check if actually different to avoid unnecessary saves (except description)
+                        if (s.cost !== currentSpellDef.cost || s.cooldown !== currentSpellDef.cooldown || s.damageType !== currentSpellDef.damageType) {
+                            character.equippedSpells[idx] = { ...currentSpellDef };
+                            console.log(`[Migration] Updated ${spellName} (Equipped) for ${characterName}`);
+                            dataWasMigrated = true;
+                        }
+                    }
+                });
 
-                // Force update spellbook to current definition
-                const spellbookIdx = character.spellbook.findIndex(s => s && s.name === spellName);
-                if (spellbookIdx !== -1) {
-                    character.spellbook[spellbookIdx] = { ...currentSpellDef };
-                    console.log(`Force-updated ${spellName} for ${characterName} in spellbook.`);
-                    dataWasMigrated = true;
-                }
+                // Update ALL instances in spellbook
+                character.spellbook.forEach((s, idx) => {
+                    if (s && s.name === spellName) {
+                        if (s.cost !== currentSpellDef.cost || s.cooldown !== currentSpellDef.cooldown || s.damageType !== currentSpellDef.damageType) {
+                            character.spellbook[idx] = { ...currentSpellDef };
+                            console.log(`[Migration] Updated ${spellName} (Spellbook) for ${characterName}`);
+                            dataWasMigrated = true;
+                        }
+                    }
+                });
             });
             // --- END SPELL MIGRATION ---
 
