@@ -1,6 +1,6 @@
 'use strict';
 
-import { gameData } from '../data/index.js'; // Corrected Path
+import { gameData, itemsByName } from '../data/index.js'; // Corrected Path
 import { gameState } from '../state.js';
 import * as Network from '../network.js';
 import { getBonusStats } from '../player.js';
@@ -253,11 +253,15 @@ export function renderInventory() {
             slot.onmouseover = () => showTooltip(tooltipContent);
             slot.onmouseout = () => hideTooltip();
 
+            // Use canonical item definition if available to ensure latest icon/image
+            const baseItem = itemsByName.get(item.name);
+            const iconToUse = (baseItem && baseItem.icon) ? baseItem.icon : item.icon;
+
             let itemText;
-            if (item.icon && item.icon.includes('/')) {
-                itemText = `<img src="${item.icon}" class="item-icon-img" alt="${item.name}">`;
+            if (iconToUse && iconToUse.includes('/')) {
+                itemText = `<img src="${iconToUse}" class="item-icon-img" alt="${item.name}">`;
             } else {
-                itemText = `<div class="item-icon">${item.icon || '❓'}</div>`;
+                itemText = `<div class="item-icon">${iconToUse || '❓'}</div>`;
             }
 
             if (item.quantity > 1) {
@@ -501,11 +505,15 @@ export function renderEquipment() {
             slotEl.innerHTML = `<div><strong>${slotNames[slotKey]}</strong></div><div>(Blocked by 2H)</div>`;
         } else if (item) {
             slotEl.classList.add('filled');
+            // Use canonical item definition if available to ensure latest icon/image
+            const baseItem = itemsByName.get(item.name);
+            const iconToUse = (baseItem && baseItem.icon) ? baseItem.icon : item.icon;
+
             let itemText;
-            if (item.icon && item.icon.includes('/')) {
-                itemText = `<img src="${item.icon}" class="item-icon-img" alt="${item.name}">`;
+            if (iconToUse && iconToUse.includes('/')) {
+                itemText = `<img src="${iconToUse}" class="item-icon-img" alt="${item.name}">`;
             } else {
-                itemText = `<div class="item-icon">${item.icon || '❓'}</div>`;
+                itemText = `<div class="item-icon">${iconToUse || '❓'}</div>`;
             }
             itemText += `<div><strong>${item.name}</strong></div>`;
 
