@@ -253,7 +253,13 @@ export function renderInventory() {
             slot.onmouseover = () => showTooltip(tooltipContent);
             slot.onmouseout = () => hideTooltip();
 
-            let itemText = `<div class="item-icon">${item.icon || '❓'}</div>`;
+            let itemText;
+            if (item.icon && item.icon.includes('/')) {
+                itemText = `<img src="${item.icon}" class="item-icon-img" alt="${item.name}">`;
+            } else {
+                itemText = `<div class="item-icon">${item.icon || '❓'}</div>`;
+            }
+
             if (item.quantity > 1) {
                 itemText += ` <div class="item-quantity">${item.quantity}</div>`
             }
@@ -495,7 +501,14 @@ export function renderEquipment() {
             slotEl.innerHTML = `<div><strong>${slotNames[slotKey]}</strong></div><div>(Blocked by 2H)</div>`;
         } else if (item) {
             slotEl.classList.add('filled');
-            let itemText = `<div class="item-icon">${item.icon || '❓'}</div><div><strong>${item.name}</strong></div>`;
+            let itemText;
+            if (item.icon && item.icon.includes('/')) {
+                itemText = `<img src="${item.icon}" class="item-icon-img" alt="${item.name}">`;
+            } else {
+                itemText = `<div class="item-icon">${item.icon || '❓'}</div>`;
+            }
+            itemText += `<div><strong>${item.name}</strong></div>`;
+
             if (item.quantity > 1) {
                 itemText += ` <div class="item-quantity">${item.quantity}</div>`;
             }

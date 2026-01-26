@@ -559,6 +559,8 @@ function renderZoneCards(cards) {
         let visualHTML;
         if (card.imageUrl) {
             visualHTML = `<img src="${card.imageUrl}" class="card-image" alt="${card.name}">`;
+        } else if (card.icon && card.icon.includes('/')) {
+            visualHTML = `<img src="${card.icon}" class="card-image" alt="${card.name}" style="object-fit: contain; padding: 5px;">`;
         } else {
             visualHTML = `<div class="card-icon">${card.icon || '❓'}</div>`;
         }

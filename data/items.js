@@ -723,7 +723,7 @@ export const allItems = [
         onCritThreshold: { threshold: 15, debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' } },
         description: "A gnarled staff oozing with sewer sludge. 1 AP, 2 CD | D20+Wis (10+) | Deals 3 Nature Damage. On 15+, Poisons for 2 turns. +1 Wis, +2 Nature Power.",
         tier: 1,
-        icon: "🧪",
+        icon: "/assets/items/sludge_staff.jpg",
         traits: ['Staff', 'Ranged', 'Nature', 'Tier 1'],
         rarity: "rare",
         canBeInMerchantWares: false,
