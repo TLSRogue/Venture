@@ -85,30 +85,38 @@ function getEffectsFromLog(logEntries) {
 
         // PATTERN 1: Damage with unique ID (e.g., "Dealt 2 damage to Pig [id:12345].")
         // Also matches "Deals 3 Physical damage! [id:123]"
-        match = entry.message.match(/[Dd]eal[ts]? (\d+).*damage.*\[id:(.+?)\]/i);
+        match = entry.message.match(/[Dd]eal[ts]? (\d+)(?: (.+?))? damage.*\[id:(.+?)\]/i);
         if (match) {
-            effects.push({ targetId: match[2].replace(']', ''), type: 'damage', text: `-${match[1]}` });
+            const amount = match[1];
+            const dmgType = match[2] || 'Physical';
+            const targetId = match[3].replace(']', '');
+            effects.push({ targetId, type: 'damage', text: `-${amount}`, damageType: dmgType });
             playSound('takedamage', 0.5);
             return;
         }
 
         // PATTERN 2: Enemy hit on player (e.g., "It hits TargetName for 3 damage! [id:xxx]")
-        match = entry.message.match(/hits .+? for (\d+) damage.*\[id:(.+?)\]/i);
+        match = entry.message.match(/hits .+? for (\d+)(?: (.+?))? damage.*\[id:(.+?)\]/i);
         if (match) {
-            effects.push({ targetId: match[2].replace(']', ''), type: 'damage', text: `-${match[1]}` });
+            const amount = match[1];
+            const dmgType = match[2] || 'Physical';
+            const targetId = match[3].replace(']', '');
+            effects.push({ targetId, type: 'damage', text: `-${amount}`, damageType: dmgType });
             playSound('takedamage', 0.5);
             return;
         }
 
         // PATTERN 2b: Weapon attack damage (e.g., "attacks ... Deals 3 Physical damage!")
-        match = entry.message.match(/attacks .+ with .+!.*[Dd]eals (\d+) .* damage.*\[id:(.+?)\]/);
+        match = entry.message.match(/attacks .+ with .+!.*[Dd]eals (\d+) (?:(.+?) )?damage.*\[id:(.+?)\]/);
         if (match) {
-            effects.push({ targetId: match[2].replace(']', ''), type: 'damage', text: `-${match[1]}` });
+            const amount = match[1];
+            const dmgType = match[2] || 'Physical';
+            const targetId = match[3].replace(']', '');
+            effects.push({ targetId, type: 'damage', text: `-${amount}`, damageType: dmgType });
             playSound('takedamage', 0.5);
             return;
         }
 
-        // PATTERN 3a: Punch spell success (play punch sound instead of generic)
         // PATTERN 3a: Punch spell success (play punch sound instead of generic)
         match = entry.message.match(/(.+) casts Punch!/);
         if (match) {
@@ -118,12 +126,10 @@ function getEffectsFromLog(logEntries) {
         }
 
         // PATTERN 3b: Buff spell success - show the buff name instead of "Success!"
-        // Matches: "PlayerName gains BuffType! [id:xxx]" or "PlayerName gains BuffType!"
         match = entry.message.match(/(.+?) gains (.+?)!/);
         if (match) {
             const targetName = match[1];
             const buffName = match[2];
-            // Extract ID if present
             const idMatch = entry.message.match(/\[id:(.+?)\]/);
             if (idMatch) {
                 effects.push({ targetId: idMatch[1], type: 'buff', text: buffName + '!' });
@@ -134,9 +140,6 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-        // PATTERN 3c: Attack spell success (shows Hit! for attack spells)
-        // PATTERN 3c: Attack spell success (shows Hit! for attack spells)
-        // Matches: "Name casts SpellName!" followed typically by damage/miss info, but here we capture the cast event
         // PATTERN 6: Spell fizzle / Critical Failure
         match = entry.message.match(/(.+?) casts .+!.*(?:Critical Failure|Fizzle)/i);
         if (match) {
@@ -146,12 +149,10 @@ function getEffectsFromLog(logEntries) {
         }
 
         // PATTERN 3c: Attack spell success (shows Hit! for attack spells)
-        // Matches: "Name casts SpellName!" followed typically by damage/miss info, but here we capture the cast event
         match = entry.message.match(/(.+) casts (.+)!/);
         if (match) {
             const casterName = match[1];
             const spellName = match[2];
-            // Play spell-specific sounds
             if (spellName === 'Fireball') {
                 playSound('fireball', 0.5);
             } else if (spellName === 'Flamestrike') {
@@ -166,7 +167,6 @@ function getEffectsFromLog(logEntries) {
         // PATTERN 4: Weapon attack Hit! (e.g., "PlayerName attacks TargetName with Iron Dagger! Deals...")
         match = entry.message.match(/^(.+?) attacks (.+?) with .+!.*[Dd]eals (\d+)/);
         if (match) {
-            // Show Hit! on attacker (damage already shown separately via pattern 2)
             effects.push({ targetName: match[1], type: 'success', text: 'Hit!' });
             return;
         }
@@ -179,8 +179,6 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-
-
         // PATTERN 7: Healing
         match = entry.message.match(/Healed (.+?) for (\d+) HP/);
         if (match) {
@@ -189,12 +187,11 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-        // PATTERN 8: Debuff application with ID (e.g., "Goblin is now bleed! [id:xxx]" or "Applies Burn!")
+        // PATTERN 8: Debuff application with ID
         match = entry.message.match(/(.+?) is now (\w+)!/);
         if (match) {
             const targetName = match[1];
             const debuffName = match[2].charAt(0).toUpperCase() + match[2].slice(1);
-            // Check for ID in the message
             const idMatch = entry.message.match(/\[id:(.+?)\]/);
             if (idMatch) {
                 effects.push({ targetId: idMatch[1], type: 'debuff', text: debuffName + '!' });
@@ -204,11 +201,10 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-        // PATTERN 8b: Applies debuff format (e.g., "Applies Bleed!" or "Applies Daze!")
+        // PATTERN 8b: Applies debuff format
         match = entry.message.match(/Applies (\w+)!/);
         if (match) {
             const debuffName = match[1].charAt(0).toUpperCase() + match[1].slice(1);
-            // Try to find target from earlier in the message
             const targetMatch = entry.message.match(/to (.+?) \[id:(.+?)\]/);
             if (targetMatch) {
                 effects.push({ targetId: targetMatch[2], type: 'debuff', text: debuffName + '!' });
@@ -216,8 +212,7 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-        // PATTERN 9: Block (e.g., "Name's Block: ... Blocked")
-        // PATTERN 10: Block (e.g., "Name's Block: ... Blocked")
+        // PATTERN 9/10: Block
         match = entry.message.match(/(.+?)'s Block: .+ Blocked/);
         if (match) {
             effects.push({ targetName: match[1], type: 'success', text: 'Blocked!' });
@@ -225,21 +220,31 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-        // PATTERN 11: Dodge / Parry / Evasive Shot (Unified Avoidance)
-        // Matches: "Name's Parry: ... Deflected!" or "Name's Dodge: ... Avoided!"
+        // PATTERN 11/13: Dodge / Parry / Evasive Shot
         match = entry.message.match(/(.+?)'s (?:Dodge|Evasive Shot|Parry): .+ (?:Avoided|Deflected)!/);
         if (match) {
             const actionType = entry.message.includes('Deflected') ? 'Parried!' : 'Dodged!';
             effects.push({ targetName: match[1], type: 'success', text: actionType });
-            playSound('dodge', 0.5); // User requested dodge-generic for all these
+            playSound('dodge', 0.5);
             return;
         }
 
-        // PATTERN 13: Dodge / Evasive Shot (e.g., "Name's Dodge: ... Avoided!")
-        match = entry.message.match(/(.+?)'s (?:Dodge|Evasive Shot|Parry): .+ (?:Avoided|Deflected)!/);
+        // PATTERN 14: Take damage from source (e.g. "Player takes 2 Fire damage from Burn.")
+        match = entry.message.match(/(.+?) takes (\d+) (?:(.+?) )?damage from .+/);
         if (match) {
-            effects.push({ targetName: match[1], type: 'success', text: 'Dodged!' });
-            playSound('dodge', 0.5);
+            const targetName = match[1];
+            const amount = match[2];
+            const dmgType = match[3] || 'Physical';
+
+            // Try to find an ID if available (often not in DoT messages unless updated)
+            // But we can match by name usually
+            const idMatch = entry.message.match(/\[id:(.+?)\]/);
+            if (idMatch) {
+                effects.push({ targetId: idMatch[1], type: 'damage', text: `-${amount}`, damageType: dmgType });
+            } else {
+                effects.push({ targetName: targetName, type: 'damage', text: `-${amount}`, damageType: dmgType });
+            }
+            playSound('takedamage', 0.5);
             return;
         }
 

@@ -162,7 +162,7 @@ export function playEffectQueue(effects, cachedPositions = {}) {
     });
 }
 
-export function showCombatFeedback({ targetName, targetId, type, text }, cachedPositions = {}) {
+export function showCombatFeedback({ targetName, targetId, type, text, damageType }, cachedPositions = {}) {
     const overlay = document.getElementById('combat-effects-overlay');
     if (!overlay) return;
 
@@ -220,8 +220,20 @@ export function showCombatFeedback({ targetName, targetId, type, text }, cachedP
 
     if (targetCard && (type === 'damage' || type === 'resource')) {
         targetCard.classList.add('shake-effect');
+        if (damageType) {
+            targetCard.classList.add(`flash-${damageType.toLowerCase()}`);
+        } else {
+            // Default to physical (red) if no type specified
+            targetCard.classList.add('flash-physical');
+        }
+
         setTimeout(() => {
             targetCard.classList.remove('shake-effect');
+            if (damageType) {
+                targetCard.classList.remove(`flash-${damageType.toLowerCase()}`);
+            } else {
+                targetCard.classList.remove('flash-physical');
+            }
         }, 500);
     }
 }

@@ -2411,3 +2411,125 @@ hr {
     color: white;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
+
+/* --- DAMAGE FLASH ANIMATIONS --- */
+
+/* Base flash animation keyframes generator */
+@keyframes flash-red {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+    }
+
+    50% {
+        box-shadow: 0 0 30px 10px rgba(231, 76, 60, 0.8);
+        border-color: #e74c3c;
+    }
+}
+
+@keyframes flash-orange {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 159, 67, 0);
+    }
+
+    50% {
+        box-shadow: 0 0 30px 10px rgba(255, 159, 67, 0.8);
+        border-color: #ff9f43;
+    }
+}
+
+@keyframes flash-yellow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(241, 196, 15, 0);
+    }
+
+    50% {
+        box-shadow: 0 0 30px 10px rgba(241, 196, 15, 0.8);
+        border-color: #f1c40f;
+    }
+}
+
+@keyframes flash-dark-purple {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(142, 68, 173, 0);
+    }
+
+    50% {
+        box-shadow: 0 0 30px 10px rgba(142, 68, 173, 0.8);
+        border-color: #8e44ad;
+    }
+}
+
+@keyframes flash-light-purple {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(155, 89, 182, 0);
+    }
+
+    50% {
+        box-shadow: 0 0 30px 10px rgba(155, 89, 182, 0.8);
+        border-color: #9b59b6;
+    }
+}
+
+@keyframes flash-light-blue {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(52, 152, 219, 0);
+    }
+
+    50% {
+        box-shadow: 0 0 30px 10px rgba(52, 152, 219, 0.8);
+        border-color: #3498db;
+    }
+}
+
+@keyframes flash-dark-green {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(33, 186, 69, 0);
+    }
+
+    50% {
+        box-shadow: 0 0 30px 10px rgba(33, 186, 69, 0.8);
+        border-color: #21ba45;
+    }
+}
+
+.flash-physical {
+    animation: flash-red 0.5s ease-out;
+}
+
+.flash-fire {
+    animation: flash-orange 0.5s ease-out;
+}
+
+.flash-holy {
+    animation: flash-yellow 0.5s ease-out;
+}
+
+.flash-shadow {
+    animation: flash-dark-purple 0.5s ease-out;
+}
+
+.flash-arcane {
+    animation: flash-light-purple 0.5s ease-out;
+}
+
+.flash-frost {
+    animation: flash-light-blue 0.5s ease-out;
+}
+
+.flash-nature {
+    animation: flash-dark-green 0.5s ease-out;
+}
