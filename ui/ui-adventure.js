@@ -45,8 +45,11 @@ const effectDefinitions = {
     // Nature Spells
     'rejuvenate': { icon: '🌱', description: 'Rejuvenate: Heals at the end of each turn.' },
     'panther spirit': { icon: '🐆', description: 'Panther Spirit: Increased Agility.' },
+    'Panther Spirit': { icon: '🐆', description: 'Panther Spirit: Increased Agility.' },
     'bear spirit': { icon: '🐻', description: 'Bear Spirit: Increased Strength.' },
-    'tree spirit': { icon: '🌳', description: 'Tree Spirit: Increased Defense.' }
+    'Bear Spirit': { icon: '🐻', description: 'Bear Spirit: Increased Strength.' },
+    'tree spirit': { icon: '🌳', description: 'Tree Spirit: Increased Defense.' },
+    'Tree Spirit': { icon: '🌳', description: 'Tree Spirit: Increased Defense.' }
 };
 
 /**
