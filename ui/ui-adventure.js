@@ -4,6 +4,23 @@ import { gameState } from '../state.js';
 import { socket } from '../network.js';
 import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip } from './ui-main.js';
 import { getBonusStats } from '../player.js';
+import { itemsByName } from '../data/index.js';
+
+/**
+ * Helper to build icon HTML (supports images and emojis)
+ */
+function buildItemIconHTML(item, defaultIcon = '❓') {
+    if (!item) return '';
+    // Use canonical item if available
+    const baseItem = itemsByName.get(item.name);
+    const iconToUse = (baseItem && baseItem.icon) ? baseItem.icon : item.icon;
+
+    if (iconToUse && iconToUse.includes('/')) {
+        return `<img src="${iconToUse}" class="item-icon-img" alt="${item.name}">`;
+    } else {
+        return `<div class="item-icon">${iconToUse || defaultIcon}</div>`;
+    }
+}
 
 let reactionTimerInterval = null;
 
@@ -770,7 +787,7 @@ export function renderPlayerActionBars() {
             slotEl.dataset.action = 'useAbility';
             slotEl.dataset.slot = slotInfo.key;
             slotEl.innerHTML = `
-                <div class="item-icon">${item.icon || '❓'}</div>
+                ${buildItemIconHTML(item)}
                 <div class="item-name">${item.name}</div>
                 <div class="item-details">
                     <span>⚡ ${item.activatedAbility.cost}</span>
@@ -792,7 +809,7 @@ export function renderPlayerActionBars() {
                 slotEl.dataset.slot = slotInfo.key;
                 slotEl.dataset.actionData = JSON.stringify({ type: 'weapon', data: item, slot: slotInfo.key });
                 slotEl.innerHTML = `
-                    <div class="item-icon">${item.icon || '⚔️'}</div>
+                    ${buildItemIconHTML(item, '⚔️')}
                     <div class="item-name">${item.name}</div>
                     <div class="item-details">
                         <span>⚡ ${item.cost}</span>

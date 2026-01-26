@@ -2535,9 +2535,18 @@ hr {
 }
 
 /* Item Image Icons */
+/* Item Image Icons */
 .item-icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+/* Specific adjustment for Action Bar slots to prevent layout breaking */
+.action-slot .item-icon-img {
     width: 32px;
     height: 32px;
     object-fit: contain;
-    border-radius: 4px;
+    margin-bottom: 2px;
 }

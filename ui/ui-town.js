@@ -1,6 +1,6 @@
 'use strict';
 
-import { gameData } from '../data/index.js';
+import { gameData, itemsByName } from '../data/index.js';
 import { gameState } from '../state.js';
 import * as Network from '../network.js';
 import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip } from './ui-main.js';
@@ -44,6 +44,22 @@ function getMaterialCount(materialName) {
         if (item && item.name === materialName) count += (item.quantity || 1);
     });
     return count;
+}
+
+/**
+ * Helper to build icon HTML (supports images and emojis)
+ */
+function buildItemIconHTML(item) {
+    if (!item) return '';
+    // Use canonical item if available
+    const baseItem = itemsByName.get(item.name);
+    const iconToUse = (baseItem && baseItem.icon) ? baseItem.icon : item.icon;
+
+    if (iconToUse && iconToUse.includes('/')) {
+        return `<img src="${iconToUse}" class="item-icon-img" alt="${item.name}">`;
+    } else {
+        return `<div class="item-icon">${iconToUse || '❓'}</div>`;
+    }
 }
 
 /**
@@ -118,7 +134,7 @@ export function renderBankInterface() {
         slot.className = 'inventory-item';
         const item = pageItems[i];
         if (item) {
-            slot.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div><div class="item-quantity">${item.quantity || 1}</div>`;
+            slot.innerHTML = `${buildItemIconHTML(item)}<div class="item-quantity">${item.quantity || 1}</div>`;
             slot.dataset.bankAction = 'withdraw';
             const originalIndex = gameState.bank.findIndex(bankItem => bankItem.name === item.name);
             slot.dataset.index = originalIndex;
@@ -189,7 +205,7 @@ function renderStoragePanel(parentContainer, mode, storageSource = 'inventory') 
         slot.className = 'inventory-item';
         const item = items[i];
         if (item) {
-            slot.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div><div class="item-quantity">${item.quantity || ''}</div>`;
+            slot.innerHTML = `${buildItemIconHTML(item)}<div class="item-quantity">${item.quantity || ''}</div>`;
             slot.dataset.inventoryAction = action;
             slot.dataset.index = i;
             if (isBank) slot.dataset.fromBank = 'true';
@@ -240,7 +256,7 @@ export function renderMerchant() {
     permanentStock.forEach(item => {
         const itemEl = document.createElement('div');
         itemEl.className = 'inventory-item';
-        itemEl.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div>`;
+        itemEl.innerHTML = buildItemIconHTML(item);
         itemEl.dataset.buyItem = item.name;
         itemEl.dataset.permanent = 'true';
 
@@ -266,7 +282,7 @@ export function renderMerchant() {
         rotatingStock.forEach((item, index) => {
             const itemEl = document.createElement('div');
             itemEl.className = 'inventory-item';
-            itemEl.innerHTML = `<div class="item-icon">${item.icon || '❓'}</div><div class="item-quantity">${item.quantity}</div>`;
+            itemEl.innerHTML = `${buildItemIconHTML(item)}<div class="item-quantity">${item.quantity}</div>`;
             itemEl.dataset.buyItem = index;
             itemEl.dataset.permanent = 'false';
 
@@ -360,7 +376,7 @@ export function showSellConfirmationModal(itemIndex, fromBank = false) {
 
     const modalContent = `
         <h2>Confirm Sell</h2>
-        <div class="item-icon" style="font-size: 3em; margin: 10px;">${item.icon || '❓'}</div>
+        <div style="width: 64px; height: 64px; margin: 10px auto;">${buildItemIconHTML(item)}</div>
         <p>Sell 1x ${item.name} for ${sellPrice} Gold?</p>
         <p style="font-size: 0.8em; color: #888;">(From ${fromBank ? 'Bank' : 'Inventory'})</p>
         <div class="action-buttons">
