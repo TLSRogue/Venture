@@ -221,7 +221,7 @@ export function showNPCDialogueFromServer({ npcName, node, cardIndex }) {
         const safePayload = JSON.stringify(payload).replace(/'/g, "&#39;");
         let action = `data-action="choice" data-payload='${safePayload}'`;
 
-        if (option.next === 'farewell') {
+        if (option.next === 'farewell' && !option.action) {
             action = `data-action="hide"`;
         }
 
