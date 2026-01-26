@@ -462,8 +462,33 @@ export async function processCastSpell(io, party, player, payload) {
         // Pass bonuses for Cleanse (Holy Power scaling)
         const result = handler(spell, character, actingPlayerState, log, handlerTarget, bonuses);
 
-        // Handle Cleanse debuff selection UI
+        // Handle Clear/Spirit Call/Dialogue selections
         if (result && result.pendingSelection) {
+
+            // --- Spirit Call Handling ---
+            if (result.pendingSelection.type === 'spiritCall') {
+                const bonus = result.pendingSelection.bonusAmount || 1;
+                const spiritDialog = {
+                    text: "Call upon a Spirit Animal to aid you:",
+                    options: [
+                        { text: `Panther Spirit (+${bonus} Agi)`, action: 'spiritCallBuff', buff: 'Panther', next: 'farewell' },
+                        { text: `Bear Spirit (+${bonus} Str)`, action: 'spiritCallBuff', buff: 'Bear', next: 'farewell' },
+                        { text: `Tree Spirit (+${bonus} Def)`, action: 'spiritCallBuff', buff: 'Tree', next: 'farewell' }
+                    ]
+                };
+
+                io.to(result.pendingSelection.casterPlayerId).emit('party:showDialogue', {
+                    npcName: "Spirit Call",
+                    node: spiritDialog,
+                    cardIndex: -1 // Special index for triggered events
+                });
+
+                log.push({ message: `${character.characterName} calls out to the spirits...`, type: 'info' });
+                broadcastAdventureUpdate(io, party);
+                return;
+            }
+
+            // --- Cleanse Handling ---
             // Store pending cleanse state on party
             sharedState.pendingCleanse = result.pendingSelection;
 
@@ -639,8 +664,19 @@ export async function processCastSpell(io, party, player, payload) {
         } else {
             // Fallback for self wrapper if applyBuff missing
             const existingIndex = buffTarget.buffs.findIndex(b => b.type === buff.type);
-            if (existingIndex !== -1) buffTarget.buffs.splice(existingIndex, 1);
-            buffTarget.buffs.push(buff);
+            if (existingIndex !== -1) {
+                if (buff.stackDuration) {
+                    buffTarget.buffs[existingIndex].duration += buff.duration;
+                    log.push({ message: `${buffTarget.name}'s ${buff.type} duration extended by ${buff.duration} turns!`, type: 'heal' });
+                    // Skip the standard "gains buff" log since we extended it
+                    return;
+                } else {
+                    buffTarget.buffs.splice(existingIndex, 1);
+                    buffTarget.buffs.push(buff);
+                }
+            } else {
+                buffTarget.buffs.push(buff);
+            }
         }
 
         const tId = buffTarget.isPvP ? buffTarget.id : (buffTarget.id || buffTarget.state?.playerId);

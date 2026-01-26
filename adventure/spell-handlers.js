@@ -22,13 +22,15 @@ export const SpellHandlers = {
     },
 
     'Spirit Call': (spell, character, actingPlayerState, log) => {
-        // Trigger dialog for choice
+        // Return dialogue structure for the UI to render
         return {
             success: true,
             pendingSelection: {
-                type: 'spiritCall', // Custom type for interactions handler
+                type: 'spiritCall',
                 casterPlayerId: actingPlayerState.playerId,
-                casterName: character.characterName
+                casterName: character.characterName,
+                // Pre-calculate the bonus amount for display
+                bonusAmount: Math.max(1, (getBonusStatsForPlayer(character, actingPlayerState).naturePower || 0))
             }
         };
     },
