@@ -1,104 +1,56 @@
 
-// Verification script for Nature Spells Fixes
-// Tests stackDuration logic and Spirit Call dialogue structure
+import { allSpells } from '../data/spells.js';
+import { getBonusStatsForPlayer } from '../utilsHelpers.js';
 
-console.log("=== VERIFYING NATURE SPELLS FIXES ===");
+console.log("=== NATURE SPELLS VERIFICATION ===");
 
-// --- Test 1: Stack Duration Logic ---
-console.log("\n[Test 1] Buff Stack Duration Logic");
+// 1. Verify Moonbeam
+const moonbeam = allSpells.find(s => s.name === 'Moonbeam');
+console.log("\n[Moonbeam]");
+console.log(`Damage Type: ${moonbeam.damageType} (Expected: Nature)`);
+console.log(`AP Cost: ${moonbeam.cost} (Expected: 1)`);
+console.log(`Cooldown: ${moonbeam.cooldown} (Expected: 0)`);
 
-const buffTarget = {
-    name: "TestPlayer",
-    buffs: [
-        { type: "Rejuvenate", duration: 3, stackDuration: true }
-    ]
-};
-
-const newBuff = { type: "Rejuvenate", duration: 3, stackDuration: true };
-const log = [];
-
-// Simulate logic from adventure-actions.js
-const existingIndex = buffTarget.buffs.findIndex(b => b.type === newBuff.type);
-if (existingIndex !== -1) {
-    if (newBuff.stackDuration) {
-        buffTarget.buffs[existingIndex].duration += newBuff.duration;
-        log.push({ message: `${buffTarget.name}'s ${newBuff.type} duration extended by ${newBuff.duration} turns!`, type: 'heal' });
-    } else {
-        buffTarget.buffs.splice(existingIndex, 1);
-        buffTarget.buffs.push(newBuff);
-    }
+if (moonbeam.damageType === 'Nature' && moonbeam.cost === 1 && moonbeam.cooldown === 0) {
+    console.log("✅ Moonbeam basic stats verified.");
 } else {
-    buffTarget.buffs.push(newBuff);
+    console.error("❌ Moonbeam basic stats failed.");
 }
 
-if (buffTarget.buffs[0].duration === 6) {
-    console.log("✅ Stack Duration Success: Duration increased from 3 to 6.");
+// 2. Verify Rejuvenate
+const rejuvenate = allSpells.find(s => s.name === 'Rejuvenate');
+console.log("\n[Rejuvenate]");
+console.log(`AP Cost: ${rejuvenate.cost} (Expected: 1)`);
+console.log(`Cooldown: ${rejuvenate.cooldown} (Expected: 3)`);
+console.log(`Duration: ${rejuvenate.buff.duration} (Expected: 2)`);
+console.log(`Range: ${rejuvenate.range} (Expected: ranged)`);
+
+if (rejuvenate.cost === 1 && rejuvenate.cooldown === 3 && rejuvenate.buff.duration === 2 && rejuvenate.range === 'ranged') {
+    console.log("✅ Rejuvenate basic stats verified.");
 } else {
-    console.error(`❌ Stack Duration Failed: Expected 6, got ${buffTarget.buffs[0].duration}`);
+    console.error("❌ Rejuvenate basic stats failed.");
 }
 
-if (log.length > 0 && log[0].message.includes("extended by 3 turns")) {
-    console.log("✅ Log Message Correct");
+// 3. Verify Spirit Call
+const spiritCall = allSpells.find(s => s.name === 'Spirit Call');
+console.log("\n[Spirit Call]");
+console.log(`Cooldown: ${spiritCall.cooldown} (Expected: 6)`);
+
+if (spiritCall.cooldown === 6) {
+    console.log("✅ Spirit Call cooldown verified.");
 } else {
-    console.error("❌ Log Message Failed");
+    console.error("❌ Spirit Call cooldown failed.");
 }
 
+// 4. Verify Entangling Roots
+const roots = allSpells.find(s => s.name === 'Entangling Roots');
+console.log("\n[Entangling Roots]");
+console.log(`AP Cost: ${roots.cost} (Expected: 2)`);
 
-// --- Test 2: Spirit Call Dialogue Construction ---
-console.log("\n[Test 2] Spirit Call Dialogue Structure");
-
-// Mocking result from spell-handler
-const result = {
-    pendingSelection: {
-        type: 'spiritCall',
-        casterPlayerId: 'p1',
-        casterName: 'Druid',
-        bonusAmount: 5 // Mocked bonus
-    }
-};
-
-let dialogueEmitted = null;
-const io = {
-    to: (id) => ({
-        emit: (event, payload) => {
-            if (event === 'party:showDialogue') {
-                dialogueEmitted = payload;
-            }
-        }
-    })
-};
-
-// Simulate logic from adventure-actions.js
-if (result.pendingSelection.type === 'spiritCall') {
-    const bonus = result.pendingSelection.bonusAmount || 1;
-    const spiritDialog = {
-        text: "Call upon a Spirit Animal to aid you:",
-        options: [
-            { text: `Panther Spirit (+${bonus} Agi)`, action: 'spiritCallBuff', buff: 'Panther', next: 'farewell' },
-            { text: `Bear Spirit (+${bonus} Str)`, action: 'spiritCallBuff', buff: 'Bear', next: 'farewell' },
-            { text: `Tree Spirit (+${bonus} Def)`, action: 'spiritCallBuff', buff: 'Tree', next: 'farewell' }
-        ]
-    };
-
-    io.to('p1').emit('party:showDialogue', {
-        npcName: "Spirit Call",
-        node: spiritDialog,
-        cardIndex: -1
-    });
-}
-
-if (dialogueEmitted) {
-    console.log("✅ Dialogue Emitted");
-    console.log("NPC Name:", dialogueEmitted.npcName);
-    const options = dialogueEmitted.node.options;
-    if (options.length === 3 && options[0].text.includes("+5 Agi")) {
-        console.log("✅ Dialogue Options Correct (Bonus +5 reflected)");
-    } else {
-        console.error("❌ Dialogue Options Incorrect");
-        console.log("Options:", JSON.stringify(options, null, 2));
-    }
+if (roots.cost === 2) {
+    console.log("✅ Entangling Roots cost verified.");
 } else {
-    console.error("❌ Dialogue Not Emitted");
+    console.error("❌ Entangling Roots cost failed.");
 }
 
 console.log("\n=== VERIFICATION COMPLETE ===");

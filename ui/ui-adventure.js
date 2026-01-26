@@ -658,7 +658,15 @@ function createEffectsContainer(stateObject) {
             buffSpan.textContent = def.icon;
             buffSpan.addEventListener('mouseover', (e) => {
                 e.stopPropagation();
-                showTooltip(`${def.icon} <strong>${buff.type}</strong><br>${def.description}<br>Turns Remaining: ${buff.duration}`);
+                let tooltip = `${def.icon} <strong>${buff.type}</strong><br>${def.description}`;
+                if (buff.bonus) {
+                    tooltip += '<hr style="margin: 5px 0;"><strong>Bonuses:</strong>';
+                    for (const stat in buff.bonus) {
+                        tooltip += `<br>${stat.charAt(0).toUpperCase() + stat.slice(1)}: +${buff.bonus[stat]}`;
+                    }
+                }
+                tooltip += `<br><hr style="margin: 5px 0;">Turns Remaining: ${buff.duration}`;
+                showTooltip(tooltip);
             });
             buffSpan.addEventListener('mouseout', () => hideTooltip());
             effectsContainer.appendChild(buffSpan);
@@ -809,7 +817,8 @@ export function renderPlayerActionBars() {
                 <div class="cooldown-overlay" style="height: ${cooldown > 0 ? '100' : '0'}%">${cooldown}</div>
             `;
 
-            if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile' || spell.type === 'revive' || spell.type === 'debuff' || spell.type === 'cleanse') {
+            if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile' || spell.type === 'revive' || spell.type === 'debuff' || spell.type === 'cleanse' ||
+                ((spell.type === 'heal' || spell.type === 'buff') && spell.range !== 'self')) {
                 slotEl.dataset.action = 'select';
                 slotEl.dataset.actionData = JSON.stringify({ type: 'spell', data: spell, index: i });
             } else if (spell.type === 'heal' || spell.type === 'buff' || spell.type === 'utility') {

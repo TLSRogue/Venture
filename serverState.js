@@ -68,10 +68,13 @@ try {
                 }
             }
 
-            // --- BOW SPELL MIGRATION ---
-            // Force update all bow spells to current definitions (ensures crossbow support)
-            const bowSpellNames = ['Aim True', 'Split Shot', 'Evasive Shot', 'Slash'];
-            bowSpellNames.forEach(spellName => {
+            // --- SPELL MIGRATION ---
+            // Force update spells to current definitions
+            const spellsToMigrate = [
+                'Aim True', 'Split Shot', 'Evasive Shot', 'Slash',
+                'Moonbeam', 'Rejuvenate', 'Spirit Call', 'Entangling Roots', 'Tree Form'
+            ];
+            spellsToMigrate.forEach(spellName => {
                 const currentSpellDef = gameData.allSpells.find(s => s.name === spellName);
                 if (!currentSpellDef) return;
 
@@ -91,7 +94,7 @@ try {
                     dataWasMigrated = true;
                 }
             });
-            // --- END BOW SPELL MIGRATION ---
+            // --- END SPELL MIGRATION ---
 
             // --- T2 RECIPE BACKFILL MIGRATION ---
             // Debug: Log quests for this character

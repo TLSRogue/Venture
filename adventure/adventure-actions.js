@@ -649,6 +649,12 @@ export async function processCastSpell(io, party, player, payload) {
         };
         const buff = { ...spell.buff };
 
+        // Handle Rejuvenate healing amount (scales with caster's naturePower)
+        if (spell.name === 'Rejuvenate') {
+            const naturePower = bonuses.naturePower || 0;
+            buff.healAmount = 1 + naturePower;
+        }
+
         // Handle Magic Barrier scaling with arcanePower
         if (buff.type === 'Magic Barrier' && buff.scaling === 'arcanePower') {
             const bonusStats = getBonusStatsForPlayer(character, actingPlayerState);
