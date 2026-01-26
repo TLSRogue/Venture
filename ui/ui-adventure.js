@@ -45,11 +45,8 @@ const effectDefinitions = {
     // Nature Spells
     'rejuvenate': { icon: '🌱', description: 'Rejuvenate: Heals at the end of each turn.' },
     'panther spirit': { icon: '🐆', description: 'Panther Spirit: Increased Agility.' },
-    'Panther Spirit': { icon: '🐆', description: 'Panther Spirit: Increased Agility.' },
     'bear spirit': { icon: '🐻', description: 'Bear Spirit: Increased Strength.' },
-    'Bear Spirit': { icon: '🐻', description: 'Bear Spirit: Increased Strength.' },
-    'tree spirit': { icon: '🌳', description: 'Tree Spirit: Increased Defense.' },
-    'Tree Spirit': { icon: '🌳', description: 'Tree Spirit: Increased Defense.' }
+    'tree spirit': { icon: '🌳', description: 'Tree Spirit: Increased Defense.' }
 };
 
 /**
@@ -652,12 +649,14 @@ function createEffectsContainer(stateObject) {
     }
 
     if (stateObject.buffs) {
+        console.log(`Rendering buffs for ${stateObject.name}:`, stateObject.buffs);
         stateObject.buffs.forEach(buff => {
             const buffSpan = document.createElement('span');
             const lowerType = buff.type.toLowerCase();
             const def = effectDefinitions[lowerType] || { icon: '✨', description: 'Beneficial effect' };
 
             buffSpan.className = 'player-card-effect buff';
+
 
             // Show bonus value if present (e.g. "+3" for Spirit Call)
             let bonusText = '';
