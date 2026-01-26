@@ -585,7 +585,7 @@ body {
     flex-wrap: wrap;
     gap: 4px;
     padding: 2px 5px;
-    z-index: 5;
+    z-index: 100;
     pointer-events: none;
 }
 
