@@ -622,22 +622,24 @@ export function processDialogueChoice(io, player, party, payload) {
         const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
         const powerAmount = Math.max(1, bonuses.naturePower || 0);
 
-        // Apply AP cost and Cooldown for Spirit Call (moved from cast time to selection time)
-        // Spirit Call is usually 1 AP and 2 turn cooldown (checked from data or standard)
-        // We can look it up or assume standard if it's consistent. 
-        // Best to find the spell in equipped to be sure, or just apply standard cost if known.
-        // Assuming 1 AP cost as per standard spell cost.
-        if (actingPlayerState.actionPoints >= 1) {
-            actingPlayerState.actionPoints -= 1;
-            actingPlayerState.spellCooldowns['Spirit Call'] = 2; // Standard cooldown
+        // Find the Spirit Call spell to get actual cost/cooldown
+        const spiritCallSpell = character.equippedSpells.find(s => s.name === "Spirit Call") ||
+            character.spellbook.find(s => s.name === "Spirit Call") ||
+            gameData.allSpells.find(s => s.name === "Spirit Call");
+
+        const cost = spiritCallSpell ? (spiritCallSpell.cost || 1) : 1;
+        const cooldown = spiritCallSpell ? (spiritCallSpell.cooldown || 1) : 1; // Default to 1 if not found
+
+        // Apply AP cost
+        if (actingPlayerState.actionPoints >= cost) {
+            actingPlayerState.actionPoints -= cost;
         } else {
-            // Should verify AP before allowing this choice? 
-            // The dialogue doesn't strictly block this but ideally we should have.
-            // But usually they have AP from the cast attempt.
-            // We'll proceed but maybe log if negative? Or just allow it as debt?
-            // Simplest fix: Deduct it.
-            actingPlayerState.actionPoints = Math.max(0, actingPlayerState.actionPoints - 1);
+            // If they somehow clicked this without AP (race condition), we'll allow it but zero out AP
+            actingPlayerState.actionPoints = 0;
         }
+
+        // Apply Cooldown
+        actingPlayerState.spellCooldowns['Spirit Call'] = cooldown;
 
         if (choice.buff === 'Panther') {
             actingPlayerState.buffs.push({
@@ -663,7 +665,7 @@ export function processDialogueChoice(io, player, party, payload) {
         }
 
         io.to(player.id).emit('party:hideDialogue');
-        io.to(player.id).emit('characterUpdate', character); // Sync stats if needed, though mostly server state
+        io.to(player.id).emit('characterUpdate', character);
         broadcastAdventureUpdate(io, party);
     }
 }
