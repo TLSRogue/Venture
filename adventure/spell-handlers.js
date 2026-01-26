@@ -59,13 +59,38 @@ export const SpellHandlers = {
             return { success: false };
         }
 
-        // Calculate max debuffs to remove: 1 + Holy Power
-        const holyPower = bonuses?.holyPower || 0;
-        const maxDebuffsToRemove = 1 + holyPower;
+        let didHeal = false;
+        // Apply Healing if spell has it (Nature's Blessing)
+        if (spell.heal) {
+            // Calculate Heal Amount: Base + Nature Power (if Nature spell) or Holy Power (if Holy)
+            // Default to matching power of school
+            let powerBonus = 0;
+            if (spell.school === 'Nature') powerBonus = bonuses?.naturePower || 0;
+            if (spell.school === 'Holy') powerBonus = bonuses?.holyPower || 0;
+
+            const healAmount = spell.heal + powerBonus;
+
+            // Apply Heal
+            const maxHealth = targetState.maxHealth || 10;
+            const currentHealth = targetState.health || 0;
+            targetState.health = Math.min(maxHealth, currentHealth + healAmount);
+
+            log.push({ message: `${character.characterName} heals ${targetState.name} for ${healAmount} HP!`, type: 'heal' });
+            didHeal = true;
+        }
+
+        // Calculate max debuffs to remove: Base (1) + Power
+        let powerForCleanse = 0;
+        if (spell.school === 'Nature') powerForCleanse = bonuses?.naturePower || 0;
+        else powerForCleanse = bonuses?.holyPower || 0; // Default to Holy for Cleanse
+
+        const baseCleanse = spell.cleanseAmount || 1;
+        const maxDebuffsToRemove = baseCleanse + powerForCleanse;
 
         // Get target's debuffs
         const debuffs = targetState.debuffs || [];
         if (debuffs.length === 0) {
+            if (didHeal) return { success: true }; // Successful if it healed, even if no debuffs
             log.push({ message: `${character.characterName} casts ${spell.name} on ${targetState.name}, but there are no debuffs to remove!`, type: 'info' });
             return { success: false };
         }
@@ -74,8 +99,7 @@ export const SpellHandlers = {
         if (debuffs.length <= maxDebuffsToRemove) {
             const removedNames = debuffs.map(d => d.type);
             targetState.debuffs = [];
-            log.push({ message: `${character.characterName} casts ${spell.name} on ${targetState.name}! [id:${targetState.playerId || targetState.id}]`, type: 'heal' });
-            log.push({ message: `Cleansed: ${removedNames.join(', ')}!`, type: 'heal' });
+            log.push({ message: `${didHeal ? 'Also cleansed' : 'Cleansed'}: ${removedNames.join(', ')}!`, type: 'heal' });
             return { success: true };
         }
 
@@ -91,6 +115,10 @@ export const SpellHandlers = {
                 casterName: character.characterName
             }
         };
+    },
+    'Nature\'s Blessing': (spell, character, actingPlayerState, log, targetState, bonuses) => {
+        // Reuse Cleanse logic
+        return SpellHandlers['Cleanse'](spell, character, actingPlayerState, log, targetState, bonuses);
     }
 };
 
@@ -122,6 +150,11 @@ export function getSpecialSpellDamage(spell, character, actingPlayerState, bonus
     if (spell.name === 'Moonbeam') {
         const natureBonus = Math.floor((bonuses.naturePower || 0) / 2);
         return (spell.damage || 1) + natureBonus;
+    }
+
+    // --- Nature Spells: Nature's Wrath (Base + Nature Power) ---
+    if (spell.name === "Nature's Wrath") {
+        return (spell.damage || 1) + (bonuses.naturePower || 0);
     }
 
     // --- Frost Spells: Base + Frost Power ---

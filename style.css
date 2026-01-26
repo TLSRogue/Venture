@@ -2381,7 +2381,16 @@ hr {
 }
 
 /* Zone Deck Counter */
+#zone-cards {
+    position: relative;
+    /* Ensure only the cards participate in flex centering */
+}
+
 .zone-deck-counter {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
     background: linear-gradient(135deg, #222, #000);
     border: 3px solid white;
     border-radius: 12px;
@@ -2392,10 +2401,8 @@ hr {
     align-items: center;
     font-family: 'Inter', sans-serif;
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
-    align-self: center;
-    /* Vertically center in flex container */
     animation: fadeIn 0.5s ease-in;
-    margin-left: 10px;
+    z-index: 10;
 }
 
 .deck-count-number {

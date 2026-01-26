@@ -26,7 +26,7 @@ function refreshPlayerSpells(character, characterName) {
         // Magic spells (isMagic: true) - needed for Silence to work
         'Fireball', 'Flash Heal', 'Holy Shock', 'Flame Strike', 'Stealth', 'Silence', 'Revive', 'Cone of Cold', 'Entangling Roots', 'Cleanse',
         // Nature Update
-        'Moonbeam', 'Rejuvenate', 'Spirit Call', 'Tree Form'
+        'Moonbeam', 'Rejuvenate', 'Spirit Call', 'Tree Form', 'Nature\'s Wrath', 'Nature\'s Blessing'
     ];
 
     spellsToRefresh.forEach(spellName => {

@@ -489,6 +489,40 @@ export const allSpells = [
         icon: "🌙",
         rarity: "rare",
     },
+    {
+        name: "Nature's Wrath",
+        scrollCost: "Nature Spell Scroll",
+        cost: 1,
+        cooldown: 2,
+        school: "Nature",
+        range: "ranged",
+        isMagic: true,
+        description: "Focus nature's rage. 1 AP, 2 CD | D20+Wis (10+) | Deals 1 Nature Damage (+Nature Power).",
+        type: "attack",
+        stat: "wisdom",
+        hit: 10,
+        damageType: 'Nature',
+        damage: 1, // Base damage, +Power handled in logic
+        icon: "🌪️",
+        rarity: "uncommon",
+    },
+    {
+        name: "Nature's Blessing",
+        scrollCost: "Nature Spell Scroll",
+        cost: 1,
+        cooldown: 4,
+        school: "Nature",
+        range: "ranged",
+        isMagic: true,
+        description: "Pure natural healing. 1 AP, 4 CD | D20+Wis (10+) | Heals 1 (+Nature Power) and removes 1 (+Nature Power) debuffs.",
+        type: "cleanse", // Cleanse type usually handles both healing and dispel logic if configured, or needs custom handler
+        stat: "wisdom",
+        hit: 10,
+        heal: 1, // Base heal
+        cleanseAmount: 1, // Base cleanse count
+        icon: "🌺",
+        rarity: "rare",
+    },
     // --- Dark Forest Quest Reward ---
     {
         name: "Backstab",
