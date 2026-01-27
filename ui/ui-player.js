@@ -291,6 +291,13 @@ export function showItemActions(itemIndex) {
 
     if (item.type === 'consumable') {
         buttonsHTML += `<button class="btn btn-success" data-inventory-action="useConsumable" data-index="${itemIndex}">Use</button>`;
+    } else if (item.type === 'recipe') {
+        const isKnown = gameState.knownRecipes && gameState.knownRecipes.includes(item.learnsRecipe);
+        if (isKnown) {
+            buttonsHTML += `<button class="btn btn-secondary" disabled>Already Known</button>`;
+        } else {
+            buttonsHTML += `<button class="btn btn-success" data-inventory-action="useRecipe" data-index="${itemIndex}">Learn Recipe</button>`;
+        }
     }
 
     if (item.slot) {

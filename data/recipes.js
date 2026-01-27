@@ -38,6 +38,7 @@ export const craftingRecipes = [
     { result: { name: "Cloth Boots" }, materials: { "Cloth": 2 }, category: "Tailoring" },
     { result: { name: "Cloth" }, materials: { "Hemp": 2 }, category: "Tailoring" },
     { result: { name: "Staff" }, materials: { "Wood": 3 }, category: "Artificing" },
+    { result: { name: "Wizard's Staff (T1)" }, materials: { "Wood": 3, "Tier 1 Gemstone": 1 }, category: "Artificing", requiresDiscovery: true },
     { result: { name: "Wooden Torch" }, materials: { "Wood": 1, "Animal Fat": 1 }, category: "General" },
     { result: { name: "Powder Keg" }, materials: { "Wood": 2, "Coal": 1 }, category: "General", requiresDiscovery: true },
     // --- Tier 1 Gems (Artificing) ---

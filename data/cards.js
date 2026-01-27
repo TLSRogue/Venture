@@ -58,7 +58,7 @@ export const cardPools = {
                 }
             }, count: 1
         },
-        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", icon: "📦", imageUrl: '/assets/farmlands-treasurechest.jpg' }, count: 1 },
+        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", loot: [{ name: "Wizard's Staff Recipe (T1)", type: "recipe", rarity: "uncommon" }, { name: "Gold Pouch", quantity: 1 }, { name: "Healing Potion" }], lootCount: 2, icon: "📦", imageUrl: '/assets/farmlands-treasurechest.jpg' }, count: 1 },
         {
             card: {
                 name: "Chicken", type: "enemy", health: 2, maxHealth: 2, description: "A feisty farm chicken", icon: "🐔", imageUrl: '/assets/farmlands-chicken.jpg',
@@ -117,7 +117,8 @@ export const cardPools = {
                 guaranteedLoot: { gold: true, minGold: 1, maxGold: 3, items: ["Cloth"] },
                 lootTable: [
                     { range: [1, 15], randomItems: { pool: ['Wheat', 'Carrot', 'Apple', 'Seeds'], count: 1 } },
-                    { range: [16, 19], items: ["Thread"] },
+                    { range: [16, 18], items: ["Thread"] },
+                    { range: [19, 19], items: ["Wizard's Staff Recipe (T1)"] },
                     { range: [20, 20], items: ["Pitchfork"] }
                 ]
             }, count: 3

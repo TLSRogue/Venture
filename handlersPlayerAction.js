@@ -359,6 +359,36 @@ function handleSellAllJunk(character) {
     return false;
 }
 
+// --- RECIPE HANDLERS ---
+function handleUseRecipe(character, payload) {
+    const { itemIndex } = payload;
+    const item = character.inventory[itemIndex];
+
+    if (item && item.type === 'recipe' && item.learnsRecipe) {
+        // Check if already known
+        if (character.knownRecipes.includes(item.learnsRecipe)) {
+            // Technically UI should prevent this, but server validation is needed
+            // We can't easily emit an error message from here with current pattern, 
+            // but returning false means no update, implying failure.
+            // Ideally we'd send a toast/error, but for now we just fail the action.
+            console.log(`[UseRecipe] Player ${character.characterName} already knows ${item.learnsRecipe}`);
+            return false;
+        }
+
+        // Learn the recipe
+        character.knownRecipes.push(item.learnsRecipe);
+
+        // Consume the item
+        item.quantity--;
+        if (item.quantity <= 0) {
+            character.inventory[itemIndex] = null;
+        }
+
+        return true;
+    }
+    return false;
+}
+
 // --- ACTION DISPATCH TABLE ---
 const actionHandlers = {
     viewMerchant: handleViewMerchant,
@@ -378,6 +408,7 @@ const actionHandlers = {
     depositAll: handleDepositAll,
     socketGem: handleSocketGem,
     unsocketGem: handleUnsocketGem,
+    useRecipe: handleUseRecipe,
     sellAllJunk: handleSellAllJunk
 };
 
