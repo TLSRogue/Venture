@@ -364,19 +364,23 @@ function handleUseRecipe(character, payload) {
     const { itemIndex } = payload;
     const item = character.inventory[itemIndex];
 
+    console.log(`[UseRecipe] Attempting to use recipe at index ${itemIndex}. Item:`, item ? item.name : 'null');
+
+    // Safety initialization
+    if (!character.knownRecipes) {
+        character.knownRecipes = [];
+    }
+
     if (item && item.type === 'recipe' && item.learnsRecipe) {
         // Check if already known
         if (character.knownRecipes.includes(item.learnsRecipe)) {
-            // Technically UI should prevent this, but server validation is needed
-            // We can't easily emit an error message from here with current pattern, 
-            // but returning false means no update, implying failure.
-            // Ideally we'd send a toast/error, but for now we just fail the action.
             console.log(`[UseRecipe] Player ${character.characterName} already knows ${item.learnsRecipe}`);
             return false;
         }
 
         // Learn the recipe
         character.knownRecipes.push(item.learnsRecipe);
+        console.log(`[UseRecipe] Success! ${character.characterName} learned ${item.learnsRecipe}`);
 
         // Consume the item
         item.quantity--;
@@ -385,6 +389,8 @@ function handleUseRecipe(character, payload) {
         }
 
         return true;
+    } else {
+        console.log(`[UseRecipe] Failed validation. Type: ${item?.type}, Learns: ${item?.learnsRecipe}`);
     }
     return false;
 }
