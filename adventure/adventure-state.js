@@ -344,11 +344,36 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     }
 
     let lootToDistribute = [];
+    // --- NEW: Handle gold and traits from loot table entries ---
+    let lootTableGold = 0;
+
     if (enemy.lootTable && enemy.lootTable.length > 0) {
         const roll = Math.floor(Math.random() * 20) + 1;
         const lootDrop = enemy.lootTable.find(entry => roll >= entry.range[0] && roll <= entry.range[1]);
+
         if (lootDrop) {
-            // Handle direct items (backwards compatible)
+            // 1. Handle "gold" in loot table
+            if (lootDrop.gold) {
+                if (lootDrop.gold.min !== undefined && lootDrop.gold.max !== undefined) {
+                    lootTableGold = Math.floor(Math.random() * (lootDrop.gold.max - lootDrop.gold.min + 1)) + lootDrop.gold.min;
+                }
+            }
+
+            // 2. Handle "trait" (e.g. { trait: 'T1 Recipe', chance: 1.0 })
+            if (lootDrop.trait) {
+                // Determine count (default 1)
+                const count = lootDrop.count || 1;
+                const itemsWithTrait = gameData.allItems.filter(i => i.traits && i.traits.includes(lootDrop.trait));
+
+                if (itemsWithTrait.length > 0) {
+                    for (let i = 0; i < count; i++) {
+                        const randomItem = itemsWithTrait[Math.floor(Math.random() * itemsWithTrait.length)];
+                        lootToDistribute.push(randomItem);
+                    }
+                }
+            }
+
+            // 3. Handle standard items list
             if (lootDrop.items && lootDrop.items.length > 0) {
                 lootDrop.items.forEach(itemName => {
                     const itemData = gameData.allItems.find(i => i.name === itemName);
@@ -356,7 +381,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
                 });
             }
 
-            // Handle single category drop (NEW) - e.g., fromCategory: "T1 Material"
+            // 4. Handle fromCategory
             if (lootDrop.fromCategory) {
                 const count = lootDrop.count || 1;
                 for (let i = 0; i < count; i++) {
@@ -365,7 +390,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
                 }
             }
 
-            // Handle multiple categories (NEW) - e.g., fromCategories: ["T1 Weapon", "T1 Equipment"]
+            // 5. Handle fromCategories
             if (lootDrop.fromCategories) {
                 const count = lootDrop.count || 1;
                 for (let i = 0; i < count; i++) {
@@ -374,7 +399,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
                 }
             }
 
-            // Handle existing randomItems format (backwards compatible)
+            // 6. Handle legacy randomItems
             if (lootDrop.randomItems && lootDrop.randomItems.pool) {
                 for (let i = 0; i < lootDrop.randomItems.count; i++) {
                     const randomItemName = lootDrop.randomItems.pool[Math.floor(Math.random() * lootDrop.randomItems.pool.length)];
@@ -384,6 +409,8 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
             }
         }
     }
+
+    // Handle separate guaranteedLoot (Legacy & Hybrid support)
     if (enemy.guaranteedLoot && enemy.guaranteedLoot.items) {
         enemy.guaranteedLoot.items.forEach(itemName => {
             const itemData = gameData.allItems.find(i => i.name === itemName);
@@ -391,7 +418,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         });
     }
 
-    // Collect dropped items for consolidated log message
+    // Collect dropped items...
     const droppedItemNames = [];
     const rollableItems = [];
 
@@ -399,13 +426,11 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         if (itemData.rarity === 'uncommon' || itemData.rarity === 'rare') {
             rollableItems.push(itemData);
         } else {
-            // Non-rare loot drops to the ground - party decides who picks it up
             sharedState.groundLoot.push({ ...itemData, quantity: 1 });
             droppedItemNames.push(itemData.name);
         }
     });
 
-    // Log all dropped items in a single message
     if (droppedItemNames.length > 0) {
         sharedState.log.push({ message: `${enemy.name} dropped: ${droppedItemNames.join(', ')}!`, type: 'success' });
     }
@@ -435,10 +460,35 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
             }, LOOT_ROLL_DURATION_MS);
         }
     });
+
+    // Calculate Gold Distribution
+    let totalGoldPerPlayer = 0;
+
+    // 1. Loot Table Gold
+    if (lootTableGold > 0) {
+        sharedState.log.push({ message: `${enemy.name} dropped ${lootTableGold} gold!`, type: 'success' });
+        totalGoldPerPlayer += Math.floor(lootTableGold / party.members.length);
+    }
+
+    // 2. Guaranteed Gold (Legacy)
+    if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
+        let goldAmount;
+        if (enemy.guaranteedLoot.minGold !== undefined && enemy.guaranteedLoot.maxGold !== undefined) {
+            goldAmount = Math.floor(Math.random() * (enemy.guaranteedLoot.maxGold - enemy.guaranteedLoot.minGold + 1)) + enemy.guaranteedLoot.minGold;
+        } else {
+            goldAmount = (Math.floor(Math.random() * 20) + 1) + (Math.floor(Math.random() * 20) + 1);
+        }
+        totalGoldPerPlayer += Math.floor(goldAmount / party.members.length);
+        sharedState.log.push({ message: `${enemy.name} dropped gold, which was split among the party.`, type: 'success' });
+    }
+
+    // Update Party Members (Quests, Gold, State)
     party.members.forEach(memberName => {
         const member = players[memberName];
         if (!member || !member.character) return;
         const character = member.character;
+
+        // Update Quests
         character.quests.forEach(quest => {
             if (quest.status === 'active' && (quest.details.target === enemy.name || (quest.details.target === 'Goblin' && enemy.name.includes('Goblin')))) {
                 quest.progress++;
@@ -448,21 +498,14 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
                 }
             }
         });
-        if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
-            let goldAmount;
-            if (enemy.guaranteedLoot.minGold !== undefined && enemy.guaranteedLoot.maxGold !== undefined) {
-                goldAmount = Math.floor(Math.random() * (enemy.guaranteedLoot.maxGold - enemy.guaranteedLoot.minGold + 1)) + enemy.guaranteedLoot.minGold;
-            } else {
-                goldAmount = (Math.floor(Math.random() * 20) + 1) + (Math.floor(Math.random() * 20) + 1);
-            }
-            const goldPerPlayer = Math.floor(goldAmount / party.members.length);
-            character.gold += goldPerPlayer;
+
+        // Add Gold
+        if (totalGoldPerPlayer > 0) {
+            character.gold += totalGoldPerPlayer;
         }
+
         if (member.id) io.to(member.id).emit('characterUpdate', character);
     });
-    if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
-        sharedState.log.push({ message: `${enemy.name} dropped gold, which was split among the party.`, type: 'success' });
-    }
     // Restore overlayed card if enemy was spawned over one, otherwise use zone-specific area card
     if (enemy.overlayedCard) {
         sharedState.zoneCards[enemyIndex] = { ...enemy.overlayedCard, id: Date.now() };

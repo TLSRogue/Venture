@@ -67,11 +67,13 @@ export const cardPools = {
                     { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 1, damageType: 'Physical', message: "Peck! Deals 1 Physical Damage!" },
                     { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Eye Gouge! Deals 2 Physical Damage!" }
                 ],
-                guaranteedLoot: { items: ["Raw Chicken", "Feather"] },
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 10], items: ["Egg"] },
-                    { range: [11, 17], items: ["Feather"] },
-                    { range: [18, 20], items: ["Rotten Egg"] }
+                    { range: [1, 5], items: ["Raw Chicken"] },
+                    { range: [6, 10], items: ["Raw Chicken", "Feather"] },
+                    { range: [11, 15], items: ["Raw Chicken", "Feather", "Egg"] },
+                    { range: [16, 19], items: ["Raw Chicken", "Feather", "Egg"] },
+                    { range: [20, 20], items: ["Raw Chicken", "Feather", "Egg", "Rotten Egg"] }
                 ]
             }, count: 8
         },
@@ -83,10 +85,13 @@ export const cardPools = {
                     { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 1, damageType: 'Physical', message: "Slam! Deals 1 Physical Damage!" },
                     { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Headbutt! Deals 2 Physical Damage!" }
                 ],
-                guaranteedLoot: { items: ["Pork"] },
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 10], items: [] },
-                    { range: [11, 20], items: ["Animal Fat"] }
+                    { range: [1, 5], items: ["Pork"] },
+                    { range: [6, 10], items: ["Pork"] },
+                    { range: [11, 15], items: ["Pork", "Animal Fat"] },
+                    { range: [16, 19], items: ["Pork", "Animal Fat"] },
+                    { range: [20, 20], items: ["Pork", "Animal Fat", "Animal Fat"] }
                 ]
             }, count: 8
         },
@@ -98,10 +103,13 @@ export const cardPools = {
                     { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Kick! Deals 2 Physical Damage!" },
                     { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Press! Deals 2 Physical Damage and applies Daze!" }
                 ],
-                guaranteedLoot: { items: ["Cow Hide"] },
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 10], items: ["Milk"] },
-                    { range: [11, 20], items: ["Animal Fat"] }
+                    { range: [1, 5], items: ["Cow Hide"] },
+                    { range: [6, 10], items: ["Cow Hide", "Milk"] },
+                    { range: [11, 15], items: ["Cow Hide", "Milk"] },
+                    { range: [16, 19], items: ["Cow Hide", "Milk", "Animal Fat"] },
+                    { range: [20, 20], items: ["Cow Hide", "Cow Hide", "Milk", "Animal Fat"] }
                 ]
             }, count: 8
         },
@@ -114,12 +122,13 @@ export const cardPools = {
                     { range: [7, 13], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Pitchfork Jab! Deals 2 Physical Damage and Bleeds!" },
                     { range: [14, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Fire', debuff: { type: 'burn', duration: 2, damage: 1, damageType: 'Fire' }, message: "Torch Throw! Deals 2 Fire Damage and Burns!" }
                 ],
-                guaranteedLoot: { gold: true, minGold: 1, maxGold: 3, items: ["Cloth"] },
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 15], randomItems: { pool: ['Wheat', 'Carrot', 'Apple', 'Seeds'], count: 1 } },
-                    { range: [16, 18], items: ["Thread"] },
-                    { range: [19, 19], items: ["Wizard's Staff Recipe (T1)"] },
-                    { range: [20, 20], items: ["Pitchfork"] }
+                    { range: [1, 5], gold: { min: 1, max: 3 }, items: ["Cloth"] },
+                    { range: [6, 10], gold: { min: 1, max: 3 }, items: ["Cloth"], randomItems: { pool: ['Wheat', 'Carrot', 'Apple', 'Seeds'], count: 1 } },
+                    { range: [11, 15], gold: { min: 2, max: 5 }, items: ["Cloth", "Thread"] },
+                    { range: [16, 19], gold: { min: 2, max: 5 }, items: ["Cloth", "Thread", "Wizard's Staff Recipe (T1)"] },
+                    { range: [20, 20], gold: { min: 3, max: 8 }, items: ["Cloth", "Thread", "Pitchfork"] }
                 ]
             }, count: 3
         },
@@ -190,9 +199,13 @@ export const cardPools = {
                     { range: [6, 15], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Club Smash! Deals 4 Physical Damage!" },
                     { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', debuff: { type: 'daze', duration: 1 }, message: "Heavy Blow! Deals 5 Physical Damage and Dazes!" }
                 ],
-                guaranteedLoot: { gold: true, minGold: 5, maxGold: 15 },
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 20], items: ["Whetstone"] }
+                    { range: [1, 5], gold: { min: 1, max: 5 } },
+                    { range: [6, 10], gold: { min: 3, max: 8 }, items: ["Whetstone"] },
+                    { range: [11, 15], gold: { min: 5, max: 10 }, items: ["Whetstone"] },
+                    { range: [16, 19], gold: { min: 5, max: 15 }, items: ["Whetstone"] },
+                    { range: [20, 20], gold: { min: 10, max: 20 }, items: ["Whetstone", "Whetstone"] }
                 ]
             }, count: 1
         },
@@ -222,10 +235,13 @@ export const cardPools = {
                         message: "Gorbon braces and blocks the attack!"
                     }
                 ],
-                guaranteedLoot: { gold: true, items: ["Gold Nugget", "Gold Nugget", "Gold Nugget"] },
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 15], items: ["Gorbon's Crown"] },
-                    { range: [16, 20], items: ["Gorbon's Royal Mace"] }
+                    { range: [1, 5], items: ["Gold Nugget", "Gold Nugget", "Gorbon's Crown"] },
+                    { range: [6, 10], items: ["Gold Nugget", "Gold Nugget", "Gorbon's Crown"] },
+                    { range: [11, 15], items: ["Gold Nugget", "Gold Nugget", "Gold Nugget", "Gorbon's Crown"] },
+                    { range: [16, 19], items: ["Gold Nugget", "Gold Nugget", "Gold Nugget", "Gorbon's Royal Mace"] },
+                    { range: [20, 20], items: ["Gold Nugget", "Gold Nugget", "Gold Nugget", "Gorbon's Royal Mace", "Gorbon's Crown"] }
                 ]
             }, count: 1
         },
@@ -273,13 +289,13 @@ export const cardPools = {
                         message: "The Shaman's ward absorbs the magic!"
                     }
                 ],
-                guaranteedLoot: { gold: true, minGold: 1, maxGold: 15 },
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 5], fromCategory: "T1 Material", count: 1 },
-                    { range: [6, 10], fromCategory: "T2 Material", count: 1 },
-                    { range: [11, 14], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
-                    { range: [15, 19], items: ["Thread", "Magic Essence"] },
-                    { range: [20, 20], items: ["Shaman's Fetish"] }
+                    { range: [1, 5], gold: { min: 1, max: 5 }, fromCategory: "T1 Material" },
+                    { range: [6, 10], gold: { min: 3, max: 8 }, fromCategory: "T2 Material" },
+                    { range: [11, 15], gold: { min: 5, max: 10 }, fromCategories: ["T1 Weapon", "T1 Equipment"] },
+                    { range: [16, 19], gold: { min: 5, max: 15 }, items: ["Thread", "Magic Essence"] },
+                    { range: [20, 20], gold: { min: 10, max: 20 }, items: ["Shaman's Fetish", "Magic Essence"] }
                 ]
             }, count: 5
         },
@@ -309,13 +325,13 @@ export const cardPools = {
                         message: "The Archer dodges and fires a quick shot!"
                     }
                 ],
-                guaranteedLoot: { gold: true, minGold: 1, maxGold: 10 },
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 5], fromCategory: "T1 Material", count: 1 },
-                    { range: [6, 10], fromCategory: "T2 Material", count: 1 },
-                    { range: [11, 14], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
-                    { range: [15, 19], items: ["Thread", "Feather"] },
-                    { range: [20, 20], items: ["Archer's Shortbow"] }
+                    { range: [1, 5], gold: { min: 1, max: 3 }, fromCategory: "T1 Material" },
+                    { range: [6, 10], gold: { min: 2, max: 5 }, fromCategory: "T2 Material" },
+                    { range: [11, 15], gold: { min: 3, max: 8 }, fromCategories: ["T1 Weapon", "T1 Equipment"] },
+                    { range: [16, 19], gold: { min: 5, max: 10 }, items: ["Thread", "Feather"] },
+                    { range: [20, 20], gold: { min: 8, max: 15 }, items: ["Archer's Shortbow", "Feather"] }
                 ]
             }, count: 6
         },
@@ -345,13 +361,13 @@ export const cardPools = {
                         message: "The Goblin Warrior parries and counter-attacks!"
                     }
                 ],
-                guaranteedLoot: { gold: true, minGold: 1, maxGold: 10 },
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 5], fromCategory: "T1 Material", count: 1 },
-                    { range: [6, 10], fromCategory: "T2 Material", count: 1 },
-                    { range: [11, 14], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
-                    { range: [15, 19], items: ["Thread", "Whetstone"] },
-                    { range: [20, 20], items: ["Warrior's Cleaver"] }
+                    { range: [1, 5], gold: { min: 1, max: 3 }, fromCategory: "T1 Material" },
+                    { range: [6, 10], gold: { min: 2, max: 5 }, fromCategory: "T2 Material" },
+                    { range: [11, 15], gold: { min: 3, max: 8 }, fromCategories: ["T1 Weapon", "T1 Equipment"] },
+                    { range: [16, 19], gold: { min: 5, max: 10 }, items: ["Thread", "Whetstone"] },
+                    { range: [20, 20], gold: { min: 8, max: 15 }, items: ["Warrior's Cleaver", "Whetstone"] }
                 ]
             }, count: 7
         },
@@ -450,10 +466,13 @@ export const cardPools = {
                     { range: [6, 15], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Stab! Deals 3 Physical Damage and Bleed!" },
                     { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Slash! Deals 3 Physical Damage and Bleed!" }
                 ],
-                guaranteedLoot: { gold: true, minGold: 5, maxGold: 25 },
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 15], items: ["Thread"] },
-                    { range: [16, 20], items: ["Mugger's Knife"] }
+                    { range: [1, 5], gold: { min: 1, max: 10 } },
+                    { range: [6, 10], gold: { min: 5, max: 15 }, items: ["Thread"] },
+                    { range: [11, 15], gold: { min: 10, max: 20 }, items: ["Thread"] },
+                    { range: [16, 19], gold: { min: 15, max: 25 }, items: ["Thread", "Mugger's Knife"] },
+                    { range: [20, 20], gold: { min: 20, max: 30 }, items: ["Mugger's Knife"] }
                 ]
             }, count: 1
         },
@@ -595,11 +614,13 @@ export const cardPools = {
                     { range: [1, 3], action: 'miss', message: "Miss!" },
                     { range: [4, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Bite! Deals 2 Physical Damage!" }
                 ],
-                guaranteedLoot: { items: ["Rat Meat"] },
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 10], items: ["Hide"] },
-                    { range: [11, 18], items: ["Rat Tail"] },
-                    { range: [19, 20], items: ["Rat Eye"] }
+                    { range: [1, 5], items: ["Rat Meat"] },
+                    { range: [6, 10], items: ["Rat Meat", "Rat Eye"] },
+                    { range: [11, 15], items: ["Rat Meat", "Rat Tail"] },
+                    { range: [16, 19], items: ["Rat Meat", "Rat Tail", "Rat Eye"] },
+                    { range: [20, 20], items: ["Rat Meat", "Rat Tail", "Rat Eye", "Rat Eye"] }
                 ]
             }, count: 10
         },
@@ -612,11 +633,13 @@ export const cardPools = {
                     { range: [4, 14], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Maul! Deals 3 Physical Damage!" },
                     { range: [15, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Infectious Bite! Deals 2 Nature Damage and Poisons!" }
                 ],
-                guaranteedLoot: { items: ["Rat Meat"] },
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 10], items: ["Rat Eye"] },
-                    { range: [11, 18], items: ["Rat Tail"] },
-                    { range: [19, 20], items: ["Plague Essence"] }
+                    { range: [1, 5], items: ["Rat Meat"] },
+                    { range: [6, 10], items: ["Rat Meat", "Rat Eye"] },
+                    { range: [11, 15], items: ["Rat Meat", "Rat Tail"] },
+                    { range: [16, 19], items: ["Rat Meat", "Rat Tail", "Plague Essence"] },
+                    { range: [20, 20], items: ["Rat Meat", "Rat Tail", "Plague Essence", "Plague Essence"] }
                 ]
             }, count: 5
         },
@@ -630,11 +653,13 @@ export const cardPools = {
                     { range: [10, 15], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', debuff: { type: 'poison', duration: 3, damage: 2, damageType: 'Nature' }, message: "Diseased Bite! Deals 2 Physical Damage and Poisons you!" },
                     { range: [16, 20], action: 'special', message: "The Rat King shrieks and another rat appears!" }
                 ],
-                guaranteedLoot: { gold: true, items: ["Rat Meat", "Rat Tail"] },
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 7], items: ["Rat Tail Cloak"] },
-                    { range: [8, 14], items: ["Rat King's Crown"] },
-                    { range: [15, 20], items: ["Sludge Staff"] }
+                    { range: [1, 5], gold: { min: 5, max: 10 }, items: ["Rat Meat", "Rat Tail", "Rat Tail Cloak"] },
+                    { range: [6, 10], gold: { min: 10, max: 20 }, items: ["Rat Meat", "Rat Tail", "Rat King's Crown"] },
+                    { range: [11, 15], gold: { min: 15, max: 25 }, items: ["Rat Meat", "Rat Tail", "Sludge Staff"] },
+                    { range: [16, 19], gold: { min: 20, max: 30 }, items: ["Rat Meat", "Rat Tail", "Rat King's Crown", "Rat Tail Cloak"] },
+                    { range: [20, 20], gold: { min: 30, max: 50 }, items: ["Rat Meat", "Rat Tail", "Sludge Staff", "Rat King's Crown", "Rat Tail Cloak"] }
                 ]
             }, count: 1
         },
@@ -656,9 +681,13 @@ export const cardPools = {
                     { range: [13, 15], action: 'special', message: "A Quick Fix! Pulvis Cadus heals and repairs his chassis." },
                     { range: [16, 20], action: 'special', message: "Pulvis Cadus throws out some unstable kegs!" }
                 ],
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 10], recipe: "Powder Keg" },
-                    { range: [11, 20], items: ["Magna Clavis"] }
+                    { range: [1, 5], recipe: "Powder Keg" },
+                    { range: [6, 10], recipe: "Powder Keg" },
+                    { range: [11, 15], items: ["Magna Clavis"] },
+                    { range: [16, 19], items: ["Magna Clavis"] },
+                    { range: [20, 20], items: ["Magna Clavis", "Powder Keg"] }
                 ]
             }, count: 1
         },
@@ -675,8 +704,13 @@ export const cardPools = {
                     { range: [13, 16], action: 'special', message: "Vexor catches his breath and taunts his enemies!" },
                     { range: [17, 20], action: 'special', message: "Whirlwind! Vexor spins wildly, hitting everyone!" }
                 ],
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 20], items: ["Champion's Belt"] } // Placeholder loot
+                    { range: [1, 5], items: ["Champion's Belt"] },
+                    { range: [6, 10], items: ["Champion's Belt"] },
+                    { range: [11, 15], items: ["Champion's Belt"] },
+                    { range: [16, 19], items: ["Champion's Belt"] },
+                    { range: [20, 20], items: ["Champion's Belt"] }
                 ]
             }, count: 1
         },
@@ -708,7 +742,14 @@ export const cardPools = {
                     { range: [6, 15], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Claw! Deals 4 Physical Damage!" },
                     { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', debuff: { type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' }, message: "Hamstring! Deals 3 Physical Damage and applies a heavy Bleed!" }
                 ],
-                lootTable: [{ range: [1, 20], randomItems: { pool: ['Drake Scale', 'Obsidian Chunk'], count: 1 } }]
+                // Loot Table: Roll D20 on kill
+                lootTable: [
+                    { range: [1, 5], items: ["Obsidian Chunk"] },
+                    { range: [6, 10], items: ["Obsidian Chunk"] },
+                    { range: [11, 15], items: ["Drake Scale"] },
+                    { range: [16, 19], items: ["Drake Scale"] },
+                    { range: [20, 20], items: ["Drake Scale", "Obsidian Chunk"] }
+                ]
             }, count: 6
         },
         {
@@ -719,7 +760,14 @@ export const cardPools = {
                     { range: [6, 15], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', message: "Slam! Deals 5 Physical Damage!" },
                     { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Fire', debuff: { type: 'burn', duration: 2, damage: 2, damageType: 'Fire' }, message: "Immolate! Deals 4 Fire Damage and applies Burn!" }
                 ],
-                lootTable: [{ range: [1, 20], items: ["Obsidian Chunk", "Obsidian Chunk"] }]
+                // Loot Table: Roll D20 on kill
+                lootTable: [
+                    { range: [1, 5], items: ["Obsidian Chunk"] },
+                    { range: [6, 10], items: ["Obsidian Chunk", "Obsidian Chunk"] },
+                    { range: [11, 15], items: ["Obsidian Chunk", "Obsidian Chunk"] },
+                    { range: [16, 19], items: ["Obsidian Chunk", "Obsidian Chunk"] },
+                    { range: [20, 20], items: ["Obsidian Chunk", "Obsidian Chunk", "Obsidian Chunk"] }
+                ]
             }, count: 4
         },
         {
@@ -730,7 +778,14 @@ export const cardPools = {
                     { range: [6, 15], action: 'attack', attackRange: 'ranged', damage: 6, damageType: 'Fire', message: "Fire Breath! Deals 6 Fire Damage!" },
                     { range: [16, 20], action: 'special', attackRange: 'melee', message: "Tail Swipe! Hits all party members for 3 damage!" }
                 ],
-                lootTable: [{ range: [1, 20], items: ["Drake Scale", "Drake Scale"] }]
+                // Loot Table: Roll D20 on kill
+                lootTable: [
+                    { range: [1, 5], items: ["Drake Scale"] },
+                    { range: [6, 10], items: ["Drake Scale", "Drake Scale"] },
+                    { range: [11, 15], items: ["Drake Scale", "Drake Scale"] },
+                    { range: [16, 19], items: ["Drake Scale", "Drake Scale"] },
+                    { range: [20, 20], items: ["Drake Scale", "Drake Scale", "Drake Scale"] }
+                ]
             }, count: 2
         },
         { card: { name: "Obsidian Vein", type: "resource", skill: "mining", description: "Requires Mining Tool (T4)", loot: { name: "Obsidian Chunk" }, toolType: "mining", toolTier: 4, charges: 3, icon: "💎" }, count: 5 },
@@ -794,10 +849,13 @@ export const cardPools = {
                     { range: [10, 16], action: 'attack', attackRange: 'ranged', damage: 4, damageType: 'Nature', debuff: { type: 'trap', duration: 2 }, message: "Web Shot! Deals 4 Nature Damage and Traps for 2 turns!" },
                     { range: [17, 20], action: 'special', message: "Consume! The spider strikes at a trapped victim!" }
                 ],
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 10], items: ["Spider Leg"] },
-                    { range: [11, 18], items: ["Spider Silk"] },
-                    { range: [19, 20], items: ["Venom Sac"] }
+                    { range: [1, 5], items: ["Spider Leg"] },
+                    { range: [6, 10], items: ["Spider Leg", "Spider Silk"] },
+                    { range: [11, 15], items: ["Spider Silk", "Spider Silk"] },
+                    { range: [16, 19], items: ["Spider Silk", "Venom Sac"] },
+                    { range: [20, 20], items: ["Venom Sac", "Venom Sac"] }
                 ]
             }, count: 6
         },
@@ -817,10 +875,13 @@ export const cardPools = {
                     { range: [11, 17], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', debuff: { type: 'daze', duration: 1 }, message: "Pounce! Deals 5 Physical Damage and Dazes!" },
                     { range: [18, 20], action: 'special', message: "Howl! The wolf calls for reinforcements!" }
                 ],
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 15], items: ["Rough Fur", "Hide"] },
-                    { range: [16, 19], items: ["Wolf Bones", "Hide"] },
-                    { range: [20, 20], items: ["Rough Fur", "Wolf Bones", "Hide"] }
+                    { range: [1, 5], items: ["Hide"] },
+                    { range: [6, 10], items: ["Hide", "Rough Fur"] },
+                    { range: [11, 15], items: ["Rough Fur", "Wolf Bones"] },
+                    { range: [16, 19], items: ["Rough Fur", "Wolf Bones", "Hide"] },
+                    { range: [20, 20], items: ["Rough Fur", "Wolf Bones", "Hide", "Wolf Bones"] }
                 ]
             }, count: 5
         },
@@ -850,10 +911,13 @@ export const cardPools = {
                     { range: [14, 17], action: 'special', attackRange: 'ranged', isMagic: true, damage: 8, message: "Blood Fountain! The Vampire drains the blood of the wounded!" },
                     { range: [18, 20], action: 'special', attackRange: 'melee', damage: 8, message: "From The Shadows! The Vampire targets the weakest prey!" }
                 ],
-                guaranteedLoot: { gold: true, minGold: 100, maxGold: 200 },
+                // Loot Table: Roll D20 on kill
                 lootTable: [
-                    { range: [1, 10], items: ["Cloak of Shadows"] },
-                    { range: [11, 20], items: ["Vampire's Robe"] }
+                    { range: [1, 5], gold: { min: 100, max: 200 }, items: ["Cloak of Shadows"] },
+                    { range: [6, 10], gold: { min: 100, max: 200 }, items: ["Cloak of Shadows"] },
+                    { range: [11, 15], gold: { min: 100, max: 200 }, items: ["Vampire's Robe"] },
+                    { range: [16, 19], gold: { min: 100, max: 200 }, items: ["Vampire's Robe", "Cloak of Shadows"] },
+                    { range: [20, 20], gold: { min: 200, max: 400 }, items: ["Vampire's Robe", "Cloak of Shadows"] }
                 ]
             }, count: 1
         },

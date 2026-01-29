@@ -17,10 +17,13 @@ const RAT_TYPES = [
             { range: [1, 3], action: 'miss', message: "Miss!" },
             { range: [4, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Bite! Deals 2 Physical Damage!" }
         ],
+        // Loot Table: Roll D20 on kill
         lootTable: [
-            { range: [1, 10], items: ["Rat Meat", "Hide"] },
-            { range: [11, 18], items: ["Rat Tail"] },
-            { range: [19, 20], items: ["Rat Eye"] }
+            { range: [1, 5], items: ["Rat Meat"] },
+            { range: [6, 10], items: ["Rat Meat", "Rat Eye"] },
+            { range: [11, 15], items: ["Rat Meat", "Rat Tail"] },
+            { range: [16, 19], items: ["Rat Meat", "Rat Tail", "Rat Eye"] },
+            { range: [20, 20], items: ["Rat Meat", "Rat Tail", "Rat Eye", "Rat Eye"] }
         ]
     },
     {
@@ -31,10 +34,13 @@ const RAT_TYPES = [
             { range: [4, 14], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Maul! Deals 3 Physical Damage!" },
             { range: [15, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Infectious Bite! Deals 2 Nature Damage and Poisons!" }
         ],
+        // Loot Table: Roll D20 on kill
         lootTable: [
-            { range: [1, 10], items: ["Rat Meat", "Rat Eye"] },
-            { range: [11, 18], items: ["Rat Tail"] },
-            { range: [19, 20], items: ["Plague Essence"] }
+            { range: [1, 5], items: ["Rat Meat"] },
+            { range: [6, 10], items: ["Rat Meat", "Rat Eye"] },
+            { range: [11, 15], items: ["Rat Meat", "Rat Tail"] },
+            { range: [16, 19], items: ["Rat Meat", "Rat Tail", "Plague Essence"] },
+            { range: [20, 20], items: ["Rat Meat", "Rat Tail", "Plague Essence", "Plague Essence"] }
         ]
     }
 ];
@@ -68,13 +74,13 @@ const GOBLIN_TYPES = [
                 message: "The Goblin Warrior parries and counter-attacks!"
             }
         ],
-        guaranteedLoot: { gold: true, minGold: 1, maxGold: 10 },
+        // Loot Table: Roll D20 on kill
         lootTable: [
-            { range: [1, 5], fromCategory: "T1 Material", count: 1 },
-            { range: [6, 10], fromCategory: "T2 Material", count: 1 },
-            { range: [11, 14], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
-            { range: [15, 19], items: ["Thread", "Whetstone"] },
-            { range: [20, 20], items: ["Warrior's Cleaver"] }
+            { range: [1, 5], gold: { min: 1, max: 3 }, fromCategory: "T1 Material" },
+            { range: [6, 10], gold: { min: 2, max: 5 }, fromCategory: "T2 Material" },
+            { range: [11, 15], gold: { min: 3, max: 8 }, fromCategories: ["T1 Weapon", "T1 Equipment"] },
+            { range: [16, 19], gold: { min: 5, max: 10 }, items: ["Thread", "Whetstone"] },
+            { range: [20, 20], gold: { min: 8, max: 15 }, items: ["Warrior's Cleaver", "Whetstone"] }
         ]
     },
     {
@@ -102,13 +108,13 @@ const GOBLIN_TYPES = [
                 message: "The Archer dodges and fires a quick shot!"
             }
         ],
-        guaranteedLoot: { gold: true, minGold: 1, maxGold: 10 },
+        // Loot Table: Roll D20 on kill
         lootTable: [
-            { range: [1, 5], fromCategory: "T1 Material", count: 1 },
-            { range: [6, 10], fromCategory: "T2 Material", count: 1 },
-            { range: [11, 14], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
-            { range: [15, 19], items: ["Thread", "Feather"] },
-            { range: [20, 20], items: ["Archer's Shortbow"] }
+            { range: [1, 5], gold: { min: 1, max: 3 }, fromCategory: "T1 Material" },
+            { range: [6, 10], gold: { min: 2, max: 5 }, fromCategory: "T2 Material" },
+            { range: [11, 15], gold: { min: 3, max: 8 }, fromCategories: ["T1 Weapon", "T1 Equipment"] },
+            { range: [16, 19], gold: { min: 5, max: 10 }, items: ["Thread", "Feather"] },
+            { range: [20, 20], gold: { min: 8, max: 15 }, items: ["Archer's Shortbow", "Feather"] }
         ]
     },
     {
@@ -135,13 +141,13 @@ const GOBLIN_TYPES = [
                 message: "The Shaman's ward absorbs the magic!"
             }
         ],
-        guaranteedLoot: { gold: true, minGold: 1, maxGold: 15 },
+        // Loot Table: Roll D20 on kill
         lootTable: [
-            { range: [1, 5], fromCategory: "T1 Material", count: 1 },
-            { range: [6, 10], fromCategory: "T2 Material", count: 1 },
-            { range: [11, 14], fromCategories: ["T1 Weapon", "T1 Equipment"], count: 1 },
-            { range: [15, 19], items: ["Thread", "Magic Essence"] },
-            { range: [20, 20], items: ["Shaman's Fetish"] }
+            { range: [1, 5], gold: { min: 1, max: 5 }, fromCategory: "T1 Material" },
+            { range: [6, 10], gold: { min: 3, max: 8 }, fromCategory: "T2 Material" },
+            { range: [11, 15], gold: { min: 5, max: 10 }, fromCategories: ["T1 Weapon", "T1 Equipment"] },
+            { range: [16, 19], gold: { min: 5, max: 15 }, items: ["Thread", "Magic Essence"] },
+            { range: [20, 20], gold: { min: 10, max: 20 }, items: ["Shaman's Fetish", "Magic Essence"] }
         ]
     }
 ];
