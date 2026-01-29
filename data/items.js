@@ -737,6 +737,7 @@ export const allItems = [
         icon: "📜",
         rarity: "uncommon",
         learnsRecipe: "Wizard's Staff (T1)",
+        traits: ['T1 Recipe'],
         canBeInMerchantWares: false,
     },
     {

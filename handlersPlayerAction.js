@@ -353,7 +353,6 @@ function handleSellAllJunk(character) {
 
     if (itemsSold > 0) {
         character.gold += totalGold;
-        console.log(`[SellAllJunk] ${character.characterName} sold ${itemsSold} junk items for ${totalGold}g`);
         return true;
     }
     return false;
@@ -361,10 +360,10 @@ function handleSellAllJunk(character) {
 
 // --- RECIPE HANDLERS ---
 function handleUseRecipe(character, payload) {
-    const { itemIndex } = payload;
-    const item = character.inventory[itemIndex];
+    const { index } = payload;
+    const item = character.inventory[index];
 
-    console.log(`[UseRecipe] Attempting to use recipe at index ${itemIndex}. Item:`, item ? item.name : 'null');
+
 
     // Safety initialization
     if (!character.knownRecipes) {
@@ -374,23 +373,19 @@ function handleUseRecipe(character, payload) {
     if (item && item.type === 'recipe' && item.learnsRecipe) {
         // Check if already known
         if (character.knownRecipes.includes(item.learnsRecipe)) {
-            console.log(`[UseRecipe] Player ${character.characterName} already knows ${item.learnsRecipe}`);
             return false;
         }
 
         // Learn the recipe
         character.knownRecipes.push(item.learnsRecipe);
-        console.log(`[UseRecipe] Success! ${character.characterName} learned ${item.learnsRecipe}`);
 
         // Consume the item
         item.quantity--;
         if (item.quantity <= 0) {
-            character.inventory[itemIndex] = null;
+            character.inventory[index] = null;
         }
 
         return true;
-    } else {
-        console.log(`[UseRecipe] Failed validation. Type: ${item?.type}, Learns: ${item?.learnsRecipe}`);
     }
     return false;
 }
