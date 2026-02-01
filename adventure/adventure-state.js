@@ -293,7 +293,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         }
         return;
     }
-    sharedState.log.push({ message: `${enemy.name} has been defeated!`, type: 'success' });
+    // Defeat message is now consolidated with loot drops below
 
     // --- LOOT GOBLIN: Special Death Rewards ---
     if (enemy.name === 'Loot Goblin') {
@@ -430,11 +430,44 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         }
     });
 
-    if (droppedItemNames.length > 0) {
-        sharedState.log.push({ message: `${enemy.name} dropped: ${droppedItemNames.join(', ')}!`, type: 'success' });
+    // Calculate Gold Distribution (before logging so we can include in combined message)
+    let totalGoldDropped = 0;
+
+    // 1. Loot Table Gold
+    if (lootTableGold > 0) {
+        totalGoldDropped += lootTableGold;
     }
 
-    // Process rollable items (uncommon/rare) separately with their own messages
+    // 2. Guaranteed Gold
+    if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
+        let goldAmount;
+        const goldConfig = enemy.guaranteedLoot.gold;
+        if (goldConfig.min !== undefined && goldConfig.max !== undefined) {
+            goldAmount = Math.floor(Math.random() * (goldConfig.max - goldConfig.min + 1)) + goldConfig.min;
+        } else if (enemy.guaranteedLoot.minGold !== undefined && enemy.guaranteedLoot.maxGold !== undefined) {
+            // Legacy format support
+            goldAmount = Math.floor(Math.random() * (enemy.guaranteedLoot.maxGold - enemy.guaranteedLoot.minGold + 1)) + enemy.guaranteedLoot.minGold;
+        } else {
+            goldAmount = (Math.floor(Math.random() * 20) + 1) + (Math.floor(Math.random() * 20) + 1);
+        }
+        totalGoldDropped += goldAmount;
+    }
+
+    // Build consolidated defeat message
+    let defeatMessage = `${enemy.name} defeated!`;
+    const dropParts = [];
+    if (droppedItemNames.length > 0) {
+        dropParts.push(droppedItemNames.join(', '));
+    }
+    if (totalGoldDropped > 0) {
+        dropParts.push(`${totalGoldDropped}g`);
+    }
+    if (dropParts.length > 0) {
+        defeatMessage += ` Dropped: ${dropParts.join(', ')}`;
+    }
+    sharedState.log.push({ message: defeatMessage, type: 'success' });
+
+    // Process rollable items (uncommon/rare) - these get their own message since they need action
     rollableItems.forEach(itemData => {
         if (sharedState.pendingLootRoll) {
             // Queue the item for rolling after current roll completes
@@ -460,30 +493,8 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         }
     });
 
-    // Calculate Gold Distribution
-    let totalGoldPerPlayer = 0;
-
-    // 1. Loot Table Gold
-    if (lootTableGold > 0) {
-        sharedState.log.push({ message: `${enemy.name} dropped ${lootTableGold} gold!`, type: 'success' });
-        totalGoldPerPlayer += Math.floor(lootTableGold / party.members.length);
-    }
-
-    // 2. Guaranteed Gold
-    if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
-        let goldAmount;
-        const goldConfig = enemy.guaranteedLoot.gold;
-        if (goldConfig.min !== undefined && goldConfig.max !== undefined) {
-            goldAmount = Math.floor(Math.random() * (goldConfig.max - goldConfig.min + 1)) + goldConfig.min;
-        } else if (enemy.guaranteedLoot.minGold !== undefined && enemy.guaranteedLoot.maxGold !== undefined) {
-            // Legacy format support
-            goldAmount = Math.floor(Math.random() * (enemy.guaranteedLoot.maxGold - enemy.guaranteedLoot.minGold + 1)) + enemy.guaranteedLoot.minGold;
-        } else {
-            goldAmount = (Math.floor(Math.random() * 20) + 1) + (Math.floor(Math.random() * 20) + 1);
-        }
-        totalGoldPerPlayer += Math.floor(goldAmount / party.members.length);
-        sharedState.log.push({ message: `${enemy.name} dropped ${goldAmount} gold, split among the party!`, type: 'success' });
-    }
+    // Calculate per-player gold share
+    const totalGoldPerPlayer = Math.floor(totalGoldDropped / party.members.length);
 
     // Update Party Members (Quests, Gold, State)
     party.members.forEach(memberName => {
