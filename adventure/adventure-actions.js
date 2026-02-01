@@ -230,7 +230,12 @@ export async function processWeaponAttack(io, party, player, payload) {
         // --- ENEMY REACTION CHECK ---
         // Check if the enemy can react to this attack (only for PVE attacks against enemies)
         if (!isPvP && !target.isPlayer && target.state) {
-            const reactionResult = checkEnemyReaction(target.state, weapon.range, actingPlayerState, log);
+            // Build attack types array: staff weapons count as both ranged and magic
+            const attackTypes = [weapon.range];
+            if (weapon.weaponType && weapon.weaponType.includes('Staff')) {
+                attackTypes.push('magic');
+            }
+            const reactionResult = checkEnemyReaction(target.state, attackTypes, actingPlayerState, log);
 
             if (reactionResult.negated) {
                 // Full parry - attack is completely negated
