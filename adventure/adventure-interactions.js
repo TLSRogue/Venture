@@ -1,6 +1,6 @@
 // adventure/adventure-interactions.js
 
-import { players, parties } from '../serverState.js';
+import { players, parties, pvpEncounters } from '../serverState.js';
 import { gameData } from '../data/index.js';
 import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, addItemToInventoryServer, consumeMaterials } from '../utilsHelpers.js';
 import { checkAndEndTurnForPlayer } from './adventure-state.js';
@@ -611,7 +611,16 @@ export function processDialogueChoice(io, player, party, payload) {
 
     // --- SPIRIT CALL SELECTION HANDLER ---
     if (choice.action === 'spiritCallBuff') {
-        const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.playerId === player.id);
+        const { sharedState } = party;
+
+        // Determine if we're in PVP and get the correct player state
+        const encounter = sharedState.pvpEncounterId ? pvpEncounters[sharedState.pvpEncounterId] : null;
+        const isPvP = !!encounter;
+
+        const actingPlayerState = isPvP
+            ? encounter.playerStates.find(p => p.playerId === player.id)
+            : sharedState.partyMemberStates.find(p => p.playerId === player.id);
+
         if (!actingPlayerState) return;
 
         // Clear existing Spirit Call buff if any
@@ -627,18 +636,21 @@ export function processDialogueChoice(io, player, party, payload) {
             gameData.allSpells.find(s => s.name === "Spirit Call");
 
         const cost = spiritCallSpell ? (spiritCallSpell.cost || 1) : 1;
-        const cooldown = spiritCallSpell ? (spiritCallSpell.cooldown || 1) : 1; // Default to 1 if not found
+        const cooldown = spiritCallSpell ? (spiritCallSpell.cooldown || 1) : 1;
 
         // Apply AP cost
         if (actingPlayerState.actionPoints >= cost) {
             actingPlayerState.actionPoints -= cost;
         } else {
-            // If they somehow clicked this without AP (race condition), we'll allow it but zero out AP
+            // If they somehow clicked this without AP (race condition), zero out AP
             actingPlayerState.actionPoints = 0;
         }
 
         // Apply Cooldown
         actingPlayerState.spellCooldowns['Spirit Call'] = cooldown;
+
+        // Use the correct log source
+        const log = isPvP ? encounter.log : sharedState.log;
 
         if (choice.buff === 'Panther') {
             actingPlayerState.buffs.push({
@@ -646,21 +658,21 @@ export function processDialogueChoice(io, player, party, payload) {
                 duration: 2,
                 bonus: { agility: powerAmount }
             });
-            party.sharedState.log.push({ message: `${character.characterName} calls the Panther Spirit! (+${powerAmount} Agi)`, type: 'success' });
+            log.push({ message: `${character.characterName} calls the Panther Spirit! (+${powerAmount} Agi)`, type: 'success' });
         } else if (choice.buff === 'Bear') {
             actingPlayerState.buffs.push({
                 type: 'Bear Spirit',
                 duration: 2,
                 bonus: { strength: powerAmount }
             });
-            party.sharedState.log.push({ message: `${character.characterName} calls the Bear Spirit! (+${powerAmount} Str)`, type: 'success' });
+            log.push({ message: `${character.characterName} calls the Bear Spirit! (+${powerAmount} Str)`, type: 'success' });
         } else if (choice.buff === 'Tree') {
             actingPlayerState.buffs.push({
                 type: 'Tree Spirit',
                 duration: 2,
                 bonus: { defense: powerAmount }
             });
-            party.sharedState.log.push({ message: `${character.characterName} calls the Tree Spirit! (+${powerAmount} Def)`, type: 'success' });
+            log.push({ message: `${character.characterName} calls the Tree Spirit! (+${powerAmount} Def)`, type: 'success' });
         }
 
         io.to(player.id).emit('party:hideDialogue');
