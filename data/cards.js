@@ -5,6 +5,7 @@ export const cardPools = {
             card: {
                 name: "Raging Bull",
                 type: "enemy",
+                isBoss: true,
                 health: 15,
                 maxHealth: 15,
                 description: "An enraged bull, kicking up dust.",
@@ -214,6 +215,7 @@ export const cardPools = {
             card: {
                 name: "Gorbon the Goblin King",
                 type: "enemy",
+                isBoss: true,
                 health: 30,
                 maxHealth: 30,
                 description: "The formidable king of the goblins.",
@@ -639,7 +641,7 @@ export const cardPools = {
         },
         {
             card: {
-                name: "The Rat King", type: "enemy", health: 30, maxHealth: 30, description: "A horrifying amalgamation of rats.", icon: "👑",
+                name: "The Rat King", type: "enemy", isBoss: true, health: 30, maxHealth: 30, description: "A horrifying amalgamation of rats.", icon: "👑",
                 imageUrl: '/assets/rat-king.jpg',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
@@ -663,7 +665,7 @@ export const cardPools = {
     arena: [
         {
             card: {
-                name: "Pulvis Cadus", type: "enemy", health: 40, maxHealth: 40, description: "A master of strange concoctions and explosives.", icon: "⚗️",
+                name: "Pulvis Cadus", type: "enemy", isBoss: true, health: 40, maxHealth: 40, description: "A master of strange concoctions and explosives.", icon: "⚗️",
                 imageUrl: '/assets/arena-pulvis.jpg',
                 bonuses: { fireResistance: 2, physicalResistance: 2 },
                 arenaReward: 100,
@@ -685,7 +687,7 @@ export const cardPools = {
         },
         {
             card: {
-                name: "Vexor, Lord of the Arena", type: "enemy", health: 40, maxHealth: 40, description: "The brutal champion of the arena.", icon: "🛡️",
+                name: "Vexor, Lord of the Arena", type: "enemy", isBoss: true, health: 40, maxHealth: 40, description: "The brutal champion of the arena.", icon: "🛡️",
                 imageUrl: '/assets/arena-vexor.jpg',
                 bonuses: { physicalResistance: 1 },
                 arenaReward: 100,

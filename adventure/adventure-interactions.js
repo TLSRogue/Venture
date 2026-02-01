@@ -72,7 +72,7 @@ export async function processInteractWithCard(io, party, player, payload) {
     if (card.name === 'Sewer Grate') {
         sharedState.log.push({ message: "The party descends through the grate into the darkness below...", type: 'info' });
         party.sharedState.currentZone = 'sewers';
-        party.sharedState.zoneDeck = buildZoneDeckForServer('sewers');
+        party.sharedState.zoneDeck = buildZoneDeckForServer('sewers', party.members.length);
         party.sharedState.zoneCards = [];
         party.sharedState.groundLoot = [];
         drawCardsForServer(party.sharedState, 3);
@@ -82,7 +82,7 @@ export async function processInteractWithCard(io, party, player, payload) {
     if (card.name === 'The Mansion') {
         sharedState.log.push({ message: "The party enters the decrepit mansion. A chill runs down their spines...", type: 'info' });
         party.sharedState.currentZone = 'mansion';
-        party.sharedState.zoneDeck = buildZoneDeckForServer('mansion');
+        party.sharedState.zoneDeck = buildZoneDeckForServer('mansion', party.members.length);
         party.sharedState.zoneCards = [];
         party.sharedState.groundLoot = [];
         // Draw 3 cards - will draw Vampire and fill with 2 Mansion Hall area cards

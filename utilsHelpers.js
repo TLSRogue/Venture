@@ -74,7 +74,7 @@ export function checkAndRotateMerchantStock(character) {
 
 // --- EXISTING HELPER FUNCTIONS ---
 
-export function buildZoneDeckForServer(zoneName) {
+export function buildZoneDeckForServer(zoneName, partySize = 1) {
     let npcs = [];
     let otherCards = [];
     let cardPool = gameData.cardPools[zoneName] ? [...gameData.cardPools[zoneName]] : [];
@@ -103,6 +103,17 @@ export function buildZoneDeckForServer(zoneName) {
             debuffs: []
         };
         otherCards.push(lootGoblin);
+    }
+
+    // Scale boss HP based on party size (+10 HP per extra player)
+    if (partySize > 1) {
+        const bonusHP = (partySize - 1) * 10;
+        otherCards.forEach(card => {
+            if (card.isBoss) {
+                card.health += bonusHP;
+                card.maxHealth += bonusHP;
+            }
+        });
     }
 
     // Shuffle only the non-NPC cards

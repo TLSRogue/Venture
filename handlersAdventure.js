@@ -47,7 +47,7 @@ export const registerAdventureHandlers = (io, socket) => {
         }
         // --- END LOCKOUT CHECK ---
 
-        const deck = buildZoneDeckForServer(zoneName);
+        const deck = buildZoneDeckForServer(zoneName, party.members.length);
         party.sharedState = {
             currentZone: zoneName,
             zoneDeck: deck,
