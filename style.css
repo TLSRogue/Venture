@@ -2074,6 +2074,28 @@ hr {
 .header-actions {
     display: flex;
     gap: 10px;
+    align-items: center;
+}
+
+.bank-search-input {
+    padding: 6px 12px;
+    border-radius: 5px;
+    border: 1px solid #7f8c8d;
+    background: #34495e;
+    color: white;
+    font-size: 0.9em;
+    width: 150px;
+    transition: all 0.2s ease;
+}
+
+.bank-search-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    width: 180px;
+}
+
+.bank-search-input::placeholder {
+    color: #7f8c8d;
 }
 
 /* --- Chat Styles --- */

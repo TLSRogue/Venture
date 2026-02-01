@@ -13,6 +13,7 @@ let activeCraftingSubtab = null;
 let activeTrainerCategory = 'Physical';
 let merchantTimerInterval = null;
 let bankCurrentPage = 1;
+let bankSearchQuery = ''; // Bank search filter
 let merchantSellTab = 'inventory'; // local state for merchant tab
 
 function hasMaterials(materials, checkBank = true) {
@@ -113,12 +114,34 @@ export function renderBankInterface() {
         <div class="bank-header">
             <h2>Bank</h2>
             <div class="header-actions">
+                <input type="text" id="bank-search" class="bank-search-input" placeholder="Search items..." value="${bankSearchQuery}">
                 <button id="deposit-all-btn" class="btn btn-sm btn-primary">Deposit All</button>
                 <button id="consolidate-btn" class="btn btn-sm">Consolidate Stacks</button>
             </div>
         </div>`;
 
-    const bankItems = [...gameState.bank].sort((a, b) => a.name.localeCompare(b.name));
+    // Add search event listener
+    const searchInput = container.querySelector('#bank-search');
+    searchInput.addEventListener('input', (e) => {
+        bankSearchQuery = e.target.value.toLowerCase();
+        bankCurrentPage = 1; // Reset to first page on new search
+        renderBankInterface();
+    });
+    // Keep focus on search input after re-render
+    setTimeout(() => {
+        const newSearchInput = document.getElementById('bank-search');
+        if (newSearchInput && bankSearchQuery) {
+            newSearchInput.focus();
+            newSearchInput.setSelectionRange(newSearchInput.value.length, newSearchInput.value.length);
+        }
+    }, 0);
+
+    // Filter and sort bank items
+    let bankItems = [...gameState.bank].sort((a, b) => a.name.localeCompare(b.name));
+    if (bankSearchQuery) {
+        bankItems = bankItems.filter(item => item.name.toLowerCase().includes(bankSearchQuery));
+    }
+
     const itemsPerPage = 28;
     const totalPages = Math.ceil(bankItems.length / itemsPerPage) || 1;
     if (bankCurrentPage > totalPages) bankCurrentPage = totalPages;
@@ -147,6 +170,17 @@ export function renderBankInterface() {
         bankGrid.appendChild(slot);
     }
     container.appendChild(bankGrid);
+
+    // Show item count info
+    const itemCountInfo = document.createElement('div');
+    itemCountInfo.className = 'bank-item-count';
+    itemCountInfo.style.cssText = 'text-align: center; color: #888; font-size: 0.9em; margin: 5px 0;';
+    if (bankSearchQuery) {
+        itemCountInfo.textContent = `Showing ${bankItems.length} items matching "${bankSearchQuery}"`;
+    } else {
+        itemCountInfo.textContent = `${gameState.bank.length} items in bank`;
+    }
+    container.appendChild(itemCountInfo);
 
     if (totalPages > 1) {
         const paginationControls = document.createElement('div');

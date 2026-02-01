@@ -50,7 +50,6 @@ export function processTakeGroundLoot(io, party, player, payload) {
     if (itemToTake) {
         if (addItemToInventoryServer(character, itemToTake)) {
             sharedState.groundLoot.splice(groundLootIndex, 1);
-            sharedState.log.push({ message: `${character.characterName} picked up ${itemToTake.name}.`, type: 'success' });
             io.to(player.id).emit('characterUpdate', character);
             // BUG FIX: Broadcast the state change to all players
             broadcastAdventureUpdate(io, party);

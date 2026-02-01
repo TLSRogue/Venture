@@ -337,7 +337,6 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
             sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone);
         }
         if (!sharedState.zoneCards.some(c => c && c.type === 'enemy')) {
-            sharedState.log.push({ message: "Combat has ended! Action Points restored.", type: "success" });
             sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = 3; });
         }
         return;
@@ -470,16 +469,20 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         totalGoldPerPlayer += Math.floor(lootTableGold / party.members.length);
     }
 
-    // 2. Guaranteed Gold (Legacy)
+    // 2. Guaranteed Gold
     if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
         let goldAmount;
-        if (enemy.guaranteedLoot.minGold !== undefined && enemy.guaranteedLoot.maxGold !== undefined) {
+        const goldConfig = enemy.guaranteedLoot.gold;
+        if (goldConfig.min !== undefined && goldConfig.max !== undefined) {
+            goldAmount = Math.floor(Math.random() * (goldConfig.max - goldConfig.min + 1)) + goldConfig.min;
+        } else if (enemy.guaranteedLoot.minGold !== undefined && enemy.guaranteedLoot.maxGold !== undefined) {
+            // Legacy format support
             goldAmount = Math.floor(Math.random() * (enemy.guaranteedLoot.maxGold - enemy.guaranteedLoot.minGold + 1)) + enemy.guaranteedLoot.minGold;
         } else {
             goldAmount = (Math.floor(Math.random() * 20) + 1) + (Math.floor(Math.random() * 20) + 1);
         }
         totalGoldPerPlayer += Math.floor(goldAmount / party.members.length);
-        sharedState.log.push({ message: `${enemy.name} dropped gold, which was split among the party.`, type: 'success' });
+        sharedState.log.push({ message: `${enemy.name} dropped ${goldAmount} gold, split among the party!`, type: 'success' });
     }
 
     // Update Party Members (Quests, Gold, State)
@@ -513,7 +516,6 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone);
     }
     if (!sharedState.zoneCards.some(c => c && c.type === 'enemy')) {
-        sharedState.log.push({ message: "Combat has ended! Action Points restored.", type: "success" });
         sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = 3; });
     }
 }
