@@ -985,6 +985,7 @@ export const specialCards = {
     angryRooster: {
         name: "Angry Rooster",
         type: "enemy",
+        isBoss: true,
         health: 8,
         maxHealth: 8,
         description: "An enraged rooster protecting its territory!",

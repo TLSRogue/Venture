@@ -1281,7 +1281,7 @@ export const allItems = [
     { name: "Hemp", type: "material", tier: 1, price: 5, description: "A fibrous plant stalk, useful for making cloth.", icon: "🌿", rarity: "common", canBeInMerchantWares: false },
     { name: "Carrot", type: "material", tier: 1, price: 5, description: "A crunchy, orange root vegetable.", icon: "🥕", rarity: "common", canBeInMerchantWares: false },
     { name: "Feather", type: "material", tier: 1, price: 2, description: "A small, light feather.", icon: "🪶", rarity: "common", canBeInMerchantWares: false },
-    { name: "Rooster Spur", type: "material", tier: 1, price: 15, description: "A sharp rooster spur! Someone might be able to make something with this.", icon: "🦴", rarity: "rare", canBeInMerchantWares: false },
+    { name: "Rooster Spur", type: "material", tier: 1, price: 15, description: "A sharp rooster spur! Someone might be able to make something with this.", icon: "🦴", rarity: "rare", canBeInMerchantWares: false, bossExclusive: true },
     { name: "Goblin Lucky Charm", type: "questItem", tier: 1, price: 0, description: "A strange, surprisingly shiny goblin trinket.", icon: "🍀", rarity: "quest", canBeInMerchantWares: false },
 
     // --- Rat Loot Items ---
