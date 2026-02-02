@@ -105,13 +105,13 @@ export function buildZoneDeckForServer(zoneName, partySize = 1) {
         otherCards.push(lootGoblin);
     }
 
-    // Scale boss HP based on party size (+10 HP per extra player)
+    // Scale boss HP based on party size (percentage-based: 2 players +20%, 3 players +40%)
     if (partySize > 1) {
-        const bonusHP = (partySize - 1) * 10;
+        const hpMultiplier = 1 + (partySize - 1) * 0.20; // 1.2 for 2 players, 1.4 for 3 players
         otherCards.forEach(card => {
             if (card.isBoss) {
-                card.health += bonusHP;
-                card.maxHealth += bonusHP;
+                card.health = Math.ceil(card.health * hpMultiplier);
+                card.maxHealth = Math.ceil(card.maxHealth * hpMultiplier);
             }
         });
     }
