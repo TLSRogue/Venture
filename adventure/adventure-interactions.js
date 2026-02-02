@@ -60,6 +60,41 @@ export function processTakeGroundLoot(io, party, player, payload) {
     }
 }
 
+export function processTakeAllGroundLoot(io, party, player) {
+    const { character } = player;
+    const { sharedState } = party;
+
+    if (!sharedState.groundLoot || sharedState.groundLoot.length === 0) {
+        return;
+    }
+
+    let itemsPickedUp = 0;
+    let inventoryFull = false;
+
+    // Loop backwards through ground loot so splicing doesn't affect iteration
+    for (let i = sharedState.groundLoot.length - 1; i >= 0; i--) {
+        const itemToTake = sharedState.groundLoot[i];
+        if (addItemToInventoryServer(character, itemToTake)) {
+            sharedState.groundLoot.splice(i, 1);
+            itemsPickedUp++;
+        } else {
+            inventoryFull = true;
+            break;
+        }
+    }
+
+    if (itemsPickedUp > 0) {
+        sharedState.log.push({ message: `${character.characterName} picked up ${itemsPickedUp} item${itemsPickedUp > 1 ? 's' : ''} from the ground.`, type: 'success' });
+    }
+
+    if (inventoryFull && sharedState.groundLoot.length > 0) {
+        sharedState.log.push({ message: `${character.characterName}'s inventory is full. ${sharedState.groundLoot.length} item${sharedState.groundLoot.length > 1 ? 's' : ''} remain on the ground.`, type: 'damage' });
+    }
+
+    io.to(player.id).emit('characterUpdate', character);
+    broadcastAdventureUpdate(io, party);
+}
+
 export async function processInteractWithCard(io, party, player, payload) {
     const { cardIndex } = payload;
     const { character } = player;

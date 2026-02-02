@@ -430,6 +430,9 @@ export const registerAdventureHandlers = (io, socket) => {
                 case 'takeGroundLoot':
                     interactions.processTakeGroundLoot(io, party, player, action.payload);
                     break;
+                case 'takeAllGroundLoot':
+                    interactions.processTakeAllGroundLoot(io, party, player);
+                    break;
                 case 'dialogueChoice':
                     interactions.processDialogueChoice(io, player, party, action.payload);
                     break;

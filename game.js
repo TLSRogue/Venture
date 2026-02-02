@@ -937,6 +937,7 @@ function addEventListeners() {
             if (button.id === 'character-sheet-btn') return UIAdventure.showCharacterSheet();
 
             if (button.dataset.action === 'takeGroundLoot') return Player.takeGroundLoot(parseInt(button.dataset.index, 10));
+            if (button.dataset.action === 'takeAllGroundLoot') return Player.takeAllGroundLoot();
 
             if (button.dataset.inventoryAction) {
                 const action = button.dataset.inventoryAction;

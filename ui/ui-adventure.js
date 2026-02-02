@@ -1272,10 +1272,20 @@ export function showGroundLootModal() {
             itemEl.innerHTML = itemHtml;
             groundGrid.appendChild(itemEl);
         });
+
+        // Add "Loot All" button below the ground grid
+        const lootAllButton = document.createElement('button');
+        lootAllButton.className = 'btn btn-primary';
+        lootAllButton.style.marginTop = '10px';
+        lootAllButton.style.width = '100%';
+        lootAllButton.textContent = '📦 Loot All';
+        lootAllButton.dataset.action = 'takeAllGroundLoot';
+        groundLootSide.appendChild(groundGrid);
+        groundLootSide.appendChild(lootAllButton);
     } else {
         groundGrid.innerHTML = '<p>Nothing on the ground.</p>';
+        groundLootSide.appendChild(groundGrid);
     }
-    groundLootSide.appendChild(groundGrid);
 
     const inventorySide = document.createElement('div');
     inventorySide.innerHTML = '<h3>Your Inventory</h3>';

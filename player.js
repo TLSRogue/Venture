@@ -68,6 +68,13 @@ export function takeGroundLoot(index) {
     });
 }
 
+export function takeAllGroundLoot() {
+    Network.emitPartyAction({
+        type: 'takeAllGroundLoot',
+        payload: {}
+    });
+}
+
 export function equipItem(itemIndex, chosenSlot) {
     Network.emitPlayerAction('equipItem', { itemIndex, chosenSlot });
 }
