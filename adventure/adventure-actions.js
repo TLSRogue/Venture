@@ -289,6 +289,19 @@ export async function processWeaponAttack(io, party, player, payload) {
         target.applyDamage(dmgResult.finalDamage);
         logMessage += ` Deals ${dmgResult.finalDamage} ${dmgResult.damageType} damage! [id:${target.id}]`;
 
+        // Flame Shield burn-on-melee counter effect
+        if (weapon.range === 'melee' || (!weapon.range && !['Staff', 'Two-Hand Bow', 'One-Hand Crossbow', 'Wand'].includes(weapon.weaponType))) {
+            const flameShield = target.buffs?.find(b => b.type === 'Flame Shield');
+            if (flameShield && flameShield.burnOnMelee) {
+                // Apply burn to the attacker
+                const burnDebuff = { ...flameShield.burnOnMelee };
+                const existingBurn = actingPlayerState.debuffs.findIndex(d => d.type.toLowerCase() === 'burn');
+                if (existingBurn !== -1) actingPlayerState.debuffs.splice(existingBurn, 1);
+                actingPlayerState.debuffs.push(burnDebuff);
+                log.push({ message: `${actingPlayerState.name} is burned by ${target.name}'s Flame Shield!`, type: 'damage' });
+            }
+        }
+
         // Apply Debuffs (Unified)
         let debuff = getWeaponDebuff(weapon, attackResult.isCriticalHit);
 
@@ -437,7 +450,7 @@ export async function processCastSpell(io, party, player, payload) {
         }
     }
 
-    if (SpellHandlers[spell.name] || spell.type === 'revive' || spell.type === 'cleanse') {
+    if (SpellHandlers[spell.name] || spell.type === 'revive' || spell.type === 'cleanse' || spell.type === 'cauterize' || spell.type === 'expendHeat') {
         const handler = SpellHandlers[spell.name] || SpellHandlers['Revive'];
 
         // Special Targeting Retrieval for friendly-target spells
@@ -459,6 +472,38 @@ export async function processCastSpell(io, party, player, payload) {
         // Also allow casting Cleanse on self if no target specified
         if (spell.type === 'cleanse' && !handlerTarget) {
             handlerTarget = actingPlayerState;
+        }
+
+        // Cauterize targets friendly party members (or self)
+        if (spell.type === 'cauterize') {
+            if (String(targetIndex).startsWith('p')) {
+                const idx = parseInt(targetIndex.substring(1));
+                if (sharedState.partyMemberStates[idx] && !sharedState.partyMemberStates[idx].isDead) {
+                    handlerTarget = sharedState.partyMemberStates[idx];
+                }
+            } else if (isPvP && target && target.team === actingPlayerState.team) {
+                handlerTarget = target.state;
+            }
+            // Fallback to self if no valid target
+            if (!handlerTarget) {
+                handlerTarget = actingPlayerState;
+            }
+        }
+
+        // Expend Heat can target any party member OR enemy (to remove burn)
+        if (spell.type === 'expendHeat') {
+            if (String(targetIndex).startsWith('p')) {
+                const idx = parseInt(targetIndex.substring(1));
+                if (sharedState.partyMemberStates[idx] && !sharedState.partyMemberStates[idx].isDead) {
+                    handlerTarget = sharedState.partyMemberStates[idx];
+                }
+            } else if (target) {
+                handlerTarget = target.state;
+            }
+            // Fallback to self if no valid target
+            if (!handlerTarget) {
+                handlerTarget = actingPlayerState;
+            }
         }
 
         // Check if handler can run (e.g. Revive needs dead target)
@@ -525,6 +570,40 @@ export async function processCastSpell(io, party, player, payload) {
         // Apply Cost and Cooldown if NO pending selection (Instant cast success)
         actingPlayerState.actionPoints -= cost;
         actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
+
+        // Handle Expend Heat AoE damage if burn was removed
+        if (spell.type === 'expendHeat' && result && result.triggersAoe) {
+            const aoeDamage = getSpecialSpellDamage(spell, character, actingPlayerState, bonuses);
+
+            // Get all enemies
+            let enemies = [];
+            if (isPvP) {
+                enemies = encounter.playerStates.filter(p => p.team !== actingPlayerState.team && !p.isDead);
+            } else {
+                enemies = sharedState.zoneCards.filter(c => c && c.type === 'enemy' && c.health > 0);
+            }
+
+            // Apply damage to all enemies
+            for (const enemy of enemies) {
+                const resistance = enemy.getResistance ? enemy.getResistance('Fire') : 0;
+                const dmg = Math.max(1, aoeDamage - resistance);
+                applyDamage(enemy, dmg);
+                const enemyId = enemy.playerId || enemy.id;
+                log.push({ message: `${enemy.name} takes ${dmg} Fire damage from the released heat! [id:${enemyId}]`, type: 'damage' });
+
+                // Check for death
+                if (enemy.health <= 0) {
+                    if (isPvP) {
+                        defeatEnemyInParty(io, party, { playerId: enemyId }, null);
+                    } else {
+                        const cardIndex = sharedState.zoneCards.findIndex(c => c && c.id === enemy.id);
+                        if (cardIndex !== -1) {
+                            defeatEnemyInParty(io, party, enemy, cardIndex);
+                        }
+                    }
+                }
+            }
+        }
 
         // Always end turn after special spells?
         // Revive: Yes. Monk's Training: Yes. Cleanse: Yes (if no selection needed).
@@ -689,6 +768,15 @@ export async function processCastSpell(io, party, player, payload) {
             delete buff.scaling;
         }
 
+        // Handle Flame Shield scaling with firePower
+        if (buff.type === 'Flame Shield' && buff.scaling === 'firePower') {
+            const bonusStats = getBonusStatsForPlayer(character, actingPlayerState);
+            const firePower = bonusStats.firePower || 0;
+            buff.value = (buff.baseValue || 1) + firePower;
+            delete buff.baseValue;
+            delete buff.scaling;
+        }
+
         // Use applyBuff if method exists, else manual push (fallback)
         if (buffTarget.applyBuff) {
             buffTarget.applyBuff(buff);
@@ -713,6 +801,8 @@ export async function processCastSpell(io, party, player, payload) {
         const tId = buffTarget.isPvP ? buffTarget.id : (buffTarget.id || buffTarget.state?.playerId);
         if (buff.type === 'Magic Barrier') {
             log.push({ message: `${buffTarget.name} gains Magic Barrier (${buff.value} Shield)! [id:${tId}]`, type: 'heal' });
+        } else if (buff.type === 'Flame Shield') {
+            log.push({ message: `${buffTarget.name} gains Flame Shield (${buff.value} Fire Barrier)! Melee attackers will burn! [id:${tId}]`, type: 'heal' });
         } else {
             log.push({ message: `${buffTarget.name} gains ${buff.type}${buff.value ? ` (${buff.value})` : ''}! [id:${tId}]`, type: 'heal' });
         }
@@ -1001,6 +1091,12 @@ export async function processCastSpell(io, party, player, payload) {
             // Broadcast after each swing for visual feedback
             broadcastAdventureUpdate(io, party);
         }
+    }
+
+    // Handle Scorch cooldown reset on 15+ roll
+    if (spell.resetCooldownThreshold && attackResult.total >= spell.resetCooldownThreshold && attackResult.isHit) {
+        actingPlayerState.spellCooldowns[spell.name] = 0;
+        log.push({ message: `${character.characterName}'s ${spell.name} cooldown resets!`, type: 'heal' });
     }
 
     broadcastAdventureUpdate(io, party);

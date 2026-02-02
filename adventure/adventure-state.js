@@ -1034,6 +1034,20 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         attackMessage += ` ${targetPlayerState.name} is now ${debuff.type}!`;
                     }
                     sharedState.log.push({ message: attackMessage, type: 'damage' });
+
+                    // Flame Shield burn-on-melee counter for enemy melee attacks
+                    if (attack.attackRange === 'melee' || !attack.attackRange) {
+                        const flameShield = targetPlayerState.buffs?.find(b => b.type === 'Flame Shield');
+                        if (flameShield && flameShield.burnOnMelee) {
+                            // Apply burn to the enemy
+                            if (!enemy.debuffs) enemy.debuffs = [];
+                            const burnDebuff = { ...flameShield.burnOnMelee };
+                            const existingBurn = enemy.debuffs.findIndex(d => d.type.toLowerCase() === 'burn');
+                            if (existingBurn !== -1) enemy.debuffs.splice(existingBurn, 1);
+                            enemy.debuffs.push(burnDebuff);
+                            sharedState.log.push({ message: `${enemy.name} is burned by ${targetPlayerState.name}'s Flame Shield!`, type: 'damage' });
+                        }
+                    }
                 }
             } else if (attack && attack.action === 'special') {
                 // --- UNIFIED SPECIAL HANDLER ---

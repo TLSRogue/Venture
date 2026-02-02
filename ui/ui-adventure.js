@@ -48,6 +48,7 @@ const effectDefinitions = {
 
     // Buffs (Defensive)
     'magic barrier': { icon: '💠', description: 'Magic Barrier: Absorbs incoming damage.' },
+    'flame shield': { icon: '🛡️🔥', description: 'Flame Shield: Fire barrier that absorbs damage. Burns melee attackers.' },
     'flying': { icon: '🦇', description: 'Flying: Immune to melee attacks while airborne.' },
     'aerial strike': { icon: '🎯', description: 'Aerial Strike: Next attack has +5 to hit.' },
 

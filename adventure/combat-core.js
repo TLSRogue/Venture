@@ -362,10 +362,36 @@ export function pushLog(sharedState, encounter, message, type = 'info') {
 
 /**
  * Apply damage to a target state, handling barriers/shields.
+ * Returns object with applied damage and whether Flame Shield was triggered.
  */
-export function applyDamage(targetState, amount) {
-    if (!targetState) return amount;
+export function applyDamage(targetState, amount, options = {}) {
+    if (!targetState) return { applied: amount, flameShieldTriggered: false };
     if (!targetState.buffs) targetState.buffs = [];
+
+    let flameShieldTriggered = false;
+    let flameShieldBurn = null;
+
+    // Handle Flame Shield (Fire Barrier)
+    const flameShieldIndex = targetState.buffs.findIndex(b => b.type === 'Flame Shield');
+    if (flameShieldIndex !== -1) {
+        const barrier = targetState.buffs[flameShieldIndex];
+        const absorbed = Math.min(amount, barrier.value || 0);
+
+        // Update barrier value
+        barrier.value = (barrier.value || 0) - absorbed;
+        amount -= absorbed;
+
+        // Mark that Flame Shield was triggered (for burn-on-melee)
+        if (absorbed > 0) {
+            flameShieldTriggered = true;
+            flameShieldBurn = barrier.burnOnMelee;
+        }
+
+        // Remove barrier if depleted
+        if (barrier.value <= 0) {
+            targetState.buffs.splice(flameShieldIndex, 1);
+        }
+    }
 
     // Handle Magic Barrier
     const barrierIndex = targetState.buffs.findIndex(b => b.type === 'Magic Barrier');
@@ -388,7 +414,7 @@ export function applyDamage(targetState, amount) {
         targetState.health -= amount;
     }
 
-    return amount; // Return remaining damage (if any) or amount applied
+    return { applied: amount, flameShieldTriggered, flameShieldBurn };
 }
 
 // --- BOSS MECHANIC HELPERS ---

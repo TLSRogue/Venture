@@ -119,6 +119,56 @@ export const SpellHandlers = {
     'Nature\'s Blessing': (spell, character, actingPlayerState, log, targetState, bonuses) => {
         // Reuse Cleanse logic
         return SpellHandlers['Cleanse'](spell, character, actingPlayerState, log, targetState, bonuses);
+    },
+    'Cauterize': (spell, character, actingPlayerState, log, targetState, bonuses) => {
+        if (!targetState) {
+            log.push({ message: `${character.characterName} casts ${spell.name}, but there is no valid target!`, type: 'info' });
+            return { success: false };
+        }
+
+        // Calculate heal amount: Base (1) + Fire Power
+        const firePower = bonuses?.firePower || 0;
+        const healAmount = (spell.heal || 1) + firePower;
+
+        // Apply heal
+        const maxHealth = targetState.maxHealth || 10;
+        const currentHealth = targetState.health || 0;
+        targetState.health = Math.min(maxHealth, currentHealth + healAmount);
+
+        log.push({ message: `${character.characterName} cauterizes ${targetState.name}'s wounds, healing for ${healAmount} HP!`, type: 'heal' });
+
+        // Apply burn debuff to the healed target
+        if (!targetState.debuffs) targetState.debuffs = [];
+        const burnDebuff = { ...spell.debuff };
+        const existingBurn = targetState.debuffs.findIndex(d => d.type === 'burn');
+        if (existingBurn !== -1) targetState.debuffs.splice(existingBurn, 1);
+        targetState.debuffs.push(burnDebuff);
+
+        log.push({ message: `${targetState.name} is now Burning from the cauterization!`, type: 'damage' });
+
+        return { success: true };
+    },
+    'Expend Heat': (spell, character, actingPlayerState, log, targetState, bonuses, sharedState, io, party, encounter) => {
+        if (!targetState) {
+            log.push({ message: `${character.characterName} casts ${spell.name}, but there is no valid target!`, type: 'info' });
+            return { success: false, triggersAoe: false };
+        }
+
+        // Check if target has burn debuff
+        if (!targetState.debuffs) targetState.debuffs = [];
+        const burnIndex = targetState.debuffs.findIndex(d => d.type.toLowerCase() === 'burn');
+
+        if (burnIndex === -1) {
+            log.push({ message: `${character.characterName} casts ${spell.name} on ${targetState.name}, but they are not burning!`, type: 'info' });
+            return { success: true, triggersAoe: false };
+        }
+
+        // Remove burn
+        targetState.debuffs.splice(burnIndex, 1);
+        log.push({ message: `${character.characterName} expends the heat from ${targetState.name}, removing Burn!`, type: 'heal' });
+
+        // Return that AoE should trigger - the actual damage is handled in adventure-actions.js
+        return { success: true, triggersAoe: true };
     }
 };
 
@@ -144,6 +194,17 @@ export function getSpecialSpellDamage(spell, character, actingPlayerState, bonus
     if (spell.name === 'Fireball' || spell.name === 'Flame Strike') {
         const fireBonus = bonuses.firePower || 0;
         return (spell.damage || 1) + fireBonus;
+    }
+
+    // --- Fire Spells: Fire Blast, Scorch (Base + Fire Power / 2) ---
+    if (spell.name === 'Fire Blast' || spell.name === 'Scorch') {
+        const fireBonus = Math.floor((bonuses.firePower || 0) / 2);
+        return 1 + fireBonus;
+    }
+
+    // --- Fire Spells: Expend Heat (Base + Fire Power) for AoE damage ---
+    if (spell.name === 'Expend Heat') {
+        return 1 + (bonuses.firePower || 0);
     }
 
     // --- Nature Spells: Moonbeam (Base + Nature Power / 2) ---
