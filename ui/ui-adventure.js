@@ -861,7 +861,7 @@ export function renderPlayerActionBars() {
                 <div class="cooldown-overlay" style="height: ${cooldown > 0 ? '100' : '0'}%">${cooldown}</div>
             `;
 
-            if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile' || spell.type === 'revive' || spell.type === 'debuff' || spell.type === 'cleanse' ||
+            if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile' || spell.type === 'revive' || spell.type === 'debuff' || spell.type === 'cleanse' || spell.type === 'cauterize' || spell.type === 'expendHeat' ||
                 ((spell.type === 'heal' || spell.type === 'buff') && spell.range !== 'self')) {
                 slotEl.dataset.action = 'select';
                 slotEl.dataset.actionData = JSON.stringify({ type: 'spell', data: spell, index: i });
