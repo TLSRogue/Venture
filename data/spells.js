@@ -604,7 +604,7 @@ export const allSpells = [
         type: "buff",
         stat: "wisdom",
         hit: 10,
-        buff: { type: 'Flame Shield', duration: 2, baseValue: 1, scaling: 'firePower', burnOnMelee: { type: 'burn', duration: 1, damage: 2, damageType: 'Fire' } },
+        buff: { type: 'Flame Shield', duration: 3, baseValue: 1, scaling: 'firePower', burnOnMelee: { type: 'burn', duration: 1, damage: 2, damageType: 'Fire' } },
         icon: "🛡️🔥",
         rarity: "uncommon",
     },

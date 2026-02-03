@@ -903,13 +903,13 @@ export function updateActionUI() {
         const actionType = gameState.turnState.selectedAction.type;
 
         // Weapons and attack spells target enemies
-        if (action.type === 'attack' || action.type === 'aoe' || action.type === 'versatile' || action.type === 'debuff' || action.weaponDamage) {
+        if (action.type === 'attack' || action.type === 'aoe' || action.type === 'versatile' || action.type === 'debuff' || action.weaponDamage || action.type === 'expendHeat') {
             document.querySelectorAll('#zone-cards .card.enemy').forEach(enemyCard => {
                 enemyCard.classList.add('targetable');
             });
         }
         // Heal/buff/versatile/cleanse spells target allies (versatile can do both!)
-        if (action.type === 'heal' || action.type === 'buff' || action.type === 'versatile' || action.type === 'cleanse') {
+        if (action.type === 'heal' || action.type === 'buff' || action.type === 'versatile' || action.type === 'cleanse' || action.type === 'cauterize' || action.type === 'expendHeat') {
             document.querySelectorAll('#party-cards-container .card.player:not(.dead), #zone-cards .card.player:not(.dead)').forEach(playerCard => {
                 playerCard.classList.add('targetable');
             });
