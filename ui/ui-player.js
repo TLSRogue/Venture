@@ -190,8 +190,10 @@ export function updateDisplay() {
         let currentShield = 0;
         try {
             if (localPlayerState && Array.isArray(localPlayerState.buffs)) {
-                const barrierBuff = localPlayerState.buffs.find(b => b && b.type === 'Magic Barrier');
-                if (barrierBuff) currentShield = barrierBuff.value || 0;
+                const magicBarrier = localPlayerState.buffs.find(b => b && b.type === 'Magic Barrier');
+                const flameShield = localPlayerState.buffs.find(b => b && b.type === 'Flame Shield');
+                if (magicBarrier) currentShield += magicBarrier.value || 0;
+                if (flameShield) currentShield += flameShield.value || 0;
             } else if (gameState.shield) {
                 currentShield = gameState.shield; // Fallback to deprecated prop if needed
             }

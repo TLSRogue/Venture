@@ -391,11 +391,13 @@ function createEntityCard(state, options = {}) {
         visualHTML = `<div class="card-icon">${state.icon || '👤'}</div>`;
     }
 
-    // Shield/Barrier calculation
+    // Shield/Barrier calculation (Magic Barrier + Flame Shield)
     let shield = 0;
     if (state.buffs) {
-        const b = state.buffs.find(bu => bu.type === 'Magic Barrier');
-        if (b) shield = b.value || 0;
+        const magicBarrier = state.buffs.find(bu => bu.type === 'Magic Barrier');
+        const flameShield = state.buffs.find(bu => bu.type === 'Flame Shield');
+        if (magicBarrier) shield += magicBarrier.value || 0;
+        if (flameShield) shield += flameShield.value || 0;
     } else if (state.shield) {
         shield = state.shield;
     }
@@ -606,8 +608,10 @@ function renderZoneCards(cards) {
             const barsDiv = document.createElement('div');
             let shield = 0;
             if (card.buffs) {
-                const b = card.buffs.find(bu => bu.type === 'Magic Barrier');
-                if (b) shield = b.value || 0;
+                const magicBarrier = card.buffs.find(bu => bu.type === 'Magic Barrier');
+                const flameShield = card.buffs.find(bu => bu.type === 'Flame Shield');
+                if (magicBarrier) shield += magicBarrier.value || 0;
+                if (flameShield) shield += flameShield.value || 0;
             }
             barsDiv.innerHTML = createHealthBarHTML(card.health, card.maxHealth, null, shield);
             cardEl.appendChild(barsDiv);
