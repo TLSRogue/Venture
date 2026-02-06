@@ -175,6 +175,18 @@ export const allItems = [
 
     // --- Consumables ---
     {
+        name: "Bread",
+        price: 10,
+        type: "consumable",
+        tier: 1,
+        cost: 1,
+        heal: 2,
+        description: "A simple loaf of fresh-baked bread. 1 AP | Heals 2 HP.",
+        icon: "🍞",
+        rarity: "common",
+        canBeInMerchantWares: false, // Crafted only
+    },
+    {
         name: "Healing Potion",
         price: 25,
         type: "consumable",
