@@ -5,7 +5,7 @@ import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
 import { checkAndEndTurnForPlayer, defeatEnemyInParty } from './adventure-state.js';
 import { handleResolveReaction } from './reaction-handlers.js';
-import { applyDamage, normalizeTarget, resolveAttackRoll, calculateWeaponDamage, getWeaponDebuff, checkVexorDodge, checkVampirePhaseTransition, checkEnemyReaction } from './combat-core.js';
+import { applyDamage, normalizeTarget, resolveAttackRoll, calculateWeaponDamage, getWeaponDebuff, checkVexorDodge, checkVampirePhaseTransition, checkEnemyReaction, applyChillStack } from './combat-core.js';
 import { SpellHandlers, getSpecialSpellDamage } from './spell-handlers.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 
@@ -1120,6 +1120,16 @@ export async function processCastSpell(io, party, player, payload) {
                     if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
                     target.state.debuffs.push({ ...spell.onHit.debuff });
                     hitDescription += ` ${target.name} is now ${spell.onHit.debuff.type}!`;
+                }
+
+                // Apply onHit Chill (for Cone of Cold and similar spells)
+                if (spell.onHit?.chill && currentAttackResult.total >= (spell.onHit.threshold || spell.hit)) {
+                    const chillAmount = spell.onHit.chill;
+                    const chillResult = applyChillStack(target.state, chillAmount, log);
+                    hitDescription += ` ${target.name} gains ${chillAmount} Chill${chillAmount > 1 ? ' stacks' : ''}!`;
+                    if (chillResult === 'frozen') {
+                        hitDescription += ` ${target.name} is FROZEN!`;
+                    }
                 }
 
                 log.push({ message: hitDescription.trim(), type: 'damage' });

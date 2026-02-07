@@ -74,6 +74,25 @@ try {
                 }
             }
 
+            // --- Cone of Cold Migration: Update from Daze to Chill ---
+            const newConeOfCold = gameData.allSpells.find(s => s.name === "Cone of Cold");
+            if (newConeOfCold) {
+                // Check for old version with debuff instead of chill
+                const equippedCoCIndex = character.equippedSpells.findIndex(s => s && s.name === "Cone of Cold" && s.onHit?.debuff);
+                if (equippedCoCIndex !== -1) {
+                    character.equippedSpells[equippedCoCIndex] = { ...newConeOfCold };
+                    console.log(`Updated Cone of Cold for ${characterName} in equipped spells (Daze -> Chill).`);
+                    dataWasMigrated = true;
+                }
+                const spellbookCoCIndex = character.spellbook.findIndex(s => s && s.name === "Cone of Cold" && s.onHit?.debuff);
+                if (spellbookCoCIndex !== -1) {
+                    character.spellbook[spellbookCoCIndex] = { ...newConeOfCold };
+                    console.log(`Updated Cone of Cold for ${characterName} in spellbook (Daze -> Chill).`);
+                    dataWasMigrated = true;
+                }
+            }
+            // --- End Cone of Cold Migration ---
+
 
             // --- T2 RECIPE BACKFILL MIGRATION ---
             // Debug: Log quests for this character
