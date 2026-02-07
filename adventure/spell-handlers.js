@@ -219,8 +219,29 @@ export function getSpecialSpellDamage(spell, character, actingPlayerState, bonus
     }
 
     // --- Frost Spells: Base + Frost Power ---
-    if (spell.name === 'Cone of Cold') {
+    if (spell.name === 'Cone of Cold' || spell.name === 'Frost Bolt') {
         return (spell.damage || 0) + (bonuses.frostPower || 0);
+    }
+
+    // --- Frost Spells: Shatter (Base + Frost Power, double if Frozen) ---
+    if (spell.name === 'Shatter') {
+        let damage = (spell.damage || 1) + (bonuses.frostPower || 0);
+
+        // Check if target is Frozen for double damage
+        if (target && target.state) {
+            const frozenDebuff = (target.state.debuffs || []).find(d => d.type === 'frozen');
+            if (frozenDebuff) {
+                // Double damage and remove Frozen
+                damage *= 2;
+                target.state.debuffs = target.state.debuffs.filter(d => d.type !== 'frozen');
+                return {
+                    damage: damage,
+                    logMessage: `Shatter! The frozen target takes double damage!`
+                };
+            }
+        }
+
+        return damage;
     }
 
     // --- Holy Shock (Versatile): Base + Holy Power ---

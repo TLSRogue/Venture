@@ -1104,6 +1104,14 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                             enemy.debuffs.push(burnDebuff);
                             sharedState.log.push({ message: `${enemy.name} is burned by ${targetPlayerState.name}'s Flame Shield!`, type: 'damage' });
                         }
+
+                        // Ice Barrier chill-on-melee counter for enemy melee attacks
+                        const iceBarrier = targetPlayerState.buffs?.find(b => b.type === 'Ice Barrier');
+                        if (iceBarrier && iceBarrier.chillOnMelee) {
+                            // Apply chill to the enemy
+                            applyChillStack(enemy, iceBarrier.chillOnMelee, sharedState.log);
+                            sharedState.log.push({ message: `${enemy.name} is chilled by ${targetPlayerState.name}'s Ice Barrier!`, type: 'damage' });
+                        }
                     }
                 }
             } else if (attack && attack.action === 'special') {

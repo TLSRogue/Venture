@@ -300,6 +300,14 @@ export async function processWeaponAttack(io, party, player, payload) {
                 actingPlayerState.debuffs.push(burnDebuff);
                 log.push({ message: `${actingPlayerState.name} is burned by ${target.name}'s Flame Shield!`, type: 'damage' });
             }
+
+            // Ice Barrier chill-on-melee counter effect
+            const iceBarrier = target.buffs?.find(b => b.type === 'Ice Barrier');
+            if (iceBarrier && iceBarrier.chillOnMelee) {
+                // Apply chill to the attacker
+                applyChillStack(actingPlayerState, iceBarrier.chillOnMelee, log);
+                log.push({ message: `${actingPlayerState.name} is chilled by ${target.name}'s Ice Barrier!`, type: 'damage' });
+            }
         }
 
         // Apply Debuffs (Unified)
@@ -825,6 +833,15 @@ export async function processCastSpell(io, party, player, payload) {
             delete buff.scaling;
         }
 
+        // Handle Ice Barrier scaling with frostPower
+        if (buff.type === 'Ice Barrier' && buff.scaling === 'frostPower') {
+            const bonusStats = getBonusStatsForPlayer(character, actingPlayerState);
+            const frostPower = bonusStats.frostPower || 0;
+            buff.value = (buff.baseValue || 1) + frostPower;
+            delete buff.baseValue;
+            delete buff.scaling;
+        }
+
         // Use applyBuff if method exists, else manual push (fallback)
         if (buffTarget.applyBuff) {
             buffTarget.applyBuff(buff);
@@ -851,6 +868,8 @@ export async function processCastSpell(io, party, player, payload) {
             log.push({ message: `${buffTarget.name} gains Magic Barrier (${buff.value} Shield)! [id:${tId}]`, type: 'heal' });
         } else if (buff.type === 'Flame Shield') {
             log.push({ message: `${buffTarget.name} gains Flame Shield (${buff.value} Fire Barrier)! Melee attackers will burn! [id:${tId}]`, type: 'heal' });
+        } else if (buff.type === 'Ice Barrier') {
+            log.push({ message: `${buffTarget.name} gains Ice Barrier (${buff.value} Frost Barrier)! Melee attackers will be chilled! [id:${tId}]`, type: 'heal' });
         } else {
             log.push({ message: `${buffTarget.name} gains ${buff.type}${buff.value ? ` (${buff.value})` : ''}! [id:${tId}]`, type: 'heal' });
         }

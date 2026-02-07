@@ -51,6 +51,7 @@ const effectDefinitions = {
     // Buffs (Defensive)
     'magic barrier': { icon: '💠', description: 'Magic Barrier: Absorbs incoming damage.' },
     'flame shield': { icon: '🛡️🔥', description: 'Flame Shield: Fire barrier that absorbs damage. Burns melee attackers.' },
+    'ice barrier': { icon: '🛡️❄️', description: 'Ice Barrier: Frost barrier that absorbs damage. Chills melee attackers.' },
     'flying': { icon: '🦇', description: 'Flying: Immune to melee attacks while airborne.' },
     'aerial strike': { icon: '🎯', description: 'Aerial Strike: Next attack has +5 to hit.' },
 
@@ -393,13 +394,15 @@ function createEntityCard(state, options = {}) {
         visualHTML = `<div class="card-icon">${state.icon || '👤'}</div>`;
     }
 
-    // Shield/Barrier calculation (Magic Barrier + Flame Shield)
+    // Shield/Barrier calculation (Magic Barrier + Flame Shield + Ice Barrier)
     let shield = 0;
     if (state.buffs) {
         const magicBarrier = state.buffs.find(bu => bu.type === 'Magic Barrier');
         const flameShield = state.buffs.find(bu => bu.type === 'Flame Shield');
+        const iceBarrier = state.buffs.find(bu => bu.type === 'Ice Barrier');
         if (magicBarrier) shield += magicBarrier.value || 0;
         if (flameShield) shield += flameShield.value || 0;
+        if (iceBarrier) shield += iceBarrier.value || 0;
     } else if (state.shield) {
         shield = state.shield;
     }
@@ -637,8 +640,10 @@ function renderZoneCards(cards) {
             if (card.buffs) {
                 const magicBarrier = card.buffs.find(bu => bu.type === 'Magic Barrier');
                 const flameShield = card.buffs.find(bu => bu.type === 'Flame Shield');
+                const iceBarrier = card.buffs.find(bu => bu.type === 'Ice Barrier');
                 if (magicBarrier) shield += magicBarrier.value || 0;
                 if (flameShield) shield += flameShield.value || 0;
+                if (iceBarrier) shield += iceBarrier.value || 0;
             }
             barsDiv.innerHTML = createHealthBarHTML(card.health, card.maxHealth, null, shield);
             cardEl.appendChild(barsDiv);
