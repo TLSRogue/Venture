@@ -905,7 +905,7 @@ export function renderPlayerActionBars() {
                 ((spell.type === 'heal' || spell.type === 'buff') && spell.range !== 'self')) {
                 slotEl.dataset.action = 'select';
                 slotEl.dataset.actionData = JSON.stringify({ type: 'spell', data: spell, index: i });
-            } else if (spell.type === 'heal' || spell.type === 'buff' || spell.type === 'utility') {
+            } else if (spell.type === 'heal' || spell.type === 'buff' || spell.type === 'utility' || spell.type === 'zoneEffect') {
                 slotEl.dataset.action = 'castSelf';
                 slotEl.dataset.spellIndex = i;
             } else {
