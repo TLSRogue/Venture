@@ -2427,6 +2427,51 @@ hr {
     z-index: 10;
 }
 
+/* Zone Effects Display */
+.zone-effects-display {
+    position: absolute;
+    left: -100px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10;
+}
+
+.zone-effect-card {
+    background: linear-gradient(135deg, #1e3a5f, #0d1b2a);
+    border: 2px solid #4fc3f7;
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+    cursor: pointer;
+    min-width: 80px;
+    box-shadow: 0 0 12px rgba(79, 195, 247, 0.4);
+    transition: all 0.2s ease;
+}
+
+.zone-effect-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 18px rgba(79, 195, 247, 0.7);
+}
+
+.zone-effect-icon {
+    font-size: 1.8em;
+}
+
+.zone-effect-name {
+    font-size: 0.7em;
+    color: #aaa;
+    margin-top: 2px;
+}
+
+.zone-effect-duration {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #4fc3f7;
+}
+
 .deck-count-number {
     font-size: 2.2em;
     font-weight: 800;

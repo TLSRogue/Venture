@@ -4,7 +4,7 @@ import { players, parties, pvpZoneQueues, pvpEncounters } from '../serverState.j
 import { gameData, lootPools } from '../data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js';
-import { applyDamage, applyDoTEffects } from './combat-core.js';
+import { applyDamage, applyDoTEffects, applyChillStack, processChillReduction } from './combat-core.js';
 import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS, INTERVENE_TIMER_MS } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
 import { processEnemyEndOfTurn, handleEnemySpecialAction } from './enemy-handlers.js';
@@ -726,6 +726,55 @@ export async function processVentureDeeper(io, player, party) {
     broadcastAdventureUpdate(io, party);
 }
 
+/**
+ * Process active zone effects (e.g., Blizzard) between player and enemy turns.
+ * Zone effects deal damage/apply debuffs to all enemies, then decrement duration.
+ * @param {Object} io - Socket.io instance
+ * @param {Object} party - The party object
+ */
+function processZoneEffects(io, party) {
+    const { sharedState } = party;
+    if (!sharedState.zoneEffects || sharedState.zoneEffects.length === 0) return;
+
+    sharedState.zoneEffects.forEach(effect => {
+        if (effect.type === 'blizzard') {
+            sharedState.log.push({ message: `${effect.icon} The Blizzard rages on!`, type: 'info' });
+
+            // Deal damage to all enemies
+            const damage = effect.damage;
+            sharedState.zoneCards.forEach((card, idx) => {
+                if (card && card.type === 'enemy' && !card.isDead && card.health > 0) {
+                    applyDamage(card, damage);
+                    sharedState.log.push({
+                        message: `${card.name} takes ${damage} Frost damage from Blizzard!`,
+                        type: 'damage'
+                    });
+
+                    // Apply Chill
+                    if (effect.chillAmount && effect.chillAmount > 0) {
+                        applyChillStack(card, effect.chillAmount, sharedState.log);
+                    }
+
+                    // Check if enemy died
+                    if (card.health <= 0) {
+                        defeatEnemyInParty(io, party, card, idx);
+                    }
+                }
+            });
+        }
+
+        // Decrement duration
+        effect.duration--;
+    });
+
+    // Remove expired effects
+    const expiredEffects = sharedState.zoneEffects.filter(e => e.duration <= 0);
+    expiredEffects.forEach(e => {
+        sharedState.log.push({ message: `${e.icon || '🌨️'} ${e.name} has faded.`, type: 'info' });
+    });
+    sharedState.zoneEffects = sharedState.zoneEffects.filter(e => e.duration > 0);
+}
+
 export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex = 0) {
     const party = parties[partyId];
     if (!party || !party.sharedState || party.sharedState.pendingReaction) return;
@@ -735,6 +784,10 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
         if (!isFleeing) {
             sharedState.log.push({ message: "--- Zone's Turn ---", type: 'info' });
         }
+
+        // Process zone effects (e.g., Blizzard) at start of zone turn
+        processZoneEffects(io, party);
+
         broadcastAdventureUpdate(io, party);
         // Small delay between player turn ending and first enemy action
         await new Promise(resolve => setTimeout(resolve, 1500));
@@ -780,12 +833,16 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     }
                 }
 
+                // Process Chill reduction for enemy
+                processChillReduction(enemy, sharedState.log);
+
                 if (damageTaken) broadcastAdventureUpdate(io, party);
                 return false;
             };
 
-            if (enemy.debuffs.some(d => d.type === 'stun')) {
-                sharedState.log.push({ message: `${enemy.name} is stunned and cannot act!`, type: 'reaction' });
+            if (enemy.debuffs.some(d => d.type === 'stun' || d.type === 'frozen')) {
+                const effect = enemy.debuffs.find(d => d.type === 'stun' || d.type === 'frozen');
+                sharedState.log.push({ message: `${enemy.name} is ${effect.type === 'frozen' ? 'Frozen' : 'stunned'} and cannot act!`, type: 'reaction' });
                 processEndOfTurn();
                 broadcastAdventureUpdate(io, party);
                 continue;
@@ -1386,11 +1443,12 @@ export function startNextPlayerTurn(io, partyId) {
                 return;
             }
 
-            // Check for Stun - reduces AP by 1
-            const stunDebuff = p.debuffs.find(d => d.type === 'stun');
-            if (stunDebuff) {
-                p.actionPoints = 2; // 3 - 1 = 2 AP due to stun
-                sharedState.log.push({ message: `${p.name} is stunned and starts with reduced Action Points!`, type: 'reaction' });
+            // Check for Stun or Frozen - reduces AP by 1
+            const disablingDebuff = p.debuffs.find(d => d.type === 'stun' || d.type === 'frozen');
+            if (disablingDebuff) {
+                p.actionPoints = 2; // 3 - 1 = 2 AP due to stun/frozen
+                const effectName = disablingDebuff.type === 'frozen' ? 'Frozen' : 'stunned';
+                sharedState.log.push({ message: `${p.name} is ${effectName} and starts with reduced Action Points!`, type: 'reaction' });
             } else {
                 p.actionPoints = 3;
             }
@@ -1414,7 +1472,8 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
     // 1. Process DoT Damage
     applyDoTEffects(playerState, sharedState.log);
 
-    // 1a. Process Rejuvenate Healing
+    // 1b. Process Chill Reduction (1 stack per turn)
+    processChillReduction(playerState, sharedState.log);
     const rejuvenateBuff = (playerState.buffs || []).find(b => b.type === 'Rejuvenate');
     if (rejuvenateBuff && !playerState.isDead) {
         const playerChar = players[playerName]?.character;

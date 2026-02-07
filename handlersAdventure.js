@@ -85,6 +85,7 @@ export const registerAdventureHandlers = (io, socket) => {
             pendingReaction: null,
             pendingLootRoll: null,
             lootRollQueue: [],
+            zoneEffects: [], // Active zone-wide effects (e.g., Blizzard)
         };
 
         if (zoneName === 'arena') {

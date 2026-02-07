@@ -612,6 +612,54 @@ export async function processCastSpell(io, party, player, payload) {
         return;
     }
 
+    // --- Zone Effect Spells (e.g., Blizzard) ---
+    if (spell.type === 'zoneEffect' && spell.zoneEffect) {
+        // Don't require target validation for zone effects - they affect the whole zone
+
+        // Roll for success
+        const spellStat = spell.stat || 'wisdom';
+        const attackResult = resolveAttackRoll(actingPlayerState, character, null, spellStat, spell.hit || 10);
+
+        // Consume Resources
+        actingPlayerState.actionPoints -= cost;
+        actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
+        actingPlayerState.threat += cost;
+
+        let description = `${character.characterName} casts ${spell.name}! ${attackResult.rollDisplay}`;
+
+        if (!attackResult.isHit) {
+            description += (attackResult.roll === 1) ? ` Critical Failure!` : ` Fizzle!`;
+            log.push({ message: description, type: 'damage' });
+            broadcastAdventureUpdate(io, party);
+            await checkAndEndTurnForPlayer(io, party, player);
+            return;
+        }
+
+        log.push({ message: description, type: 'success' });
+
+        // Calculate zone effect damage based on power bonuses
+        const powerKey = spell.damageType ? spell.damageType.toLowerCase() + 'Power' : 'frostPower';
+        const power = bonuses[powerKey] || 0;
+        const damage = 1 + Math.floor(power / 2);
+
+        // Create the zone effect
+        if (!sharedState.zoneEffects) sharedState.zoneEffects = [];
+        sharedState.zoneEffects.push({
+            ...spell.zoneEffect,
+            damage,
+            casterName: character.characterName
+        });
+
+        log.push({
+            message: `${spell.zoneEffect.icon || '🌀'} A ${spell.zoneEffect.name} engulfs the zone for ${spell.zoneEffect.duration} turns!`,
+            type: 'success'
+        });
+
+        broadcastAdventureUpdate(io, party);
+        await checkAndEndTurnForPlayer(io, party, player);
+        return;
+    }
+
     // --- Roll Resolution ---
     let spellStat = spell.stat || 'wisdom';
     // Handle array of stats (highest one used)

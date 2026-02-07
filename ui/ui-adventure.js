@@ -36,6 +36,8 @@ const effectDefinitions = {
     'daze': { icon: '😵', description: 'Dazed: All attack rolls suffer a -3 penalty.' },
     'trap': { icon: '🕸️', description: 'Trapped: Cannot flee or move to a new area.' },
     'silence': { icon: '🔇', description: 'Silenced: Cannot cast spells or use magic abilities.' },
+    'chill': { icon: '🥶', description: 'Chilled: Speed reduced. At 10 stacks, becomes Frozen.' },
+    'frozen': { icon: '🧊', description: 'Frozen: Cannot take any actions. Some spells deal bonus damage to Frozen targets.' },
 
     // Buffs (Stat Bonuses)
     'stealth': { icon: '🤫', description: 'Stealthed: Enemies have -5 to hit. Breaks on attack.' },
@@ -531,6 +533,31 @@ function renderZoneCards(cards) {
     const zoneContainer = document.getElementById('zone-cards');
     zoneContainer.innerHTML = '';
     if (!cards) return;
+
+    // Add Zone Effects Display (to the left of zone cards)
+    const gameState = window.currentAdventureState;
+    if (gameState && gameState.zoneEffects && gameState.zoneEffects.length > 0) {
+        const zoneEffectsEl = document.createElement('div');
+        zoneEffectsEl.className = 'zone-effects-display';
+
+        gameState.zoneEffects.forEach(effect => {
+            const effectEl = document.createElement('div');
+            effectEl.className = 'zone-effect-card';
+            effectEl.innerHTML = `
+                <div class="zone-effect-icon">${effect.icon || '🌀'}</div>
+                <div class="zone-effect-name">${effect.name}</div>
+                <div class="zone-effect-duration">${effect.duration}</div>
+            `;
+            effectEl.addEventListener('mouseover', () => {
+                showTooltip(`<strong>${effect.name}</strong><br>${effect.description || 'Zone effect active.'}<br><br>Turns Remaining: ${effect.duration}`);
+            });
+            effectEl.addEventListener('mouseout', hideTooltip);
+            zoneEffectsEl.appendChild(effectEl);
+        });
+
+        zoneContainer.appendChild(zoneEffectsEl);
+    }
+
     cards.forEach((card, index) => {
         const cardEl = document.createElement('div');
         if (!card) {
@@ -724,10 +751,23 @@ function createEffectsContainer(stateObject) {
             const def = effectDefinitions[lowerType] || { icon: '❓', description: 'Harmful effect' };
 
             debuffSpan.className = 'player-card-effect debuff';
-            debuffSpan.textContent = def.icon;
+
+            // Show stack count for Chill
+            if (lowerType === 'chill' && debuff.stacks) {
+                debuffSpan.innerHTML = `${def.icon}<span style="font-size:0.75em; vertical-align: super; margin-left:2px;">${debuff.stacks}</span>`;
+            } else {
+                debuffSpan.textContent = def.icon;
+            }
+
             debuffSpan.addEventListener('mouseover', (e) => {
                 e.stopPropagation();
-                showTooltip(`${def.icon} <strong>${debuff.type}</strong><br>${def.description}<br>Turns Remaining: ${debuff.duration}`);
+                let tooltipText = `${def.icon} <strong>${debuff.type}</strong><br>${def.description}`;
+                if (lowerType === 'chill' && debuff.stacks) {
+                    tooltipText += `<br>Stacks: ${debuff.stacks}/10`;
+                } else {
+                    tooltipText += `<br>Turns Remaining: ${debuff.duration}`;
+                }
+                showTooltip(tooltipText);
             });
             debuffSpan.addEventListener('mouseout', () => hideTooltip());
             effectsContainer.appendChild(debuffSpan);

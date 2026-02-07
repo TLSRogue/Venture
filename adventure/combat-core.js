@@ -502,6 +502,57 @@ export function applyDoTEffects(state, log) {
     return tookDamage;
 }
 
+// --- CHILL/FROZEN SYSTEM ---
+
+/**
+ * Apply Chill stacks to a target. Chill stacks up - at 10 stacks, converts to Frozen.
+ * @param {Object} targetState - Target state object with debuffs array
+ * @param {number} amount - Number of Chill stacks to add
+ * @param {Array} log - Log array to push messages to
+ * @returns {string} 'frozen' if converted to Frozen, 'chill' otherwise
+ */
+export function applyChillStack(targetState, amount, log) {
+    if (!targetState.debuffs) targetState.debuffs = [];
+
+    // Check for existing Chill
+    const existingChill = targetState.debuffs.find(d => d.type === 'chill');
+
+    if (existingChill) {
+        existingChill.stacks = (existingChill.stacks || 1) + amount;
+
+        // Convert to Frozen at 10 stacks
+        if (existingChill.stacks >= 10) {
+            targetState.debuffs = targetState.debuffs.filter(d => d.type !== 'chill');
+            targetState.debuffs.push({ type: 'frozen', duration: 1 });
+            log.push({ message: `${targetState.name} is Frozen solid!`, type: 'damage' });
+            return 'frozen';
+        }
+        log.push({ message: `${targetState.name}'s Chill increased to ${existingChill.stacks}!`, type: 'info' });
+    } else {
+        targetState.debuffs.push({ type: 'chill', stacks: amount, duration: 999 }); // Duration managed by stacks
+        log.push({ message: `${targetState.name} is Chilled (${amount})!`, type: 'info' });
+    }
+    return 'chill';
+}
+
+/**
+ * Process Chill reduction at end of turn. Chill reduces by 1 stack per turn.
+ * @param {Object} state - State object with debuffs array
+ * @param {Array} log - Log array to push messages to
+ */
+export function processChillReduction(state, log) {
+    if (!state.debuffs) return;
+
+    const chill = state.debuffs.find(d => d.type === 'chill');
+    if (chill) {
+        chill.stacks = Math.max(0, (chill.stacks || 1) - 1);
+        if (chill.stacks <= 0) {
+            state.debuffs = state.debuffs.filter(d => d.type !== 'chill');
+            log.push({ message: `${state.name}'s Chill has worn off.`, type: 'info' });
+        }
+    }
+}
+
 // --- ENEMY REACTION SYSTEM ---
 
 /**
