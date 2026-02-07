@@ -535,7 +535,7 @@ function renderZoneCards(cards) {
     if (!cards) return;
 
     // Add Zone Effects Display (to the left of zone cards)
-    const gameState = window.currentAdventureState;
+    // Use the imported gameState directly (not a non-existent window.currentAdventureState)
     if (gameState && gameState.zoneEffects && gameState.zoneEffects.length > 0) {
         const zoneEffectsEl = document.createElement('div');
         zoneEffectsEl.className = 'zone-effects-display';
