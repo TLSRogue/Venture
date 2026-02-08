@@ -116,10 +116,31 @@ export function buildZoneDeckForServer(zoneName, partySize = 1) {
         });
     }
 
-    // Shuffle only the non-NPC cards
-    shuffleArray(otherCards);
+    // Separate bosses and treasure chests from regular cards
+    const bosses = otherCards.filter(card => card.isBoss);
+    const treasureChests = otherCards.filter(card => card.type === 'treasure');
+    const regularCards = otherCards.filter(card => !card.isBoss && card.type !== 'treasure');
 
-    return [...npcs, ...otherCards];
+    // Shuffle regular cards
+    shuffleArray(regularCards);
+
+    // Calculate the midpoint for placing bosses in the second half
+    const totalNonSpecial = regularCards.length;
+    const midpoint = Math.ceil(totalNonSpecial / 2);
+
+    // Split regular cards into first half and second half
+    const firstHalf = regularCards.slice(0, midpoint);
+    const secondHalf = regularCards.slice(midpoint);
+
+    // Insert bosses randomly into the second half
+    shuffleArray(bosses);
+    bosses.forEach(boss => {
+        const insertPos = Math.floor(Math.random() * (secondHalf.length + 1));
+        secondHalf.splice(insertPos, 0, boss);
+    });
+
+    // Combine: NPCs first, then first half, then second half with bosses, then treasure chests at the end
+    return [...npcs, ...firstHalf, ...secondHalf, ...treasureChests];
 }
 
 /**
