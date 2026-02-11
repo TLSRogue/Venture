@@ -10,6 +10,7 @@ import { createStateForClient } from '../utilsHelpers.js';
 import { applyDamage, applyDoTEffects, processEndOfTurnEffects } from './combat-core.js';
 import { PVP_TURN_DURATION_MS } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
+import { processZoneEffects } from './adventure-state.js';
 
 /**
  * Handle player death in PvP combat.
@@ -298,6 +299,12 @@ export function startNextPvpTeamTurn(io, encounterId) {
             processPvpPlayerEndTurn(io, encounter, p);
         }
     });
+
+    // Process zone effects (e.g., Blizzard) between turns
+    const party = parties[encounter.partyAId];
+    if (party) {
+        processZoneEffects(io, party, encounter, encounter.activeTeam);
+    }
 
     const nextTeam = encounter.activeTeam === 'A' ? 'B' : 'A';
     encounter.activeTeam = nextTeam;

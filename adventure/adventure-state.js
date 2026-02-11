@@ -729,38 +729,71 @@ export async function processVentureDeeper(io, player, party) {
 /**
  * Process active zone effects (e.g., Blizzard) between player and enemy turns.
  * Zone effects deal damage/apply debuffs to all enemies, then decrement duration.
+ * Works for both PVE (targets zoneCards enemies) and PVP (targets enemy-team players).
  * @param {Object} io - Socket.io instance
  * @param {Object} party - The party object
+ * @param {Object} [encounter] - Optional PVP encounter object
+ * @param {string} [activeTeam] - The team that just finished their turn (zone effects hit enemies of this team)
  */
-function processZoneEffects(io, party) {
+export function processZoneEffects(io, party, encounter = null, activeTeam = null) {
     const { sharedState } = party;
     if (!sharedState.zoneEffects || sharedState.zoneEffects.length === 0) return;
 
+    const log = encounter ? encounter.log : sharedState.log;
+
     sharedState.zoneEffects.forEach(effect => {
         if (effect.type === 'blizzard') {
-            sharedState.log.push({ message: `${effect.icon} The Blizzard rages on!`, type: 'info' });
+            log.push({ message: `${effect.icon} The Blizzard rages on!`, type: 'info' });
 
-            // Deal damage to all enemies
             const damage = effect.damage;
-            sharedState.zoneCards.forEach((card, idx) => {
-                if (card && card.type === 'enemy' && !card.isDead && card.health > 0) {
-                    applyDamage(card, damage);
-                    sharedState.log.push({
-                        message: `${card.name} takes ${damage} Frost damage from Blizzard!`,
-                        type: 'damage'
-                    });
 
-                    // Apply Chill
-                    if (effect.chillAmount && effect.chillAmount > 0) {
-                        applyChillStack(card, effect.chillAmount, sharedState.log);
-                    }
+            if (encounter && activeTeam) {
+                // PVP: Damage all living enemy-team players
+                const enemyTeam = activeTeam === 'A' ? 'B' : 'A';
+                encounter.playerStates.forEach(p => {
+                    if (p.team === enemyTeam && !p.isDead && p.health > 0) {
+                        applyDamage(p, damage);
+                        log.push({
+                            message: `${p.name} takes ${damage} Frost damage from Blizzard!`,
+                            type: 'damage'
+                        });
 
-                    // Check if enemy died
-                    if (card.health <= 0) {
-                        defeatEnemyInParty(io, party, card, idx);
+                        if (effect.chillAmount && effect.chillAmount > 0) {
+                            applyChillStack(p, effect.chillAmount, log);
+                        }
+
+                        if (p.health <= 0) {
+                            p.health = 0;
+                            p.isDead = true;
+                            log.push({ message: `${p.name} has been slain by the Blizzard!`, type: 'damage' });
+                            const defeatedPlayer = players[p.name];
+                            if (defeatedPlayer) {
+                                handlePvpPlayerDeath(io, defeatedPlayer, encounter);
+                            }
+                            checkPvpWinCondition(io, encounter, p);
+                        }
                     }
-                }
-            });
+                });
+            } else {
+                // PVE: Damage all living enemies in zoneCards
+                sharedState.zoneCards.forEach((card, idx) => {
+                    if (card && card.type === 'enemy' && !card.isDead && card.health > 0) {
+                        applyDamage(card, damage);
+                        sharedState.log.push({
+                            message: `${card.name} takes ${damage} Frost damage from Blizzard!`,
+                            type: 'damage'
+                        });
+
+                        if (effect.chillAmount && effect.chillAmount > 0) {
+                            applyChillStack(card, effect.chillAmount, sharedState.log);
+                        }
+
+                        if (card.health <= 0) {
+                            defeatEnemyInParty(io, party, card, idx);
+                        }
+                    }
+                });
+            }
         }
 
         // Decrement duration
@@ -770,10 +803,11 @@ function processZoneEffects(io, party) {
     // Remove expired effects
     const expiredEffects = sharedState.zoneEffects.filter(e => e.duration <= 0);
     expiredEffects.forEach(e => {
-        sharedState.log.push({ message: `${e.icon || '🌨️'} ${e.name} has faded.`, type: 'info' });
+        log.push({ message: `${e.icon || '🌨️'} ${e.name} has faded.`, type: 'info' });
     });
     sharedState.zoneEffects = sharedState.zoneEffects.filter(e => e.duration > 0);
 }
+
 
 export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex = 0) {
     const party = parties[partyId];

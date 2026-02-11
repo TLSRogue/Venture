@@ -453,6 +453,29 @@ function renderPvpScreen() {
     if (!localPlayerState) return;
     const localPlayerTeam = localPlayerState.team;
 
+    // Render zone effects (e.g., Blizzard) in PVP
+    if (gameState && gameState.zoneEffects && gameState.zoneEffects.length > 0) {
+        const zoneEffectsEl = document.createElement('div');
+        zoneEffectsEl.className = 'zone-effects-display';
+
+        gameState.zoneEffects.forEach(effect => {
+            const effectEl = document.createElement('div');
+            effectEl.className = 'zone-effect-card';
+            effectEl.innerHTML = `
+                <div class="zone-effect-icon">${effect.icon || '🌀'}</div>
+                <div class="zone-effect-name">${effect.name}</div>
+                <div class="zone-effect-duration">${effect.duration}</div>
+            `;
+            effectEl.addEventListener('mouseover', () => {
+                showTooltip(`<strong>${effect.name}</strong><br>${effect.description || 'Zone effect active.'}<br><br>Turns Remaining: ${effect.duration}`);
+            });
+            effectEl.addEventListener('mouseout', hideTooltip);
+            zoneEffectsEl.appendChild(effectEl);
+        });
+
+        zoneContainer.appendChild(zoneEffectsEl);
+    }
+
     gameState.pvpEncounter.playerStates.forEach(playerState => {
         const isAlly = playerState.team === localPlayerTeam;
         const container = isAlly ? partyContainer : zoneContainer;
