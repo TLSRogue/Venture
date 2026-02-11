@@ -400,6 +400,9 @@ function handlePartyAdventureUpdate(serverAdventureState) {
         gameState.log = serverAdventureState.pvpEncounterState.log;
         gameState.groundLoot = serverAdventureState.pvpEncounterState.groundLoot;
         gameState.pendingReaction = serverAdventureState.pvpEncounterState.pendingReaction;
+        // Ensure zone effects (Blizzard etc.) are visible in PVP
+        gameState.zoneEffects = serverAdventureState.zoneEffects || [];
+        gameState.isPlayerTurn = serverAdventureState.isPlayerTurn;
     } else {
         Object.assign(gameState, serverAdventureState);
         gameState.pvpEncounter = null;

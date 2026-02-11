@@ -591,7 +591,8 @@ export async function processCastSpell(io, party, player, payload) {
         sharedState.zoneEffects.push({
             ...spell.zoneEffect,
             damage,
-            casterName: character.characterName
+            casterName: character.characterName,
+            casterTeam: actingPlayerState.team || null // Track team for PVP tick timing
         });
 
         log.push({

@@ -742,6 +742,11 @@ export function processZoneEffects(io, party, encounter = null, activeTeam = nul
     const log = encounter ? encounter.log : sharedState.log;
 
     sharedState.zoneEffects.forEach(effect => {
+        // In PVP, only tick zone effects after the caster's team turn
+        if (encounter && activeTeam && effect.casterTeam && effect.casterTeam !== activeTeam) {
+            return; // Skip — not this caster's team turn
+        }
+
         if (effect.type === 'blizzard') {
             log.push({ message: `${effect.icon} The Blizzard rages on!`, type: 'info' });
 
@@ -796,7 +801,7 @@ export function processZoneEffects(io, party, encounter = null, activeTeam = nul
             }
         }
 
-        // Decrement duration
+        // Decrement duration (only for effects that were processed this turn)
         effect.duration--;
     });
 
