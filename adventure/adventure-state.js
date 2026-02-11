@@ -805,12 +805,14 @@ export function processZoneEffects(io, party, encounter = null, activeTeam = nul
         effect.duration--;
     });
 
-    // Remove expired effects
-    const expiredEffects = sharedState.zoneEffects.filter(e => e.duration <= 0);
-    expiredEffects.forEach(e => {
-        log.push({ message: `${e.icon || '🌨️'} ${e.name} has faded.`, type: 'info' });
-    });
-    sharedState.zoneEffects = sharedState.zoneEffects.filter(e => e.duration > 0);
+    // Remove expired effects in-place (preserve shared array reference between parties)
+    for (let i = sharedState.zoneEffects.length - 1; i >= 0; i--) {
+        if (sharedState.zoneEffects[i].duration <= 0) {
+            const e = sharedState.zoneEffects[i];
+            log.push({ message: `${e.icon || '🌨️'} ${e.name} has faded.`, type: 'info' });
+            sharedState.zoneEffects.splice(i, 1);
+        }
+    }
 }
 
 

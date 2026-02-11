@@ -262,6 +262,10 @@ export function startPvpEncounter(io, partyA, partyB, isDuel = false) {
     partyB.sharedState.groundLoot = encounterState.groundLoot;
     partyA.sharedState.log = encounterState.log;
     partyB.sharedState.log = encounterState.log;
+    // Share zoneEffects between both parties so either team's Blizzard is visible to all
+    const sharedZoneEffects = [];
+    partyA.sharedState.zoneEffects = sharedZoneEffects;
+    partyB.sharedState.zoneEffects = sharedZoneEffects;
 
     const stateForClients = createStateForClient(partyA.sharedState, encounterState);
 
