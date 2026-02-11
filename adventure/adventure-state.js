@@ -4,7 +4,7 @@ import { players, parties, pvpZoneQueues, pvpEncounters } from '../serverState.j
 import { gameData, lootPools } from '../data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js';
-import { applyDamage, applyDoTEffects, applyChillStack, processChillReduction } from './combat-core.js';
+import { applyDamage, applyDoTEffects, applyChillStack, processChillReduction, getAvailablePlayerReactions, processEndOfTurnEffects } from './combat-core.js';
 import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS, INTERVENE_TIMER_MS } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
 import { processEnemyEndOfTurn, handleEnemySpecialAction } from './enemy-handlers.js';
@@ -905,72 +905,10 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     const resistance = bonuses.physicalResistance || 0;
                     damageToDeal = Math.max(1, damageToDeal - resistance);
                 }
-                const availableReactions = [];
-                // --- REACTION LOGIC MODIFIED FOR EVASIVE SHOT ---
-                let isWearingHeavy = false;
-                if (targetCharacter.equipment) {
-                    for (const slot in targetCharacter.equipment) {
-                        const item = targetCharacter.equipment[slot];
-                        if (item && item.traits && item.traits.includes('Heavy')) {
-                            isWearingHeavy = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (targetCharacter.equippedSpells && Array.isArray(targetCharacter.equippedSpells)) {
-                    const dodgeSpell = targetCharacter.equippedSpells.find(s => s.name === "Dodge");
-                    if (dodgeSpell && (targetPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
-                        if (isWearingHeavy) {
-                            sharedState.log.push({ message: `${targetPlayerState.name} could have Dodged, but their heavy gear prevented it!`, type: 'info' });
-                        } else {
-                            availableReactions.push({ name: 'Dodge' });
-                        }
-                    }
-
-                    const evasiveShotSpell = targetCharacter.equippedSpells.find(s => s.name === "Evasive Shot");
-                    if (evasiveShotSpell && (targetPlayerState.spellCooldowns[evasiveShotSpell.name] || 0) <= 0) {
-                        const mainHand = targetCharacter.equipment.mainHand;
-                        const offHand = targetCharacter.equipment.offHand;
-                        const requiredTypes = evasiveShotSpell.requires?.weaponType || [];
-                        const hasRangedWeapon = (mainHand && requiredTypes.includes(mainHand.weaponType)) ||
-                            (offHand && requiredTypes.includes(offHand.weaponType));
-
-                        if (hasRangedWeapon) {
-                            if (isWearingHeavy) {
-                                sharedState.log.push({ message: `${targetPlayerState.name} could have used Evasive Shot, but their heavy gear prevented it!`, type: 'info' });
-                            } else {
-                                availableReactions.push({ name: 'Evasive Shot' });
-                            }
-                        }
-                    }
-
-                    // Check for Parry - only works against melee attacks and requires melee weapon
-                    const parrySpell = targetCharacter.equippedSpells.find(s => s.name === "Parry");
-                    if (parrySpell && (targetPlayerState.spellCooldowns[parrySpell.name] || 0) <= 0) {
-                        const isMeleeAttack = attack.attackRange === 'melee';
-                        const mainHand = targetCharacter.equipment.mainHand;
-                        // Check for melee weapon: explicitly melee, or type weapon that isn't ranged (bow/staff)
-                        const rangedWeaponTypes = ['Two-Hand Bow', 'Two-Hand Staff'];
-                        const hasMeleeWeapon = mainHand && mainHand.type === 'weapon' &&
-                            (mainHand.range === 'melee' || (!mainHand.range && !rangedWeaponTypes.includes(mainHand.weaponType)));
-                        if (isMeleeAttack && hasMeleeWeapon) {
-                            availableReactions.push({ name: 'Parry' });
-                        } else if (!isMeleeAttack && hasMeleeWeapon) {
-                            // Don't show message for ranged attacks, just don't offer
-                        } else if (isMeleeAttack && !hasMeleeWeapon) {
-                            sharedState.log.push({ message: `${targetPlayerState.name} could have Parried, but needs a melee weapon!`, type: 'info' });
-                        }
-                    }
-                }
-
-                if (targetCharacter.equipment) {
-                    const shield = targetCharacter.equipment.offHand;
-                    if (shield && shield.type === 'shield' && shield.reaction && (targetPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
-                        availableReactions.push({ name: 'Block' });
-                    }
-                }
-                // --- END OF REACTION LOGIC MODIFICATION ---
+                // UNIFIED: Use shared reaction availability helper
+                const attackDetails = { attackRange: attack.attackRange || 'melee', damageType: attack.damageType };
+                const availableReactions = getAvailablePlayerReactions(targetCharacter, targetPlayerState, attackDetails, sharedState.log);
+                // --- END OF REACTION LOGIC ---
                 if (availableReactions.length > 0 && !isFleeing) {
                     // FIX: Process end of turn effects BEFORE waiting for reaction
                     // This ensures DOT damage is applied even if we pause for reaction
@@ -1230,40 +1168,9 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         const playerObj = players[target.name];
                         if (playerObj) {
                             // Reaction Check: trigger reaction request manually
-                            const availableReactions = [];
-                            // Re-use reaction availability logic check logic (simplified)
-                            // We can check just for Parry/Dodge for now, or copy the logic block if needed.
-                            // Since this is a melee physical attack, Parry/Dodge are valid.
-
-                            // Check Dodge
-                            if (playerObj.character.equippedSpells.some(s => s.name === "Dodge" && (target.spellCooldowns["Dodge"] || 0) <= 0)) {
-                                // Check heavy
-                                let isWearingHeavy = false;
-                                if (playerObj.character.equipment) {
-                                    for (const slot in playerObj.character.equipment) {
-                                        const item = playerObj.character.equipment[slot];
-                                        if (item && item.traits && item.traits.includes('Heavy')) {
-                                            isWearingHeavy = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (!isWearingHeavy) availableReactions.push({ name: 'Dodge' });
-                            }
-
-                            // Check Parry
-                            const parrySpell = playerObj.character.equippedSpells.find(s => s.name === "Parry");
-                            if (parrySpell && (target.spellCooldowns["Parry"] || 0) <= 0) {
-                                const mainHand = playerObj.character.equipment.mainHand;
-                                const rangedWeaponTypes = ['Two-Hand Bow', 'Two-Hand Staff'];
-                                const hasMeleeWeapon = mainHand && mainHand.type === 'weapon' &&
-                                    (mainHand.range === 'melee' || (!mainHand.range && !rangedWeaponTypes.includes(mainHand.weaponType)));
-                                if (hasMeleeWeapon) availableReactions.push({ name: 'Parry' });
-                            }
-                            // Check Block
-                            if (playerObj.character.equipment.offHand && playerObj.character.equipment.offHand.type === 'shield' && (target.itemCooldowns[playerObj.character.equipment.offHand.name] || 0) <= 0) {
-                                availableReactions.push({ name: 'Block' });
-                            }
+                            // UNIFIED: Use shared reaction availability helper
+                            const vampireAttackDetails = { attackRange: 'melee', damageType: 'Physical' };
+                            const availableReactions = getAvailablePlayerReactions(playerObj.character, target, vampireAttackDetails, sharedState.log);
 
                             if (availableReactions.length > 0) {
                                 sharedState.pendingReaction = {
@@ -1477,11 +1384,10 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
     const playerState = sharedState.partyMemberStates.find(p => p.name === playerName);
     if (!playerState) return;
 
-    // 1. Process DoT Damage
-    applyDoTEffects(playerState, sharedState.log);
+    // UNIFIED: Use shared end-of-turn effects (DoT + Chill + buff/debuff decrement)
+    processEndOfTurnEffects(playerState, sharedState.log);
 
-    // 1b. Process Chill Reduction (1 stack per turn)
-    processChillReduction(playerState, sharedState.log);
+    // PVE-specific: Rejuvenate healing
     const rejuvenateBuff = (playerState.buffs || []).find(b => b.type === 'Rejuvenate');
     if (rejuvenateBuff && !playerState.isDead) {
         const playerChar = players[playerName]?.character;
@@ -1496,21 +1402,11 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
         }
     }
 
+    // Death check after DoT
     if (playerState.health <= 0) {
         playerState.health = 0;
         playerState.isDead = true;
         sharedState.log.push({ message: `${playerState.name} has succumbed to their wounds!`, type: 'damage' });
-    }
-
-    // 2. Decrement Buffs/Debuffs (Tick duration)
-    // Note: Decrement happens AFTER damage, or same tick.
-    if (playerState.buffs) {
-        playerState.buffs.forEach(b => b.duration--);
-        playerState.buffs = playerState.buffs.filter(b => b.duration > 0);
-    }
-    if (playerState.debuffs) {
-        playerState.debuffs.forEach(d => d.duration--);
-        playerState.debuffs = playerState.debuffs.filter(d => d.duration > 0);
     }
 
     // 3. Set turnEnded

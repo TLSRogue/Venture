@@ -5,7 +5,7 @@ import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
 import { checkAndEndTurnForPlayer, defeatEnemyInParty } from './adventure-state.js';
 import { handleResolveReaction } from './reaction-handlers.js';
-import { applyDamage, normalizeTarget, resolveAttackRoll, calculateWeaponDamage, getWeaponDebuff, checkVexorDodge, checkVampirePhaseTransition, checkEnemyReaction, applyChillStack } from './combat-core.js';
+import { applyDamage, normalizeTarget, resolveAttackRoll, calculateWeaponDamage, getWeaponDebuff, checkVexorDodge, checkVampirePhaseTransition, checkEnemyReaction, applyChillStack, getCombatContext, getHostileTargets, getAvailablePlayerReactions } from './combat-core.js';
 import { SpellHandlers, getSpecialSpellDamage } from './spell-handlers.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 
@@ -21,7 +21,6 @@ function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlaye
 
     // 2. Prevent reaction if attack is Time Stop and Caster has 5+ Arcane Power
     if (actionDetails.spellName === 'Time Stop') {
-        // We need attacker state to check bonuses
         const attackerState = encounter.playerStates.find(p => p.playerId === attackerCharacter.playerId);
         if (attackerState) {
             const bonuses = getBonusStatsForPlayer(attackerCharacter, attackerState);
@@ -31,51 +30,9 @@ function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlaye
         }
     }
 
-    const availableReactions = [];
-    const dodgeSpell = defendingCharacter.equippedSpells.find(s => s.name === "Dodge");
-    if (dodgeSpell && (defendingPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
-        let isWearingHeavy = Object.values(defendingCharacter.equipment).some(item => item && item.traits && item.traits.includes('Heavy'));
-        if (!isWearingHeavy) {
-            availableReactions.push({ name: 'Dodge' });
-        }
-    }
-    const shield = defendingCharacter.equipment.offHand;
-    if (shield && shield.type === 'shield' && shield.reaction && (defendingPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
-        availableReactions.push({ name: 'Block' });
-    }
+    // UNIFIED: Use shared reaction availability helper
+    const availableReactions = getAvailablePlayerReactions(defendingCharacter, defendingPlayerState, actionDetails);
 
-    // Check for Evasive Shot reaction (requires bow, no heavy armor)
-    const evasiveShotSpell = defendingCharacter.equippedSpells.find(s => s.name === "Evasive Shot");
-    if (evasiveShotSpell && (defendingPlayerState.spellCooldowns[evasiveShotSpell.name] || 0) <= 0) {
-        const mainHand = defendingCharacter.equipment.mainHand;
-        const offHand = defendingCharacter.equipment.offHand;
-        const requiredTypes = evasiveShotSpell.requires?.weaponType || [];
-        const hasRangedWeapon = (mainHand && requiredTypes.includes(mainHand.weaponType)) ||
-            (offHand && requiredTypes.includes(offHand.weaponType));
-
-        if (hasRangedWeapon) {
-            let isWearingHeavy = Object.values(defendingCharacter.equipment).some(
-                item => item && item.traits && item.traits.includes('Heavy')
-            );
-            if (!isWearingHeavy) {
-                availableReactions.push({ name: 'Evasive Shot' });
-            }
-        }
-    }
-
-    // Check for Parry reaction (requires melee weapon, melee attack only)
-    const parrySpell = defendingCharacter.equippedSpells.find(s => s.name === "Parry");
-    if (parrySpell && (defendingPlayerState.spellCooldowns[parrySpell.name] || 0) <= 0) {
-        const isMeleeAttack = actionDetails.attackRange === 'melee';
-        const mainHand = defendingCharacter.equipment.mainHand;
-        const rangedWeaponTypes = ['Two-Hand Bow', 'Two-Hand Staff'];
-        const hasMeleeWeapon = mainHand && mainHand.type === 'weapon' &&
-            (mainHand.range === 'melee' || (!mainHand.range && !rangedWeaponTypes.includes(mainHand.weaponType)));
-
-        if (isMeleeAttack && hasMeleeWeapon) {
-            availableReactions.push({ name: 'Parry' });
-        }
-    }
     if (availableReactions.length > 0) {
         const timeRemaining = encounter.turnTimerEndsAt - Date.now();
         if (encounter.turnTimerId) clearTimeout(encounter.turnTimerId);
@@ -119,16 +76,9 @@ function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlaye
 export async function processWeaponAttack(io, party, player, payload) {
     const { weaponSlot, targetIndex } = payload;
     const character = player.character;
-    const { sharedState } = party;
 
-    // Determine if PvP
-    const encounter = sharedState.pvpEncounterId ? pvpEncounters[sharedState.pvpEncounterId] : null;
-    const isPvP = !!encounter;
-
-    // Acting Player State
-    const actingPlayerState = isPvP
-        ? encounter.playerStates.find(p => p.playerId === player.id)
-        : sharedState.partyMemberStates.find(p => p.playerId === player.id);
+    // UNIFIED: Use shared combat context helper
+    const { sharedState, encounter, isPvP, log, actingPlayerState } = getCombatContext(party, player.id);
 
     const weapon = character.equipment[weaponSlot];
 
@@ -141,8 +91,7 @@ export async function processWeaponAttack(io, party, player, payload) {
     const target = normalizeTarget(sharedState, targetIndex, encounter);
     if (!target) return;
 
-    // Log
-    const log = isPvP ? encounter.log : sharedState.log;
+    // Log is already set from getCombatContext
 
     // PvP Reaction Check
     if (isPvP && target.isPlayer) {
@@ -352,21 +301,13 @@ export async function processWeaponAttack(io, party, player, payload) {
 export async function processCastSpell(io, party, player, payload) {
     const { spellIndex, targetIndex } = payload;
     const character = player.character;
-    const { sharedState } = party;
     const spell = character.equippedSpells[spellIndex];
 
     if (!spell) return;
     const cost = spell.cost || 0;
 
-    // --- Encounter Context ---
-    const encounter = sharedState.pvpEncounterId ? pvpEncounters[sharedState.pvpEncounterId] : null;
-    const isPvP = !!encounter;
-    const log = isPvP ? encounter.log : sharedState.log;
-
-    // --- Acting Player State ---
-    const actingPlayerState = isPvP
-        ? encounter.playerStates.find(p => p.playerId === player.id)
-        : sharedState.partyMemberStates.find(p => p.playerId === player.id);
+    // UNIFIED: Use shared combat context helper
+    const { sharedState, encounter, isPvP, log, actingPlayerState } = getCombatContext(party, player.id);
 
     // Calculate bonuses early for spell scaling
     const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
@@ -583,30 +524,25 @@ export async function processCastSpell(io, party, player, payload) {
         if (spell.type === 'expendHeat' && result && result.triggersAoe) {
             const aoeDamage = getSpecialSpellDamage(spell, character, actingPlayerState, bonuses);
 
-            // Get all enemies
-            let enemies = [];
-            if (isPvP) {
-                enemies = encounter.playerStates.filter(p => p.team !== actingPlayerState.team && !p.isDead);
-            } else {
-                enemies = sharedState.zoneCards.filter(c => c && c.type === 'enemy' && c.health > 0);
-            }
+            // UNIFIED: Use shared target collection
+            const hostileTargets = getHostileTargets(sharedState, encounter, actingPlayerState);
 
             // Apply damage to all enemies
-            for (const enemy of enemies) {
-                const resistance = enemy.getResistance ? enemy.getResistance('Fire') : 0;
+            for (const hostileTarget of hostileTargets) {
+                const resistance = hostileTarget.getResistance ? hostileTarget.getResistance('Fire') : 0;
                 const dmg = Math.max(1, aoeDamage - resistance);
-                applyDamage(enemy, dmg);
-                const enemyId = enemy.playerId || enemy.id;
-                log.push({ message: `${enemy.name} takes ${dmg} Fire damage from the released heat! [id:${enemyId}]`, type: 'damage' });
+                applyDamage(hostileTarget.state, dmg);
+                const enemyId = hostileTarget.id;
+                log.push({ message: `${hostileTarget.name} takes ${dmg} Fire damage from the released heat! [id:${enemyId}]`, type: 'damage' });
 
                 // Check for death
-                if (enemy.health <= 0) {
-                    if (isPvP) {
+                if (hostileTarget.state.health <= 0) {
+                    if (hostileTarget.isPvP) {
                         defeatEnemyInParty(io, party, { playerId: enemyId }, null);
                     } else {
-                        const cardIndex = sharedState.zoneCards.findIndex(c => c && c.id === enemy.id);
+                        const cardIndex = sharedState.zoneCards.findIndex(c => c && c.id === hostileTarget.state.id);
                         if (cardIndex !== -1) {
-                            defeatEnemyInParty(io, party, enemy, cardIndex);
+                            defeatEnemyInParty(io, party, hostileTarget.state, cardIndex);
                         }
                     }
                 }
@@ -902,19 +838,8 @@ export async function processCastSpell(io, party, player, payload) {
         // Collect Targets - UNIFIED: enemy players in PVP are treated the same as enemies in PVE
         let targets = [];
         if (spell.aoeTargeting === 'all') {
-            if (isPvP) {
-                // PVP: Target all enemy team players
-                encounter.playerStates.forEach(p => {
-                    if (p.team !== actingPlayerState.team && !p.isDead) {
-                        targets.push(normalizeTarget(sharedState, p.playerId, encounter));
-                    }
-                });
-            } else {
-                // PVE: Target all enemies in zone
-                sharedState.zoneCards.forEach((c, i) => {
-                    if (c && c.type === 'enemy') targets.push(normalizeTarget(sharedState, i, null));
-                });
-            }
+            // UNIFIED: Use shared target collection for all-enemy AoE
+            targets = getHostileTargets(sharedState, encounter, actingPlayerState);
         } else if (spell.aoeTargeting === 'adjacent') {
             // Adjacent targeting - include primary target first
             if (target) targets.push(target);

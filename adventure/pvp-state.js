@@ -7,7 +7,7 @@
 import { players, parties, pvpEncounters } from '../serverState.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 import { createStateForClient } from '../utilsHelpers.js';
-import { applyDamage, applyDoTEffects } from './combat-core.js';
+import { applyDamage, applyDoTEffects, processEndOfTurnEffects } from './combat-core.js';
 import { PVP_TURN_DURATION_MS } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
 
@@ -349,8 +349,8 @@ export function startNextPvpTeamTurn(io, encounterId) {
 export async function processPvpPlayerEndTurn(io, encounter, playerState) {
     if (!playerState || playerState.turnEnded) return;
 
-    // Apply DoT
-    applyDoTEffects(playerState, encounter.log);
+    // UNIFIED: Use shared end-of-turn effects
+    processEndOfTurnEffects(playerState, encounter.log);
 
     // Check Death
     if (playerState.health <= 0) {
@@ -363,16 +363,6 @@ export async function processPvpPlayerEndTurn(io, encounter, playerState) {
             handlePvpPlayerDeath(io, defeatedPlayerObject, encounter);
         }
         checkPvpWinCondition(io, encounter, playerState);
-    }
-
-    // Decrement Durations
-    if (playerState.buffs) {
-        playerState.buffs.forEach(b => b.duration--);
-        playerState.buffs = playerState.buffs.filter(b => b.duration > 0);
-    }
-    if (playerState.debuffs) {
-        playerState.debuffs.forEach(d => d.duration--);
-        playerState.debuffs = playerState.debuffs.filter(d => d.duration > 0);
     }
 
     playerState.turnEnded = true;

@@ -7,6 +7,130 @@
 import { players, pvpEncounters } from '../serverState.js';
 import { getBonusStatsForPlayer } from '../utilsHelpers.js';
 
+// --- COMBAT CONTEXT HELPERS ---
+
+/**
+ * Get a unified combat context from a party and player.
+ * Eliminates the repeated isPvP / encounter lookup boilerplate at the top of every function.
+ *
+ * @param {object} party - The party object
+ * @param {string} playerId - The acting player's socket ID
+ * @returns {object} { sharedState, encounter, isPvP, log, actingPlayerState }
+ */
+export function getCombatContext(party, playerId) {
+    const { sharedState } = party;
+    const encounter = sharedState.pvpEncounterId
+        ? pvpEncounters[sharedState.pvpEncounterId]
+        : null;
+    const isPvP = !!encounter;
+    const log = isPvP ? encounter.log : sharedState.log;
+    const actingPlayerState = isPvP
+        ? encounter.playerStates.find(p => p.playerId === playerId)
+        : sharedState.partyMemberStates.find(p => p.playerId === playerId);
+
+    return { sharedState, encounter, isPvP, log, actingPlayerState };
+}
+
+/**
+ * Get all hostile targets, normalized.
+ * In PVE: all living enemy cards. In PVP: all living enemy-team players.
+ *
+ * @param {object} sharedState - Party shared state
+ * @param {object|null} encounter - PVP encounter (null for PVE)
+ * @param {object} actingPlayerState - The acting player's combat state
+ * @returns {object[]} Array of normalized targets
+ */
+export function getHostileTargets(sharedState, encounter, actingPlayerState) {
+    if (encounter) {
+        return encounter.playerStates
+            .filter(p => p.team !== actingPlayerState.team && !p.isDead)
+            .map(p => normalizeTarget(sharedState, p.playerId, encounter))
+            .filter(Boolean);
+    }
+    return sharedState.zoneCards
+        .map((c, i) => (c && c.type === 'enemy' && c.health > 0) ? normalizeTarget(sharedState, i, null) : null)
+        .filter(Boolean);
+}
+
+/**
+ * Check which reactions a defending player has available.
+ * Unifies the duplicated Dodge/Block/Parry/Evasive Shot availability logic
+ * from handlePvpReactionCheck, runEnemyPhaseForParty, and Vampire: From The Shadows.
+ *
+ * @param {object} defendingCharacter - The defending player's character data
+ * @param {object} defendingPlayerState - The defending player's combat state
+ * @param {object} attackDetails - { attackRange: 'melee'|'ranged', damageType, ... }
+ * @param {Array} [log] - Optional log array for messages about prevented reactions
+ * @returns {object[]} Array of { name: string } reaction objects
+ */
+export function getAvailablePlayerReactions(defendingCharacter, defendingPlayerState, attackDetails, log = null) {
+    const availableReactions = [];
+
+    // Check for heavy armor (prevents Dodge and Evasive Shot)
+    let isWearingHeavy = false;
+    if (defendingCharacter.equipment) {
+        for (const slot in defendingCharacter.equipment) {
+            const item = defendingCharacter.equipment[slot];
+            if (item && item.traits && item.traits.includes('Heavy')) {
+                isWearingHeavy = true;
+                break;
+            }
+        }
+    }
+
+    // --- Dodge ---
+    const dodgeSpell = defendingCharacter.equippedSpells?.find(s => s.name === "Dodge");
+    if (dodgeSpell && (defendingPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
+        if (isWearingHeavy) {
+            if (log) log.push({ message: `${defendingPlayerState.name} could have Dodged, but their heavy gear prevented it!`, type: 'info' });
+        } else {
+            availableReactions.push({ name: 'Dodge' });
+        }
+    }
+
+    // --- Block (Shield) ---
+    const shield = defendingCharacter.equipment?.offHand;
+    if (shield && shield.type === 'shield' && shield.reaction && (defendingPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
+        availableReactions.push({ name: 'Block' });
+    }
+
+    // --- Evasive Shot (requires ranged weapon, no heavy armor) ---
+    const evasiveShotSpell = defendingCharacter.equippedSpells?.find(s => s.name === "Evasive Shot");
+    if (evasiveShotSpell && (defendingPlayerState.spellCooldowns[evasiveShotSpell.name] || 0) <= 0) {
+        const mainHand = defendingCharacter.equipment?.mainHand;
+        const offHand = defendingCharacter.equipment?.offHand;
+        const requiredTypes = evasiveShotSpell.requires?.weaponType || [];
+        const hasRangedWeapon = (mainHand && requiredTypes.includes(mainHand.weaponType)) ||
+            (offHand && requiredTypes.includes(offHand.weaponType));
+
+        if (hasRangedWeapon) {
+            if (isWearingHeavy) {
+                if (log) log.push({ message: `${defendingPlayerState.name} could have used Evasive Shot, but their heavy gear prevented it!`, type: 'info' });
+            } else {
+                availableReactions.push({ name: 'Evasive Shot' });
+            }
+        }
+    }
+
+    // --- Parry (requires melee weapon, melee attack only) ---
+    const parrySpell = defendingCharacter.equippedSpells?.find(s => s.name === "Parry");
+    if (parrySpell && (defendingPlayerState.spellCooldowns[parrySpell.name] || 0) <= 0) {
+        const isMeleeAttack = attackDetails.attackRange === 'melee';
+        const mainHand = defendingCharacter.equipment?.mainHand;
+        const rangedWeaponTypes = ['Two-Hand Bow', 'Two-Hand Staff'];
+        const hasMeleeWeapon = mainHand && mainHand.type === 'weapon' &&
+            (mainHand.range === 'melee' || (!mainHand.range && !rangedWeaponTypes.includes(mainHand.weaponType)));
+
+        if (isMeleeAttack && hasMeleeWeapon) {
+            availableReactions.push({ name: 'Parry' });
+        } else if (isMeleeAttack && !hasMeleeWeapon) {
+            if (log) log.push({ message: `${defendingPlayerState.name} could have Parried, but needs a melee weapon!`, type: 'info' });
+        }
+    }
+
+    return availableReactions;
+}
+
 // --- TARGET NORMALIZATION ---
 
 /**
@@ -666,3 +790,37 @@ export function decrementEnemyReactionCooldowns(enemy) {
     }
 }
 
+/**
+ * Process shared end-of-turn effects for any combatant (player or enemy).
+ * Handles: DoT damage → Chill reduction → Buff/Debuff duration decrement.
+ * 
+ * This unifies the duplicated logic from:
+ * - processPvpPlayerEndTurn (pvp-state.js)
+ * - processPlayerEndTurn (adventure-state.js)
+ * 
+ * Note: Death handling and context-specific effects (Rejuvenate, threat, etc.)
+ * remain in the callers since they require different logic per context.
+ * 
+ * @param {object} state - The combatant state (player or enemy)
+ * @param {Array} log - The log array for messages
+ * @returns {boolean} True if DoT damage was dealt
+ */
+export function processEndOfTurnEffects(state, log) {
+    // 1. Apply DoT damage
+    const tookDamage = applyDoTEffects(state, log);
+
+    // 2. Process Chill reduction
+    processChillReduction(state, log);
+
+    // 3. Decrement buff/debuff durations
+    if (state.buffs) {
+        state.buffs.forEach(b => b.duration--);
+        state.buffs = state.buffs.filter(b => b.duration > 0);
+    }
+    if (state.debuffs) {
+        state.debuffs.forEach(d => d.duration--);
+        state.debuffs = state.debuffs.filter(d => d.duration > 0);
+    }
+
+    return tookDamage;
+}
