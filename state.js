@@ -1,6 +1,7 @@
 'use strict';
 
 import { gameData } from './data/index.js';
+import { DEFAULT_CHARACTER_STATS } from './shared.js';
 
 /**
  * @file state.js
@@ -17,66 +18,44 @@ export function setGameState(newState) {
 
 export function getInitialGameState() {
     return {
+        ...DEFAULT_CHARACTER_STATS,
         characterName: null,
         characterIcon: '🧑',
-        title: "The Novice",
-        unlockedTitles: ["The Novice"],
-        health: 10,
-        maxHealth: 10,
-        shield: 0,
-        wisdom: 0,
-        strength: 0,
-        agility: 0,
-        defense: 0,
-        luck: 0,
-        physicalResistance: 0,
-        mining: 0,
-        fishing: 0,
-        woodcutting: 0,
-        harvesting: 0,
-        gold: 300,
-        questPoints: 0,
-        actionPoints: 3,
-        focus: 0,
-        currentZone: null,
-        zoneDeck: [],
-        inventory: Array(28).fill(null),
+        // Deep-clone arrays/objects from template so instances don't share references
+        inventory: [...DEFAULT_CHARACTER_STATS.inventory],
+        unlockedTitles: [...DEFAULT_CHARACTER_STATS.unlockedTitles],
         bank: [],
         buffs: [],
         debuffs: [],
+        spellbook: [],
+        knownRecipes: [],
+        quests: [],
+        merchantStock: [],
+        spellCooldowns: {},
+        weaponCooldowns: {},
+        itemCooldowns: {},
+        cardDefeatTimes: {},
         equippedSpells: [
             gameData.allSpells.find(s => s.name === 'Punch'),
             gameData.allSpells.find(s => s.name === 'Kick'),
             gameData.allSpells.find(s => s.name === 'Dodge')
         ],
-        spellbook: [],
-        knownRecipes: [],
         equipment: {
+            ...DEFAULT_CHARACTER_STATS.equipment,
             mainHand: {
                 ...gameData.allItems.find(i => i.name === "Wooden Training Sword")
             },
-            offHand: null,
-            helmet: null,
-            armor: null,
-            boots: null,
-            accessory: null,
-            ammo: null
         },
+        // Client-only fields
+        currentZone: null,
+        zoneDeck: [],
         zoneCards: [],
-        quests: [],
-        spellCooldowns: {},
-        weaponCooldowns: {},
-        itemCooldowns: {},
-        merchantStock: [],
-        merchantLastStocked: null,
-        cardDefeatTimes: {},
         turnState: {
             isPlayerTurn: true,
             pendingReaction: null,
             selectedAction: null,
             isProcessing: false,
         },
-        partyId: null,
         inDuel: false,
         duelState: null,
     };

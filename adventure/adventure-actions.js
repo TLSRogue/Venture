@@ -6,6 +6,7 @@ import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelper
 import { checkAndEndTurnForPlayer, defeatEnemyInParty } from './adventure-state.js';
 import { handleResolveReaction } from './reaction-handlers.js';
 import { applyDamage, normalizeTarget, resolveAttackRoll, calculateWeaponDamage, getWeaponDebuff, checkVexorDodge, checkVampirePhaseTransition, checkEnemyReaction, applyChillStack, getCombatContext, getHostileTargets, getAvailablePlayerReactions } from './combat-core.js';
+import { INVENTORY_SIZE } from '../constants.js';
 import { SpellHandlers, getSpecialSpellDamage } from './spell-handlers.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 
@@ -208,7 +209,7 @@ export async function processWeaponAttack(io, party, player, payload) {
                         actingPlayerState.isDead = true;
                         if (player.character) {
                             actingPlayerState.lootableInventory = [...player.character.inventory.filter(Boolean)];
-                            player.character.inventory = Array(28).fill(null);
+                            player.character.inventory = Array(INVENTORY_SIZE).fill(null);
                             if (player.id) io.to(player.id).emit('characterUpdate', player.character);
                         }
                         log.push({ message: `${actingPlayerState.name} has been defeated!`, type: 'damage' });

@@ -14,6 +14,7 @@ import {
     endPvpEncounter,
     startNextPvpTeamTurn
 } from './pvp-state.js';
+import { INVENTORY_SIZE } from '../constants.js';
 
 // Forward declaration - will be set by adventure-state.js to avoid circular dependency
 let defeatEnemyInPartyFn = null;
@@ -315,7 +316,7 @@ export async function handleResolveReaction(io, socket, payload) {
         } else {
             if (reactingPlayer.character) {
                 reactingPlayerState.lootableInventory = [...reactingPlayer.character.inventory.filter(Boolean)];
-                reactingPlayer.character.inventory = Array(28).fill(null);
+                reactingPlayer.character.inventory = Array(INVENTORY_SIZE).fill(null);
                 if (reactingPlayer.id) io.to(reactingPlayer.id).emit('characterUpdate', reactingPlayer.character);
             }
         }

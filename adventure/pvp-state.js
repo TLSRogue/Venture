@@ -8,7 +8,7 @@ import { players, parties, pvpEncounters } from '../serverState.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 import { createStateForClient } from '../utilsHelpers.js';
 import { applyDamage, applyDoTEffects, processEndOfTurnEffects } from './combat-core.js';
-import { PVP_TURN_DURATION_MS } from '../constants.js';
+import { PVP_TURN_DURATION_MS, INVENTORY_SIZE } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
 import { processZoneEffects } from './adventure-state.js';
 
@@ -37,7 +37,7 @@ export function handlePvpPlayerDeath(io, defeatedPlayer, encounter) {
 
     encounter.groundLoot.push(...allLoot);
 
-    character.inventory = Array(28).fill(null);
+    character.inventory = Array(INVENTORY_SIZE).fill(null);
     character.equipment = { mainHand: null, offHand: null, helmet: null, armor: null, boots: null, accessory: null, ammo: null };
 
     io.to(defeatedPlayer.id).emit('characterUpdate', character);

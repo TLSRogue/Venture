@@ -4,6 +4,8 @@
  * This module helps eliminate code duplication across the codebase.
  */
 
+import { INVENTORY_SIZE } from './constants.js';
+
 // --- SHARED CONSTANTS ---
 
 /**
@@ -29,6 +31,65 @@ export const DEFAULT_BONUS_STATS = {
     physicalPower: 0,
     frostPower: 0,
     holyPower: 0
+};
+
+/**
+ * Spell types that can target friendly players (allies or self).
+ * Single source of truth — used by client-side interactions.js targeting logic.
+ */
+export const FRIENDLY_SPELL_TYPES = new Set([
+    'heal', 'buff', 'versatile', 'revive', 'cleanse', 'cauterize', 'expendHeat'
+]);
+
+/**
+ * Default character stats template — single source of truth for new character creation.
+ * Used by both server (createInitialCharacter) and client (getInitialGameState).
+ * NOTE: equippedSpells and equipment require gameData lookups and must be set by the caller.
+ */
+export const DEFAULT_CHARACTER_STATS = {
+    title: "The Novice",
+    unlockedTitles: ["The Novice"],
+    health: 10,
+    maxHealth: 10,
+    shield: 0,
+    wisdom: 0,
+    strength: 0,
+    agility: 0,
+    defense: 0,
+    luck: 0,
+    physicalResistance: 0,
+    mining: 0,
+    fishing: 0,
+    woodcutting: 0,
+    harvesting: 0,
+    gold: 300,
+    questPoints: 0,
+    actionPoints: 3,
+    focus: 0,
+    inventory: Array(INVENTORY_SIZE).fill(null),
+    bank: [],
+    buffs: [],
+    debuffs: [],
+    spellbook: [],
+    knownRecipes: [],
+    equipment: {
+        mainHand: null,
+        offHand: null,
+        helmet: null,
+        armor: null,
+        boots: null,
+        accessory: null,
+        ammo: null
+    },
+    quests: [],
+    spellCooldowns: {},
+    weaponCooldowns: {},
+    itemCooldowns: {},
+    merchantStock: [],
+    merchantLastStocked: null,
+    cardDefeatTimes: {},
+    partyId: null,
+    duelId: null,
 };
 
 // --- ARRAY UTILITIES ---

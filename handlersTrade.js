@@ -205,9 +205,10 @@ function processTradeTransfer(p1, offer1, p2, offer2) {
     const c1 = p1.character;
     const c2 = p2.character;
 
-    // TODO: Strict validation ensuring they still have the items
-    // Function: remove items from inventory/bank arrays by setting to null or splicing
-    // Then add new items to first null slot.
+    // --- VALIDATION: Ensure both players still own the offered items and gold ---
+    if (!validateOffer(c1, offer1) || !validateOffer(c2, offer2)) {
+        return false;
+    }
 
     // Step 1: Remove Offer 1 from P1
     if (offer1.gold > 0) c1.gold -= offer1.gold;
@@ -219,11 +220,55 @@ function processTradeTransfer(p1, offer1, p2, offer2) {
 
     // Step 3: P1 receives Offer 2
     c1.gold += offer2.gold;
-    if (!addItems(c1, offer2.items)) return false; // This might happen ifinv full, but we should've checked before.
+    if (!addItems(c1, offer2.items)) return false;
 
     // Step 4: P2 receives Offer 1
     c2.gold += offer1.gold;
     if (!addItems(c2, offer1.items)) return false;
+
+    return true;
+}
+
+/**
+ * Validates that a player's offer is legitimate before executing a trade.
+ * Checks: gold sufficiency, item ownership at claimed indices, no duplicate indices.
+ */
+function validateOffer(character, offer) {
+    // 1. Verify gold sufficiency
+    if (offer.gold > 0 && character.gold < offer.gold) {
+        console.log(`[Trade Validation] Player doesn't have enough gold. Has: ${character.gold}, Offered: ${offer.gold}`);
+        return false;
+    }
+
+    // 2. Check for duplicate item indices (prevents trading same item slot twice)
+    const seenIndices = new Set();
+    for (const req of offer.items) {
+        const key = `${req.type}:${req.index}`;
+        if (seenIndices.has(key)) {
+            console.log(`[Trade Validation] Duplicate item index detected: ${key}`);
+            return false;
+        }
+        seenIndices.add(key);
+    }
+
+    // 3. Verify each item exists at the claimed index and matches the expected item
+    for (const req of offer.items) {
+        const source = req.type === 'inventory' ? character.inventory : character.bank;
+        if (!source || req.index < 0 || req.index >= source.length) {
+            console.log(`[Trade Validation] Invalid index ${req.index} for ${req.type}`);
+            return false;
+        }
+        const actualItem = source[req.index];
+        if (!actualItem) {
+            console.log(`[Trade Validation] No item at ${req.type}[${req.index}]`);
+            return false;
+        }
+        // Verify item identity matches what was shown in the trade window
+        if (req.item && req.item.name && actualItem.name !== req.item.name) {
+            console.log(`[Trade Validation] Item mismatch at ${req.type}[${req.index}]: expected ${req.item.name}, found ${actualItem.name}`);
+            return false;
+        }
+    }
 
     return true;
 }

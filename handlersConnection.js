@@ -10,120 +10,9 @@ import { players, parties, duels, pvpEncounters, createInitialCharacter } from '
 import { broadcastOnlinePlayers, broadcastPartyUpdate, broadcastDuelUpdate, broadcastAdventureUpdate } from './utilsBroadcast.js';
 import { endDuel } from './handlersDuel.js';
 import { handlePvpPlayerDeath } from './adventure/pvp-state.js';
+import { runMigrations } from './migrations.js';
 import fs from 'fs';
 import { DUEL_DISCONNECT_MS } from './constants.js';
-import { gameData } from './data/index.js';
-
-/**
- * Refreshes player spells to match current definitions.
- * This ensures players get updated spell properties (like crossbow support for bow spells).
- */
-function refreshPlayerSpells(character, characterName) {
-    // List of spells that may need updates
-    // Include all magic spells that have isMagic: true, so Silence can block them correctly
-    const spellsToRefresh = [
-        'Aim True', 'Split Shot', 'Evasive Shot', 'Dagger Throw', 'Ambush', 'Magic Barrier', 'Slash',
-        // Magic spells (isMagic: true) - needed for Silence to work
-        'Fireball', 'Flash Heal', 'Holy Shock', 'Flame Strike', 'Stealth', 'Silence', 'Revive', 'Cone of Cold', 'Entangling Roots', 'Cleanse',
-        // Nature Update
-        'Moonbeam', 'Rejuvenate', 'Spirit Call', 'Tree Form', 'Nature\'s Wrath', 'Nature\'s Blessing'
-    ];
-
-    spellsToRefresh.forEach(spellName => {
-        const currentDef = gameData.allSpells.find(s => s.name === spellName);
-        if (!currentDef) return;
-
-        // Update in equipped spells
-        const equippedIdx = character.equippedSpells?.findIndex(s => s && s.name === spellName);
-        if (equippedIdx !== undefined && equippedIdx !== -1) {
-            character.equippedSpells[equippedIdx] = { ...currentDef };
-            console.log(`[Spell Refresh] Updated ${spellName} for ${characterName} (equipped)`);
-        }
-
-        // Update in spellbook
-        const spellbookIdx = character.spellbook?.findIndex(s => s && s.name === spellName);
-        if (spellbookIdx !== undefined && spellbookIdx !== -1) {
-            character.spellbook[spellbookIdx] = { ...currentDef };
-            console.log(`[Spell Refresh] Updated ${spellName} for ${characterName} (spellbook)`);
-        }
-    });
-}
-
-/**
- * Refreshes player equipment to match current item definitions.
- * This ensures existing items get new properties (like gemSlots for Staff).
- */
-function refreshPlayerEquipment(character, characterName) {
-    // Items that need property updates
-    const itemUpdates = {
-        'Staff': { gemSlot: 1 }
-    };
-
-    // Update equipment slots
-    if (character.equipment) {
-        for (const slot in character.equipment) {
-            const item = character.equipment[slot];
-            if (item && itemUpdates[item.name]) {
-                const updates = itemUpdates[item.name];
-                let updated = false;
-                for (const prop in updates) {
-                    if (item[prop] === undefined) {
-                        item[prop] = updates[prop];
-                        updated = true;
-                    }
-                }
-                if (updated) {
-                    console.log(`[Equipment Refresh] Added properties to ${item.name} for ${characterName} (${slot})`);
-                }
-            }
-        }
-    }
-
-    // Update inventory items
-    if (character.inventory) {
-        character.inventory.forEach((item, index) => {
-            if (item && itemUpdates[item.name]) {
-                const updates = itemUpdates[item.name];
-                let updated = false;
-                for (const prop in updates) {
-                    if (item[prop] === undefined) {
-                        item[prop] = updates[prop];
-                        updated = true;
-                    }
-                }
-                if (updated) {
-                    console.log(`[Equipment Refresh] Added properties to ${item.name} for ${characterName} (inventory[${index}])`);
-                }
-            }
-        });
-    }
-}
-
-/**
- * Backfills T2 crafting recipes for players who completed quests before the recipe rewards were expanded.
- */
-function backfillT2Recipes(character, characterName) {
-    if (!character.quests || !character.knownRecipes) return;
-
-    const backfillRules = [
-        { questId: 'STEEL_ARMOR_QUEST', recipes: ['Steel Helm (T2)', 'Steel Boots (T2)'] },
-        { questId: 'TAILOR_SILK_QUEST', recipes: ['Silk Wizard Robes (T2)', 'Silk Wizard Hat (T2)', 'Silk Wizard Boots (T2)'] },
-        { questId: 'OLD_RECIPE_QUEST', recipes: ['Gem of Frost', 'Gem of Holy', 'Gem of Shadow'] },
-        // Note: RANGER_SET_QUEST is new, so no backfill needed
-    ];
-
-    backfillRules.forEach(({ questId, recipes }) => {
-        const completedQuest = character.quests.find(q => q.details?.id === questId && q.status === 'completed');
-        if (completedQuest) {
-            recipes.forEach(recipeName => {
-                if (!character.knownRecipes.includes(recipeName)) {
-                    character.knownRecipes.push(recipeName);
-                    console.log(`[Recipe Backfill] Added ${recipeName} for ${characterName}`);
-                }
-            });
-        }
-    });
-}
 
 export const registerConnectionHandlers = (io, socket) => {
 
@@ -162,32 +51,13 @@ export const registerConnectionHandlers = (io, socket) => {
             // Trust the client's data to establish the session state.
             console.log(`Character ${name} is connecting for the first time or loading from save.`);
 
-            // --- INVENTORY SIZE FIX: Extend old 24-slot inventories to 28 slots ---
-            if (characterDataFromClient.inventory && characterDataFromClient.inventory.length < 28) {
-                const originalLength = characterDataFromClient.inventory.length;
-                while (characterDataFromClient.inventory.length < 28) {
-                    characterDataFromClient.inventory.push(null);
-                }
-                console.log(`Extended inventory from ${originalLength} to 28 slots for ${name} on login.`);
-            }
-            // --- END INVENTORY SIZE FIX ---
-
             players[name] = { id: socket.id, character: characterDataFromClient };
             socket.characterName = name;
             characterToUpdate = characterDataFromClient;
         }
 
-        // --- RUNTIME SPELL REFRESH ---
-        // Always update spells to current definitions to ensure new properties are applied
-        refreshPlayerSpells(characterToUpdate, name);
-
-        // --- RUNTIME EQUIPMENT REFRESH ---
-        // Update existing items with new properties (e.g., gem slots)
-        refreshPlayerEquipment(characterToUpdate, name);
-
-        // --- RUNTIME RECIPE BACKFILL ---
-        // Add recipes for players who completed quests before reward expansion
-        backfillT2Recipes(characterToUpdate, name);
+        // Run all migrations/refreshes via the centralized module
+        runMigrations(characterToUpdate, name);
 
         // Send the authoritative state to the client for this session
         if (characterToUpdate.duelId && duels[characterToUpdate.duelId]) {
@@ -239,19 +109,6 @@ export const registerConnectionHandlers = (io, socket) => {
         if (name && players[name]) {
             const character = players[name].character;
             if (!character) return;
-
-            // BUG FIX: The logic to clean up solo parties was too aggressive.
-            // It deleted the party immediately on disconnect, causing a state issue on quick reconnects.
-            // This logic is now removed. A more robust timeout system could be added later if abandoned
-            // solo parties become a memory issue, but for now, simply not deleting them fixes the bug.
-            /*
-            const partyId = character.partyId;
-            if (partyId && parties[partyId] && parties[partyId].isSoloParty) {
-                console.log(`Cleaning up solo party ${partyId} for disconnected player ${name}.`);
-                character.partyId = null;
-                delete parties[partyId];
-            }
-            */
 
             const duelId = character.duelId;
             if (duelId && duels[duelId] && !duels[duelId].ended) {

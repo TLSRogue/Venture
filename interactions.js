@@ -1,6 +1,7 @@
 'use strict';
 
 import { gameState } from './state.js';
+import { FRIENDLY_SPELL_TYPES } from './shared.js';
 import * as Combat from './combat.js';
 import * as Network from './network.js';
 import * as UIMain from './ui/ui-main.js';
@@ -42,7 +43,7 @@ export function interactWithCard(targetIdentifier) {
     if (targetIdentifier.toString().startsWith('p')) {
         if (selectedAction && selectedAction.type === 'spell') {
             const spell = selectedAction.data;
-            if (spell.type === 'heal' || spell.type === 'buff' || spell.type === 'versatile' || spell.type === 'revive' || spell.type === 'cleanse' || spell.type === 'cauterize' || spell.type === 'expendHeat') {
+            if (FRIENDLY_SPELL_TYPES.has(spell.type)) {
                 Combat.castSpell(selectedAction.index, targetIdentifier);
             }
         }
@@ -91,7 +92,7 @@ export function interactWithPlayerCard() {
     const selectedAction = gameState.turnState.selectedAction;
     if (selectedAction && selectedAction.type === 'spell') {
         const spell = selectedAction.data;
-        if (spell.type === 'heal' || spell.type === 'buff' || spell.type === 'versatile' || spell.type === 'revive' || spell.type === 'cleanse' || spell.type === 'cauterize' || spell.type === 'expendHeat') {
+        if (FRIENDLY_SPELL_TYPES.has(spell.type)) {
             Combat.castSpell(selectedAction.index, localPlayerTargetIndex);
         } else {
             UIMain.addToLog("You can't use that on yourself.", "info");

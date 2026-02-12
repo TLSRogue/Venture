@@ -10,3 +10,6 @@ export const INTERVENE_TIMER_MS = 5000;
 
 // Costs & Other Game Values
 export const ARENA_ENTRY_FEE = 100;
+
+// Inventory
+export const INVENTORY_SIZE = 28;

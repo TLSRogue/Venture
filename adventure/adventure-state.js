@@ -5,7 +5,7 @@ import { gameData, lootPools } from '../data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js';
 import { applyDamage, applyDoTEffects, applyChillStack, processChillReduction, getAvailablePlayerReactions, processEndOfTurnEffects } from './combat-core.js';
-import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS, INTERVENE_TIMER_MS } from '../constants.js';
+import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS, INTERVENE_TIMER_MS, INVENTORY_SIZE } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
 import { processEnemyEndOfTurn, handleEnemySpecialAction } from './enemy-handlers.js';
 import {
@@ -156,7 +156,7 @@ export async function resolveIntervene(io, socket, payload) {
             if (intervenorState.health <= 0) {
                 intervenorState.isDead = true;
                 intervenorState.lootableInventory = [...player.character.inventory.filter(Boolean)];
-                player.character.inventory = Array(28).fill(null);
+                player.character.inventory = Array(INVENTORY_SIZE).fill(null);
                 io.to(player.id).emit('characterUpdate', player.character);
                 sharedState.log.push({ message: `${name} has been defeated!`, type: 'damage' });
             }
@@ -214,7 +214,7 @@ export async function resolveIntervene(io, socket, payload) {
             if (intervenorState.health <= 0) {
                 intervenorState.isDead = true;
                 intervenorState.lootableInventory = [...player.character.inventory.filter(Boolean)];
-                player.character.inventory = Array(28).fill(null);
+                player.character.inventory = Array(INVENTORY_SIZE).fill(null);
                 io.to(player.id).emit('characterUpdate', player.character);
                 sharedState.log.push({ message: `${name} has been defeated!`, type: 'damage' });
             }
@@ -1311,7 +1311,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 } else {
                     if (targetPlayerObject.character) {
                         targetPlayerState.lootableInventory = [...targetPlayerObject.character.inventory.filter(Boolean)];
-                        targetPlayerObject.character.inventory = Array(28).fill(null);
+                        targetPlayerObject.character.inventory = Array(INVENTORY_SIZE).fill(null);
                         if (targetPlayerObject.id) io.to(targetPlayerObject.id).emit('characterUpdate', targetPlayerObject.character);
                     }
                 }
@@ -1816,7 +1816,7 @@ export async function handleResolveReaction(io, socket, payload) {
         } else {
             if (reactingPlayer.character) {
                 reactingPlayerState.lootableInventory = [...reactingPlayer.character.inventory.filter(Boolean)];
-                reactingPlayer.character.inventory = Array(28).fill(null);
+                reactingPlayer.character.inventory = Array(INVENTORY_SIZE).fill(null);
                 if (reactingPlayer.id) io.to(reactingPlayer.id).emit('characterUpdate', reactingPlayer.character);
             }
         }
