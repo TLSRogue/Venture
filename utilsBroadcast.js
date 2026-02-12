@@ -11,10 +11,12 @@ import { createStateForClient } from './utilsHelpers.js';
 
 export function broadcastOnlinePlayers(io) {
     const onlinePlayers = Object.values(players)
-        .filter(p => p.id && p.character && !p.character.partyId)
+        .filter(p => p.id && p.character)
         .map(p => ({
             id: p.character.characterName,
-            name: p.character.characterName
+            name: p.character.characterName,
+            partyId: p.character.partyId || null,
+            inAdventure: !!(p.character.partyId && parties[p.character.partyId]?.sharedState)
         }));
     io.emit('onlinePlayersUpdate', onlinePlayers);
 }
@@ -65,7 +67,7 @@ export function broadcastAdventureUpdate(io, party) {
 
         // Combine all players from both parties into one list
         const allPlayersInEncounter = [...partyA.members, ...partyB.members];
-        
+
         // Create one state payload for everyone
         const clientState = createStateForClient(party.sharedState, encounter);
 

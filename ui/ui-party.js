@@ -2,6 +2,7 @@
 
 import { gameState } from '../state.js';
 import { showModal, hideModal, showInfoModal } from './ui-main.js'; // BUG FIX: Added hideModal
+import { emitLeaveParty } from '../network.js';
 
 export function renderPartyManagement(party) {
     const container = document.getElementById('party-management-area');
@@ -38,13 +39,23 @@ export function renderPartyManagement(party) {
             </div>
         `;
     } else if (gameState.partyId) {
-        // This is the "stuck" or "desynced" party state. Show a manual fix UI.
+        // Auto-fix desync: player thinks they're in a party that doesn't exist on the server.
+        // Silently send a leave-party request to clean up the server state, and clear locally.
+        console.log(`Auto-fixing desync: clearing stale partyId ${gameState.partyId}`);
+        emitLeaveParty();
+        gameState.partyId = null;
+        gameState.isPartyLeader = false;
+        gameState.partyMembers = [];
+
+        // Render the normal "not in a party" state
         container.innerHTML = `
-            <h3>Party Desynchronized</h3>
-            <p>Your character data indicates you are in a party (ID: ${gameState.partyId}), but the party is no longer active on the server. This can happen after a disconnect.</p>
-            <p>Click here to force-leave the party and fix your character's state.</p>
+            <p>You are not in a party. Create one to invite friends, or join a friend's party using their ID.</p>
             <div class="action-buttons">
-                <button id="leave-party-btn" class="btn btn-danger">Force Leave Party</button>
+                <button id="create-party-btn" class="btn btn-success">Create Party</button>
+            </div>
+            <div class="party-join-container">
+                <input type="text" id="party-id-input" placeholder="Enter Party ID">
+                <button id="join-party-btn" class="btn btn-primary">Join</button>
             </div>
         `;
     } else {
@@ -73,16 +84,28 @@ export function renderOnlinePlayers(onlinePlayers) {
         return;
     }
 
-    const playersList = otherPlayers.map(player => `
+    const playersList = otherPlayers.map(player => {
+        const isInParty = !!player.partyId;
+        const isInAdventure = !!player.inAdventure;
+        const statusBadge = isInAdventure
+            ? '<span class="player-status-badge adventure">⚔️ Adventure</span>'
+            : isInParty
+                ? '<span class="player-status-badge party">🎉 In Party</span>'
+                : '<span class="player-status-badge online">🟢 Online</span>';
+
+        const inviteDisabled = isInParty ? 'disabled' : '';
+        const duelDisabled = isInAdventure ? 'disabled' : '';
+
+        return `
         <li class="party-member-list-item" style="display: flex; justify-content: space-between; align-items: center;">
-            <span>${player.name}</span>
+            <span class="online-player-name">${player.name} ${statusBadge}</span>
             <div style="display: flex; gap: 5px;">
-                <button class="btn btn-primary btn-sm" data-action="invite" data-id="${player.name}">Invite</button>
+                <button class="btn btn-primary btn-sm" data-action="invite" data-id="${player.name}" ${inviteDisabled}>Invite</button>
                 <button class="btn btn-success btn-sm" data-action="trade" data-id="${player.name}">Trade</button>
-                <button class="btn btn-danger btn-sm" data-action="duel" data-id="${player.name}">Duel</button>
+                <button class="btn btn-danger btn-sm" data-action="duel" data-id="${player.name}" ${duelDisabled}>Duel</button>
             </div>
         </li>
-    `).join('');
+    `}).join('');
     container.innerHTML = `<ul class="party-member-list">${playersList}</ul>`;
 }
 

@@ -2617,3 +2617,30 @@ hr {
     object-fit: contain;
     margin-bottom: 2px;
 }
+
+/* --- ONLINE PLAYER STATUS BADGES --- */
+.player-status-badge {
+    font-size: 0.75em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    font-weight: 600;
+}
+
+.player-status-badge.online {
+    color: #2ecc71;
+}
+
+.player-status-badge.party {
+    color: #f39c12;
+}
+
+.player-status-badge.adventure {
+    color: #e74c3c;
+}
+
+.online-player-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
