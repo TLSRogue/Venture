@@ -1,4 +1,4 @@
-// adventure/adventure-actions.js
+﻿// adventure/adventure-actions.js
 
 import { players, parties, pvpEncounters } from '../serverState.js';
 import { gameData } from '../data/index.js';
@@ -10,6 +10,7 @@ import { INVENTORY_SIZE } from '../constants.js';
 import { SpellHandlers, getSpecialSpellDamage } from './spell-handlers.js';
 import { rollD20 } from '../shared.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
+import { initSpellContext, validateSpellCast, resolveSpellTarget, validateAttackTarget, dispatchSpecialSpell, handleZoneEffectSpell, resolveSpellRollAndConsume, handleMonkFocusGain, checkSpellPvpReaction, applySpellHeal, applySpellBuff, applySpellDebuff, applySpellAttack, handleCooldownReset } from './spell-cast-helpers.js';
 
 function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlayerState, actionDetails) {
     const defendingPlayerObject = players[defendingPlayerState.name];
@@ -301,808 +302,70 @@ export async function processWeaponAttack(io, party, player, payload) {
 }
 
 export async function processCastSpell(io, party, player, payload) {
-    const { spellIndex, targetIndex } = payload;
-    const character = player.character;
-    const spell = character.equippedSpells[spellIndex];
+    // 1. Initialize context
+    const ctx = initSpellContext(party, player, payload);
+    if (!ctx) return;
 
-    if (!spell) return;
-    const cost = spell.cost || 0;
+    // 2. Validate (AP, cooldowns, silence, weapon requirements)
+    if (!validateSpellCast(ctx)) {
+        if ((ctx.actingPlayerState.debuffs || []).find(d => d.type.toLowerCase() === 'silence') && ctx.spell.isMagic) {
+            broadcastAdventureUpdate(io, party);
+        }
+        return;
+    }
 
-    // UNIFIED: Use shared combat context helper
-    const { sharedState, encounter, isPvP, log, actingPlayerState } = getCombatContext(party, player.id);
+    // 3. Resolve target
+    ctx.target = resolveSpellTarget(ctx, player.id);
 
-    // Calculate bonuses early for spell scaling
-    const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
-
-    // --- Validation ---
-    if (actingPlayerState.actionPoints < cost) return;
-    if ((actingPlayerState.spellCooldowns[spell.name] || 0) > 0) return;
-
-    // Silence Check - silenced players cannot cast MAGIC spells
-    const silenceDebuff = (actingPlayerState.debuffs || []).find(d => d.type.toLowerCase() === 'silence');
-    if (silenceDebuff && spell.isMagic) {
-        log.push({ message: `${actingPlayerState.name} is Silenced and cannot use magic!`, type: 'info' });
+    // 4. Early validation for single-target attack spells
+    if (!validateAttackTarget(ctx)) {
         broadcastAdventureUpdate(io, party);
         return;
     }
 
-    // Weapon Requirements Check
-    if (spell.requires?.weaponType) {
-        const mainHand = character.equipment.mainHand;
-        const offHand = character.equipment.offHand;
-        const hasRequiredWeapon = (hand) => {
-            if (!hand) return false;
-            return Array.isArray(spell.requires.weaponType) && spell.requires.weaponType.includes(hand.weaponType);
-        };
-        if (spell.requires.hand) {
-            if (!hasRequiredWeapon(character.equipment[spell.requires.hand])) return;
-        } else {
-            if (!hasRequiredWeapon(mainHand) && !hasRequiredWeapon(offHand)) return;
-        }
-    }
+    // 5. Special spell handlers (Revive, Cleanse, Cauterize, Expend Heat, Spirit Call)
+    if (await dispatchSpecialSpell(io, party, player, ctx)) return;
 
-    // --- Target Resolution ---
-    // Resolve target using shared helper
-    let target = normalizeTarget(sharedState, targetIndex, encounter);
+    // 6. Zone effect spells (Blizzard, etc.)
+    if (await handleZoneEffectSpell(io, party, player, ctx)) return;
 
-    // FIX: Normalize explicit 'player' or self targets if normalizeTarget missed them (it shouldn't, but safe fallback)
-    if (!target && (targetIndex === 'player' || targetIndex === player.id)) {
-        target = {
-            isPvP: isPvP,
-            isPlayer: true,
-            id: actingPlayerState.playerId,
-            name: actingPlayerState.name,
-            state: actingPlayerState,
-            health: actingPlayerState.health,
-            maxHealth: actingPlayerState.maxHealth,
-            buffs: actingPlayerState.buffs,
-            debuffs: actingPlayerState.debuffs,
-            team: actingPlayerState.team,
-            applyBuff: (buff) => {
-                const existingIndex = actingPlayerState.buffs.findIndex(b => b.type === buff.type);
-                if (existingIndex !== -1) actingPlayerState.buffs.splice(existingIndex, 1);
-                actingPlayerState.buffs.push({ ...buff });
-            },
-            heal: (amount) => {
-                const current = Number(actingPlayerState.health || 0);
-                const max = Number(actingPlayerState.maxHealth || 10);
-                const healAmt = Number(amount || 0);
-                actingPlayerState.health = Math.min(max, current + (isNaN(healAmt) ? 0 : healAmt));
-            },
-            isDead: () => actingPlayerState.isDead
-        };
-    }
-
-    // --- Special Handlers (Revive, Monk's Training) ---
-    // Handlers return 'true' if they completely handle the action (including logging/AP). 
-    // BUT our handlers currently just do the logic. We need to handle AP/Cooldowns consistently.
-    // For Revive, we handle everything inside because of the early exit requirement.
-    // For others, we might want consistent flow. 
-    // Adaptation: The handler in `spell-handlers` currently does NOT handle costs. It returns true if logic applied.
-    // Revive handler in my previous `write_to_file` DOES logging but NOT costs? 
-    // Let's check `spell-handlers.js` content I wrote.
-    // Revive handler: Logic + Logs. No AP deduction.
-    // So I need to deduct AP here.
-
-    // --- EARLY VALIDATION FOR ATTACK SPELLS ---
-    // Only validate single-target attack spells (not versatile or aoe which have their own targeting logic)
-    if (spell.type === 'attack' && !spell.aoeTargeting) {
-        // Single-target attack spell needs a valid hostile target
-        // In PVP: enemy team player. In PVE: enemy card.
-        const isHostileTarget = target && (
-            (isPvP && target.isPlayer && target.team !== actingPlayerState.team) ||
-            (!isPvP && !target.isPlayer && target.state?.type === 'enemy')
-        );
-        if (!isHostileTarget) {
-            const log = isPvP ? pvpEncounters[sharedState.pvpEncounterId].log : sharedState.log;
-            log.push({ message: "Invalid target!", type: 'info' });
-            broadcastAdventureUpdate(io, party);
-            return;
-        }
-    }
-
-    if (SpellHandlers[spell.name] || spell.type === 'revive' || spell.type === 'cleanse' || spell.type === 'cauterize' || spell.type === 'expendHeat') {
-        const handler = SpellHandlers[spell.name] || SpellHandlers['Revive'];
-
-        // Special Targeting Retrieval for friendly-target spells
-        let handlerTarget = target ? target.state : null;
-
-        // Revive targets dead party members
-        if (spell.type === 'revive' && !handlerTarget && !isPvP && String(targetIndex).startsWith('p')) {
-            const idx = parseInt(targetIndex.substring(1));
-            if (sharedState.partyMemberStates[idx]) handlerTarget = sharedState.partyMemberStates[idx];
-        }
-
-        // Cleanse targets friendly party members (living)
-        if (spell.type === 'cleanse' && String(targetIndex).startsWith('p')) {
-            const idx = parseInt(targetIndex.substring(1));
-            if (sharedState.partyMemberStates[idx] && !sharedState.partyMemberStates[idx].isDead) {
-                handlerTarget = sharedState.partyMemberStates[idx];
-            }
-        }
-        // Also allow casting Cleanse on self if no target specified
-        if (spell.type === 'cleanse' && !handlerTarget) {
-            handlerTarget = actingPlayerState;
-        }
-
-        // Cauterize targets friendly party members (or self)
-        if (spell.type === 'cauterize') {
-            if (String(targetIndex).startsWith('p')) {
-                const idx = parseInt(targetIndex.substring(1));
-                if (sharedState.partyMemberStates[idx] && !sharedState.partyMemberStates[idx].isDead) {
-                    handlerTarget = sharedState.partyMemberStates[idx];
-                }
-            } else if (isPvP && target && target.team === actingPlayerState.team) {
-                handlerTarget = target.state;
-            }
-            // Fallback to self if no valid target
-            if (!handlerTarget) {
-                handlerTarget = actingPlayerState;
-            }
-        }
-
-        // Expend Heat can target any party member OR enemy (to remove burn)
-        if (spell.type === 'expendHeat') {
-            if (String(targetIndex).startsWith('p')) {
-                const idx = parseInt(targetIndex.substring(1));
-                if (sharedState.partyMemberStates[idx] && !sharedState.partyMemberStates[idx].isDead) {
-                    handlerTarget = sharedState.partyMemberStates[idx];
-                }
-            } else if (target) {
-                handlerTarget = target.state;
-            }
-            // Fallback to self if no valid target
-            if (!handlerTarget) {
-                handlerTarget = actingPlayerState;
-            }
-        }
-
-        // Check if handler can run (e.g. Revive needs dead target)
-        // We'll run it, and if it returns true, we assume success.
-        // Actually Revive handler logs "no valid target" and returns true even if failed? 
-        // My `spell-handlers.js` code: returns true always.
-        // So we consume resources. This matches "cast but fail" mechanic potentially, 
-        // OR we should check before consuming. 
-        // Original code: Consumed resources BEFORE checking target validity for Revive? 
-        // Original: `actingPlayerState.actionPoints -= cost;` THEN `if (!reviveTarget) log...`. So yes, wasted AP.
-
-        // Defensive check: ensure health is a number
-        if (handlerTarget) {
-            handlerTarget.health = Number(handlerTarget.health || 0);
-        }
-
-        // Pass bonuses for Cleanse (Holy Power scaling)
-        const result = handler(spell, character, actingPlayerState, log, handlerTarget, bonuses);
-
-        // Handle Clear/Spirit Call/Dialogue selections
-        if (result && result.pendingSelection) {
-
-            // --- Spirit Call Handling ---
-            if (result.pendingSelection.type === 'spiritCall') {
-                const bonus = result.pendingSelection.bonusAmount || 1;
-                const spiritDialog = {
-                    text: "Call upon a Spirit Animal to aid you:",
-                    options: [
-                        { text: `Panther Spirit (+${bonus} Agi)`, action: 'spiritCallBuff', buff: 'Panther', next: 'farewell' },
-                        { text: `Bear Spirit (+${bonus} Str)`, action: 'spiritCallBuff', buff: 'Bear', next: 'farewell' },
-                        { text: `Tree Spirit (+${bonus} Def)`, action: 'spiritCallBuff', buff: 'Tree', next: 'farewell' }
-                    ]
-                };
-
-                io.to(result.pendingSelection.casterPlayerId).emit('party:showDialogue', {
-                    npcName: "Spirit Call",
-                    node: spiritDialog,
-                    cardIndex: -1 // Special index for triggered events
-                });
-
-                log.push({ message: `${character.characterName} calls out to the spirits...`, type: 'info' });
-                broadcastAdventureUpdate(io, party);
-                return;
-            }
-
-            // --- Cleanse Handling ---
-            // Store pending cleanse state on party
-            sharedState.pendingCleanse = result.pendingSelection;
-
-            // Emit selection request to the caster
-            io.to(result.pendingSelection.casterPlayerId).emit('party:requestDebuffSelection', {
-                targetName: result.pendingSelection.targetName,
-                debuffs: result.pendingSelection.debuffs,
-                maxSelectable: result.pendingSelection.maxSelectable,
-                casterName: result.pendingSelection.casterName
-            });
-
-            log.push({ message: `${character.characterName} prepares to cleanse ${result.pendingSelection.targetName}...`, type: 'info' });
-            broadcastAdventureUpdate(io, party);
-            // Don't end turn - waiting for selection
-            return;
-        }
-
-        // Apply Cost and Cooldown if NO pending selection (Instant cast success)
-        actingPlayerState.actionPoints -= cost;
-        actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
-
-        // Handle Expend Heat AoE damage if burn was removed
-        if (spell.type === 'expendHeat' && result && result.triggersAoe) {
-            const aoeDamage = getSpecialSpellDamage(spell, character, actingPlayerState, bonuses);
-
-            // UNIFIED: Use shared target collection
-            const hostileTargets = getHostileTargets(sharedState, encounter, actingPlayerState);
-
-            // Apply damage to all enemies
-            for (const hostileTarget of hostileTargets) {
-                const resistance = hostileTarget.getResistance ? hostileTarget.getResistance('Fire') : 0;
-                const dmg = Math.max(1, aoeDamage - resistance);
-                applyDamage(hostileTarget.state, dmg);
-                const enemyId = hostileTarget.id;
-                log.push({ message: `${hostileTarget.name} takes ${dmg} Fire damage from the released heat! [id:${enemyId}]`, type: 'damage' });
-
-                // Check for death
-                if (hostileTarget.state.health <= 0) {
-                    if (hostileTarget.isPvP) {
-                        defeatEnemyInParty(io, party, { playerId: enemyId }, null);
-                    } else {
-                        const cardIndex = sharedState.zoneCards.findIndex(c => c && c.id === hostileTarget.state.id);
-                        if (cardIndex !== -1) {
-                            defeatEnemyInParty(io, party, hostileTarget.state, cardIndex);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Always end turn after special spells?
-        // Revive: Yes. Monk's Training: Yes. Cleanse: Yes (if no selection needed).
+    // 7. Roll resolution + resource consumption
+    const attackResult = resolveSpellRollAndConsume(ctx);
+    if (!attackResult) {
         broadcastAdventureUpdate(io, party);
         await checkAndEndTurnForPlayer(io, party, player);
         return;
     }
+    ctx.attackResult = attackResult;
 
-    // --- Zone Effect Spells (e.g., Blizzard) ---
-    if (spell.type === 'zoneEffect' && spell.zoneEffect) {
-        // Don't require target validation for zone effects - they affect the whole zone
+    // 8. Monk focus gain (Punch/Kick)
+    handleMonkFocusGain(ctx);
 
-        // Roll for success
-        const spellStat = spell.stat || 'wisdom';
-        const attackResult = resolveAttackRoll(actingPlayerState, character, null, spellStat, spell.hit || 10);
+    // 9. PvP reaction check for attack spells
+    if (checkSpellPvpReaction(io, party, ctx, handlePvpReactionCheck)) return;
 
-        // Consume Resources
-        actingPlayerState.actionPoints -= cost;
-        actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
-        actingPlayerState.threat += cost;
-
-        let description = `${character.characterName} casts ${spell.name}! ${attackResult.rollDisplay}`;
-
-        if (!attackResult.isHit) {
-            description += (attackResult.roll === 1) ? ` Critical Failure!` : ` Fizzle!`;
-            log.push({ message: description, type: 'damage' });
-            broadcastAdventureUpdate(io, party);
-            await checkAndEndTurnForPlayer(io, party, player);
-            return;
-        }
-
-        log.push({ message: description, type: 'success' });
-
-        // Calculate zone effect damage based on power bonuses
-        const powerKey = spell.damageType ? spell.damageType.toLowerCase() + 'Power' : 'frostPower';
-        const power = bonuses[powerKey] || 0;
-        const damage = 1 + Math.floor(power / 2);
-
-        // Create the zone effect
-        if (!sharedState.zoneEffects) sharedState.zoneEffects = [];
-        sharedState.zoneEffects.push({
-            ...spell.zoneEffect,
-            damage,
-            casterName: character.characterName,
-            casterTeam: actingPlayerState.team || null // Track team for PVP tick timing
-        });
-
-        log.push({
-            message: `${spell.zoneEffect.icon || '🌀'} A ${spell.zoneEffect.name} engulfs the zone for ${spell.zoneEffect.duration} turns!`,
-            type: 'success'
-        });
-
-        broadcastAdventureUpdate(io, party);
-        await checkAndEndTurnForPlayer(io, party, player);
-        return;
-    }
-
-    // --- Roll Resolution ---
-    let spellStat = spell.stat || 'wisdom';
-    // Handle array of stats (highest one used)
-    if (Array.isArray(spellStat)) {
-        const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
-        let bestStat = spellStat[0];
-        let maxVal = -Infinity;
-
-        spellStat.forEach(stat => {
-            const val = (character[stat] || 0) + (bonuses[stat] || 0);
-            if (val > maxVal) {
-                maxVal = val;
-                bestStat = stat;
-            }
-        });
-        spellStat = bestStat;
-    }
-
-    // If target is null (e.g. AoE or Self Buff), we pass null. `resolveAttackRoll` handles null target (stealth check won't run).
-    const attackResult = resolveAttackRoll(actingPlayerState, character, target ? target.state : null, spellStat, spell.hit || 15);
-
-    // Consume Resources
-    actingPlayerState.actionPoints -= cost;
-    actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
-    actingPlayerState.threat += cost;
-    if (spell.bonusThreat) {
-        actingPlayerState.threat += spell.bonusThreat;
-        log.push({ message: `${character.characterName} generates ${spell.bonusThreat} bonus threat!`, type: 'reaction' });
-    }
-
-    // Log Modifiers
-    if (attackResult.modifiers.dazeModifier !== 0) log.push({ message: `${character.characterName} is dazed! (-3 to spell roll)`, type: 'info' });
-    if (attackResult.modifiers.stealthModifier !== 0 && target) log.push({ message: `${target.name} is hidden in shadows! (-5 to hit)`, type: 'info' });
-    if (attackResult.modifiers.focusModifier !== 0) log.push({ message: `${character.characterName} is focused! (+${attackResult.modifiers.focusModifier} to spell roll)`, type: 'info' });
-
-    let description = `${character.characterName} casts ${spell.name}! ${attackResult.rollDisplay}`;
-
-    if (!attackResult.isHit) {
-        description += (attackResult.roll === 1) ? ` Critical Failure!` : ` Fizzle!`;
-        log.push({ message: description, type: 'damage' });
-        broadcastAdventureUpdate(io, party);
-        await checkAndEndTurnForPlayer(io, party, player);
-        return;
-    }
-
-    log.push({ message: description, type: spell.type === 'heal' || spell.type === 'buff' ? 'heal' : 'damage' });
-
-    // --- Spell Effect Resolution ---
-
-    // Monk Focus Gain (Pre-Reaction)
-    // Monk Focus Gain (Pre-Reaction)
-    if ((spell.name === 'Punch' || spell.name === 'Kick')) {
-        const hasMonkTraining = character.equippedSpells.some(s => s.name === "Monk's Training");
-        const mainHand = character.equipment.mainHand;
-        const offHand = character.equipment.offHand;
-        const isUnarmed = (!mainHand || !mainHand.name) && (!offHand || !offHand.name);
-
-        // Ensure focus is initialized
-        if (actingPlayerState.focus === undefined) actingPlayerState.focus = 0;
-
-        if (hasMonkTraining && isUnarmed && actingPlayerState.focus < 3) {
-            actingPlayerState.focus += 1;
-            log.push({ message: `${character.characterName} gains 1 Focus.`, type: 'heal' });
-        }
-    }
-
-    // Check PvP Reaction for Attack Spells
-    if (isPvP && target && (spell.type === 'attack' || (spell.type === 'versatile' && target.team !== actingPlayerState.team))) {
-        // UNIFIED SPECIAL DAMAGE & EFFECTS (Backstab, etc.)
-        let specialResult = getSpecialSpellDamage(spell, character, actingPlayerState, bonuses, target);
-
-        let baseDmg = 0;
-        let debuffToUse = spell.debuff ? { ...spell.debuff } : null;
-
-        if (specialResult !== null && typeof specialResult === 'object') {
-            baseDmg = specialResult.damage;
-            if (specialResult.debuff) debuffToUse = { ...specialResult.debuff };
-            if (specialResult.logMessage) log.push({ message: specialResult.logMessage, type: 'reaction' });
-        } else {
-            baseDmg = specialResult !== null ? specialResult : (spell.damage || spell.baseEffect || 1);
-        }
-
-        // UNIFIED: Debuff damage scales with power bonuses based on damage type (same as PVE)
-        if (debuffToUse && debuffToUse.damageType) {
-            const powerKey = debuffToUse.damageType.toLowerCase() + 'Power';
-            const powerBonus = bonuses[powerKey] || 0;
-            const debuffBaseDmg = debuffToUse.baseDamage ?? debuffToUse.damage ?? 0;
-            debuffToUse.damage = debuffBaseDmg + powerBonus;
-        }
-
-        const actionDetails = {
-            damage: baseDmg,
-            damageType: spell.damageType || 'Magic',
-            attackRange: spell.range,
-            message: `is targeted by ${spell.name}.`,
-            debuff: debuffToUse,
-        };
-
-        const reactionInitiated = handlePvpReactionCheck(io, encounter, actingPlayerState, target.state, actionDetails);
-        if (reactionInitiated) {
-            broadcastAdventureUpdate(io, party);
-            return;
-        }
-    }
-
-    // Apply Effects
+    // 10. Apply spell effects by type
+    const { spell } = ctx;
     if (spell.type === 'heal') {
-        // Enforce friendly/self targeting for Heals to match PvE parity
-        const validTarget = (target && (isPvP || target.isPlayer)) ? target : null;
-        const healTarget = validTarget || {
-            name: actingPlayerState.name,
-            state: actingPlayerState,
-            heal: (amt) => {
-                const current = Number(actingPlayerState.health || 0);
-                const max = Number(actingPlayerState.maxHealth || 10);
-                const healAmt = Number(amt || 0);
-                actingPlayerState.health = Math.min(max, current + (isNaN(healAmt) ? 0 : healAmt));
-            },
-            id: actingPlayerState.playerId,
-            isPvP: isPvP
-        };
-        healTarget.heal(spell.heal);
-        const tId = healTarget.isPvP ? healTarget.id : (healTarget.id || healTarget.state?.playerId);
-        log.push({ message: `Healed ${healTarget.name} for ${spell.heal} HP. [id:${tId}]`, type: 'heal' });
-    }
-    else if (spell.type === 'buff') {
-        const validTarget = (target && (isPvP || target.isPlayer)) ? target : null;
-        const buffTarget = validTarget || {
-            name: actingPlayerState.name,
-            state: actingPlayerState,
-            applyBuff: (b) => {
-                const ex = actingPlayerState.buffs.findIndex(x => x.type === b.type);
-                if (ex !== -1) actingPlayerState.buffs.splice(ex, 1);
-                actingPlayerState.buffs.push(b);
-            },
-            id: actingPlayerState.playerId,
-            isPvP: isPvP,
-            buffs: actingPlayerState.buffs
-        };
-        const buff = { ...spell.buff };
-
-        // Handle Rejuvenate healing amount (scales with caster's naturePower)
-        if (spell.name === 'Rejuvenate') {
-            const naturePower = bonuses.naturePower || 0;
-            buff.healAmount = 1 + naturePower;
-        }
-
-        // Handle Magic Barrier scaling with arcanePower
-        if (buff.type === 'Magic Barrier' && buff.scaling === 'arcanePower') {
-            const bonusStats = getBonusStatsForPlayer(character, actingPlayerState);
-            const arcanePower = bonusStats.arcanePower || 0;
-            buff.value = (buff.baseValue || 2) + arcanePower;
-            delete buff.baseValue;
-            delete buff.scaling;
-        }
-
-        // Handle Flame Shield scaling with firePower
-        if (buff.type === 'Flame Shield' && buff.scaling === 'firePower') {
-            const bonusStats = getBonusStatsForPlayer(character, actingPlayerState);
-            const firePower = bonusStats.firePower || 0;
-            buff.value = (buff.baseValue || 1) + firePower;
-            delete buff.baseValue;
-            delete buff.scaling;
-        }
-
-        // Handle Ice Barrier scaling with frostPower
-        if (buff.type === 'Ice Barrier' && buff.scaling === 'frostPower') {
-            const bonusStats = getBonusStatsForPlayer(character, actingPlayerState);
-            const frostPower = bonusStats.frostPower || 0;
-            buff.value = (buff.baseValue || 1) + frostPower;
-            delete buff.baseValue;
-            delete buff.scaling;
-        }
-
-        // Use applyBuff if method exists, else manual push (fallback)
-        if (buffTarget.applyBuff) {
-            buffTarget.applyBuff(buff);
-        } else {
-            // Fallback for self wrapper if applyBuff missing
-            const existingIndex = buffTarget.buffs.findIndex(b => b.type === buff.type);
-            if (existingIndex !== -1) {
-                if (buff.stackDuration) {
-                    buffTarget.buffs[existingIndex].duration += buff.duration;
-                    log.push({ message: `${buffTarget.name}'s ${buff.type} duration extended by ${buff.duration} turns!`, type: 'heal' });
-                    // Skip the standard "gains buff" log since we extended it
-                    return;
-                } else {
-                    buffTarget.buffs.splice(existingIndex, 1);
-                    buffTarget.buffs.push(buff);
-                }
-            } else {
-                buffTarget.buffs.push(buff);
-            }
-        }
-
-        const tId = buffTarget.isPvP ? buffTarget.id : (buffTarget.id || buffTarget.state?.playerId);
-        if (buff.type === 'Magic Barrier') {
-            log.push({ message: `${buffTarget.name} gains Magic Barrier (${buff.value} Shield)! [id:${tId}]`, type: 'heal' });
-        } else if (buff.type === 'Flame Shield') {
-            log.push({ message: `${buffTarget.name} gains Flame Shield (${buff.value} Fire Barrier)! Melee attackers will burn! [id:${tId}]`, type: 'heal' });
-        } else if (buff.type === 'Ice Barrier') {
-            log.push({ message: `${buffTarget.name} gains Ice Barrier (${buff.value} Frost Barrier)! Melee attackers will be chilled! [id:${tId}]`, type: 'heal' });
-        } else {
-            log.push({ message: `${buffTarget.name} gains ${buff.type}${buff.value ? ` (${buff.value})` : ''}! [id:${tId}]`, type: 'heal' });
-        }
-    }
-    else if (spell.type === 'debuff') {
-        // Debuff spells (like Silence) apply debuffs to hostile targets (enemies or enemy players)
-        // In PVP: valid target is enemy team player. In PVE: valid target is enemy card.
-        const isHostileTarget = target && (
-            (isPvP && target.isPlayer && target.team !== actingPlayerState.team) ||
-            (!isPvP && !target.isPlayer && target.state?.type === 'enemy')
-        );
-        if (!isHostileTarget) {
-            log.push({ message: "Invalid target for debuff spell!", type: 'info' });
+        applySpellHeal(ctx);
+    } else if (spell.type === 'buff') {
+        applySpellBuff(ctx);
+    } else if (spell.type === 'debuff') {
+        if (!applySpellDebuff(ctx)) {
             broadcastAdventureUpdate(io, party);
             await checkAndEndTurnForPlayer(io, party, player);
             return;
         }
-
-        const debuff = { ...spell.debuff };
-        if (!target.state.debuffs) target.state.debuffs = [];
-
-        // Replace existing debuff of same type
-        const existingIndex = target.state.debuffs.findIndex(d => d.type.toLowerCase() === debuff.type.toLowerCase());
-        if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
-        target.state.debuffs.push(debuff);
-
-        log.push({ message: `${target.name} is now ${debuff.type.charAt(0).toUpperCase() + debuff.type.slice(1)}ed!`, type: 'damage' });
-    }
-    else if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile') {
-        // Collect Targets - UNIFIED: enemy players in PVP are treated the same as enemies in PVE
-        let targets = [];
-        if (spell.aoeTargeting === 'all') {
-            // UNIFIED: Use shared target collection for all-enemy AoE
-            targets = getHostileTargets(sharedState, encounter, actingPlayerState);
-        } else if (spell.aoeTargeting === 'adjacent') {
-            // Adjacent targeting - include primary target first
-            if (target) targets.push(target);
-            if (!isPvP) {
-                // PVE: Include spatially adjacent enemies
-                const enemyIdx = parseInt(targetIndex);
-                [-1, 1].forEach(offset => {
-                    const adj = normalizeTarget(sharedState, enemyIdx + offset, null);
-                    if (adj) targets.push(adj);
-                });
-            }
-            // In PVP, 'adjacent' just hits the single target (no spatial positions)
-        } else if (target) {
-            // Single target attack/versatile - validate it's a hostile target
-            const isHostile = (isPvP && target.isPlayer && target.team !== actingPlayerState.team) ||
-                (!isPvP && target.state?.type === 'enemy');
-            // Versatile spells can also target friendlies for healing (handled later)
-            const isFriendly = (isPvP && target.team === actingPlayerState.team) ||
-                (!isPvP && target.isPlayer);
-            if (isHostile || (spell.type === 'versatile' && isFriendly)) {
-                targets.push(target);
-            } else {
-                log.push({ message: "Invalid target!", type: 'info' });
-                broadcastAdventureUpdate(io, party);
-                await checkAndEndTurnForPlayer(io, party, player);
-                return;
-            }
-        } else {
-            log.push({ message: "Invalid target!", type: 'info' });
+    } else if (spell.type === 'attack' || spell.type === 'aoe' || spell.type === 'versatile') {
+        if (!await applySpellAttack(io, party, player, ctx)) {
             broadcastAdventureUpdate(io, party);
             await checkAndEndTurnForPlayer(io, party, player);
             return;
         }
-
-        // Deduplicate targets
-        const uniqueTargets = [...new Map(targets.map(t => [t.id, t])).values()];
-
-        // Whirlwind Logic: Determine number of attacks
-        let numAttacks = 1;
-        if (spell.name === 'Whirlwind') {
-            numAttacks += actingPlayerState.actionPoints;
-            actingPlayerState.actionPoints = 0; // Consume all AP
-            log.push({ message: `${character.characterName} spins into a Whirlwind! ${numAttacks} total attacks!`, type: 'info' });
-        }
-
-        // --- UNIFIED: Calculate and apply damage to each target ---
-        // For Whirlwind: Re-roll attack for each swing
-        for (let attackNum = 0; attackNum < numAttacks; attackNum++) {
-            // Whirlwind: Re-roll attack for this swing
-            let currentAttackResult = attackResult; // Default to initial roll for non-Whirlwind
-            if (spell.name === 'Whirlwind' && attackNum > 0) {
-                // Re-roll for subsequent attacks
-                currentAttackResult = resolveAttackRoll(actingPlayerState, character, null, spell.stat || 'strength', spell.hit || 10);
-                const swingDescription = `Whirlwind Swing ${attackNum + 1}! ${currentAttackResult.rollDisplay}`;
-                if (!currentAttackResult.isHit) {
-                    log.push({ message: swingDescription + (currentAttackResult.roll === 1 ? ' Critical Miss!' : ' Miss!'), type: 'info' });
-                    broadcastAdventureUpdate(io, party);
-                    // Add delay for visual feedback
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    continue; // Skip damage but continue attacks
-                }
-                log.push({ message: swingDescription + ' Hit!', type: 'damage' });
-            } else if (spell.name === 'Whirlwind' && attackNum === 0) {
-                // First attack already rolled above, log if miss
-                if (!currentAttackResult.isHit) {
-                    log.push({ message: `Whirlwind Swing 1! ${currentAttackResult.rollDisplay} Miss!`, type: 'info' });
-                    broadcastAdventureUpdate(io, party);
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    continue;
-                }
-            }
-
-            // Add delay between attacks for visual feedback (PvE)
-            if (spell.name === 'Whirlwind' && attackNum > 0) {
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
-
-            for (const target of uniqueTargets) {
-                if (target.state.health <= 0) continue;
-
-                // Darkness/Light Source Check
-                if (target.state && target.state.darknessShrouded) {
-                    const hasLight = (actingPlayerState.buffs || []).some(b => b.type === 'Light Source');
-                    if (!hasLight) {
-                        log.push({ message: `${target.name} is hidden in darkness! Spell missed!`, type: 'info' });
-                        continue;
-                    }
-                }
-
-                let baseDamage = spell.damage || 0;
-                let isHeal = false;
-
-                // Versatile Logic
-                if (spell.type === 'versatile') {
-                    // Use 1 as minimum for versatile spells (e.g., Holy Shock) in case baseEffect is missing
-                    let effectVal = spell.baseEffect || 1;
-
-                    // Holy Shock Scaling
-                    if (spell.school === 'Holy') {
-                        effectVal += (bonuses.holyPower || 0);
-                    } else {
-                        // Fallback for other versatile spells (if any)
-                        effectVal += currentAttackResult.modifiers.statValue;
-                    }
-
-                    // Check if target is friendly
-                    const isFriendly = (isPvP && target.team === actingPlayerState.team) || (!isPvP && target.isPlayer);
-
-                    if (isFriendly) {
-                        // Heal Friendly
-                        target.heal(effectVal);
-                        log.push({ message: `Healed ${target.name} for ${effectVal} HP.`, type: 'heal' });
-                        isHeal = true;
-                    } else {
-                        baseDamage = effectVal;
-                    }
-                }
-
-                // Special spell damage calculations - use unified handler
-                if (!isHeal) {
-                    const specialResult = getSpecialSpellDamage(spell, character, actingPlayerState, bonuses, target);
-
-                    if (specialResult !== null && typeof specialResult === 'object') {
-                        baseDamage = specialResult.damage;
-                        // Warning: This modifies the spell object in place, which is how Ambush was handled.
-                        // Ideally we should use a temporary debuff variable, but downstream logic uses spell.debuff
-                        if (specialResult.debuff) spell.debuff = { ...specialResult.debuff };
-                        if (specialResult.logMessage) log.push({ message: specialResult.logMessage, type: 'reaction' });
-                    } else if (specialResult !== null) {
-                        baseDamage = specialResult;
-                    }
-
-                    // Ambush applies bleed debuff if not already defined
-                    if (spell.name === 'Ambush' && !spell.debuff) {
-                        spell.debuff = { type: 'bleed', duration: 3, damage: 1, damageType: 'Physical' };
-                    }
-                }
-
-                // Apply resistance
-                const resistance = target.getResistance(spell.damageType);
-                const damageToDeal = baseDamage > 0 ? Math.max(1, baseDamage - resistance) : 0;
-
-                // --- FLYING CHECK (melee spells) ---
-                if (spell.range === 'melee' && (target.state.buffs || []).some(b => b.type === 'Flying')) {
-                    log.push({ message: `${target.name} is flying! Melee attacks cannot reach them!`, type: 'info' });
-                    continue;
-                }
-
-                // --- ENEMY REACTION CHECK (melee, ranged, and magic spells) ---
-                if (!isPvP && !target.isPlayer && target.state) {
-                    // Determine attack types (can be multiple, e.g. ranged + magic)
-                    const attackTypes = [];
-                    if (spell.range) attackTypes.push(spell.range); // 'melee' or 'ranged'
-                    if (spell.isMagic) attackTypes.push('magic');
-
-                    const reactionResult = checkEnemyReaction(target.state, attackTypes, actingPlayerState, log);
-
-                    if (reactionResult.negated) {
-                        const actionVerb = attackTypes.includes('magic') ? 'deflects' : 'parries';
-                        log.push({ message: `${target.name} ${actionVerb} the ${spell.name}!`, type: 'info' });
-
-                        // Apply counter-damage to the player
-                        if (reactionResult.counterDamage > 0) {
-                            const resistance = reactionResult.counterDamageType === 'Physical' ? (bonuses.physicalResistance || 0) : 0;
-                            const counterDmg = Math.max(1, reactionResult.counterDamage - resistance);
-
-                            applyDamage(actingPlayerState, counterDmg);
-                            let counterMsg = `${actingPlayerState.name} takes ${counterDmg} ${reactionResult.counterDamageType} damage from the counter-attack!`;
-                            if (resistance > 0) counterMsg += ` (${resistance} resisted)`;
-                            log.push({ message: counterMsg, type: 'damage' });
-
-                            // Check if player died from counter-attack
-                            if (actingPlayerState.health <= 0) {
-                                actingPlayerState.health = 0;
-                                actingPlayerState.isDead = true;
-                                log.push({ message: `${actingPlayerState.name} has been defeated!`, type: 'damage' });
-                            }
-                        }
-                        continue; // Skip this target's damage
-                    } else if (reactionResult.blockAmount > 0) {
-                        // Block-style - reduce damage by blockAmount
-                        const blockedDmg = Math.min(reactionResult.blockAmount, baseDamage);
-                        baseDamage = Math.max(1, baseDamage - blockedDmg);
-                        damageToDeal = Math.max(1, damageToDeal - blockedDmg);
-                    }
-                }
-
-                // --- VEXOR DODGE ---
-                if (checkVexorDodge(target, sharedState, log)) {
-                    continue;
-                }
-
-                let hitDescription = '';
-                if (baseDamage > 0) {
-                    applyDamage(target.state, damageToDeal);
-                    hitDescription = `Dealt ${damageToDeal} ${spell.damageType || 'Magic'} damage to ${target.name} [id:${target.id}].`;
-                    if (damageToDeal < baseDamage) hitDescription += ` (${baseDamage - damageToDeal} resisted)`;
-                }
-
-                // Apply debuffs
-                if (spell.debuff) {
-                    if (!target.state.debuffs) target.state.debuffs = [];
-                    const existingIndex = target.state.debuffs.findIndex(d => d.type.toLowerCase() === spell.debuff.type.toLowerCase());
-                    if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
-                    let debuffToApply = { ...spell.debuff };
-                    // DoT damage scales with power bonuses, not stats
-                    if (spell.debuff.damageType) {
-                        const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
-                        const powerKey = spell.debuff.damageType.toLowerCase() + 'Power';
-                        const powerBonus = bonuses[powerKey] || 0;
-                        // Use baseDamage for scaling, fallback to existing damage value
-                        const baseDmg = spell.debuff.baseDamage ?? spell.debuff.damage ?? 0;
-                        debuffToApply.damage = baseDmg + powerBonus;
-                    }
-                    target.state.debuffs.push(debuffToApply);
-                    hitDescription += ` ${target.name} is now ${spell.debuff.type}!`;
-                }
-
-                if (spell.onHit?.debuff && currentAttackResult.total >= (spell.onHit.threshold || spell.hit)) {
-                    if (!target.state.debuffs) target.state.debuffs = [];
-                    const existingIndex = target.state.debuffs.findIndex(d => d.type === spell.onHit.debuff.type);
-                    if (existingIndex !== -1) target.state.debuffs.splice(existingIndex, 1);
-                    target.state.debuffs.push({ ...spell.onHit.debuff });
-                    hitDescription += ` ${target.name} is now ${spell.onHit.debuff.type}!`;
-                }
-
-                // Apply onHit Chill (for Cone of Cold and similar spells)
-                if (spell.onHit?.chill && currentAttackResult.total >= (spell.onHit.threshold || spell.hit)) {
-                    const chillAmount = spell.onHit.chill;
-                    const chillResult = applyChillStack(target.state, chillAmount, log);
-                    hitDescription += ` ${target.name} gains ${chillAmount} Chill${chillAmount > 1 ? ' stacks' : ''}!`;
-                    if (chillResult === 'frozen') {
-                        hitDescription += ` ${target.name} is FROZEN!`;
-                    }
-                }
-
-                log.push({ message: hitDescription.trim(), type: 'damage' });
-
-                // Vampire Phase Transition (spawn Vampire's Assistant at 60HP)
-                checkVampirePhaseTransition(target, sharedState, gameData, log);
-
-                // Check for death
-                if (target.state.health <= 0) {
-                    if (target.isPvP) {
-                        defeatEnemyInParty(io, party, { playerId: target.id }, null);
-                    } else {
-                        defeatEnemyInParty(io, party, target.state, target.cardIndex);
-                    }
-                }
-            }
-            // Broadcast after each swing for visual feedback
-            broadcastAdventureUpdate(io, party);
-        }
     }
 
-    // Handle Scorch cooldown reset on 15+ roll
-    if (spell.resetCooldownThreshold && attackResult.total >= spell.resetCooldownThreshold && attackResult.isHit) {
-        actingPlayerState.spellCooldowns[spell.name] = 0;
-        log.push({ message: `${character.characterName}'s ${spell.name} cooldown resets!`, type: 'heal' });
-    }
+    // 11. Cooldown reset (Scorch)
+    handleCooldownReset(ctx);
 
     broadcastAdventureUpdate(io, party);
     await checkAndEndTurnForPlayer(io, party, player);
@@ -1312,7 +575,7 @@ export async function processUseConsumable(io, party, player, payload) {
 
         if (isHit) {
             const rollColor = '#2ecc71';
-            const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+            const rollDisplay = `<span style="color:${rollColor}">ðŸŽ²${roll}</span>`;
             // Apply damage
             if (item.damage) {
                 const damage = item.damage;
@@ -1342,7 +605,7 @@ export async function processUseConsumable(io, party, player, payload) {
             }
         } else {
             const rollColor = '#e74c3c';
-            const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+            const rollDisplay = `<span style="color:${rollColor}">ðŸŽ²${roll}</span>`;
             logTarget.log.push({
                 message: `${character.characterName} throws ${item.name} at ${targetCard.name}! ${rollDisplay} Miss!`,
                 type: 'info'
