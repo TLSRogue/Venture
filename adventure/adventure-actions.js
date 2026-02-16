@@ -8,6 +8,7 @@ import { handleResolveReaction } from './reaction-handlers.js';
 import { applyDamage, normalizeTarget, resolveAttackRoll, calculateWeaponDamage, getWeaponDebuff, checkVexorDodge, checkVampirePhaseTransition, checkEnemyReaction, applyChillStack, getCombatContext, getHostileTargets, getAvailablePlayerReactions } from './combat-core.js';
 import { INVENTORY_SIZE } from '../constants.js';
 import { SpellHandlers, getSpecialSpellDamage } from './spell-handlers.js';
+import { rollD20 } from '../shared.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 
 function handlePvpReactionCheck(io, encounter, attackerCharacter, defendingPlayerState, actionDetails) {
@@ -1304,7 +1305,7 @@ export async function processUseConsumable(io, party, player, payload) {
             return;
         }
 
-        const roll = Math.floor(Math.random() * 20) + 1;
+        const roll = rollD20();
         const hitThreshold = item.hit || 10;
         const isHit = roll >= hitThreshold;
         const isCrit = roll === 20;

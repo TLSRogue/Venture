@@ -5,6 +5,7 @@
  */
 
 import { players, parties, pvpEncounters } from '../serverState.js';
+import { rollD20 } from '../shared.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer } from '../utilsHelpers.js';
 import { applyDamage } from './combat-core.js';
@@ -62,7 +63,7 @@ export async function handleResolveReaction(io, socket, payload) {
             reactingPlayerState.spellCooldowns[dodgeSpell.name] = dodgeSpell.cooldown;
             const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
             const statValue = reactingPlayer.character.agility + bonuses.agility;
-            const roll = Math.floor(Math.random() * 20) + 1;
+            const roll = rollD20();
             const total = roll + statValue;
             const isSuccess = roll !== 1 && total >= dodgeSpell.hit;
             const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
@@ -85,7 +86,7 @@ export async function handleResolveReaction(io, socket, payload) {
             reactingPlayerState.itemCooldowns[shield.name] = shield.cooldown;
             const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
             const statValue = reactingPlayer.character.defense + bonuses.defense;
-            const roll = Math.floor(Math.random() * 20) + 1;
+            const roll = rollD20();
             const total = roll + statValue;
             const isSuccess = roll !== 1 && total >= shield.reaction.hit;
             const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
@@ -118,7 +119,7 @@ export async function handleResolveReaction(io, socket, payload) {
             reactingPlayerState.spellCooldowns[evasiveShotSpell.name] = evasiveShotSpell.cooldown;
             const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
             const statValue = reactingPlayer.character.agility + bonuses.agility;
-            const roll = Math.floor(Math.random() * 20) + 1;
+            const roll = rollD20();
             const total = roll + statValue;
             const { avoidHit, counterHit } = evasiveShotSpell.reactionDetails;
 
@@ -201,7 +202,7 @@ export async function handleResolveReaction(io, socket, payload) {
             // Use defense stat
             const statValue = reactingPlayer.character.defense + (bonuses.defense || 0);
 
-            const roll = Math.floor(Math.random() * 20) + 1;
+            const roll = rollD20();
             const total = roll + statValue;
             const { avoidHit, counterHit } = parrySpell.reactionDetails;
 

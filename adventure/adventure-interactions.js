@@ -2,26 +2,11 @@
 
 import { players, parties, pvpEncounters } from '../serverState.js';
 import { gameData } from '../data/index.js';
-import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, addItemToInventoryServer, consumeMaterials } from '../utilsHelpers.js';
+import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, addItemToInventoryServer, consumeMaterials, getZoneAreaCard } from '../utilsHelpers.js';
 import { checkAndEndTurnForPlayer } from './adventure-state.js';
+import { rollD20 } from '../shared.js';
+import { RESOURCE_HIT_TARGET, BRIBE_CAPTAIN_COST, DOCKS_LOCKOUT_MS } from '../constants.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
-
-/**
- * Get the area card to use when replacing treasure chests or resources in a zone.
- * @param {string} zoneName - The current zone name
- * @returns {Object|null} Area card object with unique id, or null if no area card for zone
- */
-function getZoneAreaCard(zoneName, index = 0) {
-    const zoneAreaCards = {
-        farmlands: gameData.specialCards.farmlandsArea,
-        sewers: gameData.specialCards.emptyCanal,
-        goblinCaves: gameData.specialCards.goblinCavesTunnel,
-        darkForest: gameData.specialCards.darkForestTrail,
-        mansion: gameData.specialCards.mansionHall
-    };
-    const areaCard = zoneAreaCards[zoneName];
-    return areaCard ? { ...areaCard, id: Date.now() + 1000 + index } : null;
-}
 
 
 export function processDropItem(io, party, player, payload) {
@@ -158,9 +143,9 @@ export async function processInteractWithCard(io, party, player, payload) {
 
         const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
         const skillValue = (character[card.skill] || 0) + (bonuses[card.skill] || 0);
-        const roll = Math.floor(Math.random() * 20) + 1;
+        const roll = rollD20();
         const total = roll + skillValue;
-        const hitTarget = 11;
+        const hitTarget = RESOURCE_HIT_TARGET;
         const isSuccess = roll > 1 && total >= hitTarget;
         const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
         const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
@@ -576,15 +561,15 @@ export function processDialogueChoice(io, player, party, payload) {
     }
 
     if (choice.action === 'bribeCaptain') {
-        if (character.gold < 1000) {
+        if (character.gold < BRIBE_CAPTAIN_COST) {
             party.sharedState.log.push({ message: `${character.characterName} doesn't have enough gold to bribe the captain!`, type: 'damage' });
             io.to(player.id).emit('party:hideDialogue');
             broadcastAdventureUpdate(io, party);
             return;
         }
-        character.gold -= 1000;
+        character.gold -= BRIBE_CAPTAIN_COST;
         io.to(player.id).emit('characterUpdate', character);
-        party.sharedState.log.push({ message: `${character.characterName} bribed the captain with 1000 Gold!`, type: 'success' });
+        party.sharedState.log.push({ message: `${character.characterName} bribed the captain with ${BRIBE_CAPTAIN_COST} Gold!`, type: 'success' });
         // Continue to success dialogue
     }
 
@@ -592,7 +577,7 @@ export function processDialogueChoice(io, player, party, payload) {
         const actingPlayerState = party.sharedState.partyMemberStates.find(p => p.playerId === player.id);
         const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
         const agilityValue = (character.agility || 0) + (bonuses.agility || 0);
-        const roll = Math.floor(Math.random() * 20) + 1;
+        const roll = rollD20();
         const total = roll + agilityValue;
 
         const rollColor = roll === 20 ? '#2ecc71' : '#e74c3c';
@@ -613,7 +598,7 @@ export function processDialogueChoice(io, player, party, payload) {
 
     if (choice.action === 'kickFromDocks') {
         // Apply 10-minute lockout to the party
-        const lockoutDuration = 10 * 60 * 1000; // 10 minutes
+        const lockoutDuration = DOCKS_LOCKOUT_MS;
         party.sharedState.docksLockoutUntil = Date.now() + lockoutDuration;
         party.sharedState.log.push({ message: `The party is banned from The Docks for 10 minutes!`, type: 'damage' });
 

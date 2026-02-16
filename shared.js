@@ -4,7 +4,7 @@
  * This module helps eliminate code duplication across the codebase.
  */
 
-import { INVENTORY_SIZE } from './constants.js';
+import { INVENTORY_SIZE, DEFAULT_ACTION_POINTS, STARTING_HEALTH, STARTING_GOLD } from './constants.js';
 
 // --- SHARED CONSTANTS ---
 
@@ -49,8 +49,8 @@ export const FRIENDLY_SPELL_TYPES = new Set([
 export const DEFAULT_CHARACTER_STATS = {
     title: "The Novice",
     unlockedTitles: ["The Novice"],
-    health: 10,
-    maxHealth: 10,
+    health: STARTING_HEALTH,
+    maxHealth: STARTING_HEALTH,
     shield: 0,
     wisdom: 0,
     strength: 0,
@@ -62,9 +62,9 @@ export const DEFAULT_CHARACTER_STATS = {
     fishing: 0,
     woodcutting: 0,
     harvesting: 0,
-    gold: 300,
+    gold: STARTING_GOLD,
     questPoints: 0,
-    actionPoints: 3,
+    actionPoints: DEFAULT_ACTION_POINTS,
     focus: 0,
     inventory: Array(INVENTORY_SIZE).fill(null),
     bank: [],
@@ -105,6 +105,26 @@ export function shuffleArray(arr) {
         [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
+}
+
+// --- DICE ROLL HELPERS ---
+
+/**
+ * Roll a D20 (1-20).
+ * @returns {number} A random integer from 1 to 20
+ */
+export function rollD20() {
+    return Math.floor(Math.random() * 20) + 1;
+}
+
+/**
+ * Generate a random integer between min and max (inclusive).
+ * @param {number} min - Minimum value
+ * @param {number} max - Maximum value
+ * @returns {number} A random integer in [min, max]
+ */
+export function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 // --- LOOKUP UTILITIES ---

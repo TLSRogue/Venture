@@ -5,6 +5,7 @@ import { players } from '../serverState.js';
 import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer } from '../utilsHelpers.js';
 import { applyDamage, applyDoTEffects, decrementEnemyReactionCooldowns } from './combat-core.js';
+import { rollD20 } from '../shared.js';
 
 /**
  * Rat types that can be summoned by the Rat King
@@ -641,7 +642,7 @@ function handleLootGoblinPickpocket(enemy, sharedState, target, attack, ctx) {
         const victimPlayer = players[victim.name];
         if (victimPlayer && victimPlayer.character) {
             const stealAmount = Math.min(
-                Math.floor(Math.random() * 20) + 1,
+                rollD20(),
                 victimPlayer.character.gold
             );
             if (stealAmount > 0) {

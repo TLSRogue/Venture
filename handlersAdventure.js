@@ -4,7 +4,7 @@ import { players, parties, duels, pvpEncounters } from './serverState.js';
 import { gameData } from './data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from './utilsBroadcast.js';
 import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer } from './utilsHelpers.js';
-import { ARENA_ENTRY_FEE } from './constants.js';
+import { ARENA_ENTRY_FEE, DEFAULT_ACTION_POINTS, STARTING_HEALTH } from './constants.js';
 
 import * as actions from './adventure/adventure-actions.js';
 import * as interactions from './adventure/adventure-interactions.js';
@@ -59,14 +59,14 @@ export const registerAdventureHandlers = (io, socket) => {
                 const memberPlayer = players[memberName];
                 const memberCharacter = memberPlayer.character;
                 const bonuses = getBonusStatsForPlayer(memberCharacter, null);
-                const maxHealth = 10 + bonuses.maxHealth;
+                const maxHealth = STARTING_HEALTH + bonuses.maxHealth;
                 return {
                     playerId: memberPlayer.id,
                     name: memberCharacter.characterName,
                     icon: memberCharacter.characterIcon,
                     health: maxHealth,
                     maxHealth: maxHealth,
-                    actionPoints: 3,
+                    actionPoints: DEFAULT_ACTION_POINTS,
                     turnEnded: false,
                     isDead: false,
                     lootableInventory: [],
@@ -173,7 +173,7 @@ export const registerAdventureHandlers = (io, socket) => {
                             const memberState = opponentParty.sharedState.partyMemberStates.find(p => p.name === memberName);
                             if (!memberState?.isDead) {
                                 const bonuses = getBonusStatsForPlayer(memberCharacter, null);
-                                memberCharacter.health = 10 + bonuses.maxHealth;
+                                memberCharacter.health = STARTING_HEALTH + bonuses.maxHealth;
                             }
                             if (memberPlayer.id) {
                                 io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
@@ -207,7 +207,7 @@ export const registerAdventureHandlers = (io, socket) => {
                                 const memberState = party.sharedState.partyMemberStates.find(p => p.name === memberName);
                                 if (!memberState?.isDead) {
                                     const bonuses = getBonusStatsForPlayer(memberCharacter, null);
-                                    memberCharacter.health = 10 + bonuses.maxHealth;
+                                    memberCharacter.health = STARTING_HEALTH + bonuses.maxHealth;
                                 }
                                 if (memberPlayer.id) {
                                     io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
@@ -232,7 +232,7 @@ export const registerAdventureHandlers = (io, socket) => {
                         party.sharedState.log.push({ message: "Combat has ended! You may continue your adventure.", type: 'success' });
                         party.sharedState.partyMemberStates.forEach(p => {
                             if (!p.isDead) {
-                                p.actionPoints = 3;
+                                p.actionPoints = DEFAULT_ACTION_POINTS;
                                 p.turnEnded = false;
                             }
                         });

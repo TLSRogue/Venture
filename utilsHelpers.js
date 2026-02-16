@@ -7,6 +7,7 @@
 
 import { gameData, itemsByName } from './data/index.js';
 import { shuffleArray, DEFAULT_BONUS_STATS } from './shared.js';
+import { MERCHANT_ROTATION_MS, MERCHANT_STOCK_SIZE, MERCHANT_MAX_QUANTITY, LOOT_GOBLIN_SPAWN_CHANCE, BOSS_HP_SCALE_PER_PLAYER } from './constants.js';
 
 export function createStateForClient(sharedState, encounterState = null) {
     if (!sharedState) return null;
@@ -52,9 +53,9 @@ function generateMerchantStock(character) {
     shuffleArray(stockPool);
 
     // Assign a random quantity to the selected stock
-    character.merchantStock = stockPool.slice(0, 10).map(item => ({
+    character.merchantStock = stockPool.slice(0, MERCHANT_STOCK_SIZE).map(item => ({
         ...item,
-        quantity: Math.floor(Math.random() * 10) + 1
+        quantity: Math.floor(Math.random() * MERCHANT_MAX_QUANTITY) + 1
     }));
     character.merchantLastStocked = Date.now();
 }
@@ -64,8 +65,7 @@ function generateMerchantStock(character) {
  * @param {object} character - The character object to check.
  */
 export function checkAndRotateMerchantStock(character) {
-    const TEN_MINUTES = 10 * 60 * 1000;
-    if (!character.merchantLastStocked || (Date.now() - character.merchantLastStocked > TEN_MINUTES)) {
+    if (!character.merchantLastStocked || (Date.now() - character.merchantLastStocked > MERCHANT_ROTATION_MS)) {
         console.log(`Rotating merchant stock for ${character.characterName}`);
         generateMerchantStock(character);
     }
@@ -90,7 +90,7 @@ export function buildZoneDeckForServer(zoneName, partySize = 1) {
         }
     });
 
-    if (Math.random() < 0.33) {
+    if (Math.random() < LOOT_GOBLIN_SPAWN_CHANCE) {
         // Randomly assign tier (1-3) and scale HP accordingly
         const tier = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3
         const tierHP = { 1: 6, 2: 12, 3: 18 };
@@ -107,7 +107,7 @@ export function buildZoneDeckForServer(zoneName, partySize = 1) {
 
     // Scale boss HP based on party size (percentage-based: 2 players +20%, 3 players +40%)
     if (partySize > 1) {
-        const hpMultiplier = 1 + (partySize - 1) * 0.20; // 1.2 for 2 players, 1.4 for 3 players
+        const hpMultiplier = 1 + (partySize - 1) * BOSS_HP_SCALE_PER_PLAYER;
         otherCards.forEach(card => {
             if (card.isBoss) {
                 card.health = Math.ceil(card.health * hpMultiplier);
@@ -146,7 +146,7 @@ export function buildZoneDeckForServer(zoneName, partySize = 1) {
 /**
  * Get zone-specific area card for filling empty slots
  */
-function getZoneAreaCard(zoneName, index = 0) {
+export function getZoneAreaCard(zoneName, index = 0) {
     const zoneAreaCards = {
         farmlands: gameData.specialCards.farmlandsArea,
         sewers: gameData.specialCards.emptyCanal,

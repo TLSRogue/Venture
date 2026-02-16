@@ -6,6 +6,8 @@
 
 import { players, pvpEncounters } from '../serverState.js';
 import { getBonusStatsForPlayer } from '../utilsHelpers.js';
+import { rollD20 } from '../shared.js';
+import { DEFAULT_HIT_TARGET } from '../constants.js';
 
 // --- COMBAT CONTEXT HELPERS ---
 
@@ -359,9 +361,9 @@ export function calculateRollModifiers(actingPlayerState, character, target, sta
  * Perform an attack roll with all modifiers applied.
  * @returns {object} { roll, total, isHit, isCriticalHit, isCriticalFail, rollDisplay }
  */
-export function resolveAttackRoll(actingPlayerState, character, target, stat, hitTarget = 15) {
+export function resolveAttackRoll(actingPlayerState, character, target, stat, hitTarget = DEFAULT_HIT_TARGET) {
     const modifiers = calculateRollModifiers(actingPlayerState, character, target, stat);
-    const roll = Math.floor(Math.random() * 20) + 1;
+    const roll = rollD20();
     const total = roll + modifiers.total;
 
     const isCriticalFail = roll === 1;
@@ -555,7 +557,7 @@ export function checkVexorDodge(target, sharedState, log) {
     if (target.name !== 'Vexor, Lord of the Arena') return false;
 
     const columns = sharedState.zoneCards.filter(c => c && c.name === 'Stone Column');
-    if (columns.length > 0 && Math.floor(Math.random() * 20) + 1 >= 10) {
+    if (columns.length > 0 && rollD20() >= 10) {
         log.push({ message: `Vexor, Lord of the Arena's Dodge: Jumps behind a Stone Column! Avoided!`, type: 'reaction' });
         log.push({ message: `(Tip: Destroy the Stone Columns!)`, type: 'info' });
         return true;
@@ -735,7 +737,7 @@ export function checkEnemyReaction(enemy, attackTypeInput, attackerPlayerState, 
         enemy.reactionCooldowns[reaction.name] = reaction.cooldown;
 
         // Roll D20 for the reaction
-        const roll = Math.floor(Math.random() * 20) + 1;
+        const roll = rollD20();
         const isSuccess = roll >= reaction.roll;
 
         const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';

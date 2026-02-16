@@ -5,6 +5,7 @@ import { gameState } from '../state.js';
 import * as Network from '../network.js';
 import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip } from './ui-main.js';
 import { playSound } from '../audio/sound-manager.js';
+import { MERCHANT_ROTATION_MS, INVENTORY_SIZE } from '../constants.js';
 
 // --- LOCAL STATE & HELPERS ---
 
@@ -142,7 +143,7 @@ export function renderBankInterface() {
         bankItems = bankItems.filter(item => item.name.toLowerCase().includes(bankSearchQuery));
     }
 
-    const itemsPerPage = 28;
+    const itemsPerPage = INVENTORY_SIZE;
     const totalPages = Math.ceil(bankItems.length / itemsPerPage) || 1;
     if (bankCurrentPage > totalPages) bankCurrentPage = totalPages;
 
@@ -232,7 +233,7 @@ function renderStoragePanel(parentContainer, mode, storageSource = 'inventory') 
 
     const items = storageSource === 'inventory' ? gameState.inventory : gameState.bank;
     const isBank = storageSource === 'bank';
-    const slotsToShow = 28;
+    const slotsToShow = INVENTORY_SIZE;
 
     for (let i = 0; i < slotsToShow; i++) {
         const slot = document.createElement('div');
@@ -382,7 +383,7 @@ export function renderMerchant() {
 }
 
 export function updateRestockTimer() {
-    const TEN_MINUTES = 10 * 60 * 1000;
+    const TEN_MINUTES = MERCHANT_ROTATION_MS;
     const timerEl = document.getElementById('restock-timer');
     if (!timerEl || !gameState.merchantLastStocked) return;
 

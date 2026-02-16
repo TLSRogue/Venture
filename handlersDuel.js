@@ -8,6 +8,7 @@ import { players, parties, duels } from './serverState.js';
 import { broadcastPartyUpdate, broadcastDuelUpdate } from './utilsBroadcast.js';
 import { getBonusStatsForPlayer } from './utilsHelpers.js';
 import { startPvpEncounter } from './adventure/pvp-state.js';
+import { DEFAULT_ACTION_POINTS, STARTING_HEALTH } from './constants.js';
 
 // This function is exported separately so the disconnect handler can call it.
 export function endDuel(io, duelId, winnerName, loserName) {
@@ -116,7 +117,7 @@ export const registerDuelHandlers = (io, socket) => {
         const createDuelParty = (playerObj) => {
             const partyId = `DUEL-PARTY-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
             const bonuses = getBonusStatsForPlayer(playerObj.character, null);
-            const maxHealth = 10 + bonuses.maxHealth;
+            const maxHealth = STARTING_HEALTH + bonuses.maxHealth;
 
             const party = {
                 id: partyId,
@@ -136,7 +137,7 @@ export const registerDuelHandlers = (io, socket) => {
                         icon: playerObj.character.characterIcon,
                         health: maxHealth,
                         maxHealth: maxHealth,
-                        actionPoints: 3,
+                        actionPoints: DEFAULT_ACTION_POINTS,
                         turnEnded: false,
                         isDead: false,
                         lootableInventory: [],

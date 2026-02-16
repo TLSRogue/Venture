@@ -8,6 +8,7 @@
 import { players, parties, duels } from './serverState.js';
 import { gameData, itemsByName } from './data/index.js';
 import { addItemToInventoryServer, playerHasMaterials, consumeMaterials, checkAndRotateMerchantStock, getBonusStatsForPlayer } from './utilsHelpers.js';
+import { STARTING_HEALTH } from './constants.js';
 
 // --- INDIVIDUAL ACTION HANDLERS ---
 // Each handler receives (character, payload) and returns true if successful
@@ -196,7 +197,7 @@ function handleUseConsumable(character, payload) {
 
     if (item.heal) {
         const bonuses = getBonusStatsForPlayer(character, null);
-        const maxHealth = 10 + bonuses.maxHealth;
+        const maxHealth = STARTING_HEALTH + bonuses.maxHealth;
         character.health = Math.min(maxHealth, character.health + item.heal);
     }
     if (item.buff) {

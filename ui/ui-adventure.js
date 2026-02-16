@@ -5,6 +5,7 @@ import { socket } from '../network.js';
 import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip } from './ui-main.js';
 import { getBonusStats } from '../player.js';
 import { itemsByName } from '../data/index.js';
+import { INVENTORY_SIZE } from '../constants.js';
 
 /**
  * Helper to build icon HTML (supports images and emojis)
@@ -1165,7 +1166,7 @@ export function showBackpack() {
     itemsGrid.style.maxWidth = '650px';
     itemsGrid.style.margin = '20px auto 0 auto';
 
-    for (let i = 0; i < 28; i++) {
+    for (let i = 0; i < INVENTORY_SIZE; i++) {
         const item = gameState.inventory[i];
         const slot = document.createElement('div');
         slot.className = 'inventory-item';
@@ -1365,7 +1366,7 @@ export function showGroundLootModal() {
     const inventoryGrid = document.createElement('div');
     inventoryGrid.className = 'inventory-grid';
 
-    for (let i = 0; i < 28; i++) {
+    for (let i = 0; i < INVENTORY_SIZE; i++) {
         const item = gameState.inventory[i];
         const itemEl = document.createElement('div');
         itemEl.className = 'inventory-item';

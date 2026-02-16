@@ -12,7 +12,7 @@ import { endDuel } from './handlersDuel.js';
 import { handlePvpPlayerDeath } from './adventure/pvp-state.js';
 import { runMigrations } from './migrations.js';
 import fs from 'fs';
-import { DUEL_DISCONNECT_MS } from './constants.js';
+import { DUEL_DISCONNECT_MS, DEFAULT_ACTION_POINTS } from './constants.js';
 
 export const registerConnectionHandlers = (io, socket) => {
 
@@ -191,7 +191,7 @@ export const registerConnectionHandlers = (io, socket) => {
                                 winningParty.sharedState.log = encounter.log;
                                 winningParty.sharedState.partyMemberStates.forEach(p => {
                                     if (!p.isDead) {
-                                        p.actionPoints = 3;
+                                        p.actionPoints = DEFAULT_ACTION_POINTS;
                                         p.turnEnded = false;
                                     }
                                 });

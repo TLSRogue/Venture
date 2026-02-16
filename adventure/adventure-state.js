@@ -2,10 +2,11 @@
 
 import { players, parties, pvpZoneQueues, pvpEncounters } from '../serverState.js';
 import { gameData, lootPools } from '../data/index.js';
+import { rollD20 } from '../shared.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
-import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient } from '../utilsHelpers.js';
+import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient, getZoneAreaCard } from '../utilsHelpers.js';
 import { applyDamage, applyDoTEffects, applyChillStack, processChillReduction, getAvailablePlayerReactions, processEndOfTurnEffects } from './combat-core.js';
-import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS, INTERVENE_TIMER_MS, INVENTORY_SIZE } from '../constants.js';
+import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS, INTERVENE_TIMER_MS, INVENTORY_SIZE, DEFAULT_ACTION_POINTS, STARTING_HEALTH } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
 import { processEnemyEndOfTurn, handleEnemySpecialAction } from './enemy-handlers.js';
 import {
@@ -23,23 +24,6 @@ import {
 } from './loot-manager.js';
 
 const PVP_ZONES = ['blighted_wastes'];
-
-/**
- * Get the area card to use when replacing defeated enemies or opened chests in a zone.
- * @param {string} zoneName - The current zone name
- * @returns {Object|null} Area card object with unique id, or null if no area card for zone
- */
-function getZoneAreaCard(zoneName, index = 0) {
-    const zoneAreaCards = {
-        farmlands: gameData.specialCards.farmlandsArea,
-        sewers: gameData.specialCards.emptyCanal,
-        goblinCaves: gameData.specialCards.goblinCavesTunnel,
-        darkForest: gameData.specialCards.darkForestTrail,
-        mansion: gameData.specialCards.mansionHall
-    };
-    const areaCard = zoneAreaCards[zoneName];
-    return areaCard ? { ...areaCard, id: Date.now() + 1000 + index } : null;
-}
 
 /**
  * Helper function to proceed to normal reaction after intervene phase is complete.
@@ -134,7 +118,7 @@ export async function resolveIntervene(io, socket, payload) {
         // Roll for intervene success
         const bonuses = getBonusStatsForPlayer(player.character, intervenorState);
         const defenseValue = player.character.defense + (bonuses.defense || 0);
-        const roll = Math.floor(Math.random() * 20) + 1;
+        const roll = rollD20();
         const total = roll + defenseValue;
         const isSuccess = roll !== 1 && total >= interveneSpell.hit;
 
@@ -337,7 +321,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
             sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone);
         }
         if (!sharedState.zoneCards.some(c => c && c.type === 'enemy')) {
-            sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = 3; });
+            sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = DEFAULT_ACTION_POINTS; });
         }
         return;
     }
@@ -347,7 +331,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     let lootTableGold = 0;
 
     if (enemy.lootTable && enemy.lootTable.length > 0) {
-        const roll = Math.floor(Math.random() * 20) + 1;
+        const roll = rollD20();
         const lootDrop = enemy.lootTable.find(entry => roll >= entry.range[0] && roll <= entry.range[1]);
 
         if (lootDrop) {
@@ -448,7 +432,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
             // Legacy format support
             goldAmount = Math.floor(Math.random() * (enemy.guaranteedLoot.maxGold - enemy.guaranteedLoot.minGold + 1)) + enemy.guaranteedLoot.minGold;
         } else {
-            goldAmount = (Math.floor(Math.random() * 20) + 1) + (Math.floor(Math.random() * 20) + 1);
+            goldAmount = rollD20() + rollD20();
         }
         totalGoldDropped += goldAmount;
     }
@@ -527,7 +511,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
         sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone);
     }
     if (!sharedState.zoneCards.some(c => c && c.type === 'enemy')) {
-        sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = 3; });
+        sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = DEFAULT_ACTION_POINTS; });
     }
 }
 
@@ -574,7 +558,7 @@ export async function processEndAdventure(io, player, party) {
             if (memberCharacter) {
                 if (!sharedState.partyMemberStates.find(p => p.name === memberName)?.isDead) {
                     const bonuses = getBonusStatsForPlayer(memberCharacter, null);
-                    memberCharacter.health = 10 + bonuses.maxHealth;
+                    memberCharacter.health = STARTING_HEALTH + bonuses.maxHealth;
                 }
                 if (memberPlayer.id) {
                     io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
@@ -630,7 +614,7 @@ export async function processVentureDeeper(io, player, party) {
         drawCardsForServer(sharedState, 3);
         sharedState.partyMemberStates.forEach(p => {
             if (!p.isDead) {
-                p.actionPoints = 3;
+                p.actionPoints = DEFAULT_ACTION_POINTS;
                 p.turnEnded = false;
             }
             p.weaponCooldowns = {};
@@ -908,7 +892,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             const stealthBuff = targetPlayerState.buffs.find(b => b.type === 'Stealth');
             const stealthModifier = stealthBuff ? -5 : 0;
 
-            let roll = Math.floor(Math.random() * 20) + 1;
+            let roll = rollD20();
             const modifiedRoll = Math.max(1, roll + dazeModifier + stealthModifier); // Minimum roll of 1
 
             if (dazeDebuff && dazeModifier !== 0) {
@@ -1331,7 +1315,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     const extraTargetObj = players[extraTarget.name];
                     if (!extraTargetObj) break;
 
-                    let extraRoll = Math.floor(Math.random() * 20) + 1;
+                    let extraRoll = rollD20();
                     const extraAttack = enemy.attackTable ? enemy.attackTable.find(a => extraRoll >= a.range[0] && extraRoll <= a.range[1]) : null;
 
                     if (extraAttack && extraAttack.action === 'attack') {
@@ -1402,11 +1386,11 @@ export function startNextPlayerTurn(io, partyId) {
             // Check for Stun or Frozen - reduces AP by 1
             const disablingDebuff = p.debuffs.find(d => d.type === 'stun' || d.type === 'frozen');
             if (disablingDebuff) {
-                p.actionPoints = 2; // 3 - 1 = 2 AP due to stun/frozen
+                p.actionPoints = DEFAULT_ACTION_POINTS - 1; // Lose 1 AP due to stun/frozen
                 const effectName = disablingDebuff.type === 'frozen' ? 'Frozen' : 'stunned';
                 sharedState.log.push({ message: `${p.name} is ${effectName} and starts with reduced Action Points!`, type: 'reaction' });
             } else {
-                p.actionPoints = 3;
+                p.actionPoints = DEFAULT_ACTION_POINTS;
             }
             p.turnEnded = false;
         }
@@ -1566,7 +1550,7 @@ export async function handleResolveReaction(io, socket, payload) {
             reactingPlayerState.spellCooldowns[dodgeSpell.name] = dodgeSpell.cooldown;
             const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
             const statValue = reactingPlayer.character.agility + bonuses.agility;
-            const roll = Math.floor(Math.random() * 20) + 1;
+            const roll = rollD20();
             const total = roll + statValue;
             const isSuccess = roll !== 1 && total >= dodgeSpell.hit;
             const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
@@ -1589,7 +1573,7 @@ export async function handleResolveReaction(io, socket, payload) {
             reactingPlayerState.itemCooldowns[shield.name] = shield.cooldown;
             const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
             const statValue = reactingPlayer.character.defense + bonuses.defense;
-            const roll = Math.floor(Math.random() * 20) + 1;
+            const roll = rollD20();
             const total = roll + statValue;
             const isSuccess = roll !== 1 && total >= shield.reaction.hit;
             const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
@@ -1622,7 +1606,7 @@ export async function handleResolveReaction(io, socket, payload) {
             reactingPlayerState.spellCooldowns[evasiveShotSpell.name] = evasiveShotSpell.cooldown;
             const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
             const statValue = reactingPlayer.character.agility + bonuses.agility;
-            const roll = Math.floor(Math.random() * 20) + 1;
+            const roll = rollD20();
             const total = roll + statValue;
             const { avoidHit, counterHit } = evasiveShotSpell.reactionDetails;
 
@@ -1706,7 +1690,7 @@ export async function handleResolveReaction(io, socket, payload) {
             // Use defense stat
             const statValue = reactingPlayer.character.defense + (bonuses.defense || 0);
 
-            const roll = Math.floor(Math.random() * 20) + 1;
+            const roll = rollD20();
             const total = roll + statValue;
             const { avoidHit, counterHit } = parrySpell.reactionDetails;
 

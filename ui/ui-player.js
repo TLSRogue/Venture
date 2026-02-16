@@ -8,6 +8,7 @@ import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip, build
 import * as TownUI from './ui-town.js';
 import * as AdventureUI from './ui-adventure.js';
 import * as UIParty from './ui-party.js';
+import { STARTING_HEALTH, INVENTORY_SIZE } from '../constants.js';
 
 let activeSpellbookCategory = 'Physical'; // Default category
 
@@ -121,7 +122,7 @@ export function renderHeader() {
 
 export function updateDisplay() {
     const bonuses = getBonusStats();
-    gameState.maxHealth = 10 + bonuses.maxHealth;
+    gameState.maxHealth = STARTING_HEALTH + bonuses.maxHealth;
     if (gameState.currentZone === null && !gameState.inDuel) {
         gameState.health = gameState.maxHealth;
     } else if (gameState.health > gameState.maxHealth) {
@@ -233,7 +234,7 @@ export function renderInventory() {
     const container = document.getElementById('inventory-grid');
     container.innerHTML = '';
 
-    for (let i = 0; i < 28; i++) {
+    for (let i = 0; i < INVENTORY_SIZE; i++) {
         const slot = document.createElement('div');
         slot.className = 'inventory-item';
 

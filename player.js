@@ -6,6 +6,7 @@ import * as Network from './network.js';
 import * as UIMain from './ui/ui-main.js';
 import * as UIPlayer from './ui/ui-player.js';
 import { DEFAULT_BONUS_STATS } from './shared.js';
+import { DEFAULT_ACTION_POINTS } from './constants.js';
 
 // --- CORE PLAYER STATS ---
 
@@ -182,7 +183,7 @@ export function resetToHomeState() {
 }
 
 export function resetPlayerCombatState() {
-    gameState.actionPoints = 3;
+    gameState.actionPoints = DEFAULT_ACTION_POINTS;
     gameState.spellCooldowns = {};
     gameState.weaponCooldowns = {};
     gameState.itemCooldowns = {};

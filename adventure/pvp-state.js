@@ -8,7 +8,7 @@ import { players, parties, pvpEncounters } from '../serverState.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 import { createStateForClient } from '../utilsHelpers.js';
 import { applyDamage, applyDoTEffects, processEndOfTurnEffects } from './combat-core.js';
-import { PVP_TURN_DURATION_MS, INVENTORY_SIZE } from '../constants.js';
+import { PVP_TURN_DURATION_MS, INVENTORY_SIZE, DEFAULT_ACTION_POINTS } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
 import { processZoneEffects } from './adventure-state.js';
 
@@ -142,7 +142,7 @@ export function endPvpEncounter(io, winningParty, losingParty) {
 
     sharedState.partyMemberStates.forEach(p => {
         if (!p.isDead) {
-            p.actionPoints = 3;
+            p.actionPoints = DEFAULT_ACTION_POINTS;
             p.turnEnded = false;
         }
     });
@@ -321,10 +321,10 @@ export function startNextPvpTeamTurn(io, encounterId) {
                 // Check for Stun - reduces AP by 1
                 const stunDebuff = p.debuffs.find(d => d.type === 'stun');
                 if (stunDebuff) {
-                    p.actionPoints = 2; // 3 - 1 = 2 AP due to stun
+                    p.actionPoints = DEFAULT_ACTION_POINTS - 1; // Lose 1 AP due to stun
                     encounter.log.push({ message: `${p.name} is stunned and starts with reduced Action Points!`, type: 'reaction' });
                 } else {
-                    p.actionPoints = 3;
+                    p.actionPoints = DEFAULT_ACTION_POINTS;
                 }
             }
             // Cooldowns decrement at Start of Turn
