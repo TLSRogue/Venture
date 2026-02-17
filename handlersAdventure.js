@@ -93,6 +93,7 @@ export const registerAdventureHandlers = (io, socket) => {
                 trainingOfferings: character.trainingOfferings,
                 trainingCost: (character.spellsLearnedFromTraining || 0) + 1,
                 trainingRefreshCost: 100 * Math.pow(2, character.trainingRefreshCount || 0),
+                gold: character.gold || 0,
                 questPoints: character.questPoints || 0,
                 totalQuestPointsEarned: character.totalQuestPointsEarned || 0,
                 log: [{ message: `Welcome to the Training Grounds! Choose a spell to learn.`, type: 'info' }],
