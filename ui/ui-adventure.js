@@ -1346,6 +1346,11 @@ export function showBackpack() {
 
     modalContentEl.appendChild(itemsGrid);
 
+    const goldDisplay = document.createElement('div');
+    goldDisplay.style.cssText = 'text-align: right; max-width: 650px; margin: 8px auto 0; font-size: 1.1em; color: #f1c40f;';
+    goldDisplay.textContent = `💰 Gold: ${gameState.gold || 0}`;
+    modalContentEl.appendChild(goldDisplay);
+
     const closeButton = document.createElement('button');
     closeButton.className = 'btn';
     closeButton.style.marginTop = '20px';
