@@ -495,7 +495,10 @@ export function processDialogueChoice(io, player, party, payload) {
             questToComplete.status = 'completed';
 
             if (reward.gold) character.gold += reward.gold;
-            if (reward.qp) character.questPoints += reward.qp;
+            if (reward.qp) {
+                character.questPoints += reward.qp;
+                character.totalQuestPointsEarned = (character.totalQuestPointsEarned || 0) + reward.qp;
+            }
 
             if (reward.titleReward && !character.unlockedTitles.includes(reward.titleReward)) {
                 character.unlockedTitles.push(reward.titleReward);

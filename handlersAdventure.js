@@ -36,6 +36,79 @@ export const registerAdventureHandlers = (io, socket) => {
             partyId = party.id;
         }
 
+        // --- TRAINING ZONE (special non-combat zone) ---
+        if (zoneName === 'training') {
+            // Solo-only
+            if (party.members.length > 1) {
+                return socket.emit('partyError', 'The Training Grounds is a solo activity.');
+            }
+
+            const character = player.character;
+            const STARTER_SPELLS = ['Punch', 'Kick', 'Dodge'];
+
+            // Generate offerings if none exist (or all are stale/known)
+            if (!character.trainingOfferings || character.trainingOfferings.length === 0) {
+                const knownSpellNames = new Set([
+                    ...(character.spellbook || []).map(s => s.name),
+                    ...(character.equippedSpells || []).map(s => s.name),
+                    ...STARTER_SPELLS
+                ]);
+                const available = gameData.allSpells.filter(s => !knownSpellNames.has(s.name) && s.scrollCost);
+
+                // Shuffle and pick up to 3
+                const shuffled = [...available].sort(() => Math.random() - 0.5);
+                character.trainingOfferings = shuffled.slice(0, 3).map(s => s.name);
+            }
+
+            // Set up minimal sharedState for the training zone
+            const bonuses = getBonusStatsForPlayer(character, null);
+            const maxHealth = STARTING_HEALTH + bonuses.maxHealth;
+            party.sharedState = {
+                currentZone: 'training',
+                zoneDeck: [],
+                zoneCards: [],
+                groundLoot: [],
+                turnNumber: 0,
+                isPlayerTurn: true,
+                partyMemberStates: [{
+                    playerId: player.id,
+                    name: character.characterName,
+                    icon: character.characterIcon,
+                    health: maxHealth,
+                    maxHealth: maxHealth,
+                    actionPoints: 0,
+                    turnEnded: false,
+                    isDead: false,
+                    lootableInventory: [],
+                    buffs: [],
+                    debuffs: [],
+                    weaponCooldowns: {},
+                    spellCooldowns: {},
+                    itemCooldowns: {},
+                    threat: 0,
+                    focus: 0,
+                    equipment: character.equipment,
+                    equippedSpells: character.equippedSpells,
+                }],
+                trainingOfferings: character.trainingOfferings,
+                trainingCost: (character.spellsLearnedFromTraining || 0) + 1,
+                questPoints: character.questPoints || 0,
+                totalQuestPointsEarned: character.totalQuestPointsEarned || 0,
+                log: [{ message: `Welcome to the Training Grounds! Choose a spell to learn.`, type: 'info' }],
+                pendingReaction: null,
+                pendingLootRoll: null,
+                lootRollQueue: [],
+                zoneEffects: [],
+            };
+
+            party.members.forEach(memberName => {
+                const member = players[memberName];
+                if (member && member.id) io.to(member.id).emit('party:adventureStarted', party.sharedState);
+            });
+            return;
+        }
+        // --- END TRAINING ZONE ---
+
         // --- THE DOCKS LOCKOUT CHECK ---
         if (zoneName === 'theDocks') {
             const lockoutUntil = party.sharedState?.docksLockoutUntil || player.character.docksLockoutUntil || 0;
@@ -437,6 +510,41 @@ export const registerAdventureHandlers = (io, socket) => {
                 case 'dialogueChoice':
                     interactions.processDialogueChoice(io, player, party, action.payload);
                     break;
+                case 'learnTrainingSpell': {
+                    if (party.sharedState.currentZone !== 'training') break;
+                    const character = player.character;
+                    const spellName = action.payload?.spellName;
+                    if (!spellName || !character.trainingOfferings.includes(spellName)) break;
+
+                    const cost = (character.spellsLearnedFromTraining || 0) + 1;
+                    if (character.questPoints < cost) {
+                        socket.emit('partyError', `You need ${cost} QP to learn this spell. You have ${character.questPoints}.`);
+                        break;
+                    }
+
+                    const spellData = gameData.allSpells.find(s => s.name === spellName);
+                    if (!spellData) break;
+
+                    // Already known check
+                    const alreadyKnown = character.spellbook.some(s => s.name === spellName) || character.equippedSpells.some(s => s.name === spellName);
+                    if (alreadyKnown) {
+                        socket.emit('partyError', 'You already know this spell.');
+                        break;
+                    }
+
+                    // Deduct QP, learn spell, increment counter, clear offerings
+                    character.questPoints -= cost;
+                    character.spellsLearnedFromTraining = (character.spellsLearnedFromTraining || 0) + 1;
+                    character.spellbook.push({ ...spellData });
+                    character.trainingOfferings = []; // Full refresh on next visit
+
+                    party.sharedState.log.push({ message: `${character.characterName} has learned ${spellData.icon} ${spellData.name}!`, type: 'success' });
+                    socket.emit('characterUpdate', character);
+
+                    // Auto-end the adventure
+                    await state.processEndAdventure(io, player, party);
+                    break;
+                }
                 case 'lootPlayer':
                     interactions.processLootPlayer(io, player, party, action.payload);
                     break;

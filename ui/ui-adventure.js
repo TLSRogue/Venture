@@ -1,10 +1,10 @@
 'use strict';
 
 import { gameState } from '../state.js';
-import { socket } from '../network.js';
-import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip } from './ui-main.js';
+import { socket, emitPartyAction } from '../network.js';
+import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip, showConfirmationModal } from './ui-main.js';
 import { getBonusStats } from '../player.js';
-import { itemsByName } from '../data/index.js';
+import { itemsByName, gameData } from '../data/index.js';
 import { INVENTORY_SIZE } from '../constants.js';
 
 /**
@@ -268,7 +268,7 @@ export function renderAdventureScreen() {
 
     // --- APPLY ZONE BACKGROUND ---
     // Remove existing zone background classes
-    adventureTab.classList.remove('zone-bg', 'zone-farmlands', 'zone-goblinCaves', 'zone-town', 'zone-sewers', 'zone-arena', 'zone-blighted_wastes', 'zone-darkForest', 'zone-mansion', 'zone-duel', 'zone-theDocks');
+    adventureTab.classList.remove('zone-bg', 'zone-farmlands', 'zone-goblinCaves', 'zone-town', 'zone-sewers', 'zone-arena', 'zone-blighted_wastes', 'zone-darkForest', 'zone-mansion', 'zone-duel', 'zone-theDocks', 'zone-training');
 
     // Determine current zone and apply appropriate background
     let currentZone = null;
@@ -519,7 +519,113 @@ function renderPartyScreen() {
 
         partyContainer.appendChild(cardEl);
     });
-    renderZoneCards(gameState.zoneCards);
+    // Training Zone: render spell offerings instead of zone cards
+    if (gameState.currentZone === 'training') {
+        renderTrainingZone();
+    } else {
+        renderZoneCards(gameState.zoneCards);
+    }
+}
+
+function renderTrainingZone() {
+    const zoneContainer = document.getElementById('zone-cards');
+    const ventureArrow = document.getElementById('venture-deeper-arrow');
+    zoneContainer.innerHTML = '';
+    ventureArrow.style.display = 'none';
+
+    const offerings = gameState.trainingOfferings || [];
+    const trainingCost = gameState.trainingCost || 1;
+    const currentQP = gameState.questPoints || 0;
+    const totalQP = gameState.totalQuestPointsEarned || 0;
+    const canAfford = currentQP >= trainingCost;
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'training-zone-header';
+    header.innerHTML = `
+        <h2>🏛️ Training Grounds</h2>
+        <div class="training-qp-display">
+            <span class="training-qp-label">⭐ QP:</span>
+            <span class="training-qp-value ${canAfford ? '' : 'insufficient'}">${currentQP} / ${totalQP}</span>
+        </div>
+        <div class="training-cost-display">
+            Next spell costs: <strong>${trainingCost} QP</strong>
+        </div>
+    `;
+    zoneContainer.appendChild(header);
+
+    // Spell cards container
+    const cardsRow = document.createElement('div');
+    cardsRow.className = 'training-cards-row';
+
+    if (offerings.length === 0) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.className = 'training-empty';
+        emptyMsg.textContent = 'You have learned all available spells!';
+        cardsRow.appendChild(emptyMsg);
+    }
+
+    offerings.forEach(spellName => {
+        const spell = gameData.allSpells.find(s => s.name === spellName);
+        if (!spell) return;
+
+        const rarityColors = {
+            common: '#aaa', uncommon: '#2ecc71', rare: '#3498db', epic: '#9b59b6', legendary: '#e67e22'
+        };
+        const rarityColor = rarityColors[spell.rarity] || '#aaa';
+
+        const card = document.createElement('div');
+        card.className = `training-spell-card rarity-${spell.rarity || 'common'}`;
+        card.innerHTML = `
+            <div class="training-spell-icon">${spell.icon || '❓'}</div>
+            <div class="training-spell-name" style="color: ${rarityColor}">${spell.name}</div>
+            <div class="training-spell-school">${spell.school}</div>
+            <div class="training-spell-stats">
+                ${spell.cost !== undefined ? `<span>⚡${spell.cost} AP</span>` : ''}
+                ${spell.cooldown !== undefined ? `<span>🔄${spell.cooldown} CD</span>` : ''}
+            </div>
+            <div class="training-spell-desc">${spell.description || ''}</div>
+            <button class="btn training-learn-btn ${canAfford ? 'btn-success' : 'btn-disabled'}" ${!canAfford ? 'disabled' : ''}>
+                Learn (${trainingCost} QP)
+            </button>
+        `;
+
+        // Tooltip on hover
+        card.addEventListener('mousemove', (e) => {
+            let tooltip = `<strong>${spell.icon} ${spell.name}</strong>`;
+            tooltip += `<br><span style="color:${rarityColor}">${(spell.rarity || 'common').charAt(0).toUpperCase() + (spell.rarity || 'common').slice(1)}</span>`;
+            tooltip += ` — ${spell.school}`;
+            if (spell.isMagic) tooltip += ' (Magic)';
+            tooltip += `<hr style="margin:5px 0">`;
+            tooltip += spell.description || '';
+            if (spell.cost !== undefined) tooltip += `<br>⚡ Cost: ${spell.cost} AP`;
+            if (spell.cooldown !== undefined) tooltip += `<br>🔄 Cooldown: ${spell.cooldown} turns`;
+            if (spell.range) tooltip += `<br>📏 Range: ${spell.range}`;
+            if (spell.requires) {
+                if (spell.requires.weaponType) tooltip += `<br>🔧 Requires: ${spell.requires.weaponType.join(' / ')}`;
+                if (spell.requires.meleeWeapon) tooltip += `<br>🔧 Requires: Melee Weapon`;
+            }
+            showTooltip(tooltip, e);
+        });
+        card.addEventListener('mouseleave', hideTooltip);
+
+        // Click to learn (confirmation)
+        if (canAfford) {
+            card.querySelector('.training-learn-btn').addEventListener('click', () => {
+                showConfirmationModal(
+                    `Learn ${spell.icon} ${spell.name} for ${trainingCost} QP?`,
+                    () => {
+                        emitPartyAction({ type: 'learnTrainingSpell', payload: { spellName: spell.name } });
+                        hideModal();
+                    }
+                );
+            });
+        }
+
+        cardsRow.appendChild(card);
+    });
+
+    zoneContainer.appendChild(cardsRow);
 }
 
 function renderDuelScreen() {

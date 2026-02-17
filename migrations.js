@@ -83,6 +83,15 @@ export function runMigrations(character, characterName) {
         changed = true;
     }
 
+    // --- Training Zone fields ---
+    if (character.spellsLearnedFromTraining === undefined) {
+        character.spellsLearnedFromTraining = 0;
+        character.trainingOfferings = [];
+        character.totalQuestPointsEarned = character.questPoints || 0;
+        console.log(`Initialized training zone fields for ${characterName}.`);
+        changed = true;
+    }
+
     // --- Spell refresh: update all spells to current definitions ---
     changed = refreshSpells(character, characterName) || changed;
 
