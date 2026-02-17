@@ -941,6 +941,21 @@ body {
     border-radius: 5px;
 }
 
+.inventory-item.item-locked {
+    border-color: #f1c40f;
+    box-shadow: 0 0 6px rgba(241, 196, 15, 0.3);
+}
+
+.item-lock-icon {
+    position: absolute;
+    top: 1px;
+    right: 2px;
+    font-size: 0.7em;
+    line-height: 1;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+    pointer-events: none;
+}
+
 .inventory-item .item-action-btn {
     position: absolute;
     top: -5px;

@@ -288,7 +288,7 @@ function handleConsolidateBank(character) {
 
 function handleDepositAll(character) {
     character.inventory.forEach((item, index) => {
-        if (item) {
+        if (item && !item.locked) {
             const existingBankItem = character.bank.find(bankItem => bankItem.name === item.name);
             const amountToDeposit = item.quantity || 1;
 
@@ -296,12 +296,21 @@ function handleDepositAll(character) {
                 existingBankItem.quantity += amountToDeposit;
             } else {
                 const newItemForBank = { ...item };
+                delete newItemForBank.locked;
                 if (!newItemForBank.quantity) newItemForBank.quantity = 1;
                 character.bank.push(newItemForBank);
             }
             character.inventory[index] = null;
         }
     });
+    return true;
+}
+
+function handleToggleLockItem(character, payload) {
+    const { itemIndex } = payload;
+    const item = character.inventory[itemIndex];
+    if (!item) return false;
+    item.locked = !item.locked;
     return true;
 }
 
@@ -411,6 +420,7 @@ const actionHandlers = {
     withdrawItem: handleWithdrawItem,
     consolidateBank: handleConsolidateBank,
     depositAll: handleDepositAll,
+    toggleLockItem: handleToggleLockItem,
     socketGem: handleSocketGem,
     unsocketGem: handleUnsocketGem,
     useRecipe: handleUseRecipe,

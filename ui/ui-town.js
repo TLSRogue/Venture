@@ -245,10 +245,30 @@ function renderStoragePanel(parentContainer, mode, storageSource = 'inventory') 
             slot.dataset.index = i;
             if (isBank) slot.dataset.fromBank = 'true';
 
+            // Lock indicator for bank deposit mode
+            if (mode === 'deposit' && !isBank && item.locked) {
+                slot.classList.add('item-locked');
+                const lockIcon = document.createElement('div');
+                lockIcon.className = 'item-lock-icon';
+                lockIcon.textContent = '🔒';
+                slot.appendChild(lockIcon);
+            }
+
+            // Right-click to toggle lock in bank deposit mode
+            if (mode === 'deposit' && !isBank) {
+                slot.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    Network.emitPlayerAction('toggleLockItem', { itemIndex: i });
+                });
+            }
+
             let tooltipContent = buildItemTooltip(item);
             if (mode === 'sell' && item.price) {
                 const sellPrice = Math.floor(item.price / 2) || 1;
                 tooltipContent += `<hr style="margin: 5px 0;">Sell Price: ${sellPrice}g`;
+            }
+            if (mode === 'deposit' && !isBank) {
+                tooltipContent += `<hr style="margin: 5px 0;"><span style="color: #888;">Right-click to ${item.locked ? 'unlock' : 'lock'}</span>`;
             }
             slot.addEventListener('mouseover', () => showTooltip(tooltipContent));
             slot.addEventListener('mouseout', () => hideTooltip());
