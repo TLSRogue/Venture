@@ -258,6 +258,27 @@ body {
     color: #999;
 }
 
+.training-refresh-container {
+    text-align: center;
+    padding: 15px 0 5px;
+}
+
+.training-refresh-btn {
+    padding: 10px 24px;
+    font-size: 1em;
+    font-weight: bold;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.training-refresh-btn.btn-disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: #555;
+    border: 1px solid #666;
+    color: #999;
+}
+
 /* --- END TRAINING ZONE UI --- */
 
 #player-action-bar {

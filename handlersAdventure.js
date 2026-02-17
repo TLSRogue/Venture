@@ -92,6 +92,7 @@ export const registerAdventureHandlers = (io, socket) => {
                 }],
                 trainingOfferings: character.trainingOfferings,
                 trainingCost: (character.spellsLearnedFromTraining || 0) + 1,
+                trainingRefreshCost: 100 * Math.pow(2, character.trainingRefreshCount || 0),
                 questPoints: character.questPoints || 0,
                 totalQuestPointsEarned: character.totalQuestPointsEarned || 0,
                 log: [{ message: `Welcome to the Training Grounds! Choose a spell to learn.`, type: 'info' }],
@@ -543,6 +544,37 @@ export const registerAdventureHandlers = (io, socket) => {
 
                     // Auto-end the adventure
                     await state.processEndAdventure(io, player, party);
+                    break;
+                }
+                case 'refreshTrainingSpells': {
+                    if (party.sharedState.currentZone !== 'training') break;
+                    const charR = player.character;
+                    const refreshCost = 100 * Math.pow(2, charR.trainingRefreshCount || 0);
+
+                    if (charR.gold < refreshCost) {
+                        socket.emit('partyError', `You need ${refreshCost} gold to refresh. You have ${charR.gold}.`);
+                        break;
+                    }
+
+                    const STARTER_SPELLS_R = ['Punch', 'Kick', 'Dodge'];
+                    const knownR = new Set([
+                        ...(charR.spellbook || []).map(s => s.name),
+                        ...(charR.equippedSpells || []).map(s => s.name),
+                        ...STARTER_SPELLS_R
+                    ]);
+                    const availableR = gameData.allSpells.filter(s => !knownR.has(s.name) && s.scrollCost);
+                    const shuffledR = [...availableR].sort(() => Math.random() - 0.5);
+
+                    charR.gold -= refreshCost;
+                    charR.trainingRefreshCount = (charR.trainingRefreshCount || 0) + 1;
+                    charR.trainingOfferings = shuffledR.slice(0, 3).map(s => s.name);
+
+                    // Update sharedState for client
+                    party.sharedState.trainingOfferings = charR.trainingOfferings;
+                    party.sharedState.trainingRefreshCost = 100 * Math.pow(2, charR.trainingRefreshCount);
+                    party.sharedState.log.push({ message: `Spells refreshed! (Cost: ${refreshCost}G)`, type: 'info' });
+
+                    socket.emit('characterUpdate', charR);
                     break;
                 }
                 case 'lootPlayer':

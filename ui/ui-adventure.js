@@ -626,6 +626,33 @@ function renderTrainingZone() {
     });
 
     zoneContainer.appendChild(cardsRow);
+
+    // Refresh button
+    const refreshCost = gameState.trainingRefreshCost || 100;
+    const playerGold = gameState.gold || 0;
+    const canAffordRefresh = playerGold >= refreshCost;
+
+    const refreshContainer = document.createElement('div');
+    refreshContainer.className = 'training-refresh-container';
+    const refreshBtn = document.createElement('button');
+    refreshBtn.className = `btn training-refresh-btn ${canAffordRefresh ? 'btn-primary' : 'btn-disabled'}`;
+    refreshBtn.textContent = `🔄 Refresh Spells (${refreshCost}G)`;
+    refreshBtn.disabled = !canAffordRefresh;
+
+    if (canAffordRefresh) {
+        refreshBtn.addEventListener('click', () => {
+            showConfirmationModal(
+                `Refresh spell offerings for ${refreshCost} gold? The next refresh will cost ${refreshCost * 2}G.`,
+                () => {
+                    emitPartyAction({ type: 'refreshTrainingSpells' });
+                    hideModal();
+                }
+            );
+        });
+    }
+
+    refreshContainer.appendChild(refreshBtn);
+    zoneContainer.appendChild(refreshContainer);
 }
 
 function renderDuelScreen() {

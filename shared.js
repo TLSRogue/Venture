@@ -66,6 +66,7 @@ export const DEFAULT_CHARACTER_STATS = {
     questPoints: 0,
     totalQuestPointsEarned: 0,
     spellsLearnedFromTraining: 0,
+    trainingRefreshCount: 0,
     trainingOfferings: [],
     actionPoints: DEFAULT_ACTION_POINTS,
     focus: 0,

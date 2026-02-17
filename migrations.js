@@ -86,6 +86,7 @@ export function runMigrations(character, characterName) {
     // --- Training Zone fields ---
     if (character.spellsLearnedFromTraining === undefined) {
         character.spellsLearnedFromTraining = 0;
+        character.trainingRefreshCount = 0;
         character.trainingOfferings = [];
         character.totalQuestPointsEarned = character.questPoints || 0;
         console.log(`Initialized training zone fields for ${characterName}.`);
