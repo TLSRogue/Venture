@@ -38,22 +38,25 @@ function handleBuyItem(character, payload) {
 }
 
 function handleSellItem(character, payload) {
-    const { itemIndex, fromBank } = payload;
+    const { itemIndex, fromBank, quantity: rawQty } = payload;
     const item = fromBank ? character.bank[itemIndex] : character.inventory[itemIndex];
-    if (item) {
-        const sellPrice = Math.floor(item.price / 2) || 1;
-        character.gold += sellPrice;
-        item.quantity = (item.quantity || 1) - 1;
-        if (item.quantity <= 0) {
-            if (fromBank) {
-                character.bank.splice(itemIndex, 1);
-            } else {
-                character.inventory[itemIndex] = null;
-            }
+    if (!item) return false;
+
+    const sellPrice = Math.floor(item.price / 2) || 1;
+    const currentQty = item.quantity || 1;
+    const sellQty = Math.max(1, Math.min(rawQty || 1, currentQty));
+
+    character.gold += sellPrice * sellQty;
+    item.quantity = currentQty - sellQty;
+
+    if (item.quantity <= 0) {
+        if (fromBank) {
+            character.bank.splice(itemIndex, 1);
+        } else {
+            character.inventory[itemIndex] = null;
         }
-        return true;
     }
-    return false;
+    return true;
 }
 
 function handleCraftItem(character, payload) {

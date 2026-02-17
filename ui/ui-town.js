@@ -408,24 +408,50 @@ export function showSellConfirmationModal(itemIndex, fromBank = false) {
     if (!item) return;
 
     const sellPrice = Math.floor(item.price / 2) || 1;
+    const maxQuantity = item.quantity || 1;
+    const showSlider = maxQuantity > 1;
 
-    const modalContent = `
+    const modalContent = document.createElement('div');
+    modalContent.innerHTML = `
         <h2>Confirm Sell</h2>
         <div style="width: 64px; height: 64px; margin: 10px auto;">${buildItemIconHTML(item)}</div>
-        <p>Sell 1x ${item.name} for ${sellPrice} Gold?</p>
+        ${showSlider ? `
+            <p>Sell <strong><span id="sell-quantity-display">1</span>x</strong> ${item.name} for <strong><span id="sell-total-gold">${sellPrice}</span></strong> Gold?</p>
+            <div class="crafting-modal-controls">
+                <input type="range" id="sell-quantity-slider" min="1" max="${maxQuantity}" value="1">
+            </div>
+        ` : `
+            <p>Sell 1x ${item.name} for ${sellPrice} Gold?</p>
+        `}
         <p style="font-size: 0.8em; color: #888;">(From ${fromBank ? 'Bank' : 'Inventory'})</p>
         <div class="action-buttons">
             <button id="confirm-sell-btn" class="btn btn-success">Sell</button>
-            <button class="btn btn-danger" onclick="this.closest('.modal-overlay').classList.add('hidden')">Cancel</button>
+            <button id="cancel-sell-btn" class="btn btn-danger">Cancel</button>
         </div>
     `;
-    showModal(modalContent);
 
-    document.getElementById('confirm-sell-btn').addEventListener('click', () => {
-        Network.emitPlayerAction('sellItem', { itemIndex, fromBank });
+    let getQuantity = () => 1;
+
+    if (showSlider) {
+        const slider = modalContent.querySelector('#sell-quantity-slider');
+        const qtyDisplay = modalContent.querySelector('#sell-quantity-display');
+        const goldDisplay = modalContent.querySelector('#sell-total-gold');
+        slider.addEventListener('input', () => {
+            qtyDisplay.textContent = slider.value;
+            goldDisplay.textContent = sellPrice * parseInt(slider.value, 10);
+        });
+        getQuantity = () => parseInt(slider.value, 10);
+    }
+
+    modalContent.querySelector('#confirm-sell-btn').addEventListener('click', () => {
+        Network.emitPlayerAction('sellItem', { itemIndex, fromBank, quantity: getQuantity() });
         playSound('sell', 0.5);
         hideModal();
     });
+
+    modalContent.querySelector('#cancel-sell-btn').addEventListener('click', hideModal);
+
+    showModal(modalContent);
 }
 
 export function renderCrafting() {
