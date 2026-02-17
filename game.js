@@ -254,11 +254,6 @@ function getEffectsFromLog(logEntries) {
             return;
         }
 
-        // PATTERN 12: Quest Completed
-        if (entry.message.includes('completed Quest:')) {
-            playSound('quest_complete', 0.7);
-            return;
-        }
     });
     return effects;
 }
