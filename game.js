@@ -985,7 +985,6 @@ function addEventListeners() {
             }
 
             if (button.dataset.craftIndex) return UITown.showCraftingModal(parseInt(button.dataset.craftIndex, 10));
-            if (button.dataset.spellName) return Merchant.buySpell(button.dataset.spellName);
 
             if (button.closest('#player-action-bar')) {
                 const { action, actionData, spellIndex, slot } = button.dataset;

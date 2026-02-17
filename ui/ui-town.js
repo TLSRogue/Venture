@@ -657,7 +657,7 @@ export function renderTrainer() {
     categoriesContainer.innerHTML = '';
     gridContainer.innerHTML = '';
 
-    const categories = [...new Set(gameData.allSpells.filter(s => s.scrollCost).map(s => s.school))];
+    const categories = [...new Set(gameData.allSpells.filter(s => s.trainable).map(s => s.school))];
 
     categories.forEach(category => {
         const tab = document.createElement('button');
@@ -667,7 +667,7 @@ export function renderTrainer() {
         categoriesContainer.appendChild(tab);
     });
 
-    const spellsToDisplay = gameData.allSpells.filter(s => s.school === activeTrainerCategory && s.scrollCost);
+    const spellsToDisplay = gameData.allSpells.filter(s => s.school === activeTrainerCategory && s.trainable);
 
     spellsToDisplay.forEach(spell => {
         const spellEl = document.createElement('div');
@@ -675,14 +675,9 @@ export function renderTrainer() {
 
         const knowsSpell = gameState.spellbook.some(s => s.name === spell.name) || gameState.equippedSpells.some(s => s.name === spell.name);
 
-        // Check for scroll in inventory
-        const hasScroll = gameState.inventory.some(i => i && i.name === spell.scrollCost);
-
-        let buttonHTML = `<button class="btn btn-sm btn-success" data-spell-name="${spell.name}" ${knowsSpell || !hasScroll ? 'disabled' : ''}>Learn (1x ${spell.scrollCost})</button>`;
+        let buttonHTML = `<button class="btn btn-sm btn-success" data-spell-name="${spell.name}" ${knowsSpell ? 'disabled' : ''}>Learn</button>`;
         if (knowsSpell) {
             buttonHTML = `<button class="btn btn-sm" disabled>Known</button>`;
-        } else if (!hasScroll) {
-            buttonHTML = `<button class="btn btn-sm" disabled style="background-color: #555; border-color: #444;">Need Scroll</button>`;
         }
 
         spellEl.innerHTML = `
@@ -696,8 +691,6 @@ export function renderTrainer() {
         // Build tooltip content
         let tooltipContent = `<strong>${spell.name}</strong>`;
         tooltipContent += `<br>${spell.description}`;
-        tooltipContent += `<hr style="margin: 5px 0;">`;
-        tooltipContent += `<strong>Requires:</strong> ${spell.scrollCost}`;
 
         if (spell.cost !== undefined) {
             tooltipContent += `<br><strong>Cost:</strong> ${spell.cost} AP`;

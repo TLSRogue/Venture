@@ -13,10 +13,6 @@ export function sellItem(itemIndex) {
     Network.emitPlayerAction('sellItem', { itemIndex });
 }
 
-export function buySpell(spellName) {
-    Network.emitPlayerAction('buySpell', { spellName });
-}
-
 export function craftItem(recipeIndex) {
     Network.emitPlayerAction('craftItem', { recipeIndex });
 }

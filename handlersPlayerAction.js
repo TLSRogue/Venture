@@ -79,27 +79,6 @@ function handleCraftItem(character, payload) {
     return false;
 }
 
-function handleBuySpell(character, payload) {
-    const spell = gameData.allSpells.find(s => s.name === payload.spellName && s.scrollCost);
-    if (spell) {
-        // Find the scroll in inventory
-        const scrollIndex = character.inventory.findIndex(i => i && i.name === spell.scrollCost);
-        if (scrollIndex !== -1) {
-            const scrollItem = character.inventory[scrollIndex];
-
-            // Consume scroll
-            scrollItem.quantity = (scrollItem.quantity || 1) - 1;
-            if (scrollItem.quantity <= 0) {
-                character.inventory[scrollIndex] = null;
-            }
-
-            // Learn spell
-            character.spellbook.push({ ...spell });
-            return true;
-        }
-    }
-    return false;
-}
 
 function handleEquipItem(character, payload) {
     const { itemIndex, chosenSlot } = payload;
@@ -409,7 +388,6 @@ const actionHandlers = {
     buyItem: handleBuyItem,
     sellItem: handleSellItem,
     craftItem: handleCraftItem,
-    buySpell: handleBuySpell,
     equipItem: handleEquipItem,
     unequipItem: handleUnequipItem,
     equipSpell: handleEquipSpell,

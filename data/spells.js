@@ -44,7 +44,7 @@ export const allSpells = [
     },
     {
         name: "Slash",
-        scrollCost: "Physical Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 1,
         school: "Physical",
@@ -60,7 +60,7 @@ export const allSpells = [
     },
     {
         name: "Fireball",
-        scrollCost: "Fire Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 2,
         school: "Fire",
@@ -77,7 +77,7 @@ export const allSpells = [
     },
     {
         name: "Flash Heal",
-        scrollCost: "Holy Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 2,
         school: "Holy",
@@ -93,7 +93,7 @@ export const allSpells = [
     },
     {
         name: "Cleanse",
-        scrollCost: "Holy Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 2,
         school: "Holy",
@@ -108,7 +108,7 @@ export const allSpells = [
     },
     {
         name: "Holy Shock",
-        scrollCost: "Holy Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 1,
         school: "Holy",
@@ -125,7 +125,7 @@ export const allSpells = [
     },
     {
         name: "Shield Bash",
-        scrollCost: "Physical Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 3,
         school: "Physical",
@@ -143,7 +143,7 @@ export const allSpells = [
     },
     {
         name: "Aim True",
-        scrollCost: "Physical Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 3,
         school: "Physical",
@@ -160,7 +160,7 @@ export const allSpells = [
     },
     {
         name: "Flame Strike",
-        scrollCost: "Fire Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 4,
         school: "Fire",
@@ -179,7 +179,7 @@ export const allSpells = [
     {
         name: "Stealth",
         cost: 1,
-        scrollCost: "Shadow Spell Scroll",
+        trainable: true,
         cooldown: 3,
         school: "Shadow",
         range: "self",
@@ -194,7 +194,7 @@ export const allSpells = [
     },
     {
         name: "Warrior's Might",
-        scrollCost: "Physical Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 3,
         school: "Physical",
@@ -210,7 +210,7 @@ export const allSpells = [
     },
     {
         name: "Ambush",
-        scrollCost: "Physical Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 3,
         school: "Physical",
@@ -227,7 +227,7 @@ export const allSpells = [
     },
     {
         name: "Dagger Throw",
-        scrollCost: "Physical Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 3,
         school: "Physical",
@@ -244,7 +244,7 @@ export const allSpells = [
     },
     {
         name: "Magic Barrier",
-        scrollCost: "Arcane Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 3,
         school: "Arcane",
@@ -260,7 +260,7 @@ export const allSpells = [
     },
     {
         name: "Silence",
-        scrollCost: "Arcane Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 3,
         school: "Arcane",
@@ -276,7 +276,7 @@ export const allSpells = [
     },
     {
         name: "Time Stop",
-        scrollCost: "Arcane Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 3,
         school: "Arcane",
@@ -292,7 +292,7 @@ export const allSpells = [
     },
     {
         name: "Whirlwind",
-        scrollCost: "Physical Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 5,
         school: "Physical",
@@ -309,7 +309,7 @@ export const allSpells = [
     },
     {
         name: "Crushing Blow",
-        scrollCost: "Physical Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 3,
         school: "Physical",
@@ -327,7 +327,7 @@ export const allSpells = [
     },
     {
         name: "Monk's Training",
-        scrollCost: "Physical Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 4,
         school: "Physical",
@@ -341,7 +341,7 @@ export const allSpells = [
     },
     {
         name: "Split Shot",
-        scrollCost: "Physical Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 4,
         school: "Physical",
@@ -358,7 +358,7 @@ export const allSpells = [
     },
     {
         name: "Evasive Shot",
-        scrollCost: "Physical Spell Scroll",
+        trainable: true,
         cooldown: 2,
         school: "Physical",
         range: "ranged",
@@ -376,7 +376,7 @@ export const allSpells = [
     },
     {
         name: "Parry",
-        scrollCost: "Physical Spell Scroll",
+        trainable: true,
         cooldown: 3,
         school: "Physical",
         range: "melee",
@@ -395,7 +395,7 @@ export const allSpells = [
     },
     {
         name: "Revive",
-        scrollCost: "Holy Spell Scroll",
+        trainable: true,
         cost: 3,
         cooldown: 10,
         school: "Holy",
@@ -408,7 +408,7 @@ export const allSpells = [
     },
     {
         name: "Cone of Cold",
-        scrollCost: "Frost Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 3,
         school: "Frost",
@@ -427,7 +427,7 @@ export const allSpells = [
     },
     {
         name: "Blizzard",
-        scrollCost: "Frost Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 5,
         school: "Frost",
@@ -451,7 +451,7 @@ export const allSpells = [
     },
     {
         name: "Frost Bolt",
-        scrollCost: "Frost Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 2,
         school: "Frost",
@@ -469,7 +469,7 @@ export const allSpells = [
     },
     {
         name: "Shatter",
-        scrollCost: "Frost Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 3,
         school: "Frost",
@@ -487,7 +487,7 @@ export const allSpells = [
     },
     {
         name: "Ice Barrier",
-        scrollCost: "Frost Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 3,
         school: "Frost",
@@ -503,7 +503,7 @@ export const allSpells = [
     },
     {
         name: "Entangling Roots",
-        scrollCost: "Nature Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 3,
         school: "Nature",
@@ -520,7 +520,7 @@ export const allSpells = [
     },
     {
         name: "Rejuvenate",
-        scrollCost: "Nature Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 3,
         school: "Nature",
@@ -536,7 +536,7 @@ export const allSpells = [
     },
     {
         name: "Spirit Call",
-        scrollCost: "Nature Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 1,
         school: "Nature",
@@ -551,7 +551,7 @@ export const allSpells = [
     },
     {
         name: "Moonbeam",
-        scrollCost: "Nature Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 0,
         school: "Nature",
@@ -567,7 +567,7 @@ export const allSpells = [
     },
     {
         name: "Nature's Wrath",
-        scrollCost: "Nature Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 2,
         school: "Nature",
@@ -584,7 +584,7 @@ export const allSpells = [
     },
     {
         name: "Nature's Blessing",
-        scrollCost: "Nature Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 4,
         school: "Nature",
@@ -602,7 +602,7 @@ export const allSpells = [
     // --- Dark Forest Quest Reward ---
     {
         name: "Backstab",
-        scrollCost: "Physical Spell Scroll",
+        trainable: true,
         cost: 2,
         cooldown: 2,
         school: "Physical",
@@ -619,7 +619,7 @@ export const allSpells = [
     // --- Tank/Shield Abilities ---
     {
         name: "Intervene",
-        scrollCost: "Physical Spell Scroll",
+        trainable: true,
         cooldown: 3,
         school: "Physical",
         range: "melee",
@@ -635,7 +635,7 @@ export const allSpells = [
     // --- Fire Spells ---
     {
         name: "Fire Blast",
-        scrollCost: "Fire Spell Scroll",
+        trainable: true,
         cost: 0,
         cooldown: 3,
         school: "Fire",
@@ -652,7 +652,7 @@ export const allSpells = [
     },
     {
         name: "Scorch",
-        scrollCost: "Fire Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 1,
         school: "Fire",
@@ -670,7 +670,7 @@ export const allSpells = [
     },
     {
         name: "Flame Shield",
-        scrollCost: "Fire Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 3,
         school: "Fire",
@@ -686,7 +686,7 @@ export const allSpells = [
     },
     {
         name: "Cauterize",
-        scrollCost: "Fire Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 2,
         school: "Fire",
@@ -703,7 +703,7 @@ export const allSpells = [
     },
     {
         name: "Expend Heat",
-        scrollCost: "Fire Spell Scroll",
+        trainable: true,
         cost: 1,
         cooldown: 1,
         school: "Fire",

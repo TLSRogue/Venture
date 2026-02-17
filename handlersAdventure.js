@@ -53,7 +53,7 @@ export const registerAdventureHandlers = (io, socket) => {
                     ...(character.equippedSpells || []).map(s => s.name),
                     ...STARTER_SPELLS
                 ]);
-                const available = gameData.allSpells.filter(s => !knownSpellNames.has(s.name) && s.scrollCost);
+                const available = gameData.allSpells.filter(s => !knownSpellNames.has(s.name) && s.trainable);
 
                 // Shuffle and pick up to 3
                 const shuffled = [...available].sort(() => Math.random() - 0.5);
@@ -563,7 +563,7 @@ export const registerAdventureHandlers = (io, socket) => {
                         ...(charR.equippedSpells || []).map(s => s.name),
                         ...STARTER_SPELLS_R
                     ]);
-                    const availableR = gameData.allSpells.filter(s => !knownR.has(s.name) && s.scrollCost);
+                    const availableR = gameData.allSpells.filter(s => !knownR.has(s.name) && s.trainable);
                     const shuffledR = [...availableR].sort(() => Math.random() - 0.5);
 
                     charR.gold -= refreshCost;

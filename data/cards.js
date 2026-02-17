@@ -230,7 +230,7 @@ export const cardPools = {
                 description: "A rugged-looking adventurer.",
                 icon: "🕵️‍♂️",
                 imageUrl: '/assets/goblincaves-treasurehunter.jpg',
-                quests: [{ id: "LUCKY_CHARM_HUNT", title: "The Lucky Charm", turnInItems: { "Goblin Lucky Charm": 1 }, reward: { gold: 50, qp: 1, itemReward: { name: 'Shadow Spell Scroll', quantity: 1 } }, prerequisite: { qp: 2 } }],
+                quests: [{ id: "LUCKY_CHARM_HUNT", title: "The Lucky Charm", turnInItems: { "Goblin Lucky Charm": 1 }, reward: { gold: 50, qp: 1 }, prerequisite: { qp: 2 } }],
                 dialogue: {
                     LUCKY_CHARM_HUNT_start: { text: "You look like you've seen a thing or two. I'm after a rare trinket—a Goblin Lucky Charm. Find one for me, and I'll teach you a trick for staying out of sight.", options: [{ text: "I'll keep an eye out.", questId: "LUCKY_CHARM_HUNT", next: "LUCKY_CHARM_HUNT_inProgress" }, { text: "I have other priorities.", next: "farewell" }] },
                     LUCKY_CHARM_HUNT_inProgress: { text: "They say those charms are hidden away in old chests. Keep searching!", options: [{ text: "Will do.", next: "farewell" }] },
@@ -383,7 +383,7 @@ export const cardPools = {
                 icon: "🧘‍♂️",
                 imageUrl: '/assets/town-brotherthatch.jpg',
                 quests: [
-                    { id: "MONK_FOCUS_QUEST", title: "A Test of Focus", turnInItems: { "Wheat": 3, "Fish": 3 }, reward: { itemReward: { name: "Physical Spell Scroll", quantity: 1 } } }
+                    { id: "MONK_FOCUS_QUEST", title: "A Test of Focus", turnInItems: { "Wheat": 3, "Fish": 3 }, reward: { gold: 50, qp: 1 } }
                 ],
                 dialogue: {
                     MONK_FOCUS_QUEST_start: { text: "Greetings, traveler. The path to strength is not through the clash of steel alone, but through the quiet focus of the mind. What do you seek?", options: [{ text: "I seek strength. Can you teach me?", next: "MONK_FOCUS_QUEST_offer" }, { text: "Just passing through.", next: "farewell" }] },
@@ -557,9 +557,9 @@ export const cardPools = {
                 icon: "🧙",
                 imageUrl: '/assets/town-wizard.jpg',
                 quests: [
-                    { id: "WIZARD_ESSENCE_QUEST", title: "Arcane Components", turnInItems: { "Magic Essence": 3 }, reward: { qp: 1, itemReward: { name: "Arcane Spell Scroll", quantity: 1 } }, prerequisite: null },
-                    { id: "WIZARD_CRYSTAL_QUEST", title: "Crystal Power", turnInItems: { "Dark Crystal": 2 }, reward: { qp: 1, itemReward: { name: "Fire Spell Scroll", quantity: 1 } }, prerequisite: "WIZARD_ESSENCE_QUEST" },
-                    { id: "WIZARD_PLAGUE_QUEST", title: "Plague Research", turnInItems: { "Plague Essence": 1 }, reward: { qp: 1, itemReward: { name: "Nature Spell Scroll", quantity: 1 } }, prerequisite: "WIZARD_CRYSTAL_QUEST" }
+                    { id: "WIZARD_ESSENCE_QUEST", title: "Arcane Components", turnInItems: { "Magic Essence": 3 }, reward: { qp: 1, gold: 50 }, prerequisite: null },
+                    { id: "WIZARD_CRYSTAL_QUEST", title: "Crystal Power", turnInItems: { "Dark Crystal": 2 }, reward: { qp: 1, gold: 75 }, prerequisite: "WIZARD_ESSENCE_QUEST" },
+                    { id: "WIZARD_PLAGUE_QUEST", title: "Plague Research", turnInItems: { "Plague Essence": 1 }, reward: { qp: 1, gold: 100 }, prerequisite: "WIZARD_CRYSTAL_QUEST" }
                 ],
                 dialogue: {
                     WIZARD_ESSENCE_QUEST_start: { text: "Ah, an adventurer with potential! The arcane arts require rare components. Bring me 3 Magic Essences from the goblin shamans, and I shall reward you with knowledge of the arcane.", options: [{ text: "I'll gather the essences.", questId: "WIZARD_ESSENCE_QUEST", next: "WIZARD_ESSENCE_QUEST_inProgress" }, { text: "Magic isn't my path.", next: "farewell" }] },
@@ -788,7 +788,7 @@ export const cardPools = {
                 icon: "👩",
                 imageUrl: '/assets/darkforest-mary.jpg',
                 quests: [
-                    { id: "VAMPIRE_HUNT", title: "The Inheritance", target: "Vampire", required: 1, reward: { qp: 1, itemReward: { name: "Physical Spell Scroll", quantity: 1 } }, prerequisite: null }
+                    { id: "VAMPIRE_HUNT", title: "The Inheritance", target: "Vampire", required: 1, reward: { qp: 1, gold: 50 }, prerequisite: null }
                 ],
                 dialogue: {
                     VAMPIRE_HUNT_start: { text: "Please, you must help me! I married Lord Ashworth for his fortune, but that wretched old man just won't die! He never leaves his mansion, never eats... I just want what's mine. Can you... deal with him?", options: [{ text: "I'll pay the lord a visit.", questId: "VAMPIRE_HUNT", next: "VAMPIRE_HUNT_inProgress" }, { text: "This isn't my concern.", next: "farewell" }] },
