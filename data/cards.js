@@ -360,10 +360,14 @@ export const cardPools = {
                 icon: "⚔️",
                 imageUrl: '/assets/town-knight.jpg',
                 quests: [
-                    { id: "GOBLIN_MENACE", title: "Goblin Menace", target: "Goblin", required: 4, reward: { gold: 100, qp: 1 }, prerequisite: null },
+                    { id: "SWORD_PRACTICE", title: "Sword Practice", requiredWeapon: "Wooden Training Sword", required: 5, reward: { gold: 20, qp: 1, itemReward: { name: "Iron Sword", quantity: 1 } }, prerequisite: null },
+                    { id: "GOBLIN_MENACE", title: "Goblin Menace", target: "Goblin", required: 4, reward: { gold: 100, qp: 1 }, prerequisite: "SWORD_PRACTICE" },
                     { id: "SLAY_THE_KING", title: "Slay Their King!", target: "Gorbon the Goblin King", required: 1, reward: { gold: 100, qp: 2 }, prerequisite: "GOBLIN_MENACE" }
                 ],
                 dialogue: {
+                    SWORD_PRACTICE_start: { text: "Halt, citizen. You look green. Before I trust you with real work, I need to see you can handle a blade. Take that training sword and land five solid hits on any enemy you find. Prove your worth.", options: [{ text: "I'll show you what I can do.", questId: "SWORD_PRACTICE", next: "SWORD_PRACTICE_inProgress" }, { text: "Maybe later.", next: "farewell" }] },
+                    SWORD_PRACTICE_inProgress: { text: "Still practicing? Get out there and swing that training sword. Five good hits on any enemy, that's all I ask.", options: [{ text: "I'm on it.", next: "farewell" }] },
+                    SWORD_PRACTICE_ready: { text: "Not bad, recruit. You've got some fight in you after all. Here — take this iron sword. You've earned a real blade.", options: [{ text: "Thank you, Sir.", questComplete: "SWORD_PRACTICE", next: "GOBLIN_MENACE_start" }] },
                     GOBLIN_MENACE_start: { text: "Citizen! The goblin menace grows bolder by the day. We need able-bodied adventurers to cull their numbers. Are you up to the task?", options: [{ text: "I'll do my part.", questId: "GOBLIN_MENACE", next: "GOBLIN_MENACE_inProgress" }, { text: "I'm not looking for trouble.", next: "farewell" }] },
                     GOBLIN_MENACE_inProgress: { text: "The town is counting on you. Return to the caves and fight with honor!", options: [{ text: "For the town!", next: "farewell" }] },
                     GOBLIN_MENACE_ready: { text: "Excellent work. You've proven your valor against the goblin horde. Here is your payment.", options: [{ text: "Thank you, Sir.", questComplete: "GOBLIN_MENACE", next: "SLAY_THE_KING_start" }] },

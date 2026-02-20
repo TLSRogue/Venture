@@ -241,6 +241,19 @@ export async function processWeaponAttack(io, party, player, payload) {
         target.applyDamage(dmgResult.finalDamage);
         logMessage += ` Deals ${dmgResult.finalDamage} ${dmgResult.damageType} damage! [id:${target.id}]`;
 
+        // Track weapon-hit quests (e.g., "Hit 5 times with Wooden Training Sword")
+        character.quests.forEach(quest => {
+            if (quest.status === 'active' && quest.details.requiredWeapon && quest.details.requiredWeapon === weapon.name) {
+                quest.progress++;
+                if (quest.progress >= quest.details.required) {
+                    quest.status = 'readyToTurnIn';
+                    io.to(player.id).emit('questObjectiveComplete', quest.details.title);
+                }
+            }
+        });
+        io.to(player.id).emit('characterUpdate', character);
+
+
         // Flame Shield burn-on-melee counter effect
         if (weapon.range === 'melee' || (!weapon.range && !['Staff', 'Two-Hand Bow', 'One-Hand Crossbow', 'Wand'].includes(weapon.weaponType))) {
             const flameShield = target.buffs?.find(b => b.type === 'Flame Shield');
