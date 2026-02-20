@@ -504,14 +504,6 @@ export function processDialogueChoice(io, player, party, payload) {
                 character.unlockedTitles.push(reward.titleReward);
             }
 
-            if (reward.spellReward) {
-                const spellData = gameData.allSpells.find(s => s.name === reward.spellReward.name);
-                const alreadyHasSpell = character.spellbook.some(s => s.name === spellData.name) || character.equippedSpells.some(s => s.name === spellData.name);
-                if (spellData && !alreadyHasSpell) {
-                    character.spellbook.push({ ...spellData });
-                }
-            }
-
             if (reward.recipeReward) {
                 const recipes = Array.isArray(reward.recipeReward) ? reward.recipeReward : [reward.recipeReward];
                 recipes.forEach(recipe => {

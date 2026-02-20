@@ -488,7 +488,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
 
         // Update Quests
         character.quests.forEach(quest => {
-            if (quest.status === 'active' && (quest.details.target === enemy.name || (quest.details.target === 'Goblin' && enemy.name.includes('Goblin')))) {
+            if (quest.status === 'active' && (quest.details.target === enemy.name || quest.details.target === enemy.questTarget || (quest.details.target === 'Goblin' && enemy.name.includes('Goblin')))) {
                 quest.progress++;
                 if (quest.progress >= quest.details.required) {
                     quest.status = 'readyToTurnIn';

@@ -33,8 +33,8 @@ export const cardPools = {
                 icon: "👨‍🌾",
                 imageUrl: '/assets/farmlands-farmer.jpg',
                 quests: [
-                    { id: "FARMHAND_TROUBLE", title: "Farmhand Trouble", target: "Angry Farmhand", required: 2, reward: { gold: 20, qp: 1 }, prerequisite: null },
-                    { id: "BULL_RAGE", title: "Kill the Raging Bull", target: "Raging Bull", required: 1, reward: { gold: 50, qp: 1, titleReward: "Bull-Slayer" }, prerequisite: "FARMHAND_TROUBLE" }
+                    { id: "FARMHAND_TROUBLE", title: "Farmhand Trouble", target: "Angry Farmhand", required: 4, reward: { gold: 50, qp: 1 }, prerequisite: null },
+                    { id: "BULL_RAGE", title: "Kill the Raging Bull", target: "Raging Bull", required: 1, reward: { gold: 50, qp: 2, titleReward: "Bull-Slayer" }, prerequisite: "FARMHAND_TROUBLE" }
                 ],
                 dialogue: {
                     FARMHAND_TROUBLE_start: { text: "Howdy, stranger. Those farmhands are causing a ruckus again. Could you teach 'em a lesson?", options: [{ text: "I'll sort them out.", questId: "FARMHAND_TROUBLE", next: "FARMHAND_TROUBLE_inProgress" }, { text: "Not my problem.", next: "farewell" }] },
@@ -361,7 +361,7 @@ export const cardPools = {
                 imageUrl: '/assets/town-knight.jpg',
                 quests: [
                     { id: "GOBLIN_MENACE", title: "Goblin Menace", target: "Goblin", required: 4, reward: { gold: 100, qp: 1 }, prerequisite: null },
-                    { id: "SLAY_THE_KING", title: "Slay Their King!", target: "Gorbon the Goblin King", required: 1, reward: { gold: 100, qp: 1 }, prerequisite: "GOBLIN_MENACE" }
+                    { id: "SLAY_THE_KING", title: "Slay Their King!", target: "Gorbon the Goblin King", required: 1, reward: { gold: 100, qp: 2 }, prerequisite: "GOBLIN_MENACE" }
                 ],
                 dialogue: {
                     GOBLIN_MENACE_start: { text: "Citizen! The goblin menace grows bolder by the day. We need able-bodied adventurers to cull their numbers. Are you up to the task?", options: [{ text: "I'll do my part.", questId: "GOBLIN_MENACE", next: "GOBLIN_MENACE_inProgress" }, { text: "I'm not looking for trouble.", next: "farewell" }] },
@@ -383,12 +383,12 @@ export const cardPools = {
                 icon: "🧘‍♂️",
                 imageUrl: '/assets/town-brotherthatch.jpg',
                 quests: [
-                    { id: "MONK_FOCUS_QUEST", title: "A Test of Focus", turnInItems: { "Wheat": 3, "Fish": 3 }, reward: { gold: 50, qp: 1 } }
+                    { id: "MONK_FOCUS_QUEST", title: "A Test of Focus", turnInItems: { "Fish": 3 }, reward: { gold: 50, qp: 1 } }
                 ],
                 dialogue: {
                     MONK_FOCUS_QUEST_start: { text: "Greetings, traveler. The path to strength is not through the clash of steel alone, but through the quiet focus of the mind. What do you seek?", options: [{ text: "I seek strength. Can you teach me?", next: "MONK_FOCUS_QUEST_offer" }, { text: "Just passing through.", next: "farewell" }] },
-                    MONK_FOCUS_QUEST_offer: { text: "Strength is a byproduct of discipline. True power is focus. If you wish to learn, you must first demonstrate patience. Bring me three bundles of wheat from the farmlands, and three fish from the river. Do this, and I will teach you a technique to channel your inner energy.", options: [{ text: "I will gather these things.", questId: "MONK_FOCUS_QUEST", next: "MONK_FOCUS_QUEST_inProgress" }, { text: "I don't have time for that.", next: "farewell" }] },
-                    MONK_FOCUS_QUEST_inProgress: { text: "The river teaches patience, the fields teach diligence. Return when you have gathered the items.", options: [{ text: "I will return.", next: "farewell" }] },
+                    MONK_FOCUS_QUEST_offer: { text: "Strength is a byproduct of discipline. True power is focus. If you wish to learn, you must first demonstrate patience. Bring me three fish from the river. The act of waiting, of stillness, will teach you more than any blade. Do this, and I will teach you a technique to channel your inner energy.", options: [{ text: "I will gather these things.", questId: "MONK_FOCUS_QUEST", next: "MONK_FOCUS_QUEST_inProgress" }, { text: "I don't have time for that.", next: "farewell" }] },
+                    MONK_FOCUS_QUEST_inProgress: { text: "The river teaches patience. Return when you have gathered the fish.", options: [{ text: "I will return.", next: "farewell" }] },
                     MONK_FOCUS_QUEST_ready: { text: "You have returned, and with the requested items. You have shown patience and a focused spirit. Very well. Let me show you how to turn your own life force into a weapon, and a balm.", options: [{ text: "Thank you, master.", questComplete: "MONK_FOCUS_QUEST", next: "allQuestsDone" }] },
                     allQuestsDone: { text: "The technique is now yours. Practice it, and you will find strength not only in your fists, but in your spirit. Go well.", options: [{ text: "Farewell.", next: "farewell" }] },
                     farewell: { text: "May your path be clear.", options: [] }
@@ -461,7 +461,7 @@ export const cardPools = {
                 icon: "🧔",
                 imageUrl: '/assets/town-vagrant.jpg',
                 quests: [
-                    { id: "RAT_KING_CROWN", title: "The True King", turnInItems: { "Rat King's Crown": 1 }, reward: { qp: 1 }, prerequisite: null }
+                    { id: "RAT_KING_CROWN", title: "The True King", turnInItems: { "Rat King's Crown": 1 }, reward: { qp: 2, titleReward: "The Rat King" }, prerequisite: null }
                 ],
                 dialogue: {
                     RAT_KING_CROWN_start: { text: "*hic* Youuu don't undershtand... I'M the Rat King! ME! They shtole my crown... thosse filthy ratss... *burp* ...took everythin' from me...", options: [{ text: "You... were the Rat King?", next: "RAT_KING_CROWN_explain" }, { text: "You're just a drunk.", next: "farewell" }] },
@@ -511,16 +511,16 @@ export const cardPools = {
                 icon: "👨‍🍳",
                 imageUrl: '/assets/town-chef.jpg',
                 quests: [
-                    { id: "CHEF_MEAT_QUEST", title: "Fresh Ingredients", turnInItems: { "Pork": 2, "Raw Chicken": 2 }, reward: { gold: 30, qp: 1, recipeReward: "Meat Pie" }, prerequisite: null },
-                    { id: "CHEF_FISH_QUEST", title: "Catch of the Day", turnInItems: { "Fish": 5 }, reward: { gold: 40, qp: 1, recipeReward: "Fish Stew" }, prerequisite: "CHEF_MEAT_QUEST" }
+                    { id: "CHEF_MEAT_QUEST", title: "Good Meats", turnInItems: { "Pork": 2, "Raw Chicken": 2 }, reward: { gold: 30, qp: 1, recipeReward: ["Cooked Pork", "Cooked Chicken", "Cooked Rat Meat"] }, prerequisite: null },
+                    { id: "CHEF_FISH_QUEST", title: "On The Lighter Side", turnInItems: { "Fish": 2, "Carrot": 2 }, reward: { gold: 40, qp: 1, recipeReward: ["Cooked Fish", "Spiced Carrots"] }, prerequisite: "CHEF_MEAT_QUEST" }
                 ],
                 dialogue: {
-                    CHEF_MEAT_QUEST_start: { text: "Ah, a fellow food lover! My kitchen is running low on supplies. Bring me some Pork and Chicken, and I'll teach you the secret to my famous Meat Pie!", options: [{ text: "I'll gather the ingredients.", questId: "CHEF_MEAT_QUEST", next: "CHEF_MEAT_QUEST_inProgress" }, { text: "Maybe another time.", next: "farewell" }] },
+                    CHEF_MEAT_QUEST_start: { text: "Ah, a fellow food lover! My kitchen is running low on supplies. Bring me some Pork and Chicken, and I'll teach you the secret to cooking good meats!", options: [{ text: "I'll gather the ingredients.", questId: "CHEF_MEAT_QUEST", next: "CHEF_MEAT_QUEST_inProgress" }, { text: "Maybe another time.", next: "farewell" }] },
                     CHEF_MEAT_QUEST_inProgress: { text: "The farmlands are full of livestock. Bring me 2 Pork and 2 Raw Chicken!", options: [{ text: "I'm working on it.", next: "farewell" }] },
-                    CHEF_MEAT_QUEST_ready: { text: "Perfect! These are exactly what I needed. Watch closely—here's how you make a proper Meat Pie.", options: [{ text: "Thank you, Chef.", questComplete: "CHEF_MEAT_QUEST", next: "CHEF_FISH_QUEST_start" }] },
-                    CHEF_FISH_QUEST_start: { text: "You have a natural talent! Now, for something more refined. Bring me 5 Fish, and I'll share my Fish Stew recipe.", options: [{ text: "I'll go fishing.", questId: "CHEF_FISH_QUEST", next: "CHEF_FISH_QUEST_inProgress" }, { text: "That's enough cooking for now.", next: "farewell" }] },
-                    CHEF_FISH_QUEST_inProgress: { text: "The rivers are teeming with fish. Keep at it!", options: [{ text: "I'll be back.", next: "farewell" }] },
-                    CHEF_FISH_QUEST_ready: { text: "Magnificent! These are beautifully fresh. Here's the recipe for my hearty Fish Stew.", options: [{ text: "Thanks for the recipes.", questComplete: "CHEF_FISH_QUEST", next: "allQuestsDone" }] },
+                    CHEF_MEAT_QUEST_ready: { text: "Perfect! These are exactly what I needed. Watch closely—here's how you cook a proper roast. I'll show you Pork, Chicken, and even Rat Meat if you're feeling adventurous.", options: [{ text: "Thank you, Chef.", questComplete: "CHEF_MEAT_QUEST", next: "CHEF_FISH_QUEST_start" }] },
+                    CHEF_FISH_QUEST_start: { text: "You have a natural talent! Now, for something on the lighter side. Bring me 2 Fish and 2 Carrots, and I'll teach you some lighter fare.", options: [{ text: "I'll find them.", questId: "CHEF_FISH_QUEST", next: "CHEF_FISH_QUEST_inProgress" }, { text: "That's enough cooking for now.", next: "farewell" }] },
+                    CHEF_FISH_QUEST_inProgress: { text: "The rivers are teeming with fish, and carrots grow in the farmland fields. Keep at it!", options: [{ text: "I'll be back.", next: "farewell" }] },
+                    CHEF_FISH_QUEST_ready: { text: "Magnificent! These are beautifully fresh. Here's how to make Cooked Fish and Spiced Carrots—simple but delicious.", options: [{ text: "Thanks for the recipes.", questComplete: "CHEF_FISH_QUEST", next: "allQuestsDone" }] },
                     allQuestsDone: { text: "You've become quite the chef yourself! Good luck on your adventures.", options: [{ text: "Farewell.", next: "farewell" }] },
                     farewell: { text: "Bon appétit!", options: [] }
                 }
@@ -562,15 +562,15 @@ export const cardPools = {
                     { id: "WIZARD_PLAGUE_QUEST", title: "Plague Research", turnInItems: { "Plague Essence": 1 }, reward: { qp: 1, gold: 100 }, prerequisite: "WIZARD_CRYSTAL_QUEST" }
                 ],
                 dialogue: {
-                    WIZARD_ESSENCE_QUEST_start: { text: "Ah, an adventurer with potential! The arcane arts require rare components. Bring me 3 Magic Essences from the goblin shamans, and I shall reward you with knowledge of the arcane.", options: [{ text: "I'll gather the essences.", questId: "WIZARD_ESSENCE_QUEST", next: "WIZARD_ESSENCE_QUEST_inProgress" }, { text: "Magic isn't my path.", next: "farewell" }] },
+                    WIZARD_ESSENCE_QUEST_start: { text: "Ah, an adventurer with potential! The arcane arts require rare components. Bring me 3 Magic Essences from the goblin shamans, and I shall reward you handsomely.", options: [{ text: "I'll gather the essences.", questId: "WIZARD_ESSENCE_QUEST", next: "WIZARD_ESSENCE_QUEST_inProgress" }, { text: "Magic isn't my path.", next: "farewell" }] },
                     WIZARD_ESSENCE_QUEST_inProgress: { text: "Goblin Shamans in the caves carry Magic Essence. Defeat them and bring me their magical remains.", options: [{ text: "I'll find them.", next: "farewell" }] },
-                    WIZARD_ESSENCE_QUEST_ready: { text: "Excellent! These essences pulse with power. Take this scroll—it contains arcane knowledge.", options: [{ text: "Thank you, wise one.", questComplete: "WIZARD_ESSENCE_QUEST", next: "WIZARD_CRYSTAL_QUEST_start" }] },
-                    WIZARD_CRYSTAL_QUEST_start: { text: "Your potential grows! Dark Crystals from the forest contain trapped fire magic. Bring me 2, and I'll give you a scroll of fire.", options: [{ text: "I'll venture into the forest.", questId: "WIZARD_CRYSTAL_QUEST", next: "WIZARD_CRYSTAL_QUEST_inProgress" }, { text: "Perhaps later.", next: "farewell" }] },
+                    WIZARD_ESSENCE_QUEST_ready: { text: "Excellent! These essences pulse with power. You have done well—here is your reward.", options: [{ text: "Thank you, wise one.", questComplete: "WIZARD_ESSENCE_QUEST", next: "WIZARD_CRYSTAL_QUEST_start" }] },
+                    WIZARD_CRYSTAL_QUEST_start: { text: "Your potential grows! Dark Crystals from the forest contain trapped magical energy. Bring me 2, and I shall make it worth your while.", options: [{ text: "I'll venture into the forest.", questId: "WIZARD_CRYSTAL_QUEST", next: "WIZARD_CRYSTAL_QUEST_inProgress" }, { text: "Perhaps later.", next: "farewell" }] },
                     WIZARD_CRYSTAL_QUEST_inProgress: { text: "The Dark Forest hides many secrets. The crystal nodes there contain what I need.", options: [{ text: "I'm on it.", next: "farewell" }] },
-                    WIZARD_CRYSTAL_QUEST_ready: { text: "These crystals are magnificent! The fire within them is ancient. Here—master the flames.", options: [{ text: "I feel the power!", questComplete: "WIZARD_CRYSTAL_QUEST", next: "WIZARD_PLAGUE_QUEST_start" }] },
+                    WIZARD_CRYSTAL_QUEST_ready: { text: "These crystals are magnificent! The energy within them is ancient. Here is your reward—well earned.", options: [{ text: "I feel the power!", questComplete: "WIZARD_CRYSTAL_QUEST", next: "WIZARD_PLAGUE_QUEST_start" }] },
                     WIZARD_PLAGUE_QUEST_start: { text: "For your final test, I need something truly rare. Plague Essence from the sewer's depths. Dangerous, yes, but the nature magic within is unparalleled.", options: [{ text: "I'll brave the sewers.", questId: "WIZARD_PLAGUE_QUEST", next: "WIZARD_PLAGUE_QUEST_inProgress" }, { text: "That sounds too dangerous.", next: "farewell" }] },
                     WIZARD_PLAGUE_QUEST_inProgress: { text: "The Plague Rats carry what I need. Be careful—their disease is deadly.", options: [{ text: "I'll be cautious.", next: "farewell" }] },
-                    WIZARD_PLAGUE_QUEST_ready: { text: "You've done it! This essence is perfect for studying nature's darker side. Take this scroll—you've earned it.", options: [{ text: "Thank you for everything.", questComplete: "WIZARD_PLAGUE_QUEST", next: "allQuestsDone" }] },
+                    WIZARD_PLAGUE_QUEST_ready: { text: "You've done it! This essence is perfect for studying nature's darker side. Here—you've more than earned this.", options: [{ text: "Thank you for everything.", questComplete: "WIZARD_PLAGUE_QUEST", next: "allQuestsDone" }] },
                     allQuestsDone: { text: "You've proven yourself a true student of magic. May your spells strike true!", options: [{ text: "Farewell, master.", next: "farewell" }] },
                     farewell: { text: "The arcane waits for no one...", options: [] }
                 }
@@ -788,7 +788,7 @@ export const cardPools = {
                 icon: "👩",
                 imageUrl: '/assets/darkforest-mary.jpg',
                 quests: [
-                    { id: "VAMPIRE_HUNT", title: "The Inheritance", target: "Vampire", required: 1, reward: { qp: 1, gold: 50 }, prerequisite: null }
+                    { id: "VAMPIRE_HUNT", title: "The Inheritance", target: "Vampire", required: 1, reward: { qp: 2, gold: 300 }, prerequisite: null }
                 ],
                 dialogue: {
                     VAMPIRE_HUNT_start: { text: "Please, you must help me! I married Lord Ashworth for his fortune, but that wretched old man just won't die! He never leaves his mansion, never eats... I just want what's mine. Can you... deal with him?", options: [{ text: "I'll pay the lord a visit.", questId: "VAMPIRE_HUNT", next: "VAMPIRE_HUNT_inProgress" }, { text: "This isn't my concern.", next: "farewell" }] },
