@@ -1,6 +1,6 @@
 {
   "bob": {
-    "id": "Wfr7gZH3GawHjwJ_AAAD",
+    "id": null,
     "character": {
       "characterName": "bob",
       "characterIcon": "🧑",
@@ -241,7 +241,11 @@
       "partyId": null,
       "inDuel": false,
       "duelState": null,
-      "duelId": null
+      "duelId": null,
+      "spellsLearnedFromTraining": 0,
+      "trainingRefreshCount": 0,
+      "trainingOfferings": [],
+      "totalQuestPointsEarned": 0
     }
   },
   "tester": {
@@ -472,7 +476,11 @@
       "partyId": null,
       "inDuel": false,
       "duelState": null,
-      "duelId": null
+      "duelId": null,
+      "spellsLearnedFromTraining": 0,
+      "trainingRefreshCount": 0,
+      "trainingOfferings": [],
+      "totalQuestPointsEarned": 0
     }
   }
 }

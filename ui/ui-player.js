@@ -635,10 +635,13 @@ function generateQuestLogHTML() {
         } else if (quest.details.target) {
             progressText = `(${quest.progress} / ${quest.details.required} ${quest.details.target}s defeated)`;
         } else if (quest.details.turnInItems) {
-            const itemName = Object.keys(quest.details.turnInItems)[0];
-            const requiredAmount = quest.details.turnInItems[itemName];
-            const currentAmount = gameState.inventory.filter(i => i && i.name === itemName).reduce((total, item) => total + (item.quantity || 1), 0);
-            progressText = `(${currentAmount} / ${requiredAmount} ${itemName}s collected)`;
+            let itemsProgress = [];
+            for (const itemName in quest.details.turnInItems) {
+                const requiredAmount = quest.details.turnInItems[itemName];
+                const currentAmount = gameState.inventory.filter(i => i && i.name === itemName).reduce((total, item) => total + (item.quantity || 1), 0);
+                itemsProgress.push(`(${currentAmount} / ${requiredAmount} ${itemName}s)`);
+            }
+            progressText = itemsProgress.join('<br>');
         }
 
         html += `<div class="quest-entry" style="margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px;">

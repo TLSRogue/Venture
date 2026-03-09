@@ -37,14 +37,14 @@ export const cardPools = {
                     { id: "BULL_RAGE", title: "Kill the Raging Bull", target: "Raging Bull", required: 1, reward: { gold: 50, qp: 2, titleReward: "Bull-Slayer" }, prerequisite: "FARMHAND_TROUBLE" }
                 ],
                 dialogue: {
-                    FARMHAND_TROUBLE_start: { text: "Howdy, stranger. Those farmhands are causing a ruckus again. Could you teach 'em a lesson?", options: [{ text: "I'll sort them out.", questId: "FARMHAND_TROUBLE", next: "FARMHAND_TROUBLE_inProgress" }, { text: "Not my problem.", next: "farewell" }] },
-                    FARMHAND_TROUBLE_inProgress: { text: "Still dealing with those rascals? Don't let them walk all over you.", options: [{ text: "I'm on it.", next: "farewell" }] },
-                    FARMHAND_TROUBLE_ready: { text: "You taught them a thing or two! Excellent. Here's something for your trouble.", options: [{ text: "Thank you, Sir.", questComplete: "FARMHAND_TROUBLE", next: "BULL_RAGE_start" }] },
-                    BULL_RAGE_start: { text: "Thanks for that. But now there's a bigger problem... a Raging Bull! Can you handle it?", options: [{ text: "I'll take care of the beast.", questId: "BULL_RAGE", next: "BULL_RAGE_inProgress" }, { text: "That's too much for me.", next: "farewell" }] },
-                    BULL_RAGE_inProgress: { text: "Be careful out there. That bull's got a mean streak.", options: [{ text: "I will.", next: "farewell" }] },
-                    BULL_RAGE_ready: { text: "You did it! You're a hero! Please, take this reward.", options: [{ text: "My pleasure.", questComplete: "BULL_RAGE", next: "allQuestsDone" }] },
-                    allQuestsDone: { text: "Thanks for all your help, friend. The farmlands are safer because of you.", options: [{ text: "Take care.", next: "farewell" }] },
-                    farewell: { text: "Happy farming.", options: [] }
+                    FARMHAND_TROUBLE_start: { text: "'Ah, traveler. A word, if you have a moment? The local farmhands... they've grown restless. They raid our stores and threaten the peace. Will you help an honest farmer put them in their place?'", options: [{ text: "Consider them dealt with.", questId: "FARMHAND_TROUBLE", next: "FARMHAND_TROUBLE_inProgress" }, { text: "I have my own troubles.", next: "farewell" }] },
+                    FARMHAND_TROUBLE_inProgress: { text: "'Please, do not linger. The longer those rogues roam free, the more of our harvest we lose.'", options: [{ text: "I'll return when it's done.", next: "farewell" }] },
+                    FARMHAND_TROUBLE_ready: { text: "'You return! And the fields are quiet once more. You have a steady hand. Please, take this coin—it is all I can spare.'", options: [{ text: "My thanks.", questComplete: "FARMHAND_TROUBLE", next: "BULL_RAGE_start" }] },
+                    BULL_RAGE_start: { text: "'Wait, there is one more thing. A darkness has taken one of our prize bulls. It rampages through the western pastures, crazed and violent. Only a true warrior could slay such a beast...'", options: [{ text: "I will put the beast to rest.", questId: "BULL_RAGE", next: "BULL_RAGE_inProgress" }, { text: "That is beyond my skill.", next: "farewell" }] },
+                    BULL_RAGE_inProgress: { text: "'Stay clear of its horns, traveler! That beast has already trampled two of my best fences.'", options: [{ text: "I will be careful.", next: "farewell" }] },
+                    BULL_RAGE_ready: { text: "'By the Gods... you slew the Raging Bull! You have saved our livelihood, champion. We are forever in your debt.'", options: [{ text: "It was an honor.", questComplete: "BULL_RAGE", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "'The fields are safe again, thanks to you. May the rains be plentiful wherever you roam.'", options: [{ text: "Farewell, farmer.", next: "farewell" }] },
+                    farewell: { text: "'Watch your step out there.'", options: [] }
                 }
             }, count: 1
         },
@@ -57,11 +57,11 @@ export const cardPools = {
                 imageUrl: '/assets/farmlands-farmerswife.jpg',
                 quests: [{ id: "BAKERS_REQUEST", title: "A Birthday Surprise", turnInItems: { "Egg": 1, "Milk": 1, "Wheat": 1 }, reward: { gold: 25, qp: 1, recipeReward: "Birthday Cake" }, prerequisite: null }],
                 dialogue: {
-                    BAKERS_REQUEST_start: { text: "Oh, hello there. My husband's birthday is soon, and I'd love to surprise him with a cake. Could you possibly gather the ingredients for one?", options: [{ text: "I'd be happy to help.", questId: "BAKERS_REQUEST", next: "BAKERS_REQUEST_inProgress" }, { text: "I'm not much of a baker.", next: "farewell" }] },
-                    BAKERS_REQUEST_inProgress: { text: "I'm sure you can find the ingredients around the farmlands. You'll need an Egg, some Milk, and a bit of Wheat. He'll be so happy!", options: [{ text: "I'll do my best.", next: "farewell" }] },
-                    BAKERS_REQUEST_ready: { text: "Oh, these are perfect! Thank you so much! As a thank you, let me teach you the recipe. Here is a little something for your effort, too.", options: [{ text: "You're welcome.", questComplete: "BAKERS_REQUEST", next: "allQuestsDone" }] },
-                    allQuestsDone: { text: "He's going to love this. Thank you again!", options: [{ text: "Happy to help.", next: "farewell" }] },
-                    farewell: { text: "Have a sweet day.", options: [] }
+                    BAKERS_REQUEST_start: { text: "'Oh, hello there! My husband’s naming day approaches, and I simply must bake him a cake. But the roads are too dangerous for me to gather the ingredients. Could you find me an egg, some milk, and fresh wheat?'", options: [{ text: "I will gather what you need.", questId: "BAKERS_REQUEST", next: "BAKERS_REQUEST_inProgress" }, { text: "I cannot spare the time.", next: "farewell" }] },
+                    BAKERS_REQUEST_inProgress: { text: "'Remember, I need an Egg, some Milk, and Wheat. Please hurry, the naming day is almost upon us!'", options: [{ text: "I will return soon.", next: "farewell" }] },
+                    BAKERS_REQUEST_ready: { text: "'These are perfect! Oh, he will be so thrilled. You have a kind heart. Here, take these coins, and... let me write down my recipe for you.'", options: [{ text: "Thank you.", questComplete: "BAKERS_REQUEST", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "'The smell of fresh cake will fill the house soon... Thank you again for your kindness.'", options: [{ text: "You're welcome.", next: "farewell" }] },
+                    farewell: { text: "'Safe travels to you.'", options: [] }
                 }
             }, count: 1
         },
@@ -232,12 +232,12 @@ export const cardPools = {
                 imageUrl: '/assets/goblincaves-treasurehunter.jpg',
                 quests: [{ id: "LUCKY_CHARM_HUNT", title: "The Lucky Charm", turnInItems: { "Goblin Lucky Charm": 1 }, reward: { gold: 50, qp: 1 }, prerequisite: { qp: 2 } }],
                 dialogue: {
-                    LUCKY_CHARM_HUNT_start: { text: "You look like you've seen a thing or two. I'm after a rare trinket—a Goblin Lucky Charm. Find one for me, and I'll teach you a trick for staying out of sight.", options: [{ text: "I'll keep an eye out.", questId: "LUCKY_CHARM_HUNT", next: "LUCKY_CHARM_HUNT_inProgress" }, { text: "I have other priorities.", next: "farewell" }] },
-                    LUCKY_CHARM_HUNT_inProgress: { text: "They say those charms are hidden away in old chests. Keep searching!", options: [{ text: "Will do.", next: "farewell" }] },
-                    LUCKY_CHARM_HUNT_ready: { text: "Is that it? You found one! Amazing! A deal's a deal. Let me show you the art of stealth...", options: [{ text: "I'm ready to learn.", questComplete: "LUCKY_CHARM_HUNT", next: "allQuestsDone" }] },
-                    allQuestsDone: { text: "Use that skill well. It's saved my skin more times than I can count.", options: [{ text: "Thank you.", next: "farewell" }] },
-                    prereqNotMet: { text: "You're not quite ready for this task. Come back when you've proven yourself a bit more.", options: [{ text: "I understand.", next: "farewell" }] },
-                    farewell: { text: "Happy hunting.", options: [] }
+                    LUCKY_CHARM_HUNT_start: { text: "'Ah, another soul brave—or foolish—enough to plumb these depths. Tell you what. There's a rare trinket buried somewhere in this dark, a Goblin Lucky Charm. Find it for me, and I'll teach you a trick that's saved my neck more times than I can count.'", options: [{ text: "Consider it found.", questId: "LUCKY_CHARM_HUNT", next: "LUCKY_CHARM_HUNT_inProgress" }, { text: "I seek my own fortunes.", next: "farewell" }] },
+                    LUCKY_CHARM_HUNT_inProgress: { text: "'Check the old chests. The goblins don't even know what they have, but they guard them nonetheless.'", options: [{ text: "I'll keep looking.", next: "farewell" }] },
+                    LUCKY_CHARM_HUNT_ready: { text: "'Ha! You actually found it. Let me see... yes, this is the genuine article. A deal is a deal, my friend. Let me show you how to blend into the shadows.'", options: [{ text: "I am ready to learn.", questComplete: "LUCKY_CHARM_HUNT", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "'Use that skill wisely. In these caves, sometimes not being seen is better than striking the first blow.'", options: [{ text: "My thanks.", next: "farewell" }] },
+                    prereqNotMet: { text: "'You've got the look of a greenhorn. Come back when you've survived a bit longer in the wild, eh?'", options: [{ text: "I will.", next: "farewell" }] },
+                    farewell: { text: "'May the shadows hide you.'", options: [] }
                 }
             }, count: 1
         },
@@ -365,17 +365,17 @@ export const cardPools = {
                     { id: "SLAY_THE_KING", title: "Slay Their King!", target: "Gorbon the Goblin King", required: 1, reward: { gold: 100, qp: 2 }, prerequisite: "GOBLIN_MENACE" }
                 ],
                 dialogue: {
-                    SWORD_PRACTICE_start: { text: "Halt, citizen. You look green. Before I trust you with real work, I need to see you can handle a blade. Take that training sword and land five solid hits on any enemy you find. Prove your worth.", options: [{ text: "I'll show you what I can do.", questId: "SWORD_PRACTICE", next: "SWORD_PRACTICE_inProgress" }, { text: "Maybe later.", next: "farewell" }] },
-                    SWORD_PRACTICE_inProgress: { text: "Still practicing? Get out there and swing that training sword. Five good hits on any enemy, that's all I ask.", options: [{ text: "I'm on it.", next: "farewell" }] },
-                    SWORD_PRACTICE_ready: { text: "Not bad, recruit. You've got some fight in you after all. Here — take this iron sword. You've earned a real blade.", options: [{ text: "Thank you, Sir.", questComplete: "SWORD_PRACTICE", next: "GOBLIN_MENACE_start" }] },
-                    GOBLIN_MENACE_start: { text: "Citizen! The goblin menace grows bolder by the day. We need able-bodied adventurers to cull their numbers. Are you up to the task?", options: [{ text: "I'll do my part.", questId: "GOBLIN_MENACE", next: "GOBLIN_MENACE_inProgress" }, { text: "I'm not looking for trouble.", next: "farewell" }] },
-                    GOBLIN_MENACE_inProgress: { text: "The town is counting on you. Return to the caves and fight with honor!", options: [{ text: "For the town!", next: "farewell" }] },
-                    GOBLIN_MENACE_ready: { text: "Excellent work. You've proven your valor against the goblin horde. Here is your payment.", options: [{ text: "Thank you, Sir.", questComplete: "GOBLIN_MENACE", next: "SLAY_THE_KING_start" }] },
-                    SLAY_THE_KING_start: { text: "Your work isn't finished, however. The goblin threat will never truly end while their king, Gorbon, still draws breath. Slay him, and you will be a hero to this town.", options: [{ text: "I accept this challenge.", questId: "SLAY_THE_KING", next: "SLAY_THE_KING_inProgress" }, { text: "That is a task for another day.", next: "farewell" }] },
-                    SLAY_THE_KING_inProgress: { text: "Be careful in those caves. Gorbon is a formidable foe.", options: [{ text: "I will not fail.", next: "farewell" }] },
-                    SLAY_THE_KING_ready: { text: "You've done it! You've slain the Goblin King! The town is in your debt. Take this reward.", options: [{ text: "It was an honor.", questComplete: "SLAY_THE_KING", next: "allQuestsDone" }] },
-                    allQuestsDone: { text: "You are a true hero of this town. We are all grateful for your service.", options: [{ text: "Farewell.", next: "farewell" }] },
-                    farewell: { text: "Stay vigilant.", options: [] }
+                    SWORD_PRACTICE_start: { text: "'Halt, citizen. You carry yourself like an adventurer, but have you the mettle? Take up this wooden training sword. Show me five solid strikes against any foe, and I will see if you are worthy of true steel.'", options: [{ text: "I'll prove my worth.", questId: "SWORD_PRACTICE", next: "SWORD_PRACTICE_inProgress" }, { text: "I have no time for games.", next: "farewell" }] },
+                    SWORD_PRACTICE_inProgress: { text: "'Five strikes, citizen. Keep your guard up and follow through.'", options: [{ text: "I understand.", next: "farewell" }] },
+                    SWORD_PRACTICE_ready: { text: "'Not bad form... rough, but promising. You've earned this. An iron blade, forged for defending this town. Wield it with honor.'", options: [{ text: "Thank you, Sir Knight.", questComplete: "SWORD_PRACTICE", next: "GOBLIN_MENACE_start" }] },
+                    GOBLIN_MENACE_start: { text: "'Adventurer! The goblin menace from the caves grows dangerously bold. They raid our outskirts under the cover of night. We need able-bodied fighters to thin their numbers. Will you answer the call?'", options: [{ text: "For the town. I accept.", questId: "GOBLIN_MENACE", next: "GOBLIN_MENACE_inProgress" }, { text: "That is the Guard's job.", next: "farewell" }] },
+                    GOBLIN_MENACE_inProgress: { text: "'The caves lie to the north. Do not let them ambush you in the dark.'", options: [{ text: "I will be careful.", next: "farewell" }] },
+                    GOBLIN_MENACE_ready: { text: "'Excellent work! The town sleeps a little easier tonight because of your steel. Accept this bounty, with my thanks.'", options: [{ text: "The pleasure was mine.", questComplete: "GOBLIN_MENACE", next: "SLAY_THE_KING_start" }] },
+                    SLAY_THE_KING_start: { text: "'There is a darker root to this problem, however. The goblins serve a monstrous king named Gorbon. So long as he draws breath, they will always return. You must descend into the deepest caverns and end his reign.'", options: [{ text: "I will claim his head.", questId: "SLAY_THE_KING", next: "SLAY_THE_KING_inProgress" }, { text: "That sounds like certain death.", next: "farewell" }] },
+                    SLAY_THE_KING_inProgress: { text: "'Tread lightly. Gorbon is surrounded by his fiercest guards.'", options: [{ text: "I am prepared.", next: "farewell" }] },
+                    SLAY_THE_KING_ready: { text: "'By the Light... you actually slew the Goblin King! This is a tale they will sing of in the taverns for years! The town is forever in your debt, hero.'", options: [{ text: "It was an honor to serve.", questComplete: "SLAY_THE_KING", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "'You are a true paragon of this town. Should you ever need anything, you need only ask.'", options: [{ text: "Farewell, Sir Knight.", next: "farewell" }] },
+                    farewell: { text: "'Stand firm against the dark.'", options: [] }
                 }
             }, count: 1
         },
@@ -390,12 +390,12 @@ export const cardPools = {
                     { id: "MONK_FOCUS_QUEST", title: "A Test of Focus", turnInItems: { "Fish": 3 }, reward: { gold: 50, qp: 1 } }
                 ],
                 dialogue: {
-                    MONK_FOCUS_QUEST_start: { text: "Greetings, traveler. The path to strength is not through the clash of steel alone, but through the quiet focus of the mind. What do you seek?", options: [{ text: "I seek strength. Can you teach me?", next: "MONK_FOCUS_QUEST_offer" }, { text: "Just passing through.", next: "farewell" }] },
-                    MONK_FOCUS_QUEST_offer: { text: "Strength is a byproduct of discipline. True power is focus. If you wish to learn, you must first demonstrate patience. Bring me three fish from the river. The act of waiting, of stillness, will teach you more than any blade. Do this, and I will teach you a technique to channel your inner energy.", options: [{ text: "I will gather these things.", questId: "MONK_FOCUS_QUEST", next: "MONK_FOCUS_QUEST_inProgress" }, { text: "I don't have time for that.", next: "farewell" }] },
-                    MONK_FOCUS_QUEST_inProgress: { text: "The river teaches patience. Return when you have gathered the fish.", options: [{ text: "I will return.", next: "farewell" }] },
-                    MONK_FOCUS_QUEST_ready: { text: "You have returned, and with the requested items. You have shown patience and a focused spirit. Very well. Let me show you how to turn your own life force into a weapon, and a balm.", options: [{ text: "Thank you, master.", questComplete: "MONK_FOCUS_QUEST", next: "allQuestsDone" }] },
-                    allQuestsDone: { text: "The technique is now yours. Practice it, and you will find strength not only in your fists, but in your spirit. Go well.", options: [{ text: "Farewell.", next: "farewell" }] },
-                    farewell: { text: "May your path be clear.", options: [] }
+                    MONK_FOCUS_QUEST_start: { text: "'Greetings, wanderer. You seek strength, yes? True strength is not found in the swing of a sword, but the stillness of the mind. Can you prove your patience to me?'", options: [{ text: "I am willing to learn.", next: "MONK_FOCUS_QUEST_offer" }, { text: "I have no time for riddles.", next: "farewell" }] },
+                    MONK_FOCUS_QUEST_offer: { text: "'Patience is learned through action... and inaction. Go to the river. Cast your line and bring me three fish. The waiting will temper your spirit. Do this, and I will share a technique of the old masters.'", options: [{ text: "I shall return with the fish.", questId: "MONK_FOCUS_QUEST", next: "MONK_FOCUS_QUEST_inProgress" }, { text: "I am not a fisherman.", next: "farewell" }] },
+                    MONK_FOCUS_QUEST_inProgress: { text: "'The river flows, heedless of your desires. Learn to wait with it.'", options: [{ text: "I will be patient.", next: "farewell" }] },
+                    MONK_FOCUS_QUEST_ready: { text: "'You have returned. And your eyes are calmer than before. You have taken the first step on the path. Come, let me show you how to draw power from the spirits of the wild.'", options: [{ text: "I am ready, Master.", questComplete: "MONK_FOCUS_QUEST", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "'The spirits flow through all things. Channel them, and you shall never walk alone.'", options: [{ text: "Thank you.", next: "farewell" }] },
+                    farewell: { text: "'Walk in peace.'", options: [] }
                 }
             }, count: 1
         },
@@ -410,11 +410,11 @@ export const cardPools = {
                     { id: "STEEL_ARMOR_QUEST", title: "Steel Armor Forging", turnInItems: { "Steel Bar": 3 }, reward: { gold: 50, qp: 1, recipeReward: ["Steel Armor", "Steel Helm (T2)", "Steel Boots (T2)"] }, prerequisite: null }
                 ],
                 dialogue: {
-                    STEEL_ARMOR_QUEST_start: { text: "Hail, adventurer! I see you've got some steel on ya. If you can bring me three Steel Bars, I'll teach you the art of forging proper Steel Armor. It's tougher than iron, and it'll save your hide more than once.", options: [{ text: "I'll bring you the steel.", questId: "STEEL_ARMOR_QUEST", next: "STEEL_ARMOR_QUEST_inProgress" }, { text: "Maybe another time.", next: "farewell" }] },
-                    STEEL_ARMOR_QUEST_inProgress: { text: "You'll need to smelt some Steel Bars from Iron and Coal. Come back when you've got three of 'em.", options: [{ text: "I'm working on it.", next: "farewell" }] },
-                    STEEL_ARMOR_QUEST_ready: { text: "Excellent! This is fine steel. Watch closely now, and I'll show you how to forge armor that'll make the goblins weep. Here's a bit of gold for your trouble too.", options: [{ text: "Thank you, master smith.", questComplete: "STEEL_ARMOR_QUEST", next: "allQuestsDone" }] },
-                    allQuestsDone: { text: "You've got the knowledge now. Go forge yourself some proper armor!", options: [{ text: "Farewell.", next: "farewell" }] },
-                    farewell: { text: "Keep that blade sharp.", options: [] }
+                    STEEL_ARMOR_QUEST_start: { text: "'Well met, adventurer! Ye look like ye could use some proper plating. Bring me three bars of good Steel, and I'll teach ye the secrets of the forge.'", options: [{ text: "I can find the steel.", questId: "STEEL_ARMOR_QUEST", next: "STEEL_ARMOR_QUEST_inProgress" }, { text: "I prefer light armor.", next: "farewell" }] },
+                    STEEL_ARMOR_QUEST_inProgress: { text: "'Ye'll need to smelt Iron and Coal to make Steel. Come back when ye have three solid bars.'", options: [{ text: "I'll keep working the forge.", next: "farewell" }] },
+                    STEEL_ARMOR_QUEST_ready: { text: "'Aye, this is fine steel. No impurities. Ye have the eye of a smith. Watch closely, now—here is how ye fold the metal to make it impenetrable.'", options: [{ text: "Thank you for the knowledge.", questComplete: "STEEL_ARMOR_QUEST", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "'Keep yer hammer striking true, and yer armor will never fail ye.'", options: [{ text: "Farewell.", next: "farewell" }] },
+                    farewell: { text: "'Keep the forge hot!'", options: [] }
                 }
             }, count: 1
         },
@@ -429,11 +429,11 @@ export const cardPools = {
                     { id: "OLD_RECIPE_QUEST", title: "The Old Recipe", turnInItems: { "Old Family Recipe": 1 }, reward: { gold: 75, qp: 1, recipeReward: ["Gem of Strength", "Gem of Agility", "Gem of Wisdom", "Gem of Fortitude", "Gem of Fire", "Gem of Arcane", "Gem of Nature", "Gem of Might", "Gem of Frost", "Gem of Holy", "Gem of Shadow"] }, prerequisite: null }
                 ],
                 dialogue: {
-                    OLD_RECIPE_QUEST_start: { text: "Ah, a seeker of secrets... I have foreseen your coming. I lost something precious long ago—a family recipe for imbuing gems with power. The goblins stole it generations past. If you find it, I will share the knowledge with you.", options: [{ text: "I'll search for your recipe.", questId: "OLD_RECIPE_QUEST", next: "OLD_RECIPE_QUEST_inProgress" }, { text: "I'm not interested in fortune telling.", next: "farewell" }] },
-                    OLD_RECIPE_QUEST_inProgress: { text: "The recipe is hidden somewhere in the goblin caves. They guard it without knowing its value. Bring it to me, and I shall teach you the art of gem enchantment.", options: [{ text: "I'll keep looking.", next: "farewell" }] },
-                    OLD_RECIPE_QUEST_ready: { text: "The spirits were right! You've found it! At last, my family's legacy returns. As promised, I shall teach you to craft enchanted gems. You'll need raw gemstones and magic essence from the shaman.", options: [{ text: "Thank you for the knowledge.", questComplete: "OLD_RECIPE_QUEST", next: "allQuestsDone" }] },
-                    allQuestsDone: { text: "The gems you craft will enhance your armor with great power. Use this knowledge wisely, adventurer.", options: [{ text: "Farewell.", next: "farewell" }] },
-                    farewell: { text: "The future is always in motion...", options: [] }
+                    OLD_RECIPE_QUEST_start: { text: "'Ah, another thread woven into the tapestry... I have foreseen your coming. Long ago, the goblins stole my family's legacy—a recipe for imbuing gems with power. Return it to me, and I shall share its secrets.'", options: [{ text: "I will find your recipe.", questId: "OLD_RECIPE_QUEST", next: "OLD_RECIPE_QUEST_inProgress" }, { text: "I put no stock in fortunes.", next: "farewell" }] },
+                    OLD_RECIPE_QUEST_inProgress: { text: "'The threads of fate point toward the deep caves. The recipe lies hidden in the dark.'", options: [{ text: "I will keep looking.", next: "farewell" }] },
+                    OLD_RECIPE_QUEST_ready: { text: "'Ah! The spirits do not lie! You have returned my family's legacy. As it was foretold, I shall now teach you the art of enchanting gems. You will need raw stones and the essence of magic.'", options: [{ text: "I am ready to learn.", questComplete: "OLD_RECIPE_QUEST", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "'The future is always shifting, but true power can anchor you. Use my family's knowledge well.'", options: [{ text: "Farewell, seer.", next: "farewell" }] },
+                    farewell: { text: "'The fates are watching...'", options: [] }
                 }
             }, count: 1
         },
@@ -468,12 +468,12 @@ export const cardPools = {
                     { id: "RAT_KING_CROWN", title: "The True King", turnInItems: { "Rat King's Crown": 1 }, reward: { qp: 2, titleReward: "The Rat King" }, prerequisite: null }
                 ],
                 dialogue: {
-                    RAT_KING_CROWN_start: { text: "*hic* Youuu don't undershtand... I'M the Rat King! ME! They shtole my crown... thosse filthy ratss... *burp* ...took everythin' from me...", options: [{ text: "You... were the Rat King?", next: "RAT_KING_CROWN_explain" }, { text: "You're just a drunk.", next: "farewell" }] },
-                    RAT_KING_CROWN_explain: { text: "*hic* I ruled the sewersss... the KING of all ratss! But they... they betrayed me... took my crown... left me to ROT up here... *sob* ...bring me my crown... prove I'm not crazyyy...", options: [{ text: "I'll look for your crown.", questId: "RAT_KING_CROWN", next: "RAT_KING_CROWN_inProgress" }, { text: "Get some sleep, friend.", next: "farewell" }] },
-                    RAT_KING_CROWN_inProgress: { text: "*hic* My crown... my beautifulll crown... the ratss wear it now... mocking meee... *mumbles incoherently*", options: [{ text: "I'm still looking.", next: "farewell" }] },
-                    RAT_KING_CROWN_ready: { text: "*eyes widen* Isss that... MY CROWN?! *grabs it, inspects it* Wait... I can't drink outta thiss! *throws it away* Uselesss! ...but thank you, shtranger... now I know... I know I washn't dreaming... *passes out*", options: [{ text: "...Okay then.", questComplete: "RAT_KING_CROWN", next: "allQuestsDone" }] },
-                    allQuestsDone: { text: "*snoring loudly* ...zzz... my kingdom... zzz...", options: [{ text: "Let him sleep.", next: "farewell" }] },
-                    farewell: { text: "*mumbles and stares blankly*", options: [] }
+                    RAT_KING_CROWN_start: { text: "'*Hic* You... you don't understand. I am the King! The true King of the Sewers! They betrayed me... those filthy rats... took my crown. *Burp* Get it back. Prove I'm not a madman!'", options: [{ text: "Right. The 'Rat King'. I'll look for it.", questId: "RAT_KING_CROWN", next: "RAT_KING_CROWN_inProgress" }, { text: "You've had enough ale, old man.", next: "farewell" }] },
+                    RAT_KING_CROWN_explain: { text: "'*Hic* I ruled the dark... they worshipped me! But they stole my crown... left me up here in the light. *Sob* Bring it back to me...'", options: [{ text: "I'll retrieve your crown.", questId: "RAT_KING_CROWN", next: "RAT_KING_CROWN_inProgress" }, { text: "Sleep it off, friend.", next: "farewell" }] },
+                    RAT_KING_CROWN_inProgress: { text: "'*Hic* My crown... my beautiful, filthy crown... the rats are mocking me... *mumbles incoherently*'", options: [{ text: "I'm still looking.", next: "farewell" }] },
+                    RAT_KING_CROWN_ready: { text: "'*Eyes widen* Is that... MY CROWN?! *He grabs it tightly.* Wait... I can't drink out of this! *He throws it back at you.* Useless! But... thank you, stranger. Now I know I wasn't dreaming. *He passes out.*'", options: [{ text: "...Okay then.", questComplete: "RAT_KING_CROWN", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "'*Snoring loudly* ...zzz... my glorious kingdom... zzz...'", options: [{ text: "Let him sleep.", next: "farewell" }] },
+                    farewell: { text: "'*Mumbles and stares blankly*'", options: [] }
                 }
             }, count: 1
         },
@@ -489,21 +489,21 @@ export const cardPools = {
                 ],
                 dialogue: {
                     start: {
-                        text: "Ah, a customer! I craft the finest arrows and bolts in the region. Looking for something sharp?", options: [
-                            { text: "Tell me about your work.", next: "about" },
-                            { text: "I have a Rooster Spur. Can you do anything with it?", next: "spurRecipe", requiresItem: "Rooster Spur" },
-                            { text: "I'm interested in Ranger gear.", next: "RANGER_SET_QUEST_start" },
-                            { text: "Just browsing.", next: "farewell" }
+                        text: "'Ah, a customer! I craft the finest bows and fletch the sharpest arrows in the region. What do you need today?'", options: [
+                            { text: "Tell me about your trade.", next: "about" },
+                            { text: "I found this Rooster Spur. Is it useful?", next: "spurRecipe", requiresItem: "Rooster Spur" },
+                            { text: "I'm looking for Ranger gear.", next: "RANGER_SET_QUEST_start" },
+                            { text: "Just passing through.", next: "farewell" }
                         ]
                     },
-                    RANGER_SET_QUEST_start: { text: "So you want to dress like a ranger? It takes more than just looking the part. Bring me 3 pieces of cured Leather, and I'll teach you how to craft a full Ranger set.", options: [{ text: "I'll bring the leather.", questId: "RANGER_SET_QUEST", next: "RANGER_SET_QUEST_inProgress" }, { text: "Maybe later.", next: "farewell" }] },
-                    RANGER_SET_QUEST_inProgress: { text: "You can craft Leather from Hides using a tanning agent. I need 3 pieces.", options: [{ text: "I'm on it.", next: "farewell" }] },
-                    RANGER_SET_QUEST_ready: { text: "Good quality leather. Fine work. Here, let me show you the patterns for the Ranger Armor, Cowl, and Boots. They'll serve you well in the wild.", options: [{ text: "Thanks for the training.", questComplete: "RANGER_SET_QUEST", next: "allQuestsDone" }] },
-                    allQuestsDone: { text: "Stay sharp out there. A ranger is only as good as their gear.", options: [{ text: "Farewell.", next: "farewell" }] },
-                    about: { text: "I've been fletching for decades. Arrows, bolts, throwing knives... if it flies and sticks, I can make it.", options: [{ text: "Interesting.", next: "farewell" }] },
-                    spurRecipe: { text: "A Rooster Spur? Now that's a nasty little thing. Sharp as any blade I've seen. Tell you what\u2014I'll teach you how to fashion it into a proper dagger. You'll need some Dark Wood for the handle.", options: [{ text: "Teach me.", teachRecipe: "Spur Dagger", next: "spurRecipeLearned" }] },
-                    spurRecipeLearned: { text: "There you go. Spur Dagger\u2014fast, light, and it'll make your enemies bleed. Good hunting!", options: [{ text: "Thanks.", next: "farewell" }] },
-                    farewell: { text: "Stay sharp out there.", options: [] }
+                    RANGER_SET_QUEST_start: { text: "'You wish to walk the path of the Ranger? It takes more than a keen eye. Bring me three pieces of cured Leather, and I'll teach you to craft garments fit for the wilderness.'", options: [{ text: "I will gather the leather.", questId: "RANGER_SET_QUEST", next: "RANGER_SET_QUEST_inProgress" }, { text: "Perhaps another time.", next: "farewell" }] },
+                    RANGER_SET_QUEST_inProgress: { text: "'Leather requires hides and tanning agents. Bring me three pieces when you have them.'", options: [{ text: "I'll return soon.", next: "farewell" }] },
+                    RANGER_SET_QUEST_ready: { text: "'This is fine leather work. You have steady hands. Here, study these patterns. This is how you craft the armor of a true Ranger.'", options: [{ text: "My thanks.", questComplete: "RANGER_SET_QUEST", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "'Keep your bowstring taut, and watch the wind.'", options: [{ text: "Farewell.", next: "farewell" }] },
+                    about: { text: "'I've been shaping wood and feather for decades. If you need it to fly true and hit hard, I'm your man.'", options: [{ text: "Good to know.", next: "farewell" }] },
+                    spurRecipe: { text: "'A Rooster Spur? Sharp as any steel, that is. Pair it with some Dark Wood for a handle, and you've got a fine, fast dagger. Here, let me show you how.'", options: [{ text: "I appreciate the lesson.", teachRecipe: "Spur Dagger", next: "spurRecipeLearned" }] },
+                    spurRecipeLearned: { text: "'The Spur Dagger. Light, deadly, and easily concealed. Good hunting.'", options: [{ text: "Thanks.", next: "farewell" }] },
+                    farewell: { text: "'May your aim be true.'", options: [] }
                 }
             }, count: 1
         },
@@ -519,14 +519,14 @@ export const cardPools = {
                     { id: "CHEF_FISH_QUEST", title: "On The Lighter Side", turnInItems: { "Fish": 2, "Carrot": 2 }, reward: { gold: 40, qp: 1, recipeReward: ["Cooked Fish", "Spiced Carrots"] }, prerequisite: "CHEF_MEAT_QUEST" }
                 ],
                 dialogue: {
-                    CHEF_MEAT_QUEST_start: { text: "Ah, a fellow food lover! My kitchen is running low on supplies. Bring me some Pork and Chicken, and I'll teach you the secret to cooking good meats!", options: [{ text: "I'll gather the ingredients.", questId: "CHEF_MEAT_QUEST", next: "CHEF_MEAT_QUEST_inProgress" }, { text: "Maybe another time.", next: "farewell" }] },
-                    CHEF_MEAT_QUEST_inProgress: { text: "The farmlands are full of livestock. Bring me 2 Pork and 2 Raw Chicken!", options: [{ text: "I'm working on it.", next: "farewell" }] },
-                    CHEF_MEAT_QUEST_ready: { text: "Perfect! These are exactly what I needed. Watch closely—here's how you cook a proper roast. I'll show you Pork, Chicken, and even Rat Meat if you're feeling adventurous.", options: [{ text: "Thank you, Chef.", questComplete: "CHEF_MEAT_QUEST", next: "CHEF_FISH_QUEST_start" }] },
-                    CHEF_FISH_QUEST_start: { text: "You have a natural talent! Now, for something on the lighter side. Bring me 2 Fish and 2 Carrots, and I'll teach you some lighter fare.", options: [{ text: "I'll find them.", questId: "CHEF_FISH_QUEST", next: "CHEF_FISH_QUEST_inProgress" }, { text: "That's enough cooking for now.", next: "farewell" }] },
-                    CHEF_FISH_QUEST_inProgress: { text: "The rivers are teeming with fish, and carrots grow in the farmland fields. Keep at it!", options: [{ text: "I'll be back.", next: "farewell" }] },
-                    CHEF_FISH_QUEST_ready: { text: "Magnificent! These are beautifully fresh. Here's how to make Cooked Fish and Spiced Carrots—simple but delicious.", options: [{ text: "Thanks for the recipes.", questComplete: "CHEF_FISH_QUEST", next: "allQuestsDone" }] },
-                    allQuestsDone: { text: "You've become quite the chef yourself! Good luck on your adventures.", options: [{ text: "Farewell.", next: "farewell" }] },
-                    farewell: { text: "Bon appétit!", options: [] }
+                    CHEF_MEAT_QUEST_start: { text: "'Welcome to my kitchen! I am trying a new, hearty stew, but I am woefully short on quality meats. Bring me two cuts of Pork and two Raw Chickens, and I will share my culinary secrets with you.'", options: [{ text: "I'll fetch the meat.", questId: "CHEF_MEAT_QUEST", next: "CHEF_MEAT_QUEST_inProgress" }, { text: "I'm no butcher.", next: "farewell" }] },
+                    CHEF_MEAT_QUEST_inProgress: { text: "'The farms should have plenty of livestock. Two Pork and two Raw Chickens, please!'", options: [{ text: "I'm still hunting.", next: "farewell" }] },
+                    CHEF_MEAT_QUEST_ready: { text: "'Ah, magnificent! These cuts are prime. Watch closely now, the secret is in the searing... there! A proper roast. The knowledge is yours.'", options: [{ text: "My compliments to the Chef.", questComplete: "CHEF_MEAT_QUEST", next: "CHEF_FISH_QUEST_start" }] },
+                    CHEF_FISH_QUEST_start: { text: "'You have a palate for this! Now, we need something lighter to balance the menu. Two fresh Fish and two Carrots. Can you manage that?'", options: [{ text: "I'll find them.", questId: "CHEF_FISH_QUEST", next: "CHEF_FISH_QUEST_inProgress" }, { text: "I think I've cooked enough.", next: "farewell" }] },
+                    CHEF_FISH_QUEST_inProgress: { text: "'The river has fish, and the fields have carrots. The stew won't wait forever!'", options: [{ text: "I will hurry.", next: "farewell" }] },
+                    CHEF_FISH_QUEST_ready: { text: "'Beautifully fresh! The perfect contrast. Here is how you prepare them to preserve their natural flavor.'", options: [{ text: "Thank you for the recipes.", questComplete: "CHEF_FISH_QUEST", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "'You've got the makings of a fine cook. Until our next feast!'", options: [{ text: "Farewell.", next: "farewell" }] },
+                    farewell: { text: "'May your hearth always be warm!'", options: [] }
                 }
             }, count: 1
         },
@@ -542,14 +542,14 @@ export const cardPools = {
                     { id: "TAILOR_SILK_QUEST", title: "Silken Threads", turnInItems: { "Silk": 3 }, reward: { gold: 50, qp: 1, recipeReward: ["Silk Wizard Robes (T2)", "Silk Wizard Hat (T2)", "Silk Wizard Boots (T2)"] }, prerequisite: "TAILOR_CLOTH_QUEST" }
                 ],
                 dialogue: {
-                    TAILOR_CLOTH_QUEST_start: { text: "Welcome to my shop! I'm always in need of quality materials. Bring me some Cloth, and I'll teach you to craft proper armor with it.", options: [{ text: "I'll find some cloth.", questId: "TAILOR_CLOTH_QUEST", next: "TAILOR_CLOTH_QUEST_inProgress" }, { text: "Not interested in sewing.", next: "farewell" }] },
-                    TAILOR_CLOTH_QUEST_inProgress: { text: "Farmhands usually carry Cloth. You can also find Hemp in the fields to weave your own.", options: [{ text: "I'll keep looking.", next: "farewell" }] },
-                    TAILOR_CLOTH_QUEST_ready: { text: "Wonderful! This is fine material. Let me show you how to craft Cloth Armor—it's lightweight but protective.", options: [{ text: "Thank you.", questComplete: "TAILOR_CLOTH_QUEST", next: "TAILOR_SILK_QUEST_start" }] },
-                    TAILOR_SILK_QUEST_start: { text: "You have a steady hand! Now, for something more elegant. I need 3 bolts of refined Silk.", options: [{ text: "I'll find the silk.", questId: "TAILOR_SILK_QUEST", next: "TAILOR_SILK_QUEST_inProgress" }, { text: "Spiders aren't my thing.", next: "farewell" }] },
-                    TAILOR_SILK_QUEST_inProgress: { text: "You can weave Silk from Spider Silk and Thread. The spiders in the Dark Forest carry the raw silk.", options: [{ text: "I'll manage.", next: "farewell" }] },
-                    TAILOR_SILK_QUEST_ready: { text: "Exquisite! This silk is perfect. Here's how you craft a full Silk Wizard set—robes, hat, and boots.", options: [{ text: "Amazing craftsmanship.", questComplete: "TAILOR_SILK_QUEST", next: "allQuestsDone" }] },
-                    allQuestsDone: { text: "You're a natural tailor! Come back if you need any repairs.", options: [{ text: "Farewell.", next: "farewell" }] },
-                    farewell: { text: "May your threads never fray!", options: [] }
+                    TAILOR_CLOTH_QUEST_start: { text: "'Greetings! My hands are weary from weaving, and I am in dire need of sturdy Cloth. Bring me five bolts, and I shall instruct you in crafting durable garments.'", options: [{ text: "I'll procure the cloth.", questId: "TAILOR_CLOTH_QUEST", next: "TAILOR_CLOTH_QUEST_inProgress" }, { text: "I prefer armor of iron.", next: "farewell" }] },
+                    TAILOR_CLOTH_QUEST_inProgress: { text: "'Thread and Hemp can be woven into Cloth, or perhaps those unruly farmhands have some to spare.'", options: [{ text: "I understand.", next: "farewell" }] },
+                    TAILOR_CLOTH_QUEST_ready: { text: "'Excellent weave, strong and dependable. Now, let me show you how to cut and stitch it into proper Cloth Armor. It won't stop an axe, but it will turn a dagger.'", options: [{ text: "Thank you.", questComplete: "TAILOR_CLOTH_QUEST", next: "TAILOR_SILK_QUEST_start" }] },
+                    TAILOR_SILK_QUEST_start: { text: "'You learn quickly. Let us try something more ambitious. Silk. I need three bolts of refined Silk for a special commission. Can you manage it?'", options: [{ text: "I will find the silk.", questId: "TAILOR_SILK_QUEST", next: "TAILOR_SILK_QUEST_inProgress" }, { text: "Spiders are not to my liking.", next: "farewell" }] },
+                    TAILOR_SILK_QUEST_inProgress: { text: "'The spiders of the Dark Forest spin the finest raw silk. Weave it with heavy thread.'", options: [{ text: "I will return when I have it.", next: "farewell" }] },
+                    TAILOR_SILK_QUEST_ready: { text: "'Breathtaking. It flows like water. Here, the patterns for a masterwork: the Silk Wizard's garb. Wear it with pride.'", options: [{ text: "A masterpiece. Thank you.", questComplete: "TAILOR_SILK_QUEST", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "'You possess a true artisan's touch. Come back if your garments ever need mending.'", options: [{ text: "Farewell.", next: "farewell" }] },
+                    farewell: { text: "'May your threads never fray.'", options: [] }
                 }
             }, count: 1
         },
@@ -566,17 +566,17 @@ export const cardPools = {
                     { id: "WIZARD_PLAGUE_QUEST", title: "Plague Research", turnInItems: { "Plague Essence": 1 }, reward: { qp: 1, gold: 100 }, prerequisite: "WIZARD_CRYSTAL_QUEST" }
                 ],
                 dialogue: {
-                    WIZARD_ESSENCE_QUEST_start: { text: "Ah, an adventurer with potential! The arcane arts require rare components. Bring me 3 Magic Essences from the goblin shamans, and I shall reward you handsomely.", options: [{ text: "I'll gather the essences.", questId: "WIZARD_ESSENCE_QUEST", next: "WIZARD_ESSENCE_QUEST_inProgress" }, { text: "Magic isn't my path.", next: "farewell" }] },
-                    WIZARD_ESSENCE_QUEST_inProgress: { text: "Goblin Shamans in the caves carry Magic Essence. Defeat them and bring me their magical remains.", options: [{ text: "I'll find them.", next: "farewell" }] },
-                    WIZARD_ESSENCE_QUEST_ready: { text: "Excellent! These essences pulse with power. You have done well—here is your reward.", options: [{ text: "Thank you, wise one.", questComplete: "WIZARD_ESSENCE_QUEST", next: "WIZARD_CRYSTAL_QUEST_start" }] },
-                    WIZARD_CRYSTAL_QUEST_start: { text: "Your potential grows! Dark Crystals from the forest contain trapped magical energy. Bring me 2, and I shall make it worth your while.", options: [{ text: "I'll venture into the forest.", questId: "WIZARD_CRYSTAL_QUEST", next: "WIZARD_CRYSTAL_QUEST_inProgress" }, { text: "Perhaps later.", next: "farewell" }] },
-                    WIZARD_CRYSTAL_QUEST_inProgress: { text: "The Dark Forest hides many secrets. The crystal nodes there contain what I need.", options: [{ text: "I'm on it.", next: "farewell" }] },
-                    WIZARD_CRYSTAL_QUEST_ready: { text: "These crystals are magnificent! The energy within them is ancient. Here is your reward—well earned.", options: [{ text: "I feel the power!", questComplete: "WIZARD_CRYSTAL_QUEST", next: "WIZARD_PLAGUE_QUEST_start" }] },
-                    WIZARD_PLAGUE_QUEST_start: { text: "For your final test, I need something truly rare. Plague Essence from the sewer's depths. Dangerous, yes, but the nature magic within is unparalleled.", options: [{ text: "I'll brave the sewers.", questId: "WIZARD_PLAGUE_QUEST", next: "WIZARD_PLAGUE_QUEST_inProgress" }, { text: "That sounds too dangerous.", next: "farewell" }] },
-                    WIZARD_PLAGUE_QUEST_inProgress: { text: "The Plague Rats carry what I need. Be careful—their disease is deadly.", options: [{ text: "I'll be cautious.", next: "farewell" }] },
-                    WIZARD_PLAGUE_QUEST_ready: { text: "You've done it! This essence is perfect for studying nature's darker side. Here—you've more than earned this.", options: [{ text: "Thank you for everything.", questComplete: "WIZARD_PLAGUE_QUEST", next: "allQuestsDone" }] },
-                    allQuestsDone: { text: "You've proven yourself a true student of magic. May your spells strike true!", options: [{ text: "Farewell, master.", next: "farewell" }] },
-                    farewell: { text: "The arcane waits for no one...", options: [] }
+                    WIZARD_ESSENCE_QUEST_start: { text: "'Hmm. You possess an aura of latent potential. The arcane arts demand strange reagents. Bring me three vials of Magic Essence from the goblin shamans. Do this, and I will share my knowledge.'", options: [{ text: "I shall retrieve the essence.", questId: "WIZARD_ESSENCE_QUEST", next: "WIZARD_ESSENCE_QUEST_inProgress" }, { text: "Magic brings only ruin.", next: "farewell" }] },
+                    WIZARD_ESSENCE_QUEST_inProgress: { text: "'The primitive magic of the goblin shamans is crude, but potent. Bring me their essence.'", options: [{ text: "I'll return soon.", next: "farewell" }] },
+                    WIZARD_ESSENCE_QUEST_ready: { text: "'Ah, yes. I can feel the chaotic energy humming within these vials. Excellent. You have earned your compensation.'", options: [{ text: "My thanks, Master Wizard.", questComplete: "WIZARD_ESSENCE_QUEST", next: "WIZARD_CRYSTAL_QUEST_start" }] },
+                    WIZARD_CRYSTAL_QUEST_start: { text: "'Your potential continues to impress. I require a conduit of darker power for my next experiment. Two Dark Crystals from the depths of the forest.'", options: [{ text: "I will brave the dark woods.", questId: "WIZARD_CRYSTAL_QUEST", next: "WIZARD_CRYSTAL_QUEST_inProgress" }, { text: "I dare not enter those woods.", next: "farewell" }] },
+                    WIZARD_CRYSTAL_QUEST_inProgress: { text: "'The forest shadows hold many crystallized secrets. I need two of them.'", options: [{ text: "I am searching.", next: "farewell" }] },
+                    WIZARD_CRYSTAL_QUEST_ready: { text: "'Magnificent! The trapped ambient magic within these is ancient. Traces of an era long past. Well done, apprentice.'", options: [{ text: "I feel the power humming.", questComplete: "WIZARD_CRYSTAL_QUEST", next: "WIZARD_PLAGUE_QUEST_start" }] },
+                    WIZARD_PLAGUE_QUEST_start: { text: "'For your final task, you must face true festering corruption. I require the Plague Essence found only in the deepest sewers. The magic of decay is dangerous, but vital to understand.'", options: [{ text: "I will face the corruption.", questId: "WIZARD_PLAGUE_QUEST", next: "WIZARD_PLAGUE_QUEST_inProgress" }, { text: "I want nothing to do with plague.", next: "farewell" }] },
+                    WIZARD_PLAGUE_QUEST_inProgress: { text: "'The Plague Rats carry the essence of rot. Guard yourself well against their bite.'", options: [{ text: "I shall be careful.", next: "farewell" }] },
+                    WIZARD_PLAGUE_QUEST_ready: { text: "'You survived. Remarkable. This essence... it practically writhes with necrotic energy. You have proven a most capable assistant. Please, take this reward. You have earned it.'", options: [{ text: "It was an honor to assist.", questComplete: "WIZARD_PLAGUE_QUEST", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "'Your studies are complete for now. Continue to practice your arts. Magic is a muscle that must be exercised.'", options: [{ text: "Farewell, Master.", next: "farewell" }] },
+                    farewell: { text: "'The weave of magic surrounds us all.'", options: [] }
                 }
             }, count: 1
         },
@@ -776,11 +776,11 @@ export const cardPools = {
                     { id: "FOREST_PATROL", title: "Forest Patrol", target: "Dark Forest Enemy", required: 8, reward: { gold: 100, qp: 1 }, prerequisite: null }
                 ],
                 dialogue: {
-                    FOREST_PATROL_start: { text: "Hail, adventurer. These woods grow more dangerous by the day. Spiders and wolves lurk in every shadow. Help me cull their numbers—slay 8 of these beasts and I'll reward you handsomely.", options: [{ text: "I'll help keep the forest safe.", questId: "FOREST_PATROL", next: "FOREST_PATROL_inProgress" }, { text: "I have other business.", next: "farewell" }] },
-                    FOREST_PATROL_inProgress: { text: "The beasts still prowl. Keep hunting, friend.", options: [{ text: "I'll continue.", next: "farewell" }] },
-                    FOREST_PATROL_ready: { text: "Excellent work! The forest is safer thanks to you. Here is your reward.", options: [{ text: "Thank you.", questComplete: "FOREST_PATROL", next: "allQuestsDone" }] },
-                    allQuestsDone: { text: "The forest thanks you, brave one. Safe travels.", options: [{ text: "Farewell.", next: "farewell" }] },
-                    farewell: { text: "Stay vigilant.", options: [] }
+                    FOREST_PATROL_start: { text: "'You there. Travel the outer roads if you must, but keep a hand on your weapon. The beasts of the wood grow bolder by the hour. If you've a mind to help, strike down eight of them. I'll see you compensated.'", options: [{ text: "I will clear the perimeter.", questId: "FOREST_PATROL", next: "FOREST_PATROL_inProgress" }, { text: "I prefer to stay in town.", next: "farewell" }] },
+                    FOREST_PATROL_inProgress: { text: "'Eight beasts, traveler. Count your kills, and keep your guard up.'", options: [{ text: "I am on it.", next: "farewell" }] },
+                    FOREST_PATROL_ready: { text: "'Word travels fast. They say the howls in the dark are fewer tonight. You've done a good deed. Take this bounty, with the Guard's thanks.'", options: [{ text: "It was my duty.", questComplete: "FOREST_PATROL", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "'We hold the line here, but the dark is deep. Safe travels.'", options: [{ text: "Farewell.", next: "farewell" }] },
+                    farewell: { text: "'May the Light guide you.'", options: [] }
                 }
             }, count: 1
         },
@@ -795,11 +795,11 @@ export const cardPools = {
                     { id: "VAMPIRE_HUNT", title: "The Inheritance", target: "Vampire", required: 1, reward: { qp: 2, gold: 300 }, prerequisite: null }
                 ],
                 dialogue: {
-                    VAMPIRE_HUNT_start: { text: "Please, you must help me! I married Lord Ashworth for his fortune, but that wretched old man just won't die! He never leaves his mansion, never eats... I just want what's mine. Can you... deal with him?", options: [{ text: "I'll pay the lord a visit.", questId: "VAMPIRE_HUNT", next: "VAMPIRE_HUNT_inProgress" }, { text: "This isn't my concern.", next: "farewell" }] },
-                    VAMPIRE_HUNT_inProgress: { text: "The mansion is deeper in the forest. Be careful—strange things happen there at night.", options: [{ text: "I'll find him.", next: "farewell" }] },
-                    VAMPIRE_HUNT_ready: { text: "He's dead? Finally! I mean... oh how tragic. Well, here's a little something for your... trouble. I learned this from a shady friend—you seem like you could use it.", options: [{ text: "Thanks for the tip.", questComplete: "VAMPIRE_HUNT", next: "allQuestsDone" }] },
-                    allQuestsDone: { text: "The mansion is mine now. Don't visit too often, will you?", options: [{ text: "Farewell.", next: "farewell" }] },
-                    farewell: { text: "Good luck out there.", options: [] }
+                    VAMPIRE_HUNT_start: { text: "'Please, you must help me! I married Lord Ashworth for his fortune, but that wretched old man just won't die! He never leaves his mansion, never eats... I just want what's mine. Can you... deal with him?'", options: [{ text: "I'll pay the lord a visit.", questId: "VAMPIRE_HUNT", next: "VAMPIRE_HUNT_inProgress" }, { text: "This isn't my concern.", next: "farewell" }] },
+                    VAMPIRE_HUNT_inProgress: { text: "'The mansion is deeper in the forest. Be careful—strange things happen there at night.'", options: [{ text: "I'll find him.", next: "farewell" }] },
+                    VAMPIRE_HUNT_ready: { text: "'He's dead? Finally! I mean... oh how tragic. Well, here's a little something for your... trouble. Speak to no one.'", options: [{ text: "Thanks for the tip.", questComplete: "VAMPIRE_HUNT", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "'The mansion is mine now. Don't visit too often, will you?'", options: [{ text: "Farewell.", next: "farewell" }] },
+                    farewell: { text: "'Good luck out there.'", options: [] }
                 }
             }, count: 1
         },
