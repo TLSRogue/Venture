@@ -2911,8 +2911,34 @@ hr {
 .transition-message {
     font-size: 1.5em;
     color: #ecf0f1;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
     line-height: 1.4;
+}
+
+.transition-logs {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 25px;
+    max-height: 150px;
+    overflow-y: auto;
+    text-align: left;
+    font-size: 0.9em;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+    display: none;
+}
+
+.transition-logs p {
+    margin-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 6px;
+}
+
+.transition-logs p:last-child {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
 }
 
 .flex-center {

@@ -584,13 +584,13 @@ function handleDuelEnd({ outcome, reward }) {
     if (gameState.duelState) gameState.duelState.ended = true;
     const message = outcome === 'win' ? `You are victorious! You won ${reward?.gold || 0} gold.` : "You have been defeated!";
     playSound(outcome === 'win' ? 'victory' : 'defeat', 0.6);
-    UIMain.showTransitionScreen(outcome, message, Player.resetToHomeState);
+    UIMain.showTransitionScreen(outcome, message, Player.resetToHomeState, gameState.duelState?.log || []);
 }
 
 function handlePartyAdventureEnded(payload) {
     if (payload && payload.outcome && (payload.outcome === 'win' || payload.outcome === 'loss')) {
         playSound(payload.outcome === 'win' ? 'victory' : 'defeat', 0.6);
-        UIMain.showTransitionScreen(payload.outcome, payload.message || '', Player.resetToHomeState);
+        UIMain.showTransitionScreen(payload.outcome, payload.message || '', Player.resetToHomeState, gameState.sharedState?.log || []);
     } else {
         Player.resetToHomeState();
     }

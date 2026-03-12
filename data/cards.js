@@ -133,7 +133,7 @@ export const cardPools = {
                     { range: [16, 19], gold: { min: 3, max: 10 }, items: ["Thread", "Wizard's Staff Recipe (T1)"] },
                     { range: [20, 20], gold: { min: 5, max: 15 }, items: ["Thread", "Pitchfork"] }
                 ]
-            }, count: 3
+            }, count: 5
         },
         { card: { name: "Iron Node", type: "resource", skill: "mining", description: "Requires Mining Tool (T1). Rare chance for gemstones.", lootPool: [{ name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Tier 1 Gemstone" }], toolType: "mining", toolTier: 1, charges: 3, icon: "⛏️", imageUrl: '/assets/farmlands-ironnode.jpg' }, count: 6 },
         { card: { name: "Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T1)", loot: { name: "Wood", type: "material", price: 5 }, toolType: "woodcutting", toolTier: 1, charges: 3, icon: "🌲", imageUrl: '/assets/farmlands-tree.jpg' }, count: 6 },
@@ -150,7 +150,7 @@ export const cardPools = {
                 spawnsEnemy: "angryRooster"
             }, count: 1
         },
-        { card: { name: "Farmlands", type: "area", description: "Open farmland stretching to the horizon.", icon: "🌾", imageUrl: '/assets/farmlands-area.jpg', allowSpawnOver: true }, count: 3 },
+        { card: { name: "Farmlands", type: "area", description: "Open farmland stretching to the horizon.", icon: "🌾", imageUrl: '/assets/farmlands-area.jpg', allowSpawnOver: true }, count: 1 },
     ],
 
     theDocks: [

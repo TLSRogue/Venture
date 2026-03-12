@@ -6,7 +6,7 @@
 
 import { players, parties, pvpEncounters } from '../serverState.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
-import { createStateForClient } from '../utilsHelpers.js';
+import { createStateForClient, getBonusStatsForPlayer } from '../utilsHelpers.js';
 import { applyDamage, applyDoTEffects, processEndOfTurnEffects } from './combat-core.js';
 import { PVP_TURN_DURATION_MS, INVENTORY_SIZE, DEFAULT_ACTION_POINTS } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
@@ -362,6 +362,23 @@ export async function processPvpPlayerEndTurn(io, encounter, playerState) {
 
     // UNIFIED: Use shared end-of-turn effects
     processEndOfTurnEffects(playerState, encounter.log);
+
+    // PvP: Rejuvenate healing
+    const rejuvenateBuff = (playerState.buffs || []).find(b => b.type === 'Rejuvenate');
+    if (rejuvenateBuff && !playerState.isDead) {
+        const playerChar = players[playerState.name]?.character;
+        if (playerChar) {
+            const bonuses = getBonusStatsForPlayer(playerChar, playerState);
+            const healAmount = Number(rejuvenateBuff.healAmount || Math.max(1, 1 + (bonuses.naturePower || 0)));
+            const currentHealth = Number(playerState.health || 0);
+            const maxHealth = Number(playerState.maxHealth || 10);
+            playerState.health = Math.min(maxHealth, currentHealth + (isNaN(healAmount) ? 0 : healAmount));
+            encounter.log.push({ message: `${playerState.name}'s Rejuvenate heals for ${healAmount} HP.`, type: 'heal' });
+
+            const playerObj = players[playerState.name];
+            if (playerObj && playerObj.id) io.to(playerObj.id).emit('characterUpdate', playerChar);
+        }
+    }
 
     // Check Death
     if (playerState.health <= 0) {

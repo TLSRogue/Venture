@@ -424,11 +424,13 @@ export function buildSpellTooltip(spell, cooldownRemaining = 0) {
  * @param {string} outcome 'win' or 'loss'
  * @param {string} message The message to display under the title
  * @param {function} onContinueCallback Function to run when Continue is clicked
+ * @param {Array} logs Optional array of recent log entries to display
  */
-export function showTransitionScreen(outcome, message, onContinueCallback) {
+export function showTransitionScreen(outcome, message, onContinueCallback, logs = []) {
     const screen = document.getElementById('transition-screen');
     const title = document.getElementById('transition-title');
     const msg = document.getElementById('transition-message');
+    const logsContainer = document.getElementById('transition-logs');
     const btn = document.getElementById('transition-continue-btn');
 
     if (!screen || !title || !msg || !btn) return;
@@ -445,6 +447,26 @@ export function showTransitionScreen(outcome, message, onContinueCallback) {
     }
 
     msg.textContent = message;
+
+    // Add logs
+    if (logsContainer) {
+        logsContainer.innerHTML = '';
+        if (logs && logs.length > 0) {
+            logsContainer.style.display = 'block';
+            // Show the last 5 logs for context
+            const recentLogs = logs.slice(-5);
+            recentLogs.forEach(entry => {
+                const p = document.createElement('p');
+                p.innerHTML = entry.message;
+                p.className = `log-${entry.type || 'info'}`;
+                logsContainer.appendChild(p);
+            });
+            // Scroll to bottom
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        } else {
+            logsContainer.style.display = 'none';
+        }
+    }
 
     // Reset button listener to prevent duplicates
     const newBtn = btn.cloneNode(true);

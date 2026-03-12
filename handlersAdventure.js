@@ -539,6 +539,7 @@ export const registerAdventureHandlers = (io, socket) => {
                     character.spellsLearnedFromTraining = (character.spellsLearnedFromTraining || 0) + 1;
                     character.spellbook.push({ ...spellData });
                     character.trainingOfferings = []; // Full refresh on next visit
+                    character.trainingRefreshCount = 0; // Reset refresh cost!
 
                     party.sharedState.log.push({ message: `${character.characterName} has learned ${spellData.icon} ${spellData.name}!`, type: 'success' });
                     socket.emit('characterUpdate', character);
