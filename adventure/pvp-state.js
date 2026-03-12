@@ -125,7 +125,7 @@ export function endPvpEncounter(io, winningParty, losingParty) {
     losingParty.members.forEach(memberName => {
         const memberPlayer = players[memberName];
         if (memberPlayer && memberPlayer.id) {
-            io.to(memberPlayer.id).emit('party:adventureEnded');
+            io.to(memberPlayer.id).emit('party:adventureEnded', { outcome: 'loss', message: 'Your party was defeated by another player!' });
         }
     });
 

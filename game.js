@@ -51,7 +51,7 @@ function initGame() {
         onPartyRequestDebuffSelection: UIAdventure.showDebuffSelectionModal,
         onShowDialogue: UIParty.showNPCDialogueFromServer,
         onHideDialogue: UIMain.hideModal,
-        onPartyAdventureEnded: Player.resetToHomeState,
+        onPartyAdventureEnded: handlePartyAdventureEnded,
         // Loot Roll Listeners
         onPartyLootRollStarted: handleLootRollStarted,
         onPartyLootRollEnded: handleLootRollEnded,
@@ -584,8 +584,16 @@ function handleDuelEnd({ outcome, reward }) {
     if (gameState.duelState) gameState.duelState.ended = true;
     const message = outcome === 'win' ? `You are victorious! You won ${reward?.gold || 0} gold.` : "You have been defeated!";
     playSound(outcome === 'win' ? 'victory' : 'defeat', 0.6);
-    UIMain.showInfoModal(message);
-    setTimeout(Player.resetToHomeState, 3000);
+    UIMain.showTransitionScreen(outcome, message, Player.resetToHomeState);
+}
+
+function handlePartyAdventureEnded(payload) {
+    if (payload && payload.outcome && (payload.outcome === 'win' || payload.outcome === 'loss')) {
+        playSound(payload.outcome === 'win' ? 'victory' : 'defeat', 0.6);
+        UIMain.showTransitionScreen(payload.outcome, payload.message || '', Player.resetToHomeState);
+    } else {
+        Player.resetToHomeState();
+    }
 }
 
 function handleLootRollStarted(lootData) {

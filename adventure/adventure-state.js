@@ -552,6 +552,8 @@ export async function processEndAdventure(io, player, party) {
     }
 
     const endTheAdventure = () => {
+        const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead && p.health > 0);
+        const isWipe = alivePlayers.length === 0;
         party.members.forEach(memberName => {
             const memberPlayer = players[memberName];
             const memberCharacter = memberPlayer?.character;
@@ -562,7 +564,11 @@ export async function processEndAdventure(io, player, party) {
                 }
                 if (memberPlayer.id) {
                     io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
-                    io.to(memberPlayer.id).emit('party:adventureEnded');
+                    if (isWipe) {
+                        io.to(memberPlayer.id).emit('party:adventureEnded', { outcome: 'loss', message: 'Your party was wiped out!' });
+                    } else {
+                        io.to(memberPlayer.id).emit('party:adventureEnded');
+                    }
                 }
             }
         });
@@ -636,7 +642,7 @@ export async function processVentureDeeper(io, player, party) {
                 // Don't restore health for dead players
                 if (memberPlayer.id) {
                     io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
-                    io.to(memberPlayer.id).emit('party:adventureEnded');
+                    io.to(memberPlayer.id).emit('party:adventureEnded', { outcome: 'loss', message: 'Your party succumbed to their wounds!' });
                 }
             }
         });

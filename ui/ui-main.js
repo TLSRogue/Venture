@@ -418,3 +418,40 @@ export function buildSpellTooltip(spell, cooldownRemaining = 0) {
 
     return tooltip;
 }
+
+/**
+ * Display a full-screen transition overlay for Victory or Defeat.
+ * @param {string} outcome 'win' or 'loss'
+ * @param {string} message The message to display under the title
+ * @param {function} onContinueCallback Function to run when Continue is clicked
+ */
+export function showTransitionScreen(outcome, message, onContinueCallback) {
+    const screen = document.getElementById('transition-screen');
+    const title = document.getElementById('transition-title');
+    const msg = document.getElementById('transition-message');
+    const btn = document.getElementById('transition-continue-btn');
+
+    if (!screen || !title || !msg || !btn) return;
+
+    // Remove old classes
+    screen.classList.remove('victory', 'defeat', 'hidden');
+
+    if (outcome === 'win') {
+        screen.classList.add('victory');
+        title.textContent = 'VICTORY';
+    } else {
+        screen.classList.add('defeat');
+        title.textContent = 'DEFEAT';
+    }
+
+    msg.textContent = message;
+
+    // Reset button listener to prevent duplicates
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+
+    newBtn.addEventListener('click', () => {
+        screen.classList.add('hidden');
+        if (onContinueCallback) onContinueCallback();
+    });
+}
