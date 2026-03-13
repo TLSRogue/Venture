@@ -1368,17 +1368,49 @@ export function showBackpack() {
 export function showCharacterSheet() {
     const bonuses = getBonusStats();
     const calculatedStats = {
-        strength: gameState.strength + bonuses.strength,
-        wisdom: gameState.wisdom + bonuses.wisdom,
-        agility: gameState.agility + bonuses.agility,
-        defense: gameState.defense + bonuses.defense,
-        luck: gameState.luck + bonuses.luck,
+        maxHealth: (gameState.maxHealth || 0) + (bonuses.maxHealth || 0),
+        strength: (gameState.strength || 0) + (bonuses.strength || 0),
+        wisdom: (gameState.wisdom || 0) + (bonuses.wisdom || 0),
+        agility: (gameState.agility || 0) + (bonuses.agility || 0),
+        defense: (gameState.defense || 0) + (bonuses.defense || 0),
+        luck: (gameState.luck || 0) + (bonuses.luck || 0),
         physicalResistance: (gameState.physicalResistance || 0) + (bonuses.physicalResistance || 0),
-        mining: gameState.mining + bonuses.mining,
-        fishing: gameState.fishing + bonuses.fishing,
-        woodcutting: gameState.woodcutting + bonuses.woodcutting,
-        harvesting: gameState.harvesting + bonuses.harvesting,
+        fireResistance: (gameState.fireResistance || 0) + (bonuses.fireResistance || 0),
+        frostResistance: (gameState.frostResistance || 0) + (bonuses.frostResistance || 0),
+        natureResistance: (gameState.natureResistance || 0) + (bonuses.natureResistance || 0),
+        arcaneResistance: (gameState.arcaneResistance || 0) + (bonuses.arcaneResistance || 0),
+        holyResistance: (gameState.holyResistance || 0) + (bonuses.holyResistance || 0),
+        physicalPower: (gameState.physicalPower || 0) + (bonuses.physicalPower || 0),
+        firePower: (gameState.firePower || 0) + (bonuses.firePower || 0),
+        frostPower: (gameState.frostPower || 0) + (bonuses.frostPower || 0),
+        naturePower: (gameState.naturePower || 0) + (bonuses.naturePower || 0),
+        arcanePower: (gameState.arcanePower || 0) + (bonuses.arcanePower || 0),
+        holyPower: (gameState.holyPower || 0) + (bonuses.holyPower || 0),
+        mining: (gameState.mining || 0) + (bonuses.mining || 0),
+        fishing: (gameState.fishing || 0) + (bonuses.fishing || 0),
+        woodcutting: (gameState.woodcutting || 0) + (bonuses.woodcutting || 0),
+        harvesting: (gameState.harvesting || 0) + (bonuses.harvesting || 0),
     };
+
+    let resistancesHTML = '';
+    if (calculatedStats.physicalResistance > 0) resistancesHTML += `<p>🛡️ Physical: ${calculatedStats.physicalResistance}</p>`;
+    if (calculatedStats.fireResistance > 0) resistancesHTML += `<p>🔥 Fire: ${calculatedStats.fireResistance}</p>`;
+    if (calculatedStats.frostResistance > 0) resistancesHTML += `<p>❄️ Frost: ${calculatedStats.frostResistance}</p>`;
+    if (calculatedStats.natureResistance > 0) resistancesHTML += `<p>🌿 Nature: ${calculatedStats.natureResistance}</p>`;
+    if (calculatedStats.arcaneResistance > 0) resistancesHTML += `<p>✨ Arcane: ${calculatedStats.arcaneResistance}</p>`;
+    if (calculatedStats.holyResistance > 0) resistancesHTML += `<p>☀️ Holy: ${calculatedStats.holyResistance}</p>`;
+
+    let powerHTML = '';
+    if (calculatedStats.physicalPower > 0) powerHTML += `<p>⚔️ Physical: +${calculatedStats.physicalPower}</p>`;
+    if (calculatedStats.firePower > 0) powerHTML += `<p>🔥 Fire: +${calculatedStats.firePower}</p>`;
+    if (calculatedStats.frostPower > 0) powerHTML += `<p>❄️ Frost: +${calculatedStats.frostPower}</p>`;
+    if (calculatedStats.naturePower > 0) powerHTML += `<p>🌿 Nature: +${calculatedStats.naturePower}</p>`;
+    if (calculatedStats.arcanePower > 0) powerHTML += `<p>✨ Arcane: +${calculatedStats.arcanePower}</p>`;
+    if (calculatedStats.holyPower > 0) powerHTML += `<p>☀️ Holy: +${calculatedStats.holyPower}</p>`;
+    
+    let extraStatsHTML = '';
+    if (powerHTML !== '') extraStatsHTML += `<hr><h3>Bonus Power</h3>${powerHTML}`;
+    if (resistancesHTML !== '') extraStatsHTML += `<hr><h3>Resistances</h3>${resistancesHTML}`;
 
     const slotNames = { mainHand: 'Main Hand', offHand: 'Off Hand', helmet: 'Helmet', armor: 'Armor', boots: 'Boots', accessory: 'Accessory', ammo: 'Ammo' };
     let equipmentHTML = '<h3>Equipment</h3><div class="char-sheet-equipment">';
@@ -1409,14 +1441,13 @@ export function showCharacterSheet() {
         <div class="char-sheet-grid">
             <div>
                 <h3>Attributes</h3>
+                <p>❤️ Max HP: ${calculatedStats.maxHealth}</p>
                 <p>💪 Strength: ${calculatedStats.strength}</p>
                 <p>🏃 Agility: ${calculatedStats.agility}</p>
                 <p>🧠 Wisdom: ${calculatedStats.wisdom}</p>
                 <p>🛡️ Defense: ${calculatedStats.defense}</p>
                 <p>🍀 Luck: ${calculatedStats.luck}</p>
-                <hr>
-                <h3>Resistances</h3>
-                <p>💎 Physical Resistance: ${calculatedStats.physicalResistance}</p>
+                ${extraStatsHTML}
             </div>
             <div>
                 ${equipmentHTML}

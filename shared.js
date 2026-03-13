@@ -30,7 +30,12 @@ export const DEFAULT_BONUS_STATS = {
     naturePower: 0,
     physicalPower: 0,
     frostPower: 0,
-    holyPower: 0
+    holyPower: 0,
+    fireResistance: 0,
+    frostResistance: 0,
+    natureResistance: 0,
+    arcaneResistance: 0,
+    holyResistance: 0
 };
 
 /**
@@ -58,6 +63,17 @@ export const DEFAULT_CHARACTER_STATS = {
     defense: 0,
     luck: 0,
     physicalResistance: 0,
+    fireResistance: 0,
+    frostResistance: 0,
+    natureResistance: 0,
+    arcaneResistance: 0,
+    holyResistance: 0,
+    firePower: 0,
+    frostPower: 0,
+    naturePower: 0,
+    arcanePower: 0,
+    holyPower: 0,
+    physicalPower: 0,
     mining: 0,
     fishing: 0,
     woodcutting: 0,
