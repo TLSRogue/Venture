@@ -580,13 +580,13 @@ function handleDuelUpdate(duelState) {
     }
 }
 
-function handleDuelEnd({ outcome, reward }) {
+function handleDuelEnd({ outcome, reward, finalLog }) {
     if (gameState.duelState) gameState.duelState.ended = true;
     const message = outcome === 'win' ? `You are victorious! You won ${reward?.gold || 0} gold.` : "You have been defeated!";
     playSound(outcome === 'win' ? 'victory' : 'defeat', 0.6);
     
-    // Capture logs before reset (Duels use pvpEncounterState now)
-    const logs = gameState.pvpEncounterState?.log || gameState.duelState?.log || gameState.sharedState?.log || [];
+    // Capture logs before reset (Duels use pvpEncounter now)
+    const logs = finalLog || gameState.pvpEncounter?.log || gameState.duelState?.log || gameState.sharedState?.log || [];
     UIMain.showTransitionScreen(outcome, message, Player.resetToHomeState, logs);
 }
 
@@ -594,8 +594,8 @@ function handlePartyAdventureEnded(payload) {
     if (payload && payload.outcome && (payload.outcome === 'win' || payload.outcome === 'loss')) {
         playSound(payload.outcome === 'win' ? 'victory' : 'defeat', 0.6);
         
-        // Capture logs before reset (Check pvpEncounterState first for PvP deaths)
-        const logs = gameState.pvpEncounterState?.log || gameState.sharedState?.log || [];
+        // Capture logs before reset (Check pvpEncounter first for PvP deaths)
+        const logs = payload.finalLog || gameState.pvpEncounter?.log || gameState.sharedState?.log || [];
         UIMain.showTransitionScreen(payload.outcome, payload.message || '', Player.resetToHomeState, logs);
     } else {
         Player.resetToHomeState();

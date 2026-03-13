@@ -93,8 +93,8 @@ export function endPvpEncounter(io, winningParty, losingParty) {
         winningParty.members.forEach(memberName => {
             const memberPlayer = players[memberName];
             if (memberPlayer && memberPlayer.id) {
-                io.to(memberPlayer.id).emit('duel:end', { outcome: 'win', reward: null });
-                io.to(memberPlayer.id).emit('party:adventureEnded');
+                io.to(memberPlayer.id).emit('duel:end', { outcome: 'win', reward: null, finalLog: encounter.log });
+                io.to(memberPlayer.id).emit('party:adventureEnded', { finalLog: encounter.log });
             }
         });
 
@@ -102,8 +102,8 @@ export function endPvpEncounter(io, winningParty, losingParty) {
         losingParty.members.forEach(memberName => {
             const memberPlayer = players[memberName];
             if (memberPlayer && memberPlayer.id) {
-                io.to(memberPlayer.id).emit('duel:end', { outcome: 'loss', reward: null });
-                io.to(memberPlayer.id).emit('party:adventureEnded');
+                io.to(memberPlayer.id).emit('duel:end', { outcome: 'loss', reward: null, finalLog: encounter.log });
+                io.to(memberPlayer.id).emit('party:adventureEnded', { finalLog: encounter.log });
             }
         });
 
@@ -125,7 +125,7 @@ export function endPvpEncounter(io, winningParty, losingParty) {
     losingParty.members.forEach(memberName => {
         const memberPlayer = players[memberName];
         if (memberPlayer && memberPlayer.id) {
-            io.to(memberPlayer.id).emit('party:adventureEnded', { outcome: 'loss', message: 'Your party was defeated by another player!' });
+            io.to(memberPlayer.id).emit('party:adventureEnded', { outcome: 'loss', message: 'Your party was defeated by another player!', finalLog: encounter.log });
         }
     });
 
@@ -167,8 +167,8 @@ export function endDuelEncounter(io, winningParty, losingParty, encounter) {
     winningParty.members.forEach(memberName => {
         const memberPlayer = players[memberName];
         if (memberPlayer && memberPlayer.id) {
-            io.to(memberPlayer.id).emit('duel:end', { outcome: 'win', reward: null });
-            io.to(memberPlayer.id).emit('party:adventureEnded');
+            io.to(memberPlayer.id).emit('duel:end', { outcome: 'win', reward: null, finalLog: encounter.log });
+            io.to(memberPlayer.id).emit('party:adventureEnded', { finalLog: encounter.log });
         }
     });
 
@@ -176,8 +176,8 @@ export function endDuelEncounter(io, winningParty, losingParty, encounter) {
     losingParty.members.forEach(memberName => {
         const memberPlayer = players[memberName];
         if (memberPlayer && memberPlayer.id) {
-            io.to(memberPlayer.id).emit('duel:end', { outcome: 'loss', reward: null });
-            io.to(memberPlayer.id).emit('party:adventureEnded');
+            io.to(memberPlayer.id).emit('duel:end', { outcome: 'loss', reward: null, finalLog: encounter.log });
+            io.to(memberPlayer.id).emit('party:adventureEnded', { finalLog: encounter.log });
         }
     });
 
