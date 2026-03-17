@@ -1368,7 +1368,7 @@ export function showBackpack() {
 export function showCharacterSheet() {
     const bonuses = getBonusStats();
     const calculatedStats = {
-        maxHealth: (gameState.maxHealth || 0) + (bonuses.maxHealth || 0),
+        maxHealth: (gameState.maxHealth || 0),
         strength: (gameState.strength || 0) + (bonuses.strength || 0),
         wisdom: (gameState.wisdom || 0) + (bonuses.wisdom || 0),
         agility: (gameState.agility || 0) + (bonuses.agility || 0),
