@@ -285,7 +285,7 @@ function handleCharacterUpdate(serverState) {
     Object.assign(gameState, serverState);
 
     if (!gameState.turnState) {
-        gameState.turnState = { isPlayerTurn: true, pendingReaction: null, selectedAction: null, isProcessing: false, };
+        gameState.turnState = { activePhase: 'player', pendingReaction: null, selectedAction: null, isProcessing: false, };
     }
 
     if (preservedSession.currentZone || preservedSession.inDuel) {
@@ -397,7 +397,8 @@ function handlePartyAdventureUpdate(serverAdventureState) {
         gameState.pendingReaction = serverAdventureState.pvpEncounterState.pendingReaction;
         // Ensure zone effects (Blizzard etc.) are visible in PVP
         gameState.zoneEffects = serverAdventureState.zoneEffects || [];
-        gameState.isPlayerTurn = serverAdventureState.isPlayerTurn;
+        gameState.activePhase = serverAdventureState.activePhase;
+        gameState.activeTurnIndex = serverAdventureState.pvpEncounterState.activeTurnIndex;
     } else {
         Object.assign(gameState, serverAdventureState);
         gameState.pvpEncounter = null;

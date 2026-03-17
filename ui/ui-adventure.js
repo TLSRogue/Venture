@@ -284,8 +284,8 @@ export function renderAdventureScreen() {
     // --- END ZONE BACKGROUND ---
 
     // ** FIX: Use the new isLoadingNextArea flag for consistent behavior **
-    // Also disable during enemy turn (isPlayerTurn === false) to prevent clicking during enemy phase
-    const duringEnemyTurn = gameState.isPlayerTurn === false;
+    // Also disable during enemy turn (activePhase === 'enemy') to prevent clicking during enemy phase
+    const duringEnemyTurn = gameState.activePhase === 'enemy';
     const shouldDisableVenture = gameState.pvpEncounter || gameState.isLoadingNextArea || duringEnemyTurn;
     const shouldDisableHome = duringEnemyTurn;
     ventureArrow.disabled = shouldDisableVenture;
@@ -960,7 +960,16 @@ export function renderPlayerActionBars() {
     }
 
     const localPlayerAP = localPlayerState.actionPoints;
-    const localPlayerTurnEnded = gameState.pvpEncounter ? (gameState.pvpEncounter.activeTeam !== localPlayerState.team || localPlayerState.turnEnded) : localPlayerState.turnEnded;
+    let localPlayerTurnEnded = true;
+    if (gameState.pvpEncounter) {
+        const activeTurnIndex = gameState.pvpEncounter.activeTurnIndex;
+        const activePlayerId = gameState.pvpEncounter.turnOrder[activeTurnIndex];
+        localPlayerTurnEnded = localPlayerState.playerId !== activePlayerId || localPlayerState.turnEnded;
+    } else if (gameState.partyId && gameState.partyMemberStates) {
+        localPlayerTurnEnded = gameState.activePhase !== 'player' || gameState.partyMemberStates[gameState.activePlayerIndex]?.playerId !== localPlayerState.playerId || localPlayerState.turnEnded;
+    } else if (gameState.inDuel && gameState.duelState) {
+        localPlayerTurnEnded = gameState.duelState.activePlayerId !== localPlayerState.id || gameState.duelState.ended || localPlayerState.turnEnded;
+    }
     const { weaponCooldowns, spellCooldowns, itemCooldowns } = localPlayerState;
 
     document.getElementById('end-turn-btn').disabled = localPlayerTurnEnded;

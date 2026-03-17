@@ -212,12 +212,31 @@ export function startPvpEncounter(io, partyA, partyB, isDuel = false) {
         return party.sharedState.partyMemberStates.map(p => ({
             ...p,
             team,
-            actionPoints: (team === startingTeam) ? 1 : 3
+            actionPoints: 0 // AP assigned dynamically
         }));
     };
 
     const playerStatesA = createPlayerStatesForTeam(partyA, 'A');
     const playerStatesB = createPlayerStatesForTeam(partyB, 'B');
+
+    // Generate interleaved turnOrder
+    const turnOrder = [];
+    const team1 = startingTeam === 'A' ? playerStatesA : playerStatesB;
+    const team2 = startingTeam === 'A' ? playerStatesB : playerStatesA;
+    
+    // Interleave
+    const maxLength = Math.max(team1.length, team2.length);
+    for (let i = 0; i < maxLength; i++) {
+        if (i < team1.length) turnOrder.push(team1[i].playerId);
+        if (i < team2.length) turnOrder.push(team2[i].playerId);
+    }
+    
+    // Give AP to first player in turn order
+    const firstPlayerId = turnOrder[0];
+    const firstPlayerState = [...playerStatesA, ...playerStatesB].find(p => p.playerId === firstPlayerId);
+    if (firstPlayerState) {
+        firstPlayerState.actionPoints = 1; // Team going first gets 1 AP initially
+    }
 
     const duration = PVP_TURN_DURATION_MS;
     const timerEndsAt = Date.now() + duration;
@@ -225,11 +244,13 @@ export function startPvpEncounter(io, partyA, partyB, isDuel = false) {
     const timerId = setTimeout(() => {
         const currentEncounter = pvpEncounters[encounterId];
         if (currentEncounter) {
-            currentEncounter.log.push({ message: `Team ${currentEncounter.activeTeam}'s time expired! Turn ends.`, type: 'damage' });
-            currentEncounter.playerStates.forEach(p => {
-                if (p.team === currentEncounter.activeTeam && !p.isDead) p.turnEnded = true;
-            });
-            startNextPvpTeamTurn(io, encounterId);
+            const activePlayerId = currentEncounter.turnOrder[currentEncounter.activeTurnIndex];
+            const activePlayer = currentEncounter.playerStates.find(p => p.playerId === activePlayerId);
+            if (activePlayer) {
+                currentEncounter.log.push({ message: `${activePlayer.name}'s time expired! Turn ends.`, type: 'damage' });
+                activePlayer.turnEnded = true;
+            }
+            startNextPvpTurn(io, encounterId);
         }
     }, duration);
 
@@ -238,12 +259,13 @@ export function startPvpEncounter(io, partyA, partyB, isDuel = false) {
         partyAId: partyA.id,
         partyBId: partyB.id,
         playerStates: [...playerStatesA, ...playerStatesB],
-        activeTeam: startingTeam,
+        turnOrder: turnOrder,
+        activeTurnIndex: 0,
         groundLoot: [],
         isDuel: isDuel,
         log: [
             { message: isDuel ? `Duel has begun!` : `You have encountered an opposing party! Battle begins!`, type: 'damage' },
-            { message: `Team ${startingTeam} will go first, but with only 1 AP!`, type: 'info' }
+            { message: `${firstPlayerState.name} will go first, but with only 1 AP!`, type: 'info' }
         ],
         turnTimerEndsAt: timerEndsAt,
         turnTimerDuration: duration,
@@ -288,7 +310,7 @@ export function startPvpEncounter(io, partyA, partyB, isDuel = false) {
 /**
  * Start the next PvP team's turn.
  */
-export function startNextPvpTeamTurn(io, encounterId) {
+export function startNextPvpTurn(io, encounterId) {
     const encounter = pvpEncounters[encounterId];
     if (!encounter) return;
 
@@ -297,42 +319,67 @@ export function startNextPvpTeamTurn(io, encounterId) {
         encounter.turnTimerId = null;
     }
 
-    // 1. Force End Turn for Stragglers (Timeout)
-    encounter.playerStates.forEach(p => {
-        if (p.team === encounter.activeTeam && !p.turnEnded && !p.isDead) {
-            processPvpPlayerEndTurn(io, encounter, p);
-        }
-    });
-
-    // Process zone effects (e.g., Blizzard) between turns
-    const party = parties[encounter.partyAId];
-    if (party) {
-        processZoneEffects(io, party, encounter, encounter.activeTeam);
+    // Process out stragglers? Wait, if a turn ends, then the active player is handled
+    const currentActiveId = encounter.turnOrder[encounter.activeTurnIndex];
+    const currentActivePlayer = encounter.playerStates.find(p => p.playerId === currentActiveId);
+    if (currentActivePlayer && !currentActivePlayer.turnEnded && !currentActivePlayer.isDead) {
+        processPvpPlayerEndTurn(io, encounter, currentActivePlayer);
     }
 
-    const nextTeam = encounter.activeTeam === 'A' ? 'B' : 'A';
-    encounter.activeTeam = nextTeam;
-    encounter.log.push({ message: `--- Team ${nextTeam}'s Turn ---`, type: 'info' });
-
-    encounter.playerStates.forEach(p => {
-        if (p.team === nextTeam) {
-            if (!p.isDead) {
-                p.turnEnded = false;
-                // Check for Stun - reduces AP by 1
-                const stunDebuff = p.debuffs.find(d => d.type === 'stun');
-                if (stunDebuff) {
-                    p.actionPoints = DEFAULT_ACTION_POINTS - 1; // Lose 1 AP due to stun
-                    encounter.log.push({ message: `${p.name} is stunned and starts with reduced Action Points!`, type: 'reaction' });
-                } else {
-                    p.actionPoints = DEFAULT_ACTION_POINTS;
-                }
-            }
-            // Cooldowns decrement at Start of Turn
-            Object.keys(p.weaponCooldowns).forEach(k => { if (p.weaponCooldowns[k] > 0) p.weaponCooldowns[k]--; });
-            Object.keys(p.spellCooldowns).forEach(k => { if (p.spellCooldowns[k] > 0) p.spellCooldowns[k]--; });
-            Object.keys(p.itemCooldowns).forEach(k => { if (p.itemCooldowns[k] > 0) p.itemCooldowns[k]--; });
+    // Find next living player in turn order
+    let nextIndex = (encounter.activeTurnIndex + 1) % encounter.turnOrder.length;
+    let nextPlayer = null;
+    let roundEnded = false;
+    
+    // Safety check to prevent infinite loop if everyone dies 
+    // (though win condition logic should catch this)
+    for (let attempts = 0; attempts < encounter.turnOrder.length; attempts++) {
+        if (nextIndex < encounter.activeTurnIndex || nextIndex === 0) {
+            // We wrapped around the turn order list
+            if (nextIndex === 0) roundEnded = true; 
         }
-    });
+
+        const candidateId = encounter.turnOrder[nextIndex];
+        const candidate = encounter.playerStates.find(p => p.playerId === candidateId);
+        
+        if (candidate && !candidate.isDead) {
+            nextPlayer = candidate;
+            break;
+        }
+        nextIndex = (nextIndex + 1) % encounter.turnOrder.length;
+        if (nextIndex === 0) roundEnded = true;
+    }
+
+    if (!nextPlayer) {
+        // Everyone is dead? This means tie or game over, check win condition should have caught this.
+        return;
+    }
+    
+    encounter.activeTurnIndex = nextIndex;
+
+    // Process zone effects (e.g., Blizzard) between rounds
+    if (roundEnded) {
+        const party = parties[encounter.partyAId];
+        if (party) {
+            processZoneEffects(io, party, encounter, null);
+        }
+    }
+
+    encounter.log.push({ message: `--- ${nextPlayer.name}'s Turn ---`, type: 'info' });
+
+    nextPlayer.turnEnded = false;
+    const stunDebuff = nextPlayer.debuffs.find(d => d.type === 'stun');
+    if (stunDebuff) {
+        nextPlayer.actionPoints = DEFAULT_ACTION_POINTS - 1; // Lose 1 AP due to stun
+        encounter.log.push({ message: `${nextPlayer.name} is stunned and starts with reduced Action Points!`, type: 'reaction' });
+    } else {
+        nextPlayer.actionPoints = DEFAULT_ACTION_POINTS;
+    }
+
+    // Cooldowns decrement at Start of Turn
+    Object.keys(nextPlayer.weaponCooldowns).forEach(k => { if (nextPlayer.weaponCooldowns[k] > 0) nextPlayer.weaponCooldowns[k]--; });
+    Object.keys(nextPlayer.spellCooldowns).forEach(k => { if (nextPlayer.spellCooldowns[k] > 0) nextPlayer.spellCooldowns[k]--; });
+    Object.keys(nextPlayer.itemCooldowns).forEach(k => { if (nextPlayer.itemCooldowns[k] > 0) nextPlayer.itemCooldowns[k]--; });
 
     const duration = PVP_TURN_DURATION_MS;
     const timerEndsAt = Date.now() + duration;
@@ -340,11 +387,9 @@ export function startNextPvpTeamTurn(io, encounterId) {
     encounter.turnTimerId = setTimeout(() => {
         const currentEncounter = pvpEncounters[encounterId];
         if (currentEncounter) {
-            currentEncounter.log.push({ message: `Team ${nextTeam}'s time expired! Turn ends.`, type: 'damage' });
-            currentEncounter.playerStates.forEach(p => {
-                if (p.team === nextTeam && !p.isDead) p.turnEnded = true;
-            });
-            startNextPvpTeamTurn(io, encounterId);
+            currentEncounter.log.push({ message: `${nextPlayer.name}'s time expired! Turn ends.`, type: 'damage' });
+            if (!nextPlayer.isDead) nextPlayer.turnEnded = true;
+            startNextPvpTurn(io, encounterId);
         }
     }, duration);
 

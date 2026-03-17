@@ -13,7 +13,7 @@ import {
     handlePvpPlayerDeath,
     checkPvpWinCondition,
     endPvpEncounter,
-    startNextPvpTeamTurn
+    startNextPvpTurn
 } from './pvp-state.js';
 import { INVENTORY_SIZE } from '../constants.js';
 
@@ -332,11 +332,13 @@ export async function handleResolveReaction(io, socket, payload) {
             encounter.turnTimerId = setTimeout(() => {
                 const currentEncounter = pvpEncounters[encounter.id];
                 if (currentEncounter) {
-                    currentEncounter.log.push({ message: `Team ${currentEncounter.activeTeam}'s time expired! Turn ends.`, type: 'damage' });
-                    currentEncounter.playerStates.forEach(p => {
-                        if (p.team === currentEncounter.activeTeam && !p.isDead) p.turnEnded = true;
-                    });
-                    startNextPvpTeamTurn(io, currentEncounter.id);
+                    const activePlayerId = currentEncounter.turnOrder[currentEncounter.activeTurnIndex];
+                    const activePlayer = currentEncounter.playerStates.find(p => p.playerId === activePlayerId);
+                    if (activePlayer) {
+                        currentEncounter.log.push({ message: `${activePlayer.name}'s time expired! Turn ends.`, type: 'damage' });
+                        activePlayer.turnEnded = true;
+                    }
+                    startNextPvpTurn(io, currentEncounter.id);
                 }
             }, duration);
             encounter.turnTimerEndsAt = timerEndsAt;

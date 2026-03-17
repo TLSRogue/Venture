@@ -15,7 +15,7 @@ import {
     endPvpEncounter,
     endDuelEncounter,
     startPvpEncounter,
-    startNextPvpTeamTurn,
+    startNextPvpTurn,
     processPvpPlayerEndTurn
 } from './pvp-state.js';
 import {
@@ -245,10 +245,9 @@ export async function checkAndEndTurnForPlayer(io, party, player) {
             // Call full end turn handler to apply DoT and decrement buffs/debuffs
             await processPvpPlayerEndTurn(io, encounter, actingPlayerState);
 
-            const teamMembers = encounter.playerStates.filter(p => p.team === encounter.activeTeam);
-            const allTurnsEnded = teamMembers.every(p => p.turnEnded || p.isDead);
-            if (allTurnsEnded) {
-                startNextPvpTeamTurn(io, encounter.id);
+            const activePlayerId = encounter.turnOrder[encounter.activeTurnIndex];
+            if (activePlayerId === player.id) {
+                startNextPvpTurn(io, encounter.id);
             }
         }
         return;
@@ -618,18 +617,30 @@ export async function processVentureDeeper(io, player, party) {
         sharedState.zoneCards = [];
         sharedState.groundLoot = [];
         drawCardsForServer(sharedState, 3);
-        sharedState.partyMemberStates.forEach(p => {
+        sharedState.turnNumber = 0;
+        sharedState.isPlayerTurn = true;
+        sharedState.activePlayerIndex = 0;
+        sharedState.activePhase = 'player';
+        // Make sure only the first living player gets AP
+        let firstLivingFound = false;
+        sharedState.partyMemberStates.forEach((p, idx) => {
             if (!p.isDead) {
-                p.actionPoints = DEFAULT_ACTION_POINTS;
+                if (!firstLivingFound) {
+                    p.actionPoints = DEFAULT_ACTION_POINTS;
+                    firstLivingFound = true;
+                    sharedState.activePlayerIndex = idx;
+                } else {
+                    p.actionPoints = 0;
+                }
                 p.turnEnded = false;
+            } else {
+                p.actionPoints = 0;
             }
             p.weaponCooldowns = {};
             p.spellCooldowns = {};
             p.itemCooldowns = {};
             p.threat = 0;
         });
-        sharedState.turnNumber = 0;
-        sharedState.isPlayerTurn = true;
     };
 
     // Helper: End adventure when party wipes (all dead)
@@ -812,12 +823,10 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
     const { sharedState } = party;
     if (startIndex === 0) {
         sharedState.isPlayerTurn = false;
+        sharedState.activePhase = 'enemy';
         if (!isFleeing) {
             sharedState.log.push({ message: "--- Zone's Turn ---", type: 'info' });
         }
-
-        // Process zone effects (e.g., Blizzard) at start of zone turn
-        processZoneEffects(io, party);
 
         broadcastAdventureUpdate(io, party);
         // Small delay between player turn ending and first enemy action
@@ -1363,6 +1372,8 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
         }
     }
     if (!isFleeing) {
+        // Process zone effects at the end of the entire round
+        processZoneEffects(io, party);
         await new Promise(resolve => setTimeout(resolve, 1000));
         startNextPlayerTurn(io, party.id);
     }
@@ -1374,37 +1385,61 @@ export function startNextPlayerTurn(io, partyId) {
     const { sharedState } = party;
     sharedState.turnNumber++;
     sharedState.isPlayerTurn = true;
+    sharedState.activePhase = 'player';
+    
+    // Find first living player
+    let firstLivingIndex = -1;
+    for (let i = 0; i < sharedState.partyMemberStates.length; i++) {
+        if (!sharedState.partyMemberStates[i].isDead) {
+            firstLivingIndex = i;
+            break;
+        }
+    }
+    
+    if (firstLivingIndex === -1) return; // All dead, should not happen here but safety
+    
+    sharedState.activePlayerIndex = firstLivingIndex;
+
     sharedState.log.push({ message: "--- Players' Turn ---", type: 'info' });
-    sharedState.partyMemberStates.forEach(p => {
+    
+    sharedState.partyMemberStates.forEach((p, idx) => {
         if (p.isDead) {
             p.turnEnded = true;
+            p.actionPoints = 0;
         } else {
             // DoT Damage processed at END of turn now.
-
             // Check if DOT killed the player
             if (p.health <= 0) {
                 p.isDead = true;
                 p.turnEnded = true;
+                p.actionPoints = 0;
                 sharedState.log.push({ message: `${p.name} has succumbed to their wounds!`, type: 'damage' });
                 return;
             }
 
-            // Check for Stun or Frozen - reduces AP by 1
-            const disablingDebuff = p.debuffs.find(d => d.type === 'stun' || d.type === 'frozen');
-            if (disablingDebuff) {
-                p.actionPoints = DEFAULT_ACTION_POINTS - 1; // Lose 1 AP due to stun/frozen
-                const effectName = disablingDebuff.type === 'frozen' ? 'Frozen' : 'stunned';
-                sharedState.log.push({ message: `${p.name} is ${effectName} and starts with reduced Action Points!`, type: 'reaction' });
-            } else {
-                p.actionPoints = DEFAULT_ACTION_POINTS;
-            }
             p.turnEnded = false;
+            p.actionPoints = 0; // Clear AP for everyone to start
+            
+            // Cooldowns decrement at start of round
+            Object.keys(p.weaponCooldowns).forEach(k => { if (p.weaponCooldowns[k] > 0) p.weaponCooldowns[k]--; });
+            Object.keys(p.spellCooldowns).forEach(k => { if (p.spellCooldowns[k] > 0) p.spellCooldowns[k]--; });
+            Object.keys(p.itemCooldowns).forEach(k => { if (p.itemCooldowns[k] > 0) p.itemCooldowns[k]--; });
         }
-        // Buff/Debuff decrement processed at END of turn now.
-        Object.keys(p.weaponCooldowns).forEach(k => { if (p.weaponCooldowns[k] > 0) p.weaponCooldowns[k]--; });
-        Object.keys(p.spellCooldowns).forEach(k => { if (p.spellCooldowns[k] > 0) p.spellCooldowns[k]--; });
-        Object.keys(p.itemCooldowns).forEach(k => { if (p.itemCooldowns[k] > 0) p.itemCooldowns[k]--; });
     });
+    
+    // Give AP to first player
+    const firstPlayer = sharedState.partyMemberStates[firstLivingIndex];
+    if (!firstPlayer.isDead) {
+        const disablingDebuff = firstPlayer.debuffs.find(d => d.type === 'stun' || d.type === 'frozen');
+        if (disablingDebuff) {
+            firstPlayer.actionPoints = DEFAULT_ACTION_POINTS - 1; // Lose 1 AP due to stun/frozen
+            const effectName = disablingDebuff.type === 'frozen' ? 'Frozen' : 'stunned';
+            sharedState.log.push({ message: `${firstPlayer.name} is ${effectName} and starts with reduced Action Points!`, type: 'reaction' });
+        } else {
+            firstPlayer.actionPoints = DEFAULT_ACTION_POINTS;
+        }
+    }
+    
     broadcastAdventureUpdate(io, party);
 }
 
@@ -1442,22 +1477,47 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
 
     // 3. Set turnEnded
     playerState.turnEnded = true;
+    playerState.actionPoints = 0;
 
     // 4. Reduce Threat if unused AP (PvE Logic)
     if (!party.sharedState.pvpEncounterId && playerState.actionPoints > 0) {
         const threatReduction = playerState.actionPoints;
         playerState.threat = Math.max(0, (playerState.threat || 0) - threatReduction);
-        // Log optional? Handler did it. We can do it here.
-        // Get character name? playerState.name is character name.
         sharedState.log.push({ message: `${playerState.name} reduces threat by ${threatReduction} (${playerState.actionPoints} unused AP).`, type: 'info' });
     }
 
-    // 5. Check All Ends
-    broadcastAdventureUpdate(io, party);
+    // Find next living player
+    let nextLivingIndex = -1;
+    for (let i = sharedState.activePlayerIndex + 1; i < sharedState.partyMemberStates.length; i++) {
+        if (!sharedState.partyMemberStates[i].isDead) {
+            nextLivingIndex = i;
+            break;
+        }
+    }
 
-    const allTurnsEnded = sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
-    if (allTurnsEnded) {
-        await runEnemyPhaseForParty(io, partyId);
+    if (nextLivingIndex !== -1) {
+        // Pass AP to next player
+        sharedState.activePlayerIndex = nextLivingIndex;
+        const nextPlayer = sharedState.partyMemberStates[nextLivingIndex];
+        
+        const disablingDebuff = nextPlayer.debuffs.find(d => d.type === 'stun' || d.type === 'frozen');
+        if (disablingDebuff) {
+            nextPlayer.actionPoints = DEFAULT_ACTION_POINTS - 1;
+            const effectName = disablingDebuff.type === 'frozen' ? 'Frozen' : 'stunned';
+            sharedState.log.push({ message: `${nextPlayer.name} is ${effectName} and starts with reduced Action Points!`, type: 'reaction' });
+        } else {
+            nextPlayer.actionPoints = DEFAULT_ACTION_POINTS;
+        }
+        
+        broadcastAdventureUpdate(io, party);
+    } else {
+        // All players have gone
+        broadcastAdventureUpdate(io, party);
+        // Call enemy phase
+        const allTurnsEnded = sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
+        if (allTurnsEnded) {
+            await runEnemyPhaseForParty(io, partyId);
+        }
     }
 }
 
@@ -1522,7 +1582,7 @@ export {
     handlePvpPlayerDeath,
     endDuelEncounter,
     startPvpEncounter,
-    startNextPvpTeamTurn,
+    startNextPvpTurn,
     processPvpPlayerEndTurn
 };
 
@@ -1821,11 +1881,13 @@ export async function handleResolveReaction(io, socket, payload) {
             encounter.turnTimerId = setTimeout(() => {
                 const currentEncounter = pvpEncounters[encounter.id];
                 if (currentEncounter) {
-                    currentEncounter.log.push({ message: `Team ${currentEncounter.activeTeam}'s time expired! Turn ends.`, type: 'damage' });
-                    currentEncounter.playerStates.forEach(p => {
-                        if (p.team === currentEncounter.activeTeam && !p.isDead) p.turnEnded = true;
-                    });
-                    startNextPvpTeamTurn(io, currentEncounter.id);
+                    const activePlayerId = currentEncounter.turnOrder[currentEncounter.activeTurnIndex];
+                    const activePlayer = currentEncounter.playerStates.find(p => p.playerId === activePlayerId);
+                    if (activePlayer) {
+                        currentEncounter.log.push({ message: `${activePlayer.name}'s time expired! Turn ends.`, type: 'damage' });
+                        activePlayer.turnEnded = true;
+                    }
+                    startNextPvpTurn(io, currentEncounter.id);
                 }
             }, duration);
             encounter.turnTimerEndsAt = timerEndsAt;

@@ -70,6 +70,8 @@ export const registerAdventureHandlers = (io, socket) => {
                 groundLoot: [],
                 turnNumber: 0,
                 isPlayerTurn: true,
+                activePlayerIndex: 0,
+                activePhase: 'player',
                 partyMemberStates: [{
                     playerId: player.id,
                     name: character.characterName,
@@ -130,7 +132,9 @@ export const registerAdventureHandlers = (io, socket) => {
             groundLoot: [],
             turnNumber: 0,
             isPlayerTurn: true,
-            partyMemberStates: party.members.map(memberName => {
+            activePlayerIndex: 0,
+            activePhase: 'player',
+            partyMemberStates: party.members.map((memberName, idx) => {
                 const memberPlayer = players[memberName];
                 const memberCharacter = memberPlayer.character;
                 const bonuses = getBonusStatsForPlayer(memberCharacter, null);
@@ -141,7 +145,7 @@ export const registerAdventureHandlers = (io, socket) => {
                     icon: memberCharacter.characterIcon,
                     health: maxHealth,
                     maxHealth: maxHealth,
-                    actionPoints: DEFAULT_ACTION_POINTS,
+                    actionPoints: idx === 0 ? DEFAULT_ACTION_POINTS : 0,
                     turnEnded: false,
                     isDead: false,
                     lootableInventory: [],
@@ -443,7 +447,7 @@ export const registerAdventureHandlers = (io, socket) => {
 
             if (action.type === 'returnHome' || action.type === 'ventureDeeper') {
                 // Block these actions during enemy turn (server-side safety check)
-                if (party.sharedState.isPlayerTurn === false) {
+                if (party.sharedState.activePhase === 'enemy') {
                     return; // Silently ignore - client should have blocked this
                 }
 
@@ -465,13 +469,21 @@ export const registerAdventureHandlers = (io, socket) => {
                     return;
                 }
                 actingPlayerState = encounter.playerStates.find(p => p.name === name);
-                console.log(`[playerAction] Player ${name} found in encounter:`, !!actingPlayerState, `team: ${actingPlayerState?.team}, activeTeam: ${encounter.activeTeam}`);
-                if (encounter.activeTeam !== actingPlayerState?.team) {
-                    console.log(`[playerAction] BLOCKED: Not player's team turn. Active: ${encounter.activeTeam}, Player: ${actingPlayerState?.team}`);
+                const activePlayerId = encounter.turnOrder[encounter.activeTurnIndex];
+                console.log(`[playerAction] Player ${name} found in encounter:`, !!actingPlayerState, `ActivePlayerId: ${activePlayerId}, MyId: ${actingPlayerState?.playerId}`);
+                if (actingPlayerState?.playerId !== activePlayerId) {
+                    console.log(`[playerAction] BLOCKED: Not player's exact turn.`);
                     return;
                 }
             } else {
                 actingPlayerState = party.sharedState.partyMemberStates.find(p => p.name === name);
+                const activePhase = party.sharedState.activePhase;
+                const activePlayer = party.sharedState.partyMemberStates[party.sharedState.activePlayerIndex];
+                
+                if (activePhase !== 'player' || activePlayer?.playerId !== player.id) {
+                    console.log(`[playerAction] BLOCKED: Not player's exact turn in PVE.`);
+                    return;
+                }
             }
 
             if (!actingPlayerState || actingPlayerState.isDead) return;
@@ -588,10 +600,9 @@ export const registerAdventureHandlers = (io, socket) => {
                         if (encounter) {
                             await state.processPvpPlayerEndTurn(io, encounter, actingPlayerState);
 
-                            const teamMembers = encounter.playerStates.filter(p => p.team === encounter.activeTeam);
-                            const allTurnsEnded = teamMembers.every(p => p.turnEnded || p.isDead);
-                            if (allTurnsEnded) {
-                                state.startNextPvpTeamTurn(io, encounter.id);
+                            const activePlayerId = encounter.turnOrder[encounter.activeTurnIndex];
+                            if (activePlayerId === player.id) {
+                                state.startNextPvpTurn(io, encounter.id);
                             }
                         }
                     } else {
