@@ -442,43 +442,46 @@ function handlePartyAdventureUpdate(serverAdventureState) {
 
 function updateTurnTimerUI() {
     if (turnTimerInterval) clearInterval(turnTimerInterval);
-    const timerContainer = document.getElementById('pvp-turn-timer-container');
-    const timerText = document.getElementById('pvp-turn-timer-text');
+    const oldContainer = document.getElementById('pvp-turn-timer-container');
+    if (oldContainer) oldContainer.style.display = 'none';
 
     let endsAt = null;
-    let turnName = "";
 
     if (gameState.pvpEncounter && gameState.pvpEncounter.turnTimerEndsAt) {
         endsAt = gameState.pvpEncounter.turnTimerEndsAt;
-        turnName = `Team ${gameState.pvpEncounter.activeTeam}`;
     } else if (gameState.turnTimerEndsAt && gameState.isPlayerTurn && gameState.partyMemberStates) {
         endsAt = gameState.turnTimerEndsAt;
-        const activePlayer = gameState.partyMemberStates[gameState.activePlayerIndex];
-        turnName = activePlayer ? activePlayer.name : "Player";
     }
 
+    const timerBarContainers = document.querySelectorAll('.turn-timer-bar-container');
+
     if (endsAt) {
-        timerContainer.style.display = 'block';
+        timerBarContainers.forEach(container => container.style.display = 'block');
+        const duration = gameState.pvpEncounter ? 60 : 30; // 60s for PVP, 30s for PVE
 
         const update = () => {
             const remaining = Math.round((endsAt - Date.now()) / 1000);
-            if (remaining > 0) {
-                timerText.textContent = `${turnName}'s Turn: ${remaining}s`;
-                if (remaining <= 10) {
-                    timerContainer.classList.add('urgent');
-                } else {
-                    timerContainer.classList.remove('urgent');
-                }
+            if (remaining >= 0) {
+                const percentage = Math.max(0, (remaining / duration) * 100);
+                timerBarContainers.forEach(container => {
+                    const bar = container.querySelector('.active-turn-timer-bar');
+                    if (bar) {
+                        bar.style.width = `${percentage}%`;
+                        if (remaining <= 10) {
+                            bar.style.background = '#e74c3c'; // urgent red
+                        } else {
+                            bar.style.background = '#ffd700'; // regular gold
+                        }
+                    }
+                });
             } else {
-                timerText.textContent = `${turnName}'s Turn: 0s`;
                 clearInterval(turnTimerInterval);
             }
         };
         update();
         turnTimerInterval = setInterval(update, 1000);
     } else {
-        timerContainer.style.display = 'none';
-        if (timerText) timerText.textContent = '';
+        timerBarContainers.forEach(container => container.style.display = 'none');
     }
 }
 

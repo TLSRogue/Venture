@@ -420,11 +420,21 @@ function createEntityCard(state, options = {}) {
         focusHTML = `<div class="card-focus-bar" style="color: #f1c40f; text-align: center; font-size: 14px; margin-top: -5px; margin-bottom: 2px; text-shadow: 0 0 2px black;">${focusDots}</div>`;
     }
 
+    let timerBarHTML = '';
+    if (isActiveTurn && !state.isDead && !state.turnEnded) {
+        timerBarHTML = `
+            <div class="turn-timer-bar-container" style="width: 100%; height: 6px; background: #333; margin-top: 4px; border-radius: 3px; overflow: hidden; display: none;">
+                <div class="active-turn-timer-bar" style="width: 100%; height: 100%; background: #ffd700; transition: width 1s linear;"></div>
+            </div>
+        `;
+    }
+
     cardEl.innerHTML = `
         <div class="card-title">${state.name}</div>
         ${visualHTML}
         ${focusHTML}
         ${createHealthBarHTML(state.health, state.maxHealth, showThreat ? state.threat : null, shield)}
+        ${timerBarHTML}
     `;
 
     // Append effects
