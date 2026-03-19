@@ -305,16 +305,6 @@ export function renderAdventureScreen() {
     renderGroundLootButton();
     renderPlayerActionBars();
     updateActionUI();
-    
-    // Debug box
-    let debugBox = document.getElementById('my-giant-debug-box');
-    if (!debugBox) {
-        debugBox = document.createElement('div');
-        debugBox.id = 'my-giant-debug-box';
-        debugBox.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);background:yellow;color:black;z-index:9999;padding:10px;border:2px solid red;font-size:20px;';
-        document.body.appendChild(debugBox);
-    }
-    debugBox.textContent = `isPlayerTurn:${gameState.isPlayerTurn} activeIndex:${gameState.activePlayerIndex} pvp:${!!gameState.pvpEncounter} endsAt:${gameState.turnTimerEndsAt}`;
 }
 
 function buildPlayerInspectTooltip(playerData) {
@@ -432,11 +422,19 @@ function createEntityCard(state, options = {}) {
 
     let timerBarHTML = '';
     if (isActiveTurn && !state.isDead && !state.turnEnded) {
+        // Calculate initial width from gameState timer data
+        const endsAt = gameState.turnTimerEndsAt;
+        const duration = 30; // PVE timer is 30s
+        let pct = 100;
+        if (endsAt) {
+            const remaining = Math.max(0, Math.round((endsAt - Date.now()) / 1000));
+            pct = Math.max(0, (remaining / duration) * 100);
+        }
+        const barColor = (endsAt && Math.round((endsAt - Date.now()) / 1000) <= 10) ? '#e74c3c' : '#ffd700';
         timerBarHTML = `
-            <div class="turn-timer-bar-container" style="width: 100%; height: 6px; background: #333; margin-top: 4px; border-radius: 3px; overflow: hidden; display: none;">
-                <div class="active-turn-timer-bar" style="width: 100%; height: 100%; background: #ffd700; transition: width 1s linear;"></div>
+            <div class="turn-timer-bar-container" style="width: 100%; height: 6px; background: #333; margin-top: 4px; border-radius: 3px; overflow: hidden;">
+                <div class="active-turn-timer-bar" style="width: ${pct}%; height: 100%; background: ${barColor}; transition: width 1s linear;"></div>
             </div>
-            <div class="timer-debug" style="color: red; font-size: 12px; line-height: 1; background: black; padding: 2px;">DEBUG INIT: ${isActiveTurn} ${state.isDead} ${state.turnEnded}</div>
         `;
     }
 

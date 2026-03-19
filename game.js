@@ -455,14 +455,7 @@ function updateTurnTimerUI() {
 
     const timerBarContainers = document.querySelectorAll('.turn-timer-bar-container');
 
-    if (endsAt) {
-        timerBarContainers.forEach(container => {
-            container.style.display = 'block';
-            const debugEl = container.nextElementSibling;
-            if (debugEl && debugEl.classList.contains('timer-debug')) {
-                debugEl.textContent = `endsAt:${endsAt} cur:${Date.now()}`;
-            }
-        });
+    if (endsAt && timerBarContainers.length > 0) {
         const duration = gameState.pvpEncounter ? 60 : 30; // 60s for PVP, 30s for PVE
 
         const update = () => {
@@ -473,11 +466,7 @@ function updateTurnTimerUI() {
                     const bar = container.querySelector('.active-turn-timer-bar');
                     if (bar) {
                         bar.style.width = `${percentage}%`;
-                        if (remaining <= 10) {
-                            bar.style.background = '#e74c3c'; // urgent red
-                        } else {
-                            bar.style.background = '#ffd700'; // regular gold
-                        }
+                        bar.style.background = remaining <= 10 ? '#e74c3c' : '#ffd700';
                     }
                 });
             } else {
@@ -486,8 +475,6 @@ function updateTurnTimerUI() {
         };
         update();
         turnTimerInterval = setInterval(update, 1000);
-    } else {
-        timerBarContainers.forEach(container => container.style.display = 'none');
     }
 }
 
