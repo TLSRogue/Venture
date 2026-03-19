@@ -764,6 +764,19 @@ function renderZoneCards(cards) {
                 if (!e.altKey) showTooltip(tooltipContent);
             });
             cardEl.addEventListener('mouseout', () => hideTooltip());
+        } else if (card.type === 'resource') {
+            let tooltipContent = `<strong>${card.name}</strong><br>${card.description || ''}`;
+            // Dynamic tool requirement
+            if (card.toolType && card.toolTier) {
+                const toolName = card.toolType.charAt(0).toUpperCase() + card.toolType.slice(1);
+                tooltipContent += `<br><span style="color: #aaa; font-size: 0.9em;">🔧 Requires ${toolName} Tool (T${card.toolTier})</span>`;
+            }
+            cardEl.addEventListener('mouseover', () => showTooltip(tooltipContent));
+            cardEl.addEventListener('mouseout', () => hideTooltip());
+        } else if (card.type === 'area' || card.type === 'interaction') {
+            let tooltipContent = `<strong>${card.name}</strong><br>${card.description || ''}`;
+            cardEl.addEventListener('mouseover', () => showTooltip(tooltipContent));
+            cardEl.addEventListener('mouseout', () => hideTooltip());
         }
 
         let visualHTML;

@@ -135,10 +135,10 @@ export const cardPools = {
                 ]
             }, count: 5
         },
-        { card: { name: "Iron Node", type: "resource", skill: "mining", description: "Requires Mining Tool (T1). Rare chance for gemstones.", lootPool: [{ name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Tier 1 Gemstone" }], toolType: "mining", toolTier: 1, charges: 3, icon: "⛏️", imageUrl: '/assets/farmlands-ironnode.jpg' }, count: 6 },
-        { card: { name: "Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T1)", loot: { name: "Wood", type: "material", price: 5 }, toolType: "woodcutting", toolTier: 1, charges: 3, icon: "🌲", imageUrl: '/assets/farmlands-tree.jpg' }, count: 6 },
-        { card: { name: "River", type: "resource", skill: "fishing", description: "Requires Fishing Tool (T1)", loot: { name: "Fish", type: "material", price: 5 }, toolType: "fishing", toolTier: 1, charges: 3, icon: "🎣", imageUrl: '/assets/farmlands-river.jpg' }, count: 6 },
-        { card: { name: "Crops", type: "resource", skill: "harvesting", description: "Requires Harvesting Tool (T1)", lootPool: [{ name: "Wheat" }, { name: "Carrot" }, { name: "Hemp" }], toolType: "harvesting", toolTier: 1, charges: 3, icon: "🌾", imageUrl: '/assets/farmlands-crops.jpg' }, count: 5 },
+        { card: { name: "Iron Node", type: "resource", skill: "mining", description: "A vein of raw iron ore jutting from the earth.", lootPool: [{ name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Iron" }, { name: "Tier 1 Gemstone" }], toolType: "mining", toolTier: 1, charges: 3, icon: "⛏️", imageUrl: '/assets/farmlands-ironnode.jpg' }, count: 6 },
+        { card: { name: "Tree", type: "resource", skill: "woodcutting", description: "A sturdy tree ripe for felling.", loot: { name: "Wood", type: "material", price: 5 }, toolType: "woodcutting", toolTier: 1, charges: 3, icon: "🌲", imageUrl: '/assets/farmlands-tree.jpg' }, count: 6 },
+        { card: { name: "River", type: "resource", skill: "fishing", description: "A calm stretch of water teeming with fish.", loot: { name: "Fish", type: "material", price: 5 }, toolType: "fishing", toolTier: 1, charges: 3, icon: "🎣", imageUrl: '/assets/farmlands-river.jpg' }, count: 6 },
+        { card: { name: "Crops", type: "resource", skill: "harvesting", description: "Golden fields of wheat and root vegetables.", lootPool: [{ name: "Wheat" }, { name: "Carrot" }, { name: "Hemp" }], toolType: "harvesting", toolTier: 1, charges: 3, icon: "🌾", imageUrl: '/assets/farmlands-crops.jpg' }, count: 5 },
         {
             card: {
                 name: "Chicken Coop",
@@ -346,9 +346,9 @@ export const cardPools = {
                 ]
             }, count: 7
         },
-        { card: { name: "Boulders", type: "resource", skill: "mining", description: "Requires Mining Tool (T1). Something might be lurking behind...", loot: { name: "Rocks", type: "material", price: 5 }, toolType: "mining", toolTier: 1, charges: 3, icon: "🪨", imageUrl: '/assets/goblincaves-boulder.jpg', onDepletedSpawn: true }, count: 8 },
-        { card: { name: "Vines", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T1)", loot: { name: "Vines", type: "material", price: 5 }, toolType: "woodcutting", toolTier: 1, charges: 3, icon: "🌿", imageUrl: '/assets/goblincaves-vines.jpg' }, count: 6 },
-        { card: { name: "Coal", type: "resource", skill: "mining", description: "Requires Mining Tool (T1)", loot: { name: "Coal", type: "material", price: 5 }, toolType: "mining", toolTier: 1, charges: 3, icon: "⛏️", imageUrl: '/assets/goblincaves-coal.jpg' }, count: 6 },
+        { card: { name: "Boulders", type: "resource", skill: "mining", description: "Crumbling boulders blocking a passage. Something lurks behind.", loot: { name: "Rocks", type: "material", price: 5 }, toolType: "mining", toolTier: 1, charges: 3, icon: "🪨", imageUrl: '/assets/goblincaves-boulder.jpg', onDepletedSpawn: true }, count: 8 },
+        { card: { name: "Vines", type: "resource", skill: "woodcutting", description: "Thick, tangled vines clinging to the cave walls.", loot: { name: "Vines", type: "material", price: 5 }, toolType: "woodcutting", toolTier: 1, charges: 3, icon: "🌿", imageUrl: '/assets/goblincaves-vines.jpg' }, count: 6 },
+        { card: { name: "Coal", type: "resource", skill: "mining", description: "Dark deposits of coal embedded in the rock.", loot: { name: "Coal", type: "material", price: 5 }, toolType: "mining", toolTier: 1, charges: 3, icon: "⛏️", imageUrl: '/assets/goblincaves-coal.jpg' }, count: 6 },
     ],
 
     town: [
@@ -758,8 +758,8 @@ export const cardPools = {
                 ]
             }, count: 2
         },
-        { card: { name: "Obsidian Vein", type: "resource", skill: "mining", description: "Requires Mining Tool (T4)", loot: { name: "Obsidian Chunk" }, toolType: "mining", toolTier: 4, charges: 3, icon: "💎" }, count: 5 },
-        { card: { name: "Ashenwood Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T4)", loot: { name: "Ashenwood Log" }, toolType: "woodcutting", toolTier: 4, charges: 3, icon: "🌳" }, count: 5 },
+        { card: { name: "Obsidian Vein", type: "resource", skill: "mining", description: "Jagged obsidian formations radiating dark energy.", loot: { name: "Obsidian Chunk" }, toolType: "mining", toolTier: 4, charges: 3, icon: "💎" }, count: 5 },
+        { card: { name: "Ashenwood Tree", type: "resource", skill: "woodcutting", description: "A petrified tree scorched by volcanic heat.", loot: { name: "Ashenwood Log" }, toolType: "woodcutting", toolTier: 4, charges: 3, icon: "🌳" }, count: 5 },
         { card: { name: "Rare Treasure", type: "treasure", description: "A heavily locked chest.", icon: "👑" }, count: 2 },
     ],
 
@@ -853,8 +853,8 @@ export const cardPools = {
                 ]
             }, count: 5
         },
-        { card: { name: "Withered Tree", type: "resource", skill: "woodcutting", description: "Requires Woodcutting Tool (T2)", loot: { name: "Dark Wood" }, toolType: "woodcutting", toolTier: 2, charges: 3, icon: "🌲", imageUrl: '/assets/darkforest-witheredtree.jpg' }, count: 5 },
-        { card: { name: "Dark Crystal Node", type: "resource", skill: "mining", description: "Requires Mining Tool (T2)", loot: { name: "Dark Crystal" }, toolType: "mining", toolTier: 2, charges: 3, icon: "💎", imageUrl: '/assets/darkforest-darkcrystal.jpg' }, count: 5 },
+        { card: { name: "Withered Tree", type: "resource", skill: "woodcutting", description: "A gnarled, dark-barked tree twisted by shadow.", loot: { name: "Dark Wood" }, toolType: "woodcutting", toolTier: 2, charges: 3, icon: "🌲", imageUrl: '/assets/darkforest-witheredtree.jpg' }, count: 5 },
+        { card: { name: "Dark Crystal Node", type: "resource", skill: "mining", description: "A cluster of shadowy crystals pulsing with faint light.", loot: { name: "Dark Crystal" }, toolType: "mining", toolTier: 2, charges: 3, icon: "💎", imageUrl: '/assets/darkforest-darkcrystal.jpg' }, count: 5 },
         { card: { name: "Treasure Chest", type: "treasure", description: "An old chest covered in cobwebs.", icon: "📦" }, count: 1 },
         { card: { name: "The Mansion", type: "treasure", description: "A decrepit mansion looms in the darkness. Something evil dwells within.", icon: "🏚️", imageUrl: '/assets/darkforest-mansion.jpg' }, count: 1 },
     ],
