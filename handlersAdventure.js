@@ -214,6 +214,9 @@ export const registerAdventureHandlers = (io, socket) => {
             const member = players[memberName];
             if (member && member.id) io.to(member.id).emit('party:adventureStarted', party.sharedState);
         });
+
+        // Initialize the first turn, starting the PVE turn timer if enemies are present
+        state.startNextPlayerTurn(io, partyId);
     });
 
     socket.on('party:playerAction', async (action) => {
