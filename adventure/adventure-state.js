@@ -6,7 +6,7 @@ import { rollD20 } from '../shared.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient, getZoneAreaCard } from '../utilsHelpers.js';
 import { applyDamage, applyDoTEffects, applyChillStack, processChillReduction, getAvailablePlayerReactions, processEndOfTurnEffects } from './combat-core.js';
-import { PVP_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS, INTERVENE_TIMER_MS, INVENTORY_SIZE, DEFAULT_ACTION_POINTS, STARTING_HEALTH } from '../constants.js';
+import { PVP_TURN_DURATION_MS, PVE_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS, INTERVENE_TIMER_MS, INVENTORY_SIZE, DEFAULT_ACTION_POINTS, STARTING_HEALTH } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
 import { processEnemyEndOfTurn, handleEnemySpecialAction } from './enemy-handlers.js';
 import {
@@ -1440,6 +1440,22 @@ export function startNextPlayerTurn(io, partyId) {
         }
     }
     
+    // Clear any existing timer
+    if (sharedState.turnTimerId) clearTimeout(sharedState.turnTimerId);
+    
+    // Start PVE turn timer ONLY if there are enemies
+    const hasEnemies = sharedState.zoneCards.some(c => c && c.type === 'enemy' && c.health > 0);
+    if (!sharedState.pvpEncounterId && firstPlayer && !firstPlayer.isDead && hasEnemies) {
+        sharedState.turnTimerEndsAt = Date.now() + PVE_TURN_DURATION_MS;
+        sharedState.turnTimerId = setTimeout(() => {
+            const currentPlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
+            if (currentPlayer && !currentPlayer.turnEnded && !currentPlayer.isDead) {
+                sharedState.log.push({ message: `⏳ ${currentPlayer.name}'s time expired! Turn ends.`, type: 'info' });
+                processPlayerEndTurn(io, partyId, currentPlayer.name);
+            }
+        }, PVE_TURN_DURATION_MS);
+    }
+    
     broadcastAdventureUpdate(io, party);
 }
 
@@ -1449,6 +1465,13 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
     const { sharedState } = party;
     const playerState = sharedState.partyMemberStates.find(p => p.name === playerName);
     if (!playerState) return;
+
+    // Clear any active turn timer when a player ends their turn
+    if (sharedState.turnTimerId) {
+        clearTimeout(sharedState.turnTimerId);
+        sharedState.turnTimerId = null;
+        sharedState.turnTimerEndsAt = null;
+    }
 
     // UNIFIED: Use shared end-of-turn effects (DoT + Chill + buff/debuff decrement)
     processEndOfTurnEffects(playerState, sharedState.log);
@@ -1507,6 +1530,19 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
             sharedState.log.push({ message: `${nextPlayer.name} is ${effectName} and starts with reduced Action Points!`, type: 'reaction' });
         } else {
             nextPlayer.actionPoints = DEFAULT_ACTION_POINTS;
+        }
+        
+        // Start PVE turn timer for the next player ONLY if there are enemies
+        const hasEnemies = sharedState.zoneCards.some(c => c && c.type === 'enemy' && c.health > 0);
+        if (!sharedState.pvpEncounterId && !nextPlayer.isDead && hasEnemies) {
+            sharedState.turnTimerEndsAt = Date.now() + PVE_TURN_DURATION_MS;
+            sharedState.turnTimerId = setTimeout(() => {
+                const currentPlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
+                if (currentPlayer && !currentPlayer.turnEnded && !currentPlayer.isDead) {
+                    sharedState.log.push({ message: `⏳ ${currentPlayer.name}'s time expired! Turn ends.`, type: 'info' });
+                    processPlayerEndTurn(io, partyId, currentPlayer.name);
+                }
+            }, PVE_TURN_DURATION_MS);
         }
         
         broadcastAdventureUpdate(io, party);

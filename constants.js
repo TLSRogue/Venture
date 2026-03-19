@@ -2,6 +2,7 @@
 
 // Durations are in milliseconds
 export const PVP_TURN_DURATION_MS = 60000;
+export const PVE_TURN_DURATION_MS = 30000;
 export const LOOT_ROLL_DURATION_MS = 60000;
 export const REACTION_TIMER_MS = 15000;
 export const DUEL_DISCONNECT_MS = 20000;

@@ -29,7 +29,7 @@ import {
 // --- STATE VARIABLES ---
 let activeSlotIndex = null;
 let lootRollInterval = null;
-let pvpTurnTimerInterval = null;
+let turnTimerInterval = null;
 
 // --- INITIALIZATION ---
 function initGame() {
@@ -432,7 +432,7 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     }
 
     updateLootRollUI(gameState.pendingLootRoll);
-    updatePvpTurnTimerUI();
+    updateTurnTimerUI();
     updateWaitingBannerUI();
 
     if (document.getElementById('ground-loot-modal') && !document.getElementById('ground-loot-modal').closest('.modal-overlay').classList.contains('hidden')) {
@@ -440,33 +440,45 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     }
 }
 
-function updatePvpTurnTimerUI() {
-    if (pvpTurnTimerInterval) clearInterval(pvpTurnTimerInterval);
+function updateTurnTimerUI() {
+    if (turnTimerInterval) clearInterval(turnTimerInterval);
     const timerContainer = document.getElementById('pvp-turn-timer-container');
     const timerText = document.getElementById('pvp-turn-timer-text');
 
+    let endsAt = null;
+    let turnName = "";
+
     if (gameState.pvpEncounter && gameState.pvpEncounter.turnTimerEndsAt) {
+        endsAt = gameState.pvpEncounter.turnTimerEndsAt;
+        turnName = `Team ${gameState.pvpEncounter.activeTeam}`;
+    } else if (gameState.turnTimerEndsAt && gameState.isPlayerTurn && gameState.partyMemberStates) {
+        endsAt = gameState.turnTimerEndsAt;
+        const activePlayer = gameState.partyMemberStates[gameState.activePlayerIndex];
+        turnName = activePlayer ? activePlayer.name : "Player";
+    }
+
+    if (endsAt) {
         timerContainer.style.display = 'block';
 
         const update = () => {
-            const remaining = Math.round((gameState.pvpEncounter.turnTimerEndsAt - Date.now()) / 1000);
+            const remaining = Math.round((endsAt - Date.now()) / 1000);
             if (remaining > 0) {
-                const activeTeam = gameState.pvpEncounter.activeTeam;
-                timerText.textContent = `Team ${activeTeam}'s Turn: ${remaining}s`;
+                timerText.textContent = `${turnName}'s Turn: ${remaining}s`;
                 if (remaining <= 10) {
                     timerContainer.classList.add('urgent');
                 } else {
                     timerContainer.classList.remove('urgent');
                 }
             } else {
-                timerText.textContent = `Team ${gameState.pvpEncounter.activeTeam}'s Turn: 0s`;
-                clearInterval(pvpTurnTimerInterval);
+                timerText.textContent = `${turnName}'s Turn: 0s`;
+                clearInterval(turnTimerInterval);
             }
         };
         update();
-        pvpTurnTimerInterval = setInterval(update, 1000);
+        turnTimerInterval = setInterval(update, 1000);
     } else {
         timerContainer.style.display = 'none';
+        if (timerText) timerText.textContent = '';
     }
 }
 

@@ -506,11 +506,14 @@ function renderPartyScreen() {
             gameState.maxHealth = playerState.maxHealth;
         }
 
+        const isActiveTurn = gameState.isPlayerTurn && gameState.activePlayerIndex === index;
+
         const cardEl = createEntityCard(playerState, {
             isAlly: true,
             isLocalPlayer: isLocal,
             showLootButton: true,
             showThreat: true,
+            isActiveTurn: isActiveTurn,
             dataset: { index: `p${index}` } // Preserving data-index="p0" format
         });
 
