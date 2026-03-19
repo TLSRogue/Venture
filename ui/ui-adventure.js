@@ -420,30 +420,11 @@ function createEntityCard(state, options = {}) {
         focusHTML = `<div class="card-focus-bar" style="color: #f1c40f; text-align: center; font-size: 14px; margin-top: -5px; margin-bottom: 2px; text-shadow: 0 0 2px black;">${focusDots}</div>`;
     }
 
-    let timerBarHTML = '';
-    if (isActiveTurn && !state.isDead && !state.turnEnded) {
-        // Calculate initial width from gameState timer data
-        const endsAt = gameState.turnTimerEndsAt;
-        const duration = 30; // PVE timer is 30s
-        let pct = 100;
-        if (endsAt) {
-            const remaining = Math.max(0, Math.round((endsAt - Date.now()) / 1000));
-            pct = Math.max(0, (remaining / duration) * 100);
-        }
-        const barColor = (endsAt && Math.round((endsAt - Date.now()) / 1000) <= 10) ? '#e74c3c' : '#ffd700';
-        timerBarHTML = `
-            <div class="turn-timer-bar-container" style="width: 100%; height: 6px; background: #333; margin-top: 4px; border-radius: 3px; overflow: hidden;">
-                <div class="active-turn-timer-bar" style="width: ${pct}%; height: 100%; background: ${barColor}; transition: width 1s linear;"></div>
-            </div>
-        `;
-    }
-
     cardEl.innerHTML = `
         <div class="card-title">${state.name}</div>
         ${visualHTML}
         ${focusHTML}
         ${createHealthBarHTML(state.health, state.maxHealth, showThreat ? state.threat : null, shield)}
-        ${timerBarHTML}
     `;
 
     // Append effects
@@ -536,10 +517,29 @@ function renderPartyScreen() {
             dataset: { index: `p${index}` } // Preserving data-index="p0" format
         });
 
-        // Add index dataset separately if needed or ensure createEntityCard handles it via options if generic
-        // The helper above handles options.dataset
+        // Wrap card + timer bar in a container
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
+        wrapper.appendChild(cardEl);
 
-        partyContainer.appendChild(cardEl);
+        // Add turn timer bar BELOW the card (outside card element so health bars don't cover it)
+        if (isActiveTurn && !playerState.isDead && !playerState.turnEnded) {
+            const endsAt = gameState.turnTimerEndsAt;
+            const duration = 30;
+            let pct = 100;
+            if (endsAt) {
+                const remaining = Math.max(0, Math.round((endsAt - Date.now()) / 1000));
+                pct = Math.max(0, (remaining / duration) * 100);
+            }
+            const barColor = (endsAt && Math.round((endsAt - Date.now()) / 1000) <= 10) ? '#e74c3c' : '#ffd700';
+            const timerBarEl = document.createElement('div');
+            timerBarEl.className = 'turn-timer-bar-container';
+            timerBarEl.style.cssText = 'width: 220px; height: 6px; background: #333; margin-top: 48px; border-radius: 3px; overflow: hidden;';
+            timerBarEl.innerHTML = `<div class="active-turn-timer-bar" style="width: ${pct}%; height: 100%; background: ${barColor}; transition: width 1s linear;"></div>`;
+            wrapper.appendChild(timerBarEl);
+        }
+
+        partyContainer.appendChild(wrapper);
     });
     // Training Zone: render spell offerings instead of zone cards
     if (gameState.currentZone === 'training') {
