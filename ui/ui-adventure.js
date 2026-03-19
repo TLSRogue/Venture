@@ -477,11 +477,13 @@ function renderPvpScreen() {
         zoneContainer.appendChild(zoneEffectsEl);
     }
 
+    const activePlayerId = gameState.pvpEncounter.turnOrder?.[gameState.pvpEncounter.activeTurnIndex];
+
     gameState.pvpEncounter.playerStates.forEach(playerState => {
         const isAlly = playerState.team === localPlayerTeam;
         const container = isAlly ? partyContainer : zoneContainer;
         const isLocal = playerState.playerId === socket.id;
-        const isActive = gameState.pvpEncounter.activeTeam === playerState.team;
+        const isActive = playerState.playerId === activePlayerId;
 
         const cardEl = createEntityCard(playerState, {
             isAlly,
@@ -489,7 +491,29 @@ function renderPvpScreen() {
             isActiveTurn: isActive
         });
 
-        container.appendChild(cardEl);
+        // Wrap card + timer bar in a container (same pattern as PVE)
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
+        wrapper.appendChild(cardEl);
+
+        // Add turn timer bar BELOW the card for the active player
+        if (isActive && !playerState.isDead && !playerState.turnEnded) {
+            const endsAt = gameState.pvpEncounter.turnTimerEndsAt;
+            const duration = 60; // PVP turn duration is 60s
+            let pct = 100;
+            if (endsAt) {
+                const remaining = Math.max(0, Math.round((endsAt - Date.now()) / 1000));
+                pct = Math.max(0, (remaining / duration) * 100);
+            }
+            const barColor = (endsAt && Math.round((endsAt - Date.now()) / 1000) <= 10) ? '#e74c3c' : '#ffd700';
+            const timerBarEl = document.createElement('div');
+            timerBarEl.className = 'turn-timer-bar-container';
+            timerBarEl.style.cssText = 'width: 220px; height: 6px; background: #333; margin-top: 48px; border-radius: 3px; overflow: hidden;';
+            timerBarEl.innerHTML = `<div class="active-turn-timer-bar" style="width: ${pct}%; height: 100%; background: ${barColor}; transition: width 1s linear;"></div>`;
+            wrapper.appendChild(timerBarEl);
+        }
+
+        container.appendChild(wrapper);
     });
 }
 
