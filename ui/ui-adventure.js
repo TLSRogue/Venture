@@ -2,7 +2,7 @@
 
 import { gameState } from '../state.js';
 import { socket, emitPartyAction } from '../network.js';
-import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip, showConfirmationModal } from './ui-main.js';
+import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip, buildSpellTooltip, showConfirmationModal } from './ui-main.js';
 import { getBonusStats } from '../player.js';
 import { itemsByName, gameData } from '../data/index.js';
 import { INVENTORY_SIZE } from '../constants.js';
@@ -111,34 +111,12 @@ function createHealthBarHTML(health, maxHealth, threat = null, shield = 0) {
 function addActionTooltipListener(element, itemOrSpell) {
     element.addEventListener('mousemove', (e) => {
         if (e.altKey) {
-            let breakdown = `<strong>${itemOrSpell.name}</strong><br>${itemOrSpell.description}`;
-            if (itemOrSpell.bonus) {
-                breakdown += '<hr style="margin: 5px 0;"><strong>Bonuses:</strong><br>';
-                for (const stat in itemOrSpell.bonus) {
-                    breakdown += `${stat.charAt(0).toUpperCase() + stat.slice(1)}: +${itemOrSpell.bonus[stat]}<br>`;
-                }
+            // Full detailed tooltip
+            if (itemOrSpell.school) {
+                showTooltip(buildSpellTooltip(itemOrSpell));
+            } else {
+                showTooltip(buildItemTooltip(itemOrSpell));
             }
-            if (itemOrSpell.type === 'weapon') {
-                breakdown += `<hr style="margin: 5px 0;"><strong>Ability:</strong><br>`;
-                breakdown += `Cost: ${itemOrSpell.cost} AP | CD: ${itemOrSpell.cooldown}<br>`;
-                const statName = (itemOrSpell.stat || 'strength').charAt(0).toUpperCase() + (itemOrSpell.stat || 'strength').slice(1);
-                breakdown += `Roll: D20 + ${statName} (${itemOrSpell.hit}+)<br>`;
-                breakdown += `Deals ${itemOrSpell.weaponDamage} ${itemOrSpell.damageType} Damage.`;
-                if (itemOrSpell.onCrit && itemOrSpell.onCrit.debuff) {
-                    breakdown += `<br>On Crit (20): Apply ${itemOrSpell.onCrit.debuff.type}.`;
-                }
-            }
-            if (itemOrSpell.school) { // It's a spell
-                breakdown += `<hr style="margin: 5px 0;">`;
-                breakdown += `<strong>Type:</strong> ${itemOrSpell.type.charAt(0).toUpperCase() + itemOrSpell.type.slice(1)}<br>`;
-                breakdown += `<strong>School:</strong> ${itemOrSpell.school}<br>`;
-                if (itemOrSpell.cost) breakdown += `<strong>Cost:</strong> ${itemOrSpell.cost} AP<br>`;
-                breakdown += `<strong>Cooldown:</strong> ${itemOrSpell.cooldown}`;
-            }
-            if (itemOrSpell.traits) {
-                breakdown += `<hr style="margin: 5px 0;"><strong>Traits:</strong> ${itemOrSpell.traits.join(', ')}`;
-            }
-            showTooltip(breakdown);
         } else {
             showTooltip(`<strong>${itemOrSpell.name}</strong><br>${itemOrSpell.description}<br><em style='color: #aaa; font-size: 0.9em;'>Hold [Alt] for details</em>`);
         }
@@ -638,20 +616,7 @@ function renderTrainingZone() {
 
         // Tooltip on hover
         card.addEventListener('mousemove', (e) => {
-            let tooltip = `<strong>${spell.icon} ${spell.name}</strong>`;
-            tooltip += `<br><span style="color:${rarityColor}">${(spell.rarity || 'common').charAt(0).toUpperCase() + (spell.rarity || 'common').slice(1)}</span>`;
-            tooltip += ` — ${spell.school}`;
-            if (spell.isMagic) tooltip += ' (Magic)';
-            tooltip += `<hr style="margin:5px 0">`;
-            tooltip += spell.description || '';
-            if (spell.cost !== undefined) tooltip += `<br>⚡ Cost: ${spell.cost} AP`;
-            if (spell.cooldown !== undefined) tooltip += `<br>🔄 Cooldown: ${spell.cooldown} turns`;
-            if (spell.range) tooltip += `<br>📏 Range: ${spell.range}`;
-            if (spell.requires) {
-                if (spell.requires.weaponType) tooltip += `<br>🔧 Requires: ${spell.requires.weaponType.join(' / ')}`;
-                if (spell.requires.meleeWeapon) tooltip += `<br>🔧 Requires: Melee Weapon`;
-            }
-            showTooltip(tooltip, e);
+            showTooltip(buildSpellTooltip(spell), e);
         });
         card.addEventListener('mouseleave', hideTooltip);
 
@@ -790,19 +755,11 @@ function renderZoneCards(cards) {
         if (card.type === 'enemy' || card.type === 'treasure' || card.type === 'npc') {
             let tooltipContent = `<strong>${card.name}</strong><br>${card.description || ''}`;
 
-            // Add Passives to Tooltip
+            // Show passives but NOT attack tables — let players discover abilities on their own
             if (card.physicalResistance) {
                 tooltipContent += `<br><span style="color: #aaa; font-size: 0.9em;">🛡️ Physical Resistance: ${card.physicalResistance}</span>`;
             }
 
-            if (card.attackTable) {
-                tooltipContent += `<hr style="margin: 5px 0;"><strong>Attacks:</strong>`;
-                card.attackTable.forEach(attack => {
-                    tooltipContent += `<br>${attack.range[0]}-${attack.range[1]}: ${attack.message || 'Miss!'}`;
-                });
-            } else if (card.attackDesc) {
-                tooltipContent += `<hr style="margin: 5px 0;">${card.attackDesc}`;
-            }
             cardEl.addEventListener('mouseover', (e) => {
                 if (!e.altKey) showTooltip(tooltipContent);
             });
@@ -1360,7 +1317,7 @@ export function showBackpack() {
         slot.className = 'inventory-item';
 
         if (item) {
-            let tooltipContent = `<strong>${item.name}</strong><br>${item.description}`;
+            let tooltipContent = buildItemTooltip(item);
             if (item.socketedGem) {
                 tooltipContent += `<hr style="margin: 5px 0;"><strong>Socketed:</strong><br>`;
                 tooltipContent += `<span class="gem-icon">${item.socketedGem.icon}</span> <strong>${item.socketedGem.name}</strong><br>`;

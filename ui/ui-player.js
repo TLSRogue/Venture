@@ -313,9 +313,10 @@ export function showItemActions(itemIndex) {
     buttonsHTML += `<button class="btn btn-danger" data-inventory-action="drop" data-index="${itemIndex}">Drop</button>`;
     buttonsHTML += `<button class="btn" onclick="this.closest('.modal-overlay').classList.add('hidden')">Cancel</button>`;
 
+    const itemDetails = buildItemTooltip(item);
     const modalContent = `
         <h2>${item.name}</h2>
-        <p>${item.description}</p>
+        <div style="text-align: left; margin-bottom: 10px;">${itemDetails}</div>
         <div class="action-buttons">${buttonsHTML}</div>
     `;
     showModal(modalContent);
