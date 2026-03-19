@@ -3,7 +3,7 @@
 import { gameData, itemsByName } from '../data/index.js';
 import { gameState } from '../state.js';
 import * as Network from '../network.js';
-import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip } from './ui-main.js';
+import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip, buildSpellTooltip } from './ui-main.js';
 import { playSound } from '../audio/sound-manager.js';
 import { MERCHANT_ROTATION_MS, INVENTORY_SIZE } from '../constants.js';
 
@@ -580,19 +580,11 @@ export function renderCrafting() {
         `;
 
         // Build tooltip content for item details
-        let tooltipContent = `<strong>${resultItem?.name || recipe.result.name}</strong>`;
-        if (resultItem?.description) {
-            tooltipContent += `<br>${resultItem.description}`;
-        }
-        if (resultItem?.bonus) {
-            tooltipContent += `<hr style="margin: 5px 0;"><strong>Bonuses:</strong><br>`;
-            for (const stat in resultItem.bonus) {
-                tooltipContent += `${stat.charAt(0).toUpperCase() + stat.slice(1)}: +${resultItem.bonus[stat]}<br>`;
-            }
-        }
-        if (resultItem?.type === 'weapon') {
-            tooltipContent += `<hr style="margin: 5px 0;"><strong>Weapon:</strong><br>`;
-            tooltipContent += `${resultItem.weaponDamage} ${resultItem.damageType} Dmg`;
+        let tooltipContent = '';
+        if (resultItem) {
+            tooltipContent = buildItemTooltip(resultItem, { action: 'Click to Craft' });
+        } else {
+            tooltipContent = `<strong>${recipe.result.name}</strong>`;
         }
 
         recipeEl.addEventListener('mouseenter', () => showTooltip(tooltipContent));
@@ -689,18 +681,7 @@ export function renderTrainer() {
         `;
 
         // Build tooltip content
-        let tooltipContent = `<strong>${spell.name}</strong>`;
-        tooltipContent += `<br>${spell.description}`;
-
-        if (spell.cost !== undefined) {
-            tooltipContent += `<br><strong>Cost:</strong> ${spell.cost} AP`;
-        }
-        if (spell.cooldown !== undefined) {
-            tooltipContent += ` | <strong>CD:</strong> ${spell.cooldown}`;
-        }
-        if (spell.type) {
-            tooltipContent += `<br><strong>Type:</strong> ${spell.type}`;
-        }
+        let tooltipContent = buildSpellTooltip(spell);
 
         spellEl.addEventListener('mouseenter', () => showTooltip(tooltipContent));
         spellEl.addEventListener('mouseleave', () => hideTooltip());
