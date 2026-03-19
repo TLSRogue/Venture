@@ -464,6 +464,7 @@ export const registerAdventureHandlers = (io, socket) => {
                 return;
             }
 
+            const outOfTurnActions = ['dropItem', 'takeGroundLoot', 'takeAllGroundLoot', 'lootPlayer', 'dialogueChoice'];
             let actingPlayerState;
             if (party.sharedState.pvpEncounterId) {
                 const encounter = pvpEncounters[party.sharedState.pvpEncounterId];
@@ -473,10 +474,11 @@ export const registerAdventureHandlers = (io, socket) => {
                 }
                 actingPlayerState = encounter.playerStates.find(p => p.name === name);
                 const activePlayerId = encounter.turnOrder[encounter.activeTurnIndex];
-                console.log(`[playerAction] Player ${name} found in encounter:`, !!actingPlayerState, `ActivePlayerId: ${activePlayerId}, MyId: ${actingPlayerState?.playerId}`);
                 if (actingPlayerState?.playerId !== activePlayerId) {
-                    console.log(`[playerAction] BLOCKED: Not player's exact turn.`);
-                    return;
+                    if (!outOfTurnActions.includes(action.type)) {
+                        console.log(`[playerAction] BLOCKED: Not player's exact turn. Action: ${action.type}`);
+                        return;
+                    }
                 }
             } else {
                 actingPlayerState = party.sharedState.partyMemberStates.find(p => p.name === name);
@@ -484,8 +486,10 @@ export const registerAdventureHandlers = (io, socket) => {
                 const activePlayer = party.sharedState.partyMemberStates[party.sharedState.activePlayerIndex];
                 
                 if (activePhase !== 'player' || activePlayer?.playerId !== player.id) {
-                    console.log(`[playerAction] BLOCKED: Not player's exact turn in PVE.`);
-                    return;
+                    if (!outOfTurnActions.includes(action.type)) {
+                        console.log(`[playerAction] BLOCKED: Not player's exact turn in PVE. Action: ${action.type}`);
+                        return;
+                    }
                 }
             }
 

@@ -1443,9 +1443,8 @@ export function startNextPlayerTurn(io, partyId) {
     // Clear any existing timer
     if (sharedState.turnTimerId) clearTimeout(sharedState.turnTimerId);
     
-    // Start PVE turn timer ONLY if there are enemies
-    const hasEnemies = sharedState.zoneCards.some(c => c && c.type === 'enemy' && c.health > 0);
-    if (!sharedState.pvpEncounterId && firstPlayer && !firstPlayer.isDead && hasEnemies) {
+    // Start PVE turn timer
+    if (!sharedState.pvpEncounterId && firstPlayer && !firstPlayer.isDead) {
         sharedState.turnTimerEndsAt = Date.now() + PVE_TURN_DURATION_MS;
         sharedState.turnTimerId = setTimeout(() => {
             const currentPlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
@@ -1532,9 +1531,8 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
             nextPlayer.actionPoints = DEFAULT_ACTION_POINTS;
         }
         
-        // Start PVE turn timer for the next player ONLY if there are enemies
-        const hasEnemies = sharedState.zoneCards.some(c => c && c.type === 'enemy' && c.health > 0);
-        if (!sharedState.pvpEncounterId && !nextPlayer.isDead && hasEnemies) {
+        // Start PVE turn timer for the next player
+        if (!sharedState.pvpEncounterId && !nextPlayer.isDead) {
             sharedState.turnTimerEndsAt = Date.now() + PVE_TURN_DURATION_MS;
             sharedState.turnTimerId = setTimeout(() => {
                 const currentPlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
