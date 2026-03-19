@@ -426,6 +426,7 @@ function createEntityCard(state, options = {}) {
             <div class="turn-timer-bar-container" style="width: 100%; height: 6px; background: #333; margin-top: 4px; border-radius: 3px; overflow: hidden; display: none;">
                 <div class="active-turn-timer-bar" style="width: 100%; height: 100%; background: #ffd700; transition: width 1s linear;"></div>
             </div>
+            <div class="timer-debug" style="color: red; font-size: 10px; line-height: 1;"></div>
         `;
     }
 

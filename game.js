@@ -456,7 +456,13 @@ function updateTurnTimerUI() {
     const timerBarContainers = document.querySelectorAll('.turn-timer-bar-container');
 
     if (endsAt) {
-        timerBarContainers.forEach(container => container.style.display = 'block');
+        timerBarContainers.forEach(container => {
+            container.style.display = 'block';
+            const debugEl = container.nextElementSibling;
+            if (debugEl && debugEl.classList.contains('timer-debug')) {
+                debugEl.textContent = `endsAt:${endsAt} cur:${Date.now()}`;
+            }
+        });
         const duration = gameState.pvpEncounter ? 60 : 30; // 60s for PVP, 30s for PVE
 
         const update = () => {

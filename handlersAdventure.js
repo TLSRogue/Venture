@@ -494,7 +494,7 @@ export const registerAdventureHandlers = (io, socket) => {
             }
 
             if (!actingPlayerState || actingPlayerState.isDead) return;
-            if (actingPlayerState.turnEnded && action.type !== 'dialogueChoice') return;
+            if (actingPlayerState.turnEnded && !outOfTurnActions.includes(action.type)) return;
             // Removed leader-only check: Any party member can now make dialogue choices
 
             switch (action.type) {
