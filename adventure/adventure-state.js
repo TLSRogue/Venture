@@ -616,6 +616,7 @@ export async function processVentureDeeper(io, player, party) {
         sharedState.isLoadingNextArea = false;
         sharedState.zoneCards = [];
         sharedState.groundLoot = [];
+        sharedState.zoneEffects = []; // Clear zone effects when moving to a new area
         drawCardsForServer(sharedState, 3);
         sharedState.turnNumber = 0;
         sharedState.isPlayerTurn = true;
@@ -641,6 +642,20 @@ export async function processVentureDeeper(io, player, party) {
             p.itemCooldowns = {};
             p.threat = 0;
         });
+
+        // Reset PVE turn timer for the new area
+        if (sharedState.turnTimerId) clearTimeout(sharedState.turnTimerId);
+        const firstPlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
+        if (!sharedState.pvpEncounterId && firstPlayer && !firstPlayer.isDead) {
+            sharedState.turnTimerEndsAt = Date.now() + PVE_TURN_DURATION_MS;
+            sharedState.turnTimerId = setTimeout(() => {
+                const currentPlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
+                if (currentPlayer && !currentPlayer.turnEnded && !currentPlayer.isDead) {
+                    sharedState.log.push({ message: `⏳ ${currentPlayer.name}'s time expired! Turn ends.`, type: 'info' });
+                    processPlayerEndTurn(io, party.id, currentPlayer.name);
+                }
+            }, PVE_TURN_DURATION_MS);
+        }
     };
 
     // Helper: End adventure when party wipes (all dead)
