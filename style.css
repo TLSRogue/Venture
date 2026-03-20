@@ -2649,6 +2649,15 @@ hr {
     box-shadow: 0 0 18px rgba(79, 195, 247, 0.7);
 }
 
+.zone-effect-card.clickable {
+    border-color: #f39c12;
+    box-shadow: 0 0 12px rgba(243, 156, 18, 0.5);
+}
+
+.zone-effect-card.clickable:hover {
+    box-shadow: 0 0 20px rgba(243, 156, 18, 0.8);
+}
+
 .zone-effect-icon {
     font-size: 1.8em;
 }

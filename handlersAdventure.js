@@ -1,9 +1,9 @@
 // handlersAdventure.js
 
 import { players, parties, duels, pvpEncounters } from './serverState.js';
-import { gameData } from './data/index.js';
+import { gameData, itemsByName } from './data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from './utilsBroadcast.js';
-import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer } from './utilsHelpers.js';
+import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, playerHasMaterials, consumeMaterials, addItemToInventoryServer } from './utilsHelpers.js';
 import { ARENA_ENTRY_FEE, DEFAULT_ACTION_POINTS, STARTING_HEALTH } from './constants.js';
 
 import * as actions from './adventure/adventure-actions.js';
@@ -464,7 +464,7 @@ export const registerAdventureHandlers = (io, socket) => {
                 return;
             }
 
-            const outOfTurnActions = ['dropItem', 'takeGroundLoot', 'takeAllGroundLoot', 'lootPlayer', 'dialogueChoice'];
+            const outOfTurnActions = ['dropItem', 'takeGroundLoot', 'takeAllGroundLoot', 'lootPlayer', 'dialogueChoice', 'campfireCraft'];
             let actingPlayerState;
             if (party.sharedState.pvpEncounterId) {
                 const encounter = pvpEncounters[party.sharedState.pvpEncounterId];
@@ -601,6 +601,37 @@ export const registerAdventureHandlers = (io, socket) => {
                 case 'lootPlayer':
                     interactions.processLootPlayer(io, player, party, action.payload);
                     break;
+                case 'campfireCraft': {
+                    const campfireChar = player.character;
+                    const { recipeIndex } = action.payload || {};
+                    const recipe = gameData.craftingRecipes[recipeIndex];
+                    if (!recipe || recipe.category !== 'Cooking') break;
+
+                    // Validate a friendly campfire zone effect exists
+                    const zoneEffects = party.sharedState.zoneEffects || [];
+                    const playerTeam = actingPlayerState?.team || 'pve';
+                    const hasCampfire = zoneEffects.some(e => e.type === 'campfire' && e.casterTeam === playerTeam);
+                    if (!hasCampfire) {
+                        socket.emit('partyError', 'You need an active Campfire to cook!');
+                        break;
+                    }
+
+                    // Check for requiresDiscovery
+                    if (recipe.requiresDiscovery && !(campfireChar.knownRecipes || []).includes(recipe.result.name)) break;
+
+                    if (playerHasMaterials(campfireChar, recipe.materials)) {
+                        consumeMaterials(campfireChar, recipe.materials);
+                        const baseItem = itemsByName.get(recipe.result.name);
+                        if (baseItem) {
+                            addItemToInventoryServer(campfireChar, baseItem, recipe.result.quantity || 1);
+                            party.sharedState.log.push({ message: `${campfireChar.characterName} cooks ${baseItem.icon || ''} ${recipe.result.name} over the Campfire!`, type: 'success' });
+                        }
+                    } else {
+                        socket.emit('partyError', 'You don\'t have the required ingredients.');
+                    }
+                    socket.emit('characterUpdate', campfireChar);
+                    break;
+                }
                 case 'endTurn':
                     if (party.sharedState.pvpEncounterId) {
                         const encounter = pvpEncounters[party.sharedState.pvpEncounterId];

@@ -1,4 +1,4 @@
-﻿// adventure/adventure-actions.js
+// adventure/adventure-actions.js
 
 import { players, parties, pvpEncounters } from '../serverState.js';
 import { gameData } from '../data/index.js';
@@ -625,17 +625,60 @@ export async function processUseConsumable(io, party, player, payload) {
             });
         }
     } else {
-        // Self-targeting consumables (potions, food, etc.)
-        if (item.heal) {
-            actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + item.heal);
-            logTarget.log.push({ message: `${character.characterName} used ${item.name}, healing for ${item.heal} HP.`, type: 'heal' });
+        // Check for material requirements (e.g., Tinderbox requires Wood)
+        if (item.requiresMaterial) {
+            const matIndex = character.inventory.findIndex(inv => inv && inv.name === item.requiresMaterial);
+            if (matIndex === -1) {
+                logTarget.log.push({ message: `You need ${item.requiresMaterial} to use ${item.name}!`, type: 'info' });
+                actingPlayerState.actionPoints += cost;
+                actingPlayerState.threat -= cost;
+                return;
+            }
+            // Consume 1 material
+            const mat = character.inventory[matIndex];
+            if (mat.quantity && mat.quantity > 1) {
+                mat.quantity--;
+            } else {
+                character.inventory[matIndex] = null;
+            }
+            logTarget.log.push({ message: `${character.characterName} uses 1 ${item.requiresMaterial}.`, type: 'info' });
         }
-        if (item.buff) {
-            const buff = item.buff;
-            const existingIndex = actingPlayerState.buffs.findIndex(b => b.type === buff.type);
-            if (existingIndex !== -1) actingPlayerState.buffs.splice(existingIndex, 1);
-            actingPlayerState.buffs.push({ ...buff });
-            logTarget.log.push({ message: `${character.characterName} feels the effects of ${item.name}.`, type: 'heal' });
+
+        // Create or refresh zone effect (e.g., Campfire)
+        if (item.createsZoneEffect === 'campfire') {
+            if (!sharedState.zoneEffects) sharedState.zoneEffects = [];
+            const casterTeam = actingPlayerState.team || 'pve';
+            const existingCampfire = sharedState.zoneEffects.find(
+                e => e.type === 'campfire' && (e.casterTeam === casterTeam)
+            );
+            if (existingCampfire) {
+                existingCampfire.duration = 5;
+                logTarget.log.push({ message: `${character.characterName} stokes the Campfire! (Refreshed to 5 turns)`, type: 'success' });
+            } else {
+                sharedState.zoneEffects.push({
+                    type: 'campfire',
+                    name: 'Campfire',
+                    icon: '🔥',
+                    duration: 5,
+                    description: 'A warm campfire. Click to cook!',
+                    casterName: character.characterName,
+                    casterTeam: casterTeam,
+                });
+                logTarget.log.push({ message: `${character.characterName} lights a Campfire! (5 turns)`, type: 'success' });
+            }
+        } else {
+            // Self-targeting consumables (potions, food, etc.)
+            if (item.heal) {
+                actingPlayerState.health = Math.min(actingPlayerState.maxHealth, actingPlayerState.health + item.heal);
+                logTarget.log.push({ message: `${character.characterName} used ${item.name}, healing for ${item.heal} HP.`, type: 'heal' });
+            }
+            if (item.buff) {
+                const buff = item.buff;
+                const existingIndex = actingPlayerState.buffs.findIndex(b => b.type === buff.type);
+                if (existingIndex !== -1) actingPlayerState.buffs.splice(existingIndex, 1);
+                actingPlayerState.buffs.push({ ...buff });
+                logTarget.log.push({ message: `${character.characterName} feels the effects of ${item.name}.`, type: 'heal' });
+            }
         }
     }
 

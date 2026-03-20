@@ -440,6 +440,7 @@ function renderPvpScreen() {
         gameState.zoneEffects.forEach(effect => {
             const effectEl = document.createElement('div');
             effectEl.className = 'zone-effect-card';
+            if (effect.type === 'campfire') effectEl.classList.add('clickable');
             effectEl.innerHTML = `
                 <div class="zone-effect-icon">${effect.icon || '🌀'}</div>
                 <div class="zone-effect-name">${effect.name}</div>
@@ -449,6 +450,9 @@ function renderPvpScreen() {
                 showTooltip(`<strong>${effect.name}</strong><br>${effect.description || 'Zone effect active.'}<br><br>Turns Remaining: ${effect.duration}`);
             });
             effectEl.addEventListener('mouseout', hideTooltip);
+            if (effect.type === 'campfire') {
+                effectEl.addEventListener('click', () => showCampfireCookingModal());
+            }
             zoneEffectsEl.appendChild(effectEl);
         });
 
@@ -714,6 +718,7 @@ function renderZoneCards(cards) {
         gameState.zoneEffects.forEach(effect => {
             const effectEl = document.createElement('div');
             effectEl.className = 'zone-effect-card';
+            if (effect.type === 'campfire') effectEl.classList.add('clickable');
             effectEl.innerHTML = `
                 <div class="zone-effect-icon">${effect.icon || '🌀'}</div>
                 <div class="zone-effect-name">${effect.name}</div>
@@ -723,6 +728,9 @@ function renderZoneCards(cards) {
                 showTooltip(`<strong>${effect.name}</strong><br>${effect.description || 'Zone effect active.'}<br><br>Turns Remaining: ${effect.duration}`);
             });
             effectEl.addEventListener('mouseout', hideTooltip);
+            if (effect.type === 'campfire') {
+                effectEl.addEventListener('click', () => showCampfireCookingModal());
+            }
             zoneEffectsEl.appendChild(effectEl);
         });
 
@@ -1597,6 +1605,90 @@ export function showGroundLootModal() {
     const modal = document.getElementById('modal');
     const modalContentContainer = modal.querySelector('.modal-content');
     modalContentContainer.classList.add('modal-wide');
+
+    showModal(modalContentEl);
+}
+
+// --- CAMPFIRE COOKING MODAL ---
+export function showCampfireCookingModal() {
+    const inventory = gameState.inventory || [];
+
+    // Count materials in player's inventory
+    const materialCounts = {};
+    inventory.forEach(item => {
+        if (item) {
+            materialCounts[item.name] = (materialCounts[item.name] || 0) + (item.quantity || 1);
+        }
+    });
+
+    // Filter to Cooking recipes, check discovery requirement
+    const cookingRecipes = gameData.craftingRecipes
+        .map((recipe, index) => ({ ...recipe, globalIndex: index }))
+        .filter(recipe => {
+            if (recipe.category !== 'Cooking') return false;
+            if (recipe.requiresDiscovery && !(gameState.knownRecipes || []).includes(recipe.result.name)) return false;
+            return true;
+        });
+
+    const modalContentEl = document.createElement('div');
+    modalContentEl.innerHTML = `<h2>🔥 Campfire Cooking</h2><p style="color:#aaa; margin-bottom: 12px;">Cook food from your inventory — no AP cost!</p>`;
+
+    if (cookingRecipes.length === 0) {
+        modalContentEl.innerHTML += `<p style="color:#e74c3c;">You don't know any cooking recipes yet.</p>`;
+    } else {
+        const recipeList = document.createElement('div');
+        recipeList.style.cssText = 'display: flex; flex-direction: column; gap: 8px; max-width: 450px; margin: 0 auto;';
+
+        cookingRecipes.forEach(recipe => {
+            const canCraft = Object.entries(recipe.materials).every(
+                ([mat, qty]) => (materialCounts[mat] || 0) >= qty
+            );
+
+            const resultItem = itemsByName.get(recipe.result.name);
+            const resultIcon = resultItem?.icon || '❓';
+
+            const materialsHtml = Object.entries(recipe.materials).map(([mat, qty]) => {
+                const has = materialCounts[mat] || 0;
+                const color = has >= qty ? '#2ecc71' : '#e74c3c';
+                return `<span style="color:${color}">${mat} (${has}/${qty})</span>`;
+            }).join(', ');
+
+            const row = document.createElement('div');
+            row.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 8px;';
+            row.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.3em;">${resultIcon}</span>
+                    <div>
+                        <strong>${recipe.result.name}</strong>
+                        <div style="font-size: 0.85em; color: #aaa;">${materialsHtml}</div>
+                    </div>
+                </div>
+            `;
+
+            const cookBtn = document.createElement('button');
+            cookBtn.className = 'btn btn-primary btn-sm';
+            cookBtn.textContent = 'Cook';
+            cookBtn.disabled = !canCraft;
+            cookBtn.style.minWidth = '60px';
+            cookBtn.addEventListener('click', () => {
+                emitPartyAction({ type: 'campfireCraft', payload: { recipeIndex: recipe.globalIndex } });
+                // Re-open after a short delay to refresh state
+                setTimeout(() => showCampfireCookingModal(), 300);
+            });
+            row.appendChild(cookBtn);
+
+            recipeList.appendChild(row);
+        });
+
+        modalContentEl.appendChild(recipeList);
+    }
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'btn';
+    closeButton.style.marginTop = '20px';
+    closeButton.textContent = 'Close';
+    closeButton.onclick = hideModal;
+    modalContentEl.appendChild(closeButton);
 
     showModal(modalContentEl);
 }
