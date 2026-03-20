@@ -1,7 +1,7 @@
 // adventure/adventure-interactions.js
 
 import { players, parties, pvpEncounters } from '../serverState.js';
-import { gameData } from '../data/index.js';
+import { gameData, lootPools } from '../data/index.js';
 import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, addItemToInventoryServer, consumeMaterials, getZoneAreaCard } from '../utilsHelpers.js';
 import { checkAndEndTurnForPlayer } from './adventure-state.js';
 import { rollD20 } from '../shared.js';
@@ -272,9 +272,25 @@ export async function processInteractWithCard(io, party, player, payload) {
         actingPlayerState.actionPoints--;
 
         if (card.type === 'treasure') {
-            const lootTable = card.loot ? card.loot.map(item => gameData.allItems.find(i => i.name === item.name) || item) : gameData.genericTreasureLoot.map(item => gameData.allItems.find(i => i.name === item.name) || item);
-            const numItems = card.lootCount || 3; // Default to 3 if not specified
             let foundItemsLog = '';
+
+            // Handle guaranteed category drops (e.g., "T1 Weapon", "T1 Armor")
+            if (card.guaranteedCategories && card.guaranteedCategories.length > 0) {
+                card.guaranteedCategories.forEach(category => {
+                    const randomItem = lootPools.getRandomFromCategory(category);
+                    if (randomItem) {
+                        if (addItemToInventoryServer(character, randomItem, 1, sharedState.groundLoot)) {
+                            foundItemsLog += `${randomItem.name}, `;
+                        } else {
+                            sharedState.log.push({ message: `Found ${randomItem.name}, but inventory was full. It was left on the ground.`, type: 'damage' });
+                        }
+                    }
+                });
+            }
+
+            // Handle regular loot pool picks
+            const lootTable = card.loot ? card.loot.map(item => gameData.allItems.find(i => i.name === item.name) || item) : (!card.guaranteedCategories ? gameData.genericTreasureLoot.map(item => gameData.allItems.find(i => i.name === item.name) || item) : []);
+            const numItems = card.lootCount || (lootTable.length > 0 ? 3 : 0);
 
             const droppedItemsThisChest = new Set();
 

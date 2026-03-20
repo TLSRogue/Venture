@@ -65,7 +65,7 @@ export const cardPools = {
                 }
             }, count: 1
         },
-        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", loot: [{ name: "Wizard's Staff Recipe (T1)", type: "recipe", rarity: "uncommon" }, { name: "Gold Pouch", quantity: 1 }, { name: "Healing Potion" }], lootCount: 2, icon: "📦", imageUrl: '/assets/farmlands-treasurechest.jpg' }, count: 1 },
+        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", guaranteedCategories: ["T1 Weapon", "T1 Armor"], icon: "📦", imageUrl: '/assets/farmlands-treasurechest.jpg' }, count: 1 },
         {
             card: {
                 name: "Chicken", type: "enemy", health: 2, maxHealth: 2, description: "A feisty farm chicken", icon: "🐔", imageUrl: '/assets/farmlands-chicken.jpg',
