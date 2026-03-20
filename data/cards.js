@@ -13,15 +13,15 @@ export const cardPools = {
                 imageUrl: '/assets/farmlands-ragingbull.jpg',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "The bull snorts and misses!" },
-                    { range: [4, 12], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Charge! Deals 3 Physical Damage!" },
-                    { range: [13, 20], action: 'special', message: "Thick Hide! Gain 1 Physical Resistance until the next Zone Turn then make another action!" }
+                    { range: [4, 16], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Charge! Deals 3 Physical Damage!" },
+                    { range: [17, 20], action: 'special', message: "Thick Hide! Gain 1 Physical Resistance until the next Zone Turn then make another action!" }
                 ],
-                guaranteedLoot: { items: ["Bull Horn", "Cow Hide"] },
+                guaranteedLoot: { items: ["Bull Horn"] },
                 lootTable: [
                     { range: [1, 10], items: ["Cow Hide"] },
                     { range: [11, 15], items: ["Cow Hide", "Animal Fat"] },
                     { range: [16, 19], items: ["Cow Hide", "Animal Fat", "Cow Hide"] },
-                    { range: [20, 20], items: ["Cow Hide", "Animal Fat", "Cow Hide", "Bull Horn"] }
+                    { range: [20, 20], items: ["Cow Hide", "Animal Fat", "Cow Hide"] }
                 ]
             }, count: 1
         },
@@ -77,8 +77,7 @@ export const cardPools = {
                 guaranteedLoot: { items: ["Raw Chicken"] },
                 lootTable: [
                     { range: [1, 10], items: ["Feather"] },
-                    { range: [11, 15], items: ["Feather", "Egg"] },
-                    { range: [16, 19], items: ["Feather", "Egg", "Egg"] },
+                    { range: [11, 19], items: ["Feather", "Egg"] },
                     { range: [20, 20], items: ["Feather", "Egg", "Rotten Egg"] }
                 ]
             }, count: 8
@@ -93,10 +92,7 @@ export const cardPools = {
                 ],
                 guaranteedLoot: { items: ["Pork"] },
                 lootTable: [
-                    { range: [1, 10], items: ["Animal Fat"] },
-                    { range: [11, 15], items: ["Animal Fat", "Pork"] },
-                    { range: [16, 19], items: ["Animal Fat", "Pork", "Animal Fat"] },
-                    { range: [20, 20], items: ["Pork", "Pork", "Animal Fat", "Animal Fat"] }
+                    { range: [1, 10], items: ["Animal Fat"] }
                 ]
             }, count: 8
         },
@@ -110,10 +106,7 @@ export const cardPools = {
                 ],
                 guaranteedLoot: { items: ["Cow Hide"] },
                 lootTable: [
-                    { range: [1, 10], items: ["Milk"] },
-                    { range: [11, 15], items: ["Milk", "Animal Fat"] },
-                    { range: [16, 19], items: ["Milk", "Animal Fat", "Cow Hide"] },
-                    { range: [20, 20], items: ["Cow Hide", "Cow Hide", "Milk", "Animal Fat"] }
+                    { range: [1, 10], items: ["Milk"] }
                 ]
             }, count: 8
         },
