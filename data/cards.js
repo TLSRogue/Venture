@@ -123,7 +123,7 @@ export const cardPools = {
                 lootTable: [
                     { range: [1, 10], gold: { min: 1, max: 5 }, randomItems: { pool: ['Wheat', 'Carrot', 'Apple', 'Seeds'], count: 1 } },
                     { range: [11, 15], gold: { min: 2, max: 8 }, items: ["Thread"] },
-                    { range: [16, 19], gold: { min: 3, max: 10 }, items: ["T1 Weapon", "T1 Armor"] },
+                    { range: [16, 19], gold: { min: 3, max: 10 }, fromCategories: ["T1 Weapon", "T1 Equipment"] },
                     { range: [20, 20], gold: { min: 5, max: 15 }, items: ["Thread", "Pitchfork"] }
                 ]
             }, count: 5

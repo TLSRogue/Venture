@@ -535,6 +535,22 @@ export function applyDamage(targetState, amount, options = {}) {
         }
     }
 
+    // Handle Ice Barrier
+    const iceBarrierIndex = targetState.buffs.findIndex(b => b.type === 'Ice Barrier');
+    if (iceBarrierIndex !== -1) {
+        const barrier = targetState.buffs[iceBarrierIndex];
+        const absorbed = Math.min(amount, barrier.value || 0);
+
+        // Update barrier value
+        barrier.value = (barrier.value || 0) - absorbed;
+        amount -= absorbed;
+
+        // Remove barrier if depleted
+        if (barrier.value <= 0) {
+            targetState.buffs.splice(iceBarrierIndex, 1);
+        }
+    }
+
     // Apply remaining damage to health
     if (amount > 0) {
         targetState.health -= amount;
