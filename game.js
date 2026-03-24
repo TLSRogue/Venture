@@ -366,6 +366,9 @@ function handlePartyAdventureStarted(serverAdventureState) {
     } else {
         Object.assign(gameState, serverAdventureState);
         gameState.pvpEncounter = null;
+        if (!serverAdventureState.defenseQuest) {
+            gameState.defenseQuest = null;
+        }
     }
 
     Player.resetPlayerCombatState();
@@ -404,6 +407,9 @@ function handlePartyAdventureUpdate(serverAdventureState) {
     } else {
         Object.assign(gameState, serverAdventureState);
         gameState.pvpEncounter = null;
+        if (!serverAdventureState.defenseQuest) {
+            gameState.defenseQuest = null;
+        }
     }
 
     const reactionModalIsOpen = document.getElementById('reaction-buttons');

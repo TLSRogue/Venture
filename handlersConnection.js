@@ -224,6 +224,9 @@ export const registerConnectionHandlers = (io, socket) => {
 
                     party.sharedState.log.push({ message: `A player disconnected! The defense quest has failed.`, type: 'damage' });
                     party.sharedState.defenseQuest = null;
+                    if (party.sharedState.zoneEffects) {
+                        party.sharedState.zoneEffects = party.sharedState.zoneEffects.filter(ze => ze.type !== 'defenseQuest');
+                    }
                     broadcastAdventureUpdate(io, party);
                 }
             }
