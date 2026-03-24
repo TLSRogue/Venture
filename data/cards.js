@@ -65,6 +65,16 @@ export const cardPools = {
                 }
             }, count: 1
         },
+        {
+            card: {
+                name: "Composting Bin",
+                type: "interaction",
+                description: "A wooden bin smelling faintly of rot. You can toss food and consumables inside to make Slop.",
+                icon: "🪣",
+                imageUrl: '/assets/compost_bin.jpg',
+                deckPlacement: "front"
+            }, count: 1
+        },
         { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", guaranteedCategories: ["T1 Weapon", "T1 Armor"], icon: "📦", imageUrl: '/assets/farmlands-treasurechest.jpg' }, count: 1 },
         {
             card: {

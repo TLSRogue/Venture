@@ -33,6 +33,7 @@ export function initSocketListeners(handlers) {
     socket.on('party:requestReaction', handlers.onPartyRequestReaction);
     socket.on('party:requestIntervene', handlers.onPartyRequestIntervene);
     socket.on('party:requestDebuffSelection', handlers.onPartyRequestDebuffSelection);
+    socket.on('openCompostMenu', handlers.onOpenCompostMenu);
 
     // Loot Roll Listeners
     socket.on('party:lootRollStarted', handlers.onPartyLootRollStarted);
@@ -115,6 +116,10 @@ export function emitDuelAccept(challengerId) {
 
 export function emitDuelAction(action) {
     socket.emit('duel:playerAction', action);
+}
+
+export function emitCompostItem(inventoryIndex) {
+    socket.emit('party:playerAction', { type: 'compostItem', payload: { inventoryIndex } });
 }
 
 // --- CHAT EMITTERS ---

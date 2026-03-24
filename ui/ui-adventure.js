@@ -1405,6 +1405,90 @@ export function showBackpack() {
     showModal(modalContentEl);
 }
 
+export function showCompostMenu() {
+    const isCompostable = (item) => {
+        if (!item) return false;
+        if (item.type === 'consumable') return true;
+        const edibleMaterials = ['Fish', 'Pork', 'Raw Chicken', 'Egg', 'Rotten Egg', 'Wheat', 'Milk', 'Spiced Carrots', 'Cooked Fish', 'Birthday Cake', 'Apple', 'Carrot'];
+        if (item.type === 'material' && edibleMaterials.includes(item.name)) return true;
+        return false;
+    };
+
+    const compostableItems = gameState.inventory.map((item, originalIndex) => ({ item, originalIndex })).filter(entry => isCompostable(entry.item));
+
+    const fragment = document.createDocumentFragment();
+    const title = document.createElement('h2');
+    title.innerHTML = '🪣 Composting Bin';
+    fragment.appendChild(title);
+
+    const desc = document.createElement('p');
+    desc.textContent = "Select food or consumable items from your inventory to compost. Each item yields 1 Slop.";
+    desc.style.marginBottom = '15px';
+    fragment.appendChild(desc);
+
+    const grid = document.createElement('div');
+    grid.className = 'compost-grid';
+    grid.style.display = 'flex';
+    grid.style.flexWrap = 'wrap';
+    grid.style.gap = '10px';
+
+    if (compostableItems.length === 0) {
+        grid.innerHTML = '<p style="color:#aaa;">You have no food or consumable items to compost.</p>';
+    } else {
+        compostableItems.forEach(({ item, originalIndex }) => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'compost-item-card';
+            itemEl.style.border = '1px solid #444';
+            itemEl.style.borderRadius = '5px';
+            itemEl.style.padding = '10px';
+            itemEl.style.cursor = 'pointer';
+            itemEl.style.display = 'flex';
+            itemEl.style.flexDirection = 'column';
+            itemEl.style.alignItems = 'center';
+            itemEl.style.width = '80px';
+            itemEl.style.background = 'rgba(0,0,0,0.3)';
+
+            const itemNameClean = item.name.replace(/'/g, "&#39;");
+
+            const iconHTML = item.icon ? (item.icon.includes('/') ? `<img src="${item.icon}" style="width:32px;height:32px;object-fit:cover;border-radius:4px;">` : `<span style="font-size:24px;">${item.icon}</span>`) : '❓';
+            
+            itemEl.innerHTML = `
+                ${iconHTML}
+                <span style="font-size:11px; text-align:center; display:block; margin-top:5px; margin-bottom:5px;">${item.name}</span>
+                <button class="btn btn-primary btn-sm" style="width:100%; font-size:10px;">Compost</button>
+            `;
+
+            itemEl.onclick = () => {
+                showConfirmationModal(`Are you sure you want to compost your ${itemNameClean}?`, () => {
+                    emitPartyAction({ type: 'compostItem', payload: { inventoryIndex: originalIndex } });
+                    hideModal();
+                });
+            };
+
+            grid.appendChild(itemEl);
+        });
+    }
+
+    fragment.appendChild(grid);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'btn btn-danger';
+    closeBtn.textContent = 'Close';
+    closeBtn.style.marginTop = '20px';
+    closeBtn.onclick = hideModal;
+    fragment.appendChild(closeBtn);
+
+    const modal = document.getElementById('modal');
+    if (modal) {
+        const modalContentContainer = modal.querySelector('.modal-content');
+        if (modalContentContainer) {
+            modalContentContainer.classList.add('modal-wide');
+        }
+    }
+
+    showModal(fragment);
+}
+
 export function showCharacterSheet() {
     const bonuses = getBonusStats();
     const calculatedStats = {

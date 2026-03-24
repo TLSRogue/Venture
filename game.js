@@ -57,6 +57,8 @@ function initGame() {
         onPartyLootRollEnded: handleLootRollEnded,
         // PvP Flee Listener
         onPartyPvpFleeRequest: handlePvpFleeRequest,
+        // Composting
+        onOpenCompostMenu: UIAdventure.showCompostMenu,
         // Duel Listeners
         onDuelReceiveChallenge: handleDuelReceiveChallenge,
         onDuelStart: handleDuelStart,

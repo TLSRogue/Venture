@@ -1109,6 +1109,8 @@ export const allItems = [
 
     // --- Materials ---
     { name: "Iron", type: "material", tier: 1, price: 10, description: "A chunk of raw iron.", icon: "🪨", rarity: "common", canBeInMerchantWares: true },
+    { name: "Salt", type: "material", price: 10, description: "Enhances the flavor of food.", icon: "🧂", rarity: "common" },
+    { name: "Slop", type: "material", price: 1, description: "Disgusting slop from the composting bin. Might be useful later.", icon: "🪣", rarity: "common", canBeInMerchantWares: false },
     { name: "Wood", type: "material", tier: 1, price: 5, description: "A sturdy log of wood.", icon: "🪵", rarity: "common", canBeInMerchantWares: true },
     { name: "Fish", type: "material", tier: 1, price: 8, description: "A fresh fish.", icon: "🐟", rarity: "common", canBeInMerchantWares: false },
     { name: "Pork", type: "material", tier: 1, price: 10, description: "A slab of raw pork.", icon: "🍖", rarity: "common", canBeInMerchantWares: false },

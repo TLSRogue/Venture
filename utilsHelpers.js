@@ -89,6 +89,8 @@ export function buildZoneDeckForServer(zoneName, partySize = 1) {
                 } else {
                     npcs.push(card);
                 }
+            } else if (card.deckPlacement === 'front') {
+                npcs.push(card);
             } else {
                 otherCards.push(card);
             }

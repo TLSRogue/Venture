@@ -235,6 +235,12 @@ export async function processInteractWithCard(io, party, player, payload) {
         return;
     }
 
+    // Composting Bin Menu
+    else if (card.name === 'Composting Bin') {
+        io.to(player.id).emit('openCompostMenu');
+        return;
+    }
+
     // Interaction cards that spawn enemies (e.g., Chicken Coop -> Angry Rooster)
     else if (card.type === 'interaction' && card.spawnsEnemy) {
         const cost = card.interactionCost || 1;

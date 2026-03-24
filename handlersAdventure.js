@@ -632,6 +632,25 @@ export const registerAdventureHandlers = (io, socket) => {
                     socket.emit('characterUpdate', campfireChar);
                     break;
                 }
+                case 'compostItem': {
+                    const compostChar = player.character;
+                    const { inventoryIndex } = action.payload || {};
+                    const targetItem = compostChar.inventory.splice(inventoryIndex, 1)[0];
+
+                    if (!targetItem) {
+                        socket.emit('partyError', 'Invalid item selected for composting.');
+                        break;
+                    }
+
+                    const slopItemBase = itemsByName.get("Slop");
+                    if (slopItemBase) {
+                        addItemToInventoryServer(compostChar, slopItemBase, 1);
+                        party.sharedState.log.push({ message: `${compostChar.characterName} composted ${targetItem.name} and received ${slopItemBase.icon} Slop!`, type: 'info' });
+                    }
+                    
+                    socket.emit('characterUpdate', compostChar);
+                    break;
+                }
                 case 'endTurn':
                     if (party.sharedState.pvpEncounterId) {
                         const encounter = pvpEncounters[party.sharedState.pvpEncounterId];
