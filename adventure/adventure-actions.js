@@ -573,7 +573,7 @@ export async function processUseConsumable(io, party, player, payload) {
 
     // Handle enemy-targeted consumables
     if (item.targetEnemy) {
-        const targetCard = sharedState.zoneCards[targetIndex];
+        const targetCard = sharedState.zoneCards ? sharedState.zoneCards[targetIndex] : null;
         if (!targetCard || targetCard.type !== 'enemy' || targetCard.isDead) {
             // Refund AP if no valid target
             actingPlayerState.actionPoints += cost;

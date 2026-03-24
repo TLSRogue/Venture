@@ -208,6 +208,26 @@ export const registerConnectionHandlers = (io, socket) => {
             }
             // --- END PVP DISCONNECT HANDLING ---
 
+            // --- PvE DEFENSE QUEST DISCONNECT HANDLING ---
+            if (character.partyId && parties[character.partyId]) {
+                const party = parties[character.partyId];
+                if (party.sharedState && party.sharedState.defenseQuest && party.sharedState.defenseQuest.active) {
+                    const questId = party.sharedState.defenseQuest.questId;
+                    
+                    party.members.forEach(memberName => {
+                        const member = players[memberName];
+                        if (member && member.character) {
+                            member.character.quests = member.character.quests.filter(q => q.details.id !== questId || q.status === "completed");
+                            if (member.id) io.to(member.id).emit('characterUpdate', member.character);
+                        }
+                    });
+
+                    party.sharedState.log.push({ message: `A player disconnected! The defense quest has failed.`, type: 'damage' });
+                    party.sharedState.defenseQuest = null;
+                    broadcastAdventureUpdate(io, party);
+                }
+            }
+
             // --- SAVE PROGRESS TO FILE ---
             try {
                 fs.writeFileSync('players.json', JSON.stringify(players, null, 2));
