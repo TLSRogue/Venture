@@ -557,6 +557,10 @@ export async function processEndAdventure(io, player, party) {
             const memberPlayer = players[memberName];
             const memberCharacter = memberPlayer?.character;
             if (memberCharacter) {
+                // Remove failed defense quest
+                if (sharedState.defenseQuest && sharedState.defenseQuest.active) {
+                    memberCharacter.quests = memberCharacter.quests.filter(q => q.details.id !== sharedState.defenseQuest.questId || q.status === "completed");
+                }
                 if (!sharedState.partyMemberStates.find(p => p.name === memberName)?.isDead) {
                     const bonuses = getBonusStatsForPlayer(memberCharacter, null);
                     memberCharacter.health = STARTING_HEALTH + bonuses.maxHealth;
@@ -665,6 +669,10 @@ export async function processVentureDeeper(io, player, party) {
             const memberPlayer = players[memberName];
             const memberCharacter = memberPlayer?.character;
             if (memberCharacter) {
+                // Remove failed defense quest
+                if (sharedState.defenseQuest && sharedState.defenseQuest.active) {
+                    memberCharacter.quests = memberCharacter.quests.filter(q => q.details.id !== sharedState.defenseQuest.questId || q.status === "completed");
+                }
                 // Don't restore health for dead players
                 if (memberPlayer.id) {
                     io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
@@ -1387,6 +1395,57 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
         }
     }
     if (!isFleeing) {
+        // Handle Defense Quest Spawns
+        if (sharedState.defenseQuest && sharedState.defenseQuest.active && !sharedState.defenseQuest.spawningComplete) {
+            sharedState.defenseQuest.turnCount++;
+            sharedState.log.push({ message: `Defense Quest: Turn ${sharedState.defenseQuest.turnCount} of ${sharedState.defenseQuest.maxTurns}...`, type: 'info' });
+
+            if (sharedState.defenseQuest.turnCount === sharedState.defenseQuest.maxTurns) {
+                // Spawn Revolter
+                const emptySlotIndex = sharedState.zoneCards.findIndex(c => c && c.type !== 'enemy' && c.type === 'area');
+                if (emptySlotIndex !== -1) {
+                    const revolterTemplate = gameData.cardPools.farmlands.find(p => p.card.name === 'Farmhand Revolter');
+                    if (revolterTemplate) {
+                        const spawnedEnemy = {
+                            ...revolterTemplate.card,
+                            id: Date.now(),
+                            health: revolterTemplate.card.health,
+                            maxHealth: revolterTemplate.card.maxHealth,
+                            buffs: [],
+                            debuffs: []
+                        };
+                        sharedState.zoneCards[emptySlotIndex] = spawnedEnemy;
+                        sharedState.log.push({ message: `The Farmhand Revolter has arrived! Protect the Loyal Farmhand!`, type: 'damage' });
+                    }
+                } else {
+                    sharedState.log.push({ message: `The Farmhand Revolter is looking for an opening!`, type: 'damage' });
+                }
+                sharedState.defenseQuest.spawningComplete = true; // Quest ends spawning phase
+            } else {
+                // Spawn up to 2 Angry Farmhands
+                let spawnedCount = 0;
+                for (let i = 0; i < sharedState.zoneCards.length && spawnedCount < 2; i++) {
+                    if (sharedState.zoneCards[i] && sharedState.zoneCards[i].type === 'area') {
+                        const template = gameData.cardPools.farmlands.find(p => p.card.name === 'Angry Farmhand');
+                        if (template) {
+                            sharedState.zoneCards[i] = {
+                                ...template.card,
+                                id: Date.now() + i,
+                                health: template.card.health,
+                                maxHealth: template.card.maxHealth,
+                                buffs: [],
+                                debuffs: []
+                            };
+                            spawnedCount++;
+                        }
+                    }
+                }
+                if (spawnedCount > 0) {
+                     sharedState.log.push({ message: `${spawnedCount} Angry Farmhand(s) joined the fray!`, type: 'damage' });
+                }
+            }
+        }
+
         // Process zone effects at the end of the entire round
         processZoneEffects(io, party);
         await new Promise(resolve => setTimeout(resolve, 1000));

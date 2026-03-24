@@ -143,6 +143,46 @@ export const cardPools = {
                 spawnsEnemy: "angryRooster"
             }, count: 1
         },
+        {
+            card: {
+                name: "Loyal Farmhand",
+                type: "npc",
+                description: "He looks nervous and keeps glancing over his shoulder. You can only speak to him when the area is clear.",
+                icon: "👨‍🌾",
+                imageUrl: '/assets/farmlands-farmer.jpg',
+                deckPlacement: "bottomHalf",
+                requiresClearArea: true,
+                quests: [
+                    { id: "FARMHAND_DEFENSE", title: "Protect the Farmhand", target: "Farmhand Revolter", required: 1, reward: { gold: 50, qp: 2 }, prerequisite: null }
+                ],
+                dialogue: {
+                    FARMHAND_DEFENSE_start: { text: "'Stranger! You look capable. Please, you have to help me! The others... they've gone mad. They're going to kill me because I won't join their rebellion. If you protect me, I'll pay you well!'", options: [{ text: "I will stand with you. (Starts Defense)", questId: "FARMHAND_DEFENSE", next: "FARMHAND_DEFENSE_inProgress", action: "startDefenseQuest" }, { text: "I don't want any trouble.", next: "farewell" }] },
+                    FARMHAND_DEFENSE_inProgress: { text: "'They are coming! Defend me!'", options: [{ text: "Stay behind me.", next: "farewell" }] },
+                    FARMHAND_DEFENSE_ready: { text: "'You... you actually saved me! I thought I was dead for sure. Thank the gods you were here. Here is what I promised.'", options: [{ text: "You're safe now.", questComplete: "FARMHAND_DEFENSE", next: "allQuestsDone" }] },
+                    allQuestsDone: { text: "'I'm getting out of here while I still can. Thank you again!'", options: [{ text: "Farewell.", next: "farewell" }] },
+                    farewell: { text: "'Stay safe out there.'", options: [] },
+                    enemiesPresent: { text: "'Not now! They're still here!'", options: [{ text: "(Defeat enemies first)", next: "farewell" }] }
+                }
+            }, count: 1
+        },
+        {
+            card: {
+                name: "Farmhand Revolter", type: "enemy", health: 8, maxHealth: 8, description: "The furious leader of the rebel farmhands.", icon: "🧑‍🌾", imageUrl: '/assets/farmlands-angryfarmhand.jpg',
+                attackTable: [
+                    { range: [1, 3], action: 'miss', message: "Miss!" },
+                    { range: [4, 6], action: 'special', message: "The Revolter rallies the others!" },
+                    { range: [7, 13], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 2, damageType: 'Physical' }, message: "Vicious Pitchfork Jab! Deals 4 Physical Damage and Bleeds!" },
+                    { range: [14, 20], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Fire', debuff: { type: 'burn', duration: 2, damage: 2, damageType: 'Fire' }, message: "Blazing Torch Throw! Deals 4 Fire Damage and Burns!" }
+                ],
+                guaranteedLoot: { items: ["Cloth", "Cloth"], gold: { min: 10, max: 20 } },
+                lootTable: [
+                    { range: [1, 10], randomItems: { pool: ['Wheat', 'Carrot', 'Apple', 'Seeds'], count: 2 } },
+                    { range: [11, 15], gold: { min: 4, max: 16 }, items: ["Thread", "Thread"] },
+                    { range: [16, 19], gold: { min: 6, max: 20 }, fromCategories: ["T1 Weapon", "T1 Equipment", "T1 Equipment"] },
+                    { range: [20, 20], gold: { min: 10, max: 30 }, items: ["Thread", "Pitchfork", "Pitchfork"] }
+                ]
+            }, count: 0 // Do not spawn in normal deck
+        },
         { card: { name: "Farmlands", type: "area", description: "Open farmland stretching to the horizon.", icon: "🌾", imageUrl: '/assets/farmlands-area.jpg', allowSpawnOver: true }, count: 1 },
     ],
 

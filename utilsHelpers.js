@@ -76,6 +76,7 @@ export function checkAndRotateMerchantStock(character) {
 
 export function buildZoneDeckForServer(zoneName, partySize = 1) {
     let npcs = [];
+    let bottomHalfNPCs = [];
     let otherCards = [];
     let cardPool = gameData.cardPools[zoneName] ? [...gameData.cardPools[zoneName]] : [];
 
@@ -83,7 +84,11 @@ export function buildZoneDeckForServer(zoneName, partySize = 1) {
         for (let i = 0; i < poolItem.count; i++) {
             const card = { ...poolItem.card };
             if (card.type === 'npc') {
-                npcs.push(card);
+                if (card.deckPlacement === 'bottomHalf') {
+                    bottomHalfNPCs.push(card);
+                } else {
+                    npcs.push(card);
+                }
             } else {
                 otherCards.push(card);
             }
@@ -137,6 +142,13 @@ export function buildZoneDeckForServer(zoneName, partySize = 1) {
     bosses.forEach(boss => {
         const insertPos = Math.floor(Math.random() * (secondHalf.length + 1));
         secondHalf.splice(insertPos, 0, boss);
+    });
+
+    // Insert bottomHalfNPCs randomly into the second half
+    shuffleArray(bottomHalfNPCs);
+    bottomHalfNPCs.forEach(npc => {
+        const insertPos = Math.floor(Math.random() * (secondHalf.length + 1));
+        secondHalf.splice(insertPos, 0, npc);
     });
 
     // Combine: NPCs first, then first half, then second half with bosses, then treasure chests at the end

@@ -173,6 +173,14 @@ export function removePlayerFromParty(io, socket) {
 function cleanupAdventureStateForPlayer(io, party, playerName) {
     if (!party.sharedState || !party.sharedState.partyMemberStates) return;
 
+    // Check if there is an active defense quest, if so, remove it from this player's character
+    if (party.sharedState.defenseQuest && party.sharedState.defenseQuest.active) {
+        const player = players[playerName];
+        if (player && player.character) {
+             player.character.quests = player.character.quests.filter(q => q.details.id !== party.sharedState.defenseQuest.questId || q.status === "completed");
+        }
+    }
+
     const memberIndex = party.sharedState.partyMemberStates.findIndex(p => p.name === playerName);
     if (memberIndex === -1) return;
 
@@ -207,6 +215,9 @@ export function disbandParty(io, partyId) {
         const memberPlayer = players[memberName];
         if (memberPlayer?.character) {
             memberPlayer.character.partyId = null;
+            if (party.sharedState && party.sharedState.defenseQuest && party.sharedState.defenseQuest.active) {
+                 memberPlayer.character.quests = memberPlayer.character.quests.filter(q => q.details.id !== party.sharedState.defenseQuest.questId || q.status === "completed");
+            }
         }
     });
 
@@ -228,6 +239,9 @@ export function cleanupSoloParty(io, party, player = null) {
     const leader = player || players[party.leaderId];
     if (leader?.character) {
         leader.character.partyId = null;
+        if (party.sharedState && party.sharedState.defenseQuest && party.sharedState.defenseQuest.active) {
+             leader.character.quests = leader.character.quests.filter(q => q.details.id !== party.sharedState.defenseQuest.questId || q.status === "completed");
+        }
         if (leader.id) {
             io.to(leader.id).emit('partyUpdate', null);
         }

@@ -264,13 +264,20 @@ export function renderAdventureScreen() {
     // ** FIX: Use the new isLoadingNextArea flag for consistent behavior **
     // Also disable during enemy turn (activePhase === 'enemy') to prevent clicking during enemy phase
     const duringEnemyTurn = gameState.activePhase === 'enemy';
+    const isDefenseQuestActive = gameState.defenseQuest && gameState.defenseQuest.active;
+
     const shouldDisableVenture = gameState.pvpEncounter || gameState.isLoadingNextArea || duringEnemyTurn;
     const shouldDisableHome = duringEnemyTurn;
     ventureArrow.disabled = shouldDisableVenture;
     homeArrow.disabled = shouldDisableHome;
 
-    ventureArrow.style.display = 'flex';
-    homeArrow.style.display = 'flex';
+    if (isDefenseQuestActive) {
+        ventureArrow.style.display = 'none';
+        homeArrow.style.display = 'none';
+    } else {
+        ventureArrow.style.display = 'flex';
+        homeArrow.style.display = 'flex';
+    }
 
     // Prioritize pvpEncounter over inDuel since duels now use the PvP system
     if (gameState.pvpEncounter) {

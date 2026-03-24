@@ -350,6 +350,16 @@ export async function processInteractWithCard(io, party, player, payload) {
 export function startNPCDialogue(io, player, party, npc, cardIndex, dialogueNodeKey = 'start') {
     const interactingCharacter = player.character;
 
+    // Check clear area constraint
+    if (npc.requiresClearArea && party.sharedState.zoneCards.some(c => c && c.type === 'enemy')) {
+        if (npc.dialogue && npc.dialogue.enemiesPresent && dialogueNodeKey === 'start') {
+            dialogueNodeKey = 'enemiesPresent';
+        } else {
+            party.sharedState.log.push({ message: `You cannot interact with ${npc.name} while enemies are around!`, type: 'info' });
+            return;
+        }
+    }
+
     // Fallback for NPCs without dialogue defined
     if (!npc.dialogue) {
         const genericDialogue = {
@@ -494,6 +504,18 @@ export function processDialogueChoice(io, player, party, payload) {
             if (!character.quests.some(q => q.details.id === choice.questId)) {
                 character.quests.push({ details: questDetails, status: 'active', progress: 0 });
                 io.to(player.id).emit('characterUpdate', character);
+
+                if (choice.action === 'startDefenseQuest') {
+                    // Activate defense quest globally for the party
+                    party.sharedState.defenseQuest = {
+                        active: true,
+                        questId: choice.questId,
+                        turnCount: 0,
+                        maxTurns: questDetails.duration || 5
+                    };
+                    party.sharedState.log.push({ message: `Defense Quest Started: Protect the Loyal Farmhand for ${party.sharedState.defenseQuest.maxTurns} turns!`, type: 'info' });
+                    // Provide an initial delay so the server logic has time to update UI and process
+                }
             }
             party.sharedState.log.push({ message: `${character.characterName} accepted Quest: ${questDetails.title}`, type: 'success' });
         }
@@ -509,6 +531,11 @@ export function processDialogueChoice(io, player, party, payload) {
             // Only complete quest for the player who turned it in
             const reward = questToComplete.details.reward;
             questToComplete.status = 'completed';
+
+            // If this was a defense quest, clean it up from shared state
+            if (party.sharedState.defenseQuest && party.sharedState.defenseQuest.questId === choice.questComplete) {
+                party.sharedState.defenseQuest = null;
+            }
 
             if (reward.gold) character.gold += reward.gold;
             if (reward.qp) {
