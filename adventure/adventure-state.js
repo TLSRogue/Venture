@@ -1397,10 +1397,13 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
     if (!isFleeing) {
         // Handle Defense Quest Spawns
         if (sharedState.defenseQuest && sharedState.defenseQuest.active && !sharedState.defenseQuest.spawningComplete) {
-            sharedState.defenseQuest.turnCount++;
-            sharedState.log.push({ message: `Defense Quest: Turn ${sharedState.defenseQuest.turnCount} of ${sharedState.defenseQuest.maxTurns}...`, type: 'info' });
+            
+            if (sharedState.defenseQuest.turnCount < sharedState.defenseQuest.maxTurns) {
+                sharedState.defenseQuest.turnCount++;
+                sharedState.log.push({ message: `Defense Quest: Turn ${sharedState.defenseQuest.turnCount} of ${sharedState.defenseQuest.maxTurns}...`, type: 'info' });
+            }
 
-            if (sharedState.defenseQuest.turnCount === sharedState.defenseQuest.maxTurns) {
+            if (sharedState.defenseQuest.turnCount >= sharedState.defenseQuest.maxTurns) {
                 // Spawn Revolter
                 const emptySlotIndex = sharedState.zoneCards.findIndex(c => c && c.type !== 'enemy' && (c.type === 'area' || c.type === 'resource'));
                 if (emptySlotIndex !== -1) {
@@ -1417,10 +1420,10 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                         sharedState.zoneCards[emptySlotIndex] = spawnedEnemy;
                         sharedState.log.push({ message: `The Farmhand Revolter has arrived! Protect the Loyal Farmhand!`, type: 'damage' });
                     }
+                    sharedState.defenseQuest.spawningComplete = true; // Quest ends spawning phase
                 } else {
                     sharedState.log.push({ message: `The Farmhand Revolter is looking for an opening!`, type: 'damage' });
                 }
-                sharedState.defenseQuest.spawningComplete = true; // Quest ends spawning phase
             } else {
                 // Spawn up to 2 Angry Farmhands
                 let spawnedCount = 0;

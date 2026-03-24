@@ -506,31 +506,42 @@ export function processDialogueChoice(io, player, party, payload) {
     if (choice.questId) {
         const questDetails = npc.quests.find(q => q.id === choice.questId);
         if (questDetails) {
-            // Only add quest to the player who accepted
-            if (!character.quests.some(q => q.details.id === choice.questId)) {
-                character.quests.push({ details: questDetails, status: 'active', progress: 0 });
-                io.to(player.id).emit('characterUpdate', character);
+            if (choice.action === 'startDefenseQuest') {
+                // Add quest to EVERY party member
+                party.members.forEach(memberName => {
+                    const memberPlayer = players[memberName];
+                    if (memberPlayer && memberPlayer.character) {
+                        const mChar = memberPlayer.character;
+                        if (!mChar.quests.some(q => q.details.id === choice.questId)) {
+                            mChar.quests.push({ details: questDetails, status: 'active', progress: 0 });
+                            if (memberPlayer.id) io.to(memberPlayer.id).emit('characterUpdate', mChar);
+                        }
+                    }
+                });
 
-                if (choice.action === 'startDefenseQuest') {
-                    // Activate defense quest globally for the party
-                    party.sharedState.defenseQuest = {
-                        active: true,
-                        questId: choice.questId,
-                        turnCount: 0,
-                        maxTurns: questDetails.duration || 5
-                    };
-                    
-                    // Add visible zone effect
-                    party.sharedState.zoneEffects.push({
-                        name: "Protect the Farmhand!",
-                        type: "defenseQuest",
-                        icon: "🛡️",
-                        duration: party.sharedState.defenseQuest.maxTurns,
-                        description: "Defend against the angry mob!"
-                    });
+                // Activate defense quest globally for the party
+                party.sharedState.defenseQuest = {
+                    active: true,
+                    questId: choice.questId,
+                    turnCount: 0,
+                    maxTurns: questDetails.duration || 5
+                };
+                
+                // Add visible zone effect
+                party.sharedState.zoneEffects.push({
+                    name: "Protect the Farmhand!",
+                    type: "defenseQuest",
+                    icon: "🛡️",
+                    duration: party.sharedState.defenseQuest.maxTurns,
+                    description: "Defend against the angry mob!"
+                });
 
-                    party.sharedState.log.push({ message: `Defense Quest Started: Protect the Loyal Farmhand for ${party.sharedState.defenseQuest.maxTurns} turns!`, type: 'info' });
-                    // Provide an initial delay so the server logic has time to update UI and process
+                party.sharedState.log.push({ message: `Defense Quest Started: Protect the Loyal Farmhand for ${party.sharedState.defenseQuest.maxTurns} turns!`, type: 'info' });
+            } else {
+                // Normal quests: Only add quest to the player who accepted
+                if (!character.quests.some(q => q.details.id === choice.questId)) {
+                    character.quests.push({ details: questDetails, status: 'active', progress: 0 });
+                    io.to(player.id).emit('characterUpdate', character);
                 }
             }
             party.sharedState.log.push({ message: `${character.characterName} accepted Quest: ${questDetails.title}`, type: 'success' });
