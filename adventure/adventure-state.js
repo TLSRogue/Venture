@@ -1402,7 +1402,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
 
             if (sharedState.defenseQuest.turnCount === sharedState.defenseQuest.maxTurns) {
                 // Spawn Revolter
-                const emptySlotIndex = sharedState.zoneCards.findIndex(c => c && c.type !== 'enemy' && c.type === 'area');
+                const emptySlotIndex = sharedState.zoneCards.findIndex(c => c && c.type !== 'enemy' && (c.type === 'area' || c.type === 'resource'));
                 if (emptySlotIndex !== -1) {
                     const revolterTemplate = gameData.cardPools.farmlands.find(p => p.card.name === 'Farmhand Revolter');
                     if (revolterTemplate) {
@@ -1425,7 +1425,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 // Spawn up to 2 Angry Farmhands
                 let spawnedCount = 0;
                 for (let i = 0; i < sharedState.zoneCards.length && spawnedCount < 2; i++) {
-                    if (sharedState.zoneCards[i] && sharedState.zoneCards[i].type === 'area') {
+                    if (sharedState.zoneCards[i] && (sharedState.zoneCards[i].type === 'area' || sharedState.zoneCards[i].type === 'resource')) {
                         const template = gameData.cardPools.farmlands.find(p => p.card.name === 'Angry Farmhand');
                         if (template) {
                             sharedState.zoneCards[i] = {

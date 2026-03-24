@@ -149,7 +149,7 @@ export const cardPools = {
                 type: "npc",
                 description: "He looks nervous and keeps glancing over his shoulder. You can only speak to him when the area is clear.",
                 icon: "👨‍🌾",
-                imageUrl: '/assets/farmlands-farmer.jpg',
+                imageUrl: '/assets/loyal_farmhand.jpg',
                 deckPlacement: "bottomHalf",
                 requiresClearArea: true,
                 quests: [
@@ -167,7 +167,7 @@ export const cardPools = {
         },
         {
             card: {
-                name: "Farmhand Revolter", type: "enemy", health: 8, maxHealth: 8, description: "The furious leader of the rebel farmhands.", icon: "🧑‍🌾", imageUrl: '/assets/farmlands-angryfarmhand.jpg',
+                name: "Farmhand Revolter", type: "enemy", health: 8, maxHealth: 8, description: "The furious leader of the rebel farmhands.", icon: "🧑‍🌾", imageUrl: '/assets/farmhand_revolter.jpg',
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
                     { range: [4, 6], action: 'special', message: "The Revolter rallies the others!" },

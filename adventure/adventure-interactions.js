@@ -513,6 +513,16 @@ export function processDialogueChoice(io, player, party, payload) {
                         turnCount: 0,
                         maxTurns: questDetails.duration || 5
                     };
+                    
+                    // Add visible zone effect
+                    party.sharedState.zoneEffects.push({
+                        name: "Protect the Farmhand!",
+                        type: "defenseQuest",
+                        icon: "🛡️",
+                        duration: party.sharedState.defenseQuest.maxTurns,
+                        description: "Defend against the angry mob!"
+                    });
+
                     party.sharedState.log.push({ message: `Defense Quest Started: Protect the Loyal Farmhand for ${party.sharedState.defenseQuest.maxTurns} turns!`, type: 'info' });
                     // Provide an initial delay so the server logic has time to update UI and process
                 }
