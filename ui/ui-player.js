@@ -645,9 +645,12 @@ function generateQuestLogHTML() {
             progressText = itemsProgress.join('<br>');
         }
 
-        html += `<div class="quest-entry" style="margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px;">
-            <strong>${quest.details.title}</strong><br>
-            <small>${progressText}</small>
+        html += `<div class="quest-entry" style="margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <strong>${quest.details.title}</strong><br>
+                <small>${progressText}</small>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="window.abandonQuest('${quest.details.id}')">Abandon</button>
         </div>`;
     });
 
@@ -693,4 +696,22 @@ window.setPlayerTitle = (title) => {
     gameState.title = title;
     renderHeader();
     showTitleSelectionModal(); // Re-render modal to update buttons
+};
+
+window.abandonQuest = (questId) => {
+    if (confirm("Are you sure you want to abandon this quest? Any progress will be lost and you will need to accept it again.")) {
+        Network.emitPlayerAction('abandonQuest', { questId });
+        
+        // Optimistic update to hide it
+        if (gameState.quests) {
+            gameState.quests = gameState.quests.filter(q => q.details.id !== questId || q.status === 'completed');
+            renderQuestLog();
+            
+            // Re-render modal if open
+            if (!document.getElementById('modal').classList.contains('hidden')) {
+                const content = generateQuestLogHTML() + `<div class="action-buttons" style="margin-top: 20px;"><button class="btn" onclick="document.getElementById('modal').classList.add('hidden')">Close</button></div>`;
+                document.getElementById('modal').innerHTML = `<div class="modal-content">${content}</div>`;
+            }
+        }
+    }
 };

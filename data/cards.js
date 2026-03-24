@@ -16,7 +16,7 @@ export const cardPools = {
                     { range: [4, 16], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Charge! Deals 3 Physical Damage!" },
                     { range: [17, 20], action: 'special', message: "Thick Hide! Gain 1 Physical Resistance until the next Zone Turn then make another action!" }
                 ],
-                guaranteedLoot: { items: ["Bull Horn"] },
+                guaranteedLoot: { items: ["Bull Horn", "Raw Beef"] },
                 lootTable: [
                     { range: [1, 10], items: ["Cow Hide"] },
                     { range: [11, 15], items: ["Cow Hide", "Animal Fat"] },
@@ -75,7 +75,7 @@ export const cardPools = {
                 deckPlacement: "front"
             }, count: 1
         },
-        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", guaranteedCategories: ["T1 Weapon", "T1 Armor"], icon: "📦", imageUrl: '/assets/farmlands-treasurechest.jpg' }, count: 1 },
+        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", guaranteedCategories: ["T1 Weapon", "T1 Armor"], loot: [{ name: "Recipe: Champions Breakfast" }], icon: "📦", imageUrl: '/assets/farmlands-treasurechest.jpg' }, count: 1 },
         {
             card: {
                 name: "Chicken", type: "enemy", health: 2, maxHealth: 2, description: "A feisty farm chicken", icon: "🐔", imageUrl: '/assets/farmlands-chicken.jpg',

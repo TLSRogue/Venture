@@ -382,6 +382,16 @@ function handleUseRecipe(character, payload) {
     return false;
 }
 
+function handleAbandonQuest(character, payload) {
+    const { questId } = payload;
+    if (!character.quests || character.quests.length === 0) return false;
+
+    const initialCount = character.quests.length;
+    character.quests = character.quests.filter(q => q.details.id !== questId || q.status === 'completed');
+    
+    return character.quests.length !== initialCount;
+}
+
 // --- ACTION DISPATCH TABLE ---
 const actionHandlers = {
     viewMerchant: handleViewMerchant,
@@ -402,7 +412,8 @@ const actionHandlers = {
     socketGem: handleSocketGem,
     unsocketGem: handleUnsocketGem,
     useRecipe: handleUseRecipe,
-    sellAllJunk: handleSellAllJunk
+    sellAllJunk: handleSellAllJunk,
+    abandonQuest: handleAbandonQuest
 };
 
 // --- MAIN HANDLER REGISTRATION ---
