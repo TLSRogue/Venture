@@ -75,7 +75,7 @@ export const cardPools = {
                 deckPlacement: "front"
             }, count: 1
         },
-        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", guaranteedCategories: ["T1 Weapon", "T1 Armor"], loot: [{ name: "Recipe: Champions Breakfast" }], icon: "📦", imageUrl: '/assets/farmlands-treasurechest.jpg' }, count: 1 },
+        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", guaranteedCategories: ["T1 Weapon", "T1 Armor"], loot: [{ name: "Recipe: Champions Breakfast" }], lootCount: 1, icon: "📦", imageUrl: '/assets/farmlands-treasurechest.jpg' }, count: 1 },
         {
             card: {
                 name: "Chicken", type: "enemy", health: 2, maxHealth: 2, description: "A feisty farm chicken", icon: "🐔", imageUrl: '/assets/farmlands-chicken.jpg',
@@ -114,7 +114,7 @@ export const cardPools = {
                     { range: [4, 15], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Kick! Deals 2 Physical Damage!" },
                     { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Press! Deals 2 Physical Damage and applies Daze!" }
                 ],
-                guaranteedLoot: { items: ["Cow Hide"] },
+                guaranteedLoot: { items: ["Cow Hide", "Raw Beef"] },
                 lootTable: [
                     { range: [1, 10], items: ["Milk"] }
                 ]

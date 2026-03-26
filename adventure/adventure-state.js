@@ -586,7 +586,10 @@ export async function processEndAdventure(io, player, party) {
         sharedState.log.push({ message: "The party tries to flee combat to return home. Enemies get a final attack!", type: 'reaction' });
         broadcastAdventureUpdate(io, party);
         await runEnemyPhaseForParty(io, party.id, true);
-        const alivePlayers = sharedState.partyMemberStates.filter(p => p.health > 0);
+        // Tick player DoTs, buffs, and debuffs as if the turn ended
+        processPartyEndOfTurn(sharedState);
+        broadcastAdventureUpdate(io, party);
+        const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead && p.health > 0);
         if (alivePlayers.length > 0) {
             sharedState.log.push({ message: "They escaped and returned home safely!", type: 'success' });
             endTheAdventure();
@@ -720,7 +723,10 @@ export async function processVentureDeeper(io, player, party) {
     if (inCombat) {
         sharedState.log.push({ message: "The party attempts to flee, but the enemies get one last attack!", type: 'reaction' });
         await runEnemyPhaseForParty(io, party.id, true);
-        const alivePlayers = sharedState.partyMemberStates.filter(p => p.health > 0);
+        // Tick player DoTs, buffs, and debuffs as if the turn ended
+        processPartyEndOfTurn(sharedState);
+        broadcastAdventureUpdate(io, party);
+        const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead && p.health > 0);
         if (alivePlayers.length > 0) {
             sharedState.log.push({ message: "They successfully escaped to a new area!", type: 'success' });
             proceedToNextArea();
