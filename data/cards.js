@@ -289,8 +289,8 @@ export const cardPools = {
             card: {
                 name: "Goblin Shaman",
                 type: "enemy",
-                health: 8,
-                maxHealth: 8,
+                health: 6,
+                maxHealth: 6,
                 description: "A mystical goblin shaman.",
                 icon: "👺",
                 imageUrl: '/assets/goblincaves-shaman.jpg',
@@ -323,8 +323,8 @@ export const cardPools = {
             card: {
                 name: "Goblin Archer",
                 type: "enemy",
-                health: 8,
-                maxHealth: 8,
+                health: 6,
+                maxHealth: 6,
                 description: "A sneaky goblin archer.",
                 icon: "👺",
                 imageUrl: '/assets/goblincaves-archer.jpg',
@@ -358,8 +358,8 @@ export const cardPools = {
             card: {
                 name: "Goblin Warrior",
                 type: "enemy",
-                health: 10,
-                maxHealth: 10,
+                health: 7,
+                maxHealth: 7,
                 description: "A brutish goblin warrior.",
                 icon: "👺",
                 imageUrl: '/assets/goblincaves-warrior.jpg',
