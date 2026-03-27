@@ -842,3 +842,25 @@ export function processEndOfTurnEffects(state, log) {
 
     return tookDamage;
 }
+
+/**
+ * Process Rejuvenate buff healing for a player at end of turn.
+ * Consolidates the identical logic used in PVE, PVP, and party-end-of-turn.
+ * 
+ * @param {Object} playerState - The player's combat state
+ * @param {Array} log - The log array to push messages to
+ */
+export function processRejuvenateHealing(playerState, log) {
+    const rejuvenateBuff = (playerState.buffs || []).find(b => b.type === 'Rejuvenate');
+    if (!rejuvenateBuff || playerState.isDead) return;
+
+    const playerChar = players[playerState.name]?.character;
+    if (!playerChar) return;
+
+    const bonuses = getBonusStatsForPlayer(playerChar, playerState);
+    const healAmount = Number(rejuvenateBuff.healAmount || Math.max(1, 1 + (bonuses.naturePower || 0)));
+    const currentHealth = Number(playerState.health || 0);
+    const maxHealth = Number(playerState.maxHealth || 10);
+    playerState.health = Math.min(maxHealth, currentHealth + (isNaN(healAmount) ? 0 : healAmount));
+    log.push({ message: `${playerState.name}'s Rejuvenate heals for ${healAmount} HP.`, type: 'heal' });
+}

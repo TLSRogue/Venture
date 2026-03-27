@@ -5,7 +5,7 @@ import { gameData, lootPools } from '../data/index.js';
 import { rollD20 } from '../shared.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient, getZoneAreaCard } from '../utilsHelpers.js';
-import { applyDamage, applyDoTEffects, applyChillStack, processChillReduction, getAvailablePlayerReactions, processEndOfTurnEffects } from './combat-core.js';
+import { applyDamage, applyDoTEffects, applyChillStack, processChillReduction, getAvailablePlayerReactions, processEndOfTurnEffects, processRejuvenateHealing } from './combat-core.js';
 import { PVP_TURN_DURATION_MS, PVE_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS, INTERVENE_TIMER_MS, INVENTORY_SIZE, DEFAULT_ACTION_POINTS, STARTING_HEALTH } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
 import { processEnemyEndOfTurn, handleEnemySpecialAction } from './enemy-handlers.js';
@@ -651,18 +651,7 @@ export async function processVentureDeeper(io, player, party) {
         });
 
         // Reset PVE turn timer for the new area
-        if (sharedState.turnTimerId) clearTimeout(sharedState.turnTimerId);
-        const firstPlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
-        if (!sharedState.pvpEncounterId && firstPlayer && !firstPlayer.isDead) {
-            sharedState.turnTimerEndsAt = Date.now() + PVE_TURN_DURATION_MS;
-            sharedState.turnTimerId = setTimeout(() => {
-                const currentPlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
-                if (currentPlayer && !currentPlayer.turnEnded && !currentPlayer.isDead) {
-                    sharedState.log.push({ message: `⏳ ${currentPlayer.name}'s time expired! Turn ends.`, type: 'info' });
-                    processPlayerEndTurn(io, party.id, currentPlayer.name);
-                }
-            }, PVE_TURN_DURATION_MS);
-        }
+        startPveTurnTimer(io, party.id, sharedState);
     };
 
     // Helper: End adventure when party wipes (all dead)
@@ -870,42 +859,14 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
         if (!enemy || enemy.health <= 0) continue;
         try {
 
-            // Helper for End of Turn (Damage + Decrement)
+            // End of Turn: DoT damage, buff/debuff decrement, chill reduction, reaction cooldowns
             const processEndOfTurn = () => {
-                let damageTaken = false;
-                ['bleed', 'burn', 'poison', 'entangling roots'].forEach(type => {
-                    const debuff = enemy.debuffs.find(d => d.type.toLowerCase() === type);
-                    if (debuff) {
-                        applyDamage(enemy, debuff.damage);
-                        let typeName = type.charAt(0).toUpperCase() + type.slice(1);
-                        let dmgType = debuff.damageType || (type === 'burn' ? 'Fire' : (type === 'poison' ? 'Nature' : 'Physical'));
-                        sharedState.log.push({ message: `${enemy.name} takes ${debuff.damage} ${dmgType} damage from ${typeName}.`, type: 'damage' });
-                        damageTaken = true;
-                    }
-                });
-
-                if (enemy.health <= 0) {
+                const died = processEnemyEndOfTurn(enemy, sharedState);
+                if (died) {
                     defeatEnemyInParty(io, party, enemy, enemyIndex);
                     broadcastAdventureUpdate(io, party);
-                    return true; // Dead
+                    return true;
                 }
-
-                if (enemy.buffs) { enemy.buffs.forEach(b => b.duration--); enemy.buffs = enemy.buffs.filter(b => b.duration > 0); }
-                if (enemy.debuffs) { enemy.debuffs.forEach(d => d.duration--); enemy.debuffs = enemy.debuffs.filter(d => d.duration > 0); }
-
-                // Decrement enemy reaction cooldowns
-                if (enemy.reactionCooldowns) {
-                    for (const reactionName in enemy.reactionCooldowns) {
-                        if (enemy.reactionCooldowns[reactionName] > 0) {
-                            enemy.reactionCooldowns[reactionName]--;
-                        }
-                    }
-                }
-
-                // Process Chill reduction for enemy
-                processChillReduction(enemy, sharedState.log);
-
-                if (damageTaken) broadcastAdventureUpdate(io, party);
                 return false;
             };
 
@@ -1156,88 +1117,19 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     await new Promise(resolve => setTimeout(resolve, 1200));
                     continue;
                 } else {
-                    // Fallback for unhandled special actions (or if handler failed)
-                    // Log the message so at least the player sees something happened
+                    // Unhandled special action — log it as fallback
                     sharedState.log.push({ message: attack.message, type: 'info' });
-                    // Broadcast so it's not invisible
                     broadcastAdventureUpdate(io, party);
                     await new Promise(resolve => setTimeout(resolve, 1200));
-                    // Check for Vampire/Human Victim specifically just in case they weren't fully migrated 
-                    // or if we want to support legacy mixed mode, but for now we continue to let them fall through
-                    // if intended, OR we continue loop here to fully rely on registry?
-                    // Given the goal was "Remove Legacy Handlers", we should ideally continue.
-                    // But if I continue here, I disable the inline Vampire checks below.
-                    // If the registry IS matching Vampire, then handled=true, so we hit the if block.
-                    // If registry is NOT matching Vampire, handled=false, we hit this else block.
-                    // If we continue here, the inline Vampire checks are skipped also.
-                    // This means if registry fails, Vampire breaks completely.
-                    // BUT fallback log ensures "Vampire takes flight" is printed.
-                    // So functionality breaks but visibility works.
-                    // This is acceptable for refactoring verification (if it breaks, we know registry is wrong).
-                    // I will NOT continue here, allowing fallthrough to legacy checks just in case, 
-                    // BUT I will keep the log. Double logging is better than invisible action.
-                    // Wait, if I don't continue, it falls through to... nothing?
-                    // No, to the legacy inline checks (lines 1058+).
-                    // If they match, they log AGAIN.
-                    // That's fine.
                 }
 
-                // NOTE: Legacy inline handlers below should eventually be migrated to the registry
-                // For now, they provide fallback handling for special attacks not yet in registry
-
-                // --- VAMPIRE: Take Flight (gain Flying buff + attack bonus) ---
-                if (enemy.name === 'Vampire' && attack.message.includes('Take Flight')) {
-                    if (!enemy.buffs) enemy.buffs = [];
-                    enemy.buffs = enemy.buffs.filter(b => b.type !== 'Flying' && b.type !== 'Aerial Strike');
-                    enemy.buffs.push({ type: 'Flying', duration: 2 });
-                    enemy.buffs.push({ type: 'Aerial Strike', duration: 1, bonus: { rollBonus: 5 } });
-                    sharedState.log.push({ message: `The Vampire takes flight! He cannot be hit by melee attacks and his next attack has +5 to hit!`, type: 'reaction' });
-                }
-
-                // --- VAMPIRE: Blood Fountain (AoE damage to bleeding players) ---
-                if (enemy.name === 'Vampire' && attack.message.includes('Blood Fountain')) {
-                    const bleedingPlayers = sharedState.partyMemberStates.filter(p =>
-                        !p.isDead && (p.debuffs || []).some(d => d.type.toLowerCase() === 'bleed')
-                    );
-
-                    if (bleedingPlayers.length > 0) {
-                        bleedingPlayers.forEach(target => {
-                            const playerObj = players[target.name];
-                            if (playerObj) {
-                                // Reaction Check: check if player successfully dodged/blocked the special attack
-                                if (target.skipDamage) {
-                                    delete target.skipDamage;
-                                    return;
-                                }
-                                const bonuses = getBonusStatsForPlayer(playerObj.character, target);
-                                const resistance = bonuses.physicalResistance || 0;
-                                const damage = Math.max(1, 8 - resistance);
-                                applyDamage(target, damage);
-                                sharedState.log.push({ message: `Blood Fountain drains ${target.name} for ${damage} Physical damage!`, type: 'damage' });
-                                if (target.health <= 0) { target.isDead = true; target.health = 0; }
-                            }
-                        });
-                    } else {
-                        // No bleeding players, apply Bleed to all
-                        sharedState.partyMemberStates.forEach(p => {
-                            if (!p.isDead) {
-                                if (!p.debuffs) p.debuffs = [];
-                                p.debuffs.push({ type: 'bleed', duration: 2, damage: 2, damageType: 'Physical' });
-                            }
-                        });
-                        sharedState.log.push({ message: `The Vampire's blood magic cuts everyone! All players are now Bleeding!`, type: 'damage' });
-                    }
-                }
-
-                // --- VAMPIRE: From The Shadows (attack lowest threat) ---
+                // --- VAMPIRE: From The Shadows (kept inline because it uses the reaction system) ---
                 if (enemy.name === 'Vampire' && attack.message.includes('From The Shadows')) {
                     const sortedPlayers = [...sharedState.partyMemberStates].filter(p => !p.isDead).sort((a, b) => (a.threat || 0) - (b.threat || 0));
                     if (sortedPlayers.length > 0) {
                         const target = sortedPlayers[0];
                         const playerObj = players[target.name];
                         if (playerObj) {
-                            // Reaction Check: trigger reaction request manually
-                            // UNIFIED: Use shared reaction availability helper
                             const vampireAttackDetails = { attackRange: 'melee', damageType: 'Physical' };
                             const availableReactions = getAvailablePlayerReactions(playerObj.character, target, vampireAttackDetails, sharedState.log);
 
@@ -1246,7 +1138,7 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                                     attackerName: enemy.name,
                                     attackerIndex: enemyIndex,
                                     targetName: target.name,
-                                    damage: 8, // Fixed damage for special
+                                    damage: 8,
                                     damageType: 'Physical',
                                     attackRange: 'melee',
                                     debuff: { type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' },
@@ -1272,7 +1164,6 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                                 broadcastAdventureUpdate(io, party);
                                 return;
                             } else {
-                                // No reaction available, apply damage directly
                                 const bonuses = getBonusStatsForPlayer(playerObj.character, target);
                                 const resistance = bonuses.physicalResistance || 0;
                                 const damage = Math.max(1, 8 - resistance);
@@ -1285,47 +1176,6 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                                 if (target.health <= 0) { target.isDead = true; target.health = 0; }
                             }
                         }
-                    }
-                }
-
-                // --- VAMPIRE'S ASSISTANT: Spawn Human Victim ---
-                if (enemy.name === "Vampire's Assistant" && attack.message.includes('human victim')) {
-                    const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
-                    if (emptySlotIndex !== -1) {
-                        const newVictim = {
-                            ...gameData.specialCards.humanVictim,
-                            id: Date.now(),
-                            debuffs: [],
-                            buffs: [],
-                            turnsUntilConsumed: 2
-                        };
-                        sharedState.zoneCards[emptySlotIndex] = newVictim;
-                        sharedState.log.push({ message: `The Assistant drags in a helpless Human Victim! The Vampire will consume them in 2 turns!`, type: 'reaction' });
-                    } else {
-                        sharedState.log.push({ message: `The Assistant tries to bring in a victim, but there's no room!`, type: 'info' });
-                    }
-                }
-
-                // --- HUMAN VICTIM: Countdown Timer ---
-                if (enemy.name === 'Human Victim' && attack.message.includes('dying')) {
-                    if (typeof enemy.turnsUntilConsumed === 'undefined') enemy.turnsUntilConsumed = 2;
-                    enemy.turnsUntilConsumed--;
-
-                    if (enemy.turnsUntilConsumed <= 0) {
-                        // Vampire consumes the victim
-                        const vampire = sharedState.zoneCards.find(c => c && c.name === 'Vampire');
-                        if (vampire) {
-                            const healAmount = 20;
-                            vampire.health = Math.min(vampire.maxHealth, vampire.health + healAmount);
-                            sharedState.log.push({ message: `The Vampire consumes the Human Victim and heals for ${healAmount} HP!`, type: 'heal' });
-                        }
-                        // Remove the victim
-                        const victimIndex = sharedState.zoneCards.findIndex(c => c && c.id === enemy.id);
-                        if (victimIndex !== -1) {
-                            sharedState.zoneCards[victimIndex] = null;
-                        }
-                    } else {
-                        sharedState.log.push({ message: `The Human Victim whimpers helplessly... (${enemy.turnsUntilConsumed} turns until consumed)`, type: 'info' });
                     }
                 }
             } else {
@@ -1523,22 +1373,31 @@ export function startNextPlayerTurn(io, partyId) {
         }
     }
     
-    // Clear any existing timer
-    if (sharedState.turnTimerId) clearTimeout(sharedState.turnTimerId);
-    
     // Start PVE turn timer
-    if (!sharedState.pvpEncounterId && firstPlayer && !firstPlayer.isDead) {
-        sharedState.turnTimerEndsAt = Date.now() + PVE_TURN_DURATION_MS;
-        sharedState.turnTimerId = setTimeout(() => {
-            const currentPlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
-            if (currentPlayer && !currentPlayer.turnEnded && !currentPlayer.isDead) {
-                sharedState.log.push({ message: `⏳ ${currentPlayer.name}'s time expired! Turn ends.`, type: 'info' });
-                processPlayerEndTurn(io, partyId, currentPlayer.name);
-            }
-        }, PVE_TURN_DURATION_MS);
-    }
+    startPveTurnTimer(io, partyId, sharedState);
     
     broadcastAdventureUpdate(io, party);
+}
+
+/**
+ * Start the PVE turn timer for the current active player.
+ * Consolidates the duplicated timer setup logic (was in 3 places).
+ */
+function startPveTurnTimer(io, partyId, sharedState) {
+    if (sharedState.turnTimerId) clearTimeout(sharedState.turnTimerId);
+    if (sharedState.pvpEncounterId) return;
+    
+    const activePlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
+    if (!activePlayer || activePlayer.isDead) return;
+    
+    sharedState.turnTimerEndsAt = Date.now() + PVE_TURN_DURATION_MS;
+    sharedState.turnTimerId = setTimeout(() => {
+        const currentPlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
+        if (currentPlayer && !currentPlayer.turnEnded && !currentPlayer.isDead) {
+            sharedState.log.push({ message: `⏳ ${currentPlayer.name}'s time expired! Turn ends.`, type: 'info' });
+            processPlayerEndTurn(io, partyId, currentPlayer.name);
+        }
+    }, PVE_TURN_DURATION_MS);
 }
 
 export async function processPlayerEndTurn(io, partyId, playerName) {
@@ -1555,23 +1414,9 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
         sharedState.turnTimerEndsAt = null;
     }
 
-    // UNIFIED: Use shared end-of-turn effects (DoT + Chill + buff/debuff decrement)
+    // End-of-turn effects: DoT + Chill + buff/debuff decrement + Rejuvenate
     processEndOfTurnEffects(playerState, sharedState.log);
-
-    // PVE-specific: Rejuvenate healing
-    const rejuvenateBuff = (playerState.buffs || []).find(b => b.type === 'Rejuvenate');
-    if (rejuvenateBuff && !playerState.isDead) {
-        const playerChar = players[playerName]?.character;
-        if (playerChar) {
-            const bonuses = getBonusStatsForPlayer(playerChar, playerState);
-            const healAmount = Number(rejuvenateBuff.healAmount || Math.max(1, 1 + (bonuses.naturePower || 0)));
-            const currentHealth = Number(playerState.health || 0);
-            const maxHealth = Number(playerState.maxHealth || 10);
-            playerState.health = Math.min(maxHealth, currentHealth + (isNaN(healAmount) ? 0 : healAmount));
-            sharedState.log.push({ message: `${playerState.name}'s Rejuvenate heals for ${healAmount} HP.`, type: 'heal' });
-            if (playerState.playerId) io.to(playerState.playerId).emit('characterUpdate', playerChar);
-        }
-    }
+    processRejuvenateHealing(playerState, sharedState.log);
 
     // Death check after DoT
     if (playerState.health <= 0) {
@@ -1615,16 +1460,7 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
         }
         
         // Start PVE turn timer for the next player
-        if (!sharedState.pvpEncounterId && !nextPlayer.isDead) {
-            sharedState.turnTimerEndsAt = Date.now() + PVE_TURN_DURATION_MS;
-            sharedState.turnTimerId = setTimeout(() => {
-                const currentPlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
-                if (currentPlayer && !currentPlayer.turnEnded && !currentPlayer.isDead) {
-                    sharedState.log.push({ message: `⏳ ${currentPlayer.name}'s time expired! Turn ends.`, type: 'info' });
-                    processPlayerEndTurn(io, partyId, currentPlayer.name);
-                }
-            }, PVE_TURN_DURATION_MS);
-        }
+        startPveTurnTimer(io, partyId, sharedState);
         
         broadcastAdventureUpdate(io, party);
     } else {
@@ -1638,7 +1474,6 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
     }
 }
 
-// applyDoTEffects is now imported from combat-core.js
 
 /**
  * Process end-of-turn effects for all living party members.
@@ -1653,40 +1488,16 @@ function processPartyEndOfTurn(sharedState) {
     for (const playerState of sharedState.partyMemberStates) {
         if (playerState.isDead) continue;
 
-        // 1. Apply DoT Damage
-        applyDoTEffects(playerState, sharedState.log);
+        // Apply DoT, Chill reduction, buff/debuff decrement, and Rejuvenate
+        processEndOfTurnEffects(playerState, sharedState.log);
+        processRejuvenateHealing(playerState, sharedState.log);
 
-        // 1a. Apply Rejuvenate Healing
-        const rejuvenateBuff = (playerState.buffs || []).find(b => b.type === 'Rejuvenate');
-        if (rejuvenateBuff && !playerState.isDead) {
-            const playerChar = players[playerState.name]?.character;
-            if (playerChar) {
-                const bonuses = getBonusStatsForPlayer(playerChar, playerState);
-                const healAmount = Number(rejuvenateBuff.healAmount || Math.max(1, 1 + (bonuses.naturePower || 0)));
-                const currentHealth = Number(playerState.health || 0);
-                const maxHealth = Number(playerState.maxHealth || 10);
-                playerState.health = Math.min(maxHealth, currentHealth + (isNaN(healAmount) ? 0 : healAmount));
-                sharedState.log.push({ message: `${playerState.name}'s Rejuvenate heals for ${healAmount} HP.`, type: 'heal' });
-            }
-        }
-
-        // 2. Check for death from DoT
+        // Check for death from DoT
         if (playerState.health <= 0) {
             playerState.health = 0;
             playerState.isDead = true;
             sharedState.log.push({ message: `${playerState.name} has succumbed to their wounds!`, type: 'damage' });
             anyPlayerDied = true;
-            continue; // Skip buff processing for dead player
-        }
-
-        // 3. Decrement buff/debuff durations
-        if (playerState.buffs) {
-            playerState.buffs.forEach(b => b.duration--);
-            playerState.buffs = playerState.buffs.filter(b => b.duration > 0);
-        }
-        if (playerState.debuffs) {
-            playerState.debuffs.forEach(d => d.duration--);
-            playerState.debuffs = playerState.debuffs.filter(d => d.duration > 0);
         }
     }
 
