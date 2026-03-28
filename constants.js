@@ -13,6 +13,10 @@ export const DOCKS_LOCKOUT_MS = 10 * 60 * 1000; // 10 minutes
 
 // Costs & Other Game Values
 export const ARENA_ENTRY_FEE = 100;
+export const ARENA_HP_SCALE_PER_ROUND = 0.25; // +25% HP per round
+export const ARENA_DAMAGE_BONUS_PER_ROUND = 1; // +1 damage per round after round 1
+export const ARENA_CHEST_BASE_GOLD = 75;
+export const ARENA_CHEST_GOLD_PER_ROUND = 75;
 export const BRIBE_CAPTAIN_COST = 1000;
 
 // Combat

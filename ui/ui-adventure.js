@@ -279,6 +279,28 @@ export function renderAdventureScreen() {
         homeArrow.style.display = 'flex';
     }
 
+    // --- ARENA: Relabel button and manage visibility ---
+    const ventureNavText = ventureArrow.querySelector('.nav-text');
+    if (gameState.currentZone === 'arena' && gameState.arenaState) {
+        const arenaState = gameState.arenaState;
+        // Relabel button
+        if (ventureNavText) ventureNavText.innerHTML = 'CONTINUE?';
+
+        // Hide continue button if chest was claimed or no bosses remain
+        if (arenaState.chestClaimed) {
+            ventureArrow.style.display = 'none';
+        } else {
+            const bossesDefeated = arenaState.defeatedBosses ? arenaState.defeatedBosses.length : 0;
+            const totalBosses = arenaState.bossPool ? arenaState.bossPool.length : 0;
+            if (bossesDefeated >= totalBosses) {
+                ventureArrow.style.display = 'none';
+            }
+        }
+    } else {
+        // Reset label for non-arena zones
+        if (ventureNavText) ventureNavText.innerHTML = 'VENTURE<br>DEEPER';
+    }
+
     // Prioritize pvpEncounter over inDuel since duels now use the PvP system
     if (gameState.pvpEncounter) {
         renderPvpScreen();

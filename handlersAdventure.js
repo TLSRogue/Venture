@@ -4,13 +4,66 @@ import { players, parties, duels, pvpEncounters } from './serverState.js';
 import { gameData, itemsByName } from './data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from './utilsBroadcast.js';
 import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, playerHasMaterials, consumeMaterials, addItemToInventoryServer } from './utilsHelpers.js';
-import { ARENA_ENTRY_FEE, DEFAULT_ACTION_POINTS, STARTING_HEALTH } from './constants.js';
+import { ARENA_ENTRY_FEE, ARENA_HP_SCALE_PER_ROUND, ARENA_DAMAGE_BONUS_PER_ROUND, DEFAULT_ACTION_POINTS, STARTING_HEALTH, BOSS_HP_SCALE_PER_PLAYER } from './constants.js';
 
 import * as actions from './adventure/adventure-actions.js';
 import * as interactions from './adventure/adventure-interactions.js';
 import * as state from './adventure/adventure-state.js';
 import * as PartyManager from './party/party-manager.js';
 import * as LootManager from './adventure/loot-manager.js';
+
+/**
+ * Spawn an arena boss for the given round. Handles scaling, flanking setup, and state tracking.
+ * @param {Object} party - The party object
+ * @param {number} round - Current arena round (1-based)
+ */
+export function spawnArenaBoss(party, round) {
+    const { sharedState } = party;
+    const arenaState = sharedState.arenaState;
+    const partySize = party.members.length;
+
+    // Find next boss that hasn't been defeated yet
+    const nextBoss = arenaState.bossPool.find(b => !arenaState.defeatedBosses.includes(b.name));
+    if (!nextBoss) return;
+
+    // Clone the boss card
+    const bossCard = JSON.parse(JSON.stringify(nextBoss));
+    bossCard.id = Date.now();
+    bossCard.debuffs = [];
+    bossCard.buffs = [];
+
+    // Apply HP scaling: base * (1 + (round-1) * ARENA_HP_SCALE_PER_ROUND)
+    const hpRoundMultiplier = 1 + (round - 1) * ARENA_HP_SCALE_PER_ROUND;
+    // Then apply party size scaling on top
+    const hpPartyMultiplier = 1 + (partySize - 1) * BOSS_HP_SCALE_PER_PLAYER;
+    const scaledHP = Math.floor(bossCard.maxHealth * hpRoundMultiplier * hpPartyMultiplier);
+    bossCard.health = scaledHP;
+    bossCard.maxHealth = scaledHP;
+
+    // Apply damage scaling: +ARENA_DAMAGE_BONUS_PER_ROUND per round after round 1
+    const damageBonus = (round - 1) * ARENA_DAMAGE_BONUS_PER_ROUND;
+    bossCard.arenaDamageBonus = damageBonus;
+    if (bossCard.attackTable) {
+        bossCard.attackTable = bossCard.attackTable.map(entry => {
+            if (entry.damage) {
+                return { ...entry, damage: entry.damage + damageBonus };
+            }
+            return entry;
+        });
+    }
+
+    // Place boss in center slot, flanking slots empty by default
+    sharedState.zoneCards = [null, bossCard, null];
+
+    // Boss-specific flanking setup
+    if (bossCard.name === 'Vexor, Lord of the Arena') {
+        const columnCard = gameData.specialCards.stoneColumn;
+        if (columnCard) {
+            sharedState.zoneCards[0] = { ...columnCard, id: Date.now() + 1, debuffs: [] };
+            sharedState.zoneCards[2] = { ...columnCard, id: Date.now() + 2, debuffs: [] };
+        }
+    }
+}
 
 export const registerAdventureHandlers = (io, socket) => {
     socket.on('party:enterZone', (zoneName) => {
@@ -175,37 +228,31 @@ export const registerAdventureHandlers = (io, socket) => {
             player.character.gold -= ARENA_ENTRY_FEE;
             socket.emit('characterUpdate', player.character);
 
-            // Boss Selection
-            const bossIndices = [];
-            party.sharedState.zoneDeck.forEach((card, idx) => {
-                if (card.arenaReward) bossIndices.push(idx); // Identify bosses by arenaReward property
-            });
+            // Build arena boss pool from all arena cards with arenaReward property
+            const bossPool = party.sharedState.zoneDeck
+                .filter(c => c.arenaReward)
+                .map(c => ({ ...c })); // Deep clone each boss template
 
-            if (bossIndices.length > 0) {
-                const rnd = Math.floor(Math.random() * bossIndices.length);
-                const selectedIndex = bossIndices[rnd];
-                const [bossCard] = party.sharedState.zoneDeck.splice(selectedIndex, 1); // remove chosen boss
-
-                // Remove OTHER bosses from the deck so you don't fight two
-                party.sharedState.zoneDeck = party.sharedState.zoneDeck.filter(c => !c.arenaReward);
-
-                bossCard.id = Date.now();
-                bossCard.debuffs = [];
-                party.sharedState.zoneCards = [null, bossCard, null]; // Boss in center
-
-                // Special Setup for Vexor
-                if (bossCard.name === 'Vexor, Lord of the Arena') {
-                    const columnCard = gameData.specialCards.stoneColumn;
-                    // Clone columns for left (0) and right (2) slots
-                    if (columnCard) {
-                        party.sharedState.zoneCards[0] = { ...columnCard, id: Date.now() + 1, debuffs: [] };
-                        party.sharedState.zoneCards[2] = { ...columnCard, id: Date.now() + 2, debuffs: [] };
-                    }
-                }
-
-            } else {
-                drawCardsForServer(party.sharedState, 1);
+            // Shuffle boss pool (Fisher-Yates)
+            for (let i = bossPool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [bossPool[i], bossPool[j]] = [bossPool[j], bossPool[i]];
             }
+
+            // Clear the zone deck — arena doesn't draw from a deck
+            party.sharedState.zoneDeck = [];
+
+            // Initialize arena state
+            party.sharedState.arenaState = {
+                round: 1,
+                defeatedBosses: [],
+                bossPool: bossPool,
+                chestClaimed: false,
+                chestAvailable: false,
+            };
+
+            // Spawn the first boss
+            spawnArenaBoss(party, 1);
         } else {
             drawCardsForServer(party.sharedState, 3);
         }

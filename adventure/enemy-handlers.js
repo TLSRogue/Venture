@@ -276,7 +276,7 @@ function handleGoblinShamanHeal(enemy, sharedState, target, attack, ctx) {
 // --- PULVIS CADUS HANDLERS ---
 function handlePulvisQuickFix(enemy, sharedState, target, attack, ctx) {
     if (enemy.health < enemy.maxHealth) {
-        const healAmount = 8;
+        const healAmount = 8 + (enemy.arenaDamageBonus || 0);
         const oldHealth = enemy.health;
         enemy.health = Math.min(enemy.maxHealth, enemy.health + healAmount);
         const actualHeal = enemy.health - oldHealth;
@@ -328,7 +328,7 @@ function handlePowderKegDetonate(enemy, sharedState, target, attack, ctx) {
                 if (playerObj) {
                     const bonuses = getBonusStatsForPlayer(playerObj.character, p);
                     const resistance = bonuses.fireResistance || 0;
-                    const damage = Math.max(1, 4 - resistance);
+                    const damage = Math.max(1, (4 + (enemy.arenaDamageBonus || 0)) - resistance);
 
                     applyDamage(p, damage);
                     let msg = `${p.name} takes ${damage} Fire damage!`;
@@ -377,7 +377,7 @@ function handleVexorSlash(enemy, sharedState, target, attack, ctx) {
         if (playerObj) {
             const bonuses = getBonusStatsForPlayer(playerObj.character, targetPlayer);
             const resistance = bonuses.physicalResistance || 0;
-            const damage = Math.max(1, 5 - resistance);
+            const damage = Math.max(1, (5 + (enemy.arenaDamageBonus || 0)) - resistance);
             applyDamage(targetPlayer, damage);
             sharedState.log.push({ message: `Vexor slashes ${targetPlayer.name} for ${damage} Physical damage!`, type: 'damage' });
             if (targetPlayer.health <= 0) { targetPlayer.isDead = true; targetPlayer.health = 0; }
@@ -394,7 +394,7 @@ function handleVexorShieldBash(enemy, sharedState, target, attack, ctx) {
         if (playerObj) {
             const bonuses = getBonusStatsForPlayer(playerObj.character, targetPlayer);
             const resistance = bonuses.physicalResistance || 0;
-            const damage = Math.max(1, 4 - resistance);
+            const damage = Math.max(1, (4 + (enemy.arenaDamageBonus || 0)) - resistance);
             applyDamage(targetPlayer, damage);
 
             if (!targetPlayer.debuffs) targetPlayer.debuffs = [];
@@ -408,7 +408,7 @@ function handleVexorShieldBash(enemy, sharedState, target, attack, ctx) {
 }
 
 function handleVexorTaunt(enemy, sharedState, target, attack, ctx) {
-    enemy.health = Math.min(enemy.maxHealth, enemy.health + 5);
+    enemy.health = Math.min(enemy.maxHealth, enemy.health + (5 + (enemy.arenaDamageBonus || 0)));
     sharedState.log.push({ message: `Vexor heals for 5 HP!`, type: 'heal' });
 
     const sortedPlayers = [...sharedState.partyMemberStates].filter(p => !p.isDead).sort((a, b) => (a.threat || 0) - (b.threat || 0));
@@ -427,7 +427,7 @@ function handleVexorWhirlwind(enemy, sharedState, target, attack, ctx) {
             if (playerObj) {
                 const bonuses = getBonusStatsForPlayer(playerObj.character, p);
                 const resistance = bonuses.physicalResistance || 0;
-                const damage = Math.max(1, 5 - resistance);
+                const damage = Math.max(1, (5 + (enemy.arenaDamageBonus || 0)) - resistance);
                 applyDamage(p, damage);
 
                 if (!p.debuffs) p.debuffs = [];

@@ -1096,5 +1096,23 @@ export const specialCards = {
         icon: "🏚️",
         imageUrl: '/assets/darkforest-mansionhall.jpg',
         allowSpawnOver: true
+    },
+    // --- Arena Special Cards ---
+    arenaChest: {
+        name: "Arena Treasure Chest",
+        type: "treasure",
+        description: "A chest forged in the fires of the arena. Its contents grow richer with each victory.",
+        icon: "🏆",
+        imageUrl: '/assets/arena-chest.jpg',
+        isArenaChest: true,
+        arenaRound: 1 // Set dynamically at spawn time
+    },
+    arenaFloor: {
+        name: "Arena Floor",
+        type: "area",
+        description: "The bloodstained floor of the arena.",
+        icon: "⚔️",
+        imageUrl: '/assets/arena-floor.jpg',
+        allowSpawnOver: true
     }
 };

@@ -6,7 +6,8 @@ import { rollD20 } from '../shared.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient, getZoneAreaCard } from '../utilsHelpers.js';
 import { applyDamage, applyDoTEffects, applyChillStack, processChillReduction, getAvailablePlayerReactions, processEndOfTurnEffects, processRejuvenateHealing } from './combat-core.js';
-import { PVP_TURN_DURATION_MS, PVE_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS, INTERVENE_TIMER_MS, INVENTORY_SIZE, DEFAULT_ACTION_POINTS, STARTING_HEALTH } from '../constants.js';
+import { PVP_TURN_DURATION_MS, PVE_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS, INTERVENE_TIMER_MS, INVENTORY_SIZE, DEFAULT_ACTION_POINTS, STARTING_HEALTH, ARENA_HP_SCALE_PER_ROUND, ARENA_DAMAGE_BONUS_PER_ROUND, ARENA_CHEST_BASE_GOLD, ARENA_CHEST_GOLD_PER_ROUND } from '../constants.js';
+import { spawnArenaBoss } from '../handlersAdventure.js';
 import * as PartyManager from '../party/party-manager.js';
 import { processEnemyEndOfTurn, handleEnemySpecialAction } from './enemy-handlers.js';
 import {
@@ -512,6 +513,35 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     if (!sharedState.zoneCards.some(c => c && c.type === 'enemy')) {
         sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = DEFAULT_ACTION_POINTS; });
     }
+
+    // --- ARENA: Spawn treasure chest after boss kill ---
+    if (sharedState.arenaState && enemy.arenaReward) {
+        const arenaState = sharedState.arenaState;
+        arenaState.defeatedBosses.push(enemy.name);
+        arenaState.chestAvailable = true;
+
+        // Spawn Arena Treasure Chest in the center slot
+        const chestTemplate = gameData.specialCards.arenaChest;
+        const chestCard = {
+            ...chestTemplate,
+            id: Date.now() + 100,
+            arenaRound: arenaState.round,
+        };
+
+        // Place chest in center, clear flanking slots (columns etc.)
+        sharedState.zoneCards = [
+            null,
+            chestCard,
+            null
+        ];
+
+        const bossesRemaining = arenaState.bossPool.filter(b => !arenaState.defeatedBosses.includes(b.name)).length;
+        if (bossesRemaining > 0) {
+            sharedState.log.push({ message: `⚔️ Round ${arenaState.round} complete! A treasure chest appears. Open it to claim your rewards, or continue for greater glory...`, type: 'success' });
+        } else {
+            sharedState.log.push({ message: `⚔️ Round ${arenaState.round} complete! You have defeated all arena champions! Claim your reward!`, type: 'success' });
+        }
+    }
 }
 
 export async function processEndAdventure(io, player, party) {
@@ -678,6 +708,94 @@ export async function processVentureDeeper(io, player, party) {
             PartyManager.endPartyAdventure(io, party.id);
         }
     };
+
+    // --- ARENA-SPECIFIC: Continue to next round ---
+    if (zoneName === 'arena' && sharedState.arenaState) {
+        const arenaState = sharedState.arenaState;
+
+        if (arenaState.chestClaimed) {
+            sharedState.log.push({ message: `You've already claimed your rewards! Return home.`, type: 'info' });
+            broadcastAdventureUpdate(io, party);
+            return;
+        }
+
+        const bossesRemaining = arenaState.bossPool.filter(b => !arenaState.defeatedBosses.includes(b.name)).length;
+        if (bossesRemaining === 0) {
+            sharedState.log.push({ message: `No more challengers remain! Claim your treasure chest.`, type: 'info' });
+            broadcastAdventureUpdate(io, party);
+            return;
+        }
+
+        // Process end-of-turn effects before transitioning
+        processPartyEndOfTurn(sharedState);
+        broadcastAdventureUpdate(io, party);
+
+        // Check if anyone died from DoT
+        const aliveAfterDoT = sharedState.partyMemberStates.filter(p => !p.isDead);
+        if (aliveAfterDoT.length === 0) {
+            sharedState.log.push({ message: `The party succumbed to their wounds between rounds!`, type: 'damage' });
+            broadcastAdventureUpdate(io, party);
+            // Use the existing wipe logic
+            party.members.forEach(memberName => {
+                const memberPlayer = players[memberName];
+                if (memberPlayer?.character && memberPlayer.id) {
+                    io.to(memberPlayer.id).emit('characterUpdate', memberPlayer.character);
+                    io.to(memberPlayer.id).emit('party:adventureEnded', { outcome: 'loss', message: 'Your party succumbed to their wounds!' });
+                }
+            });
+            if (party.isSoloParty) {
+                PartyManager.cleanupSoloParty(io, party, player);
+            } else {
+                PartyManager.endPartyAdventure(io, party.id);
+            }
+            return;
+        }
+
+        // Advance to next round
+        arenaState.round++;
+        arenaState.chestAvailable = false;
+
+        // Clear zone for next boss
+        sharedState.zoneCards = [];
+        sharedState.groundLoot = [];
+        sharedState.zoneEffects = [];
+
+        // Spawn next boss with scaling
+        spawnArenaBoss(party, arenaState.round);
+
+        // Reset turn state (AP, cooldowns, threat) but NOT health
+        sharedState.turnNumber = 0;
+        sharedState.isPlayerTurn = true;
+        sharedState.activePlayerIndex = 0;
+        sharedState.activePhase = 'player';
+        let firstLivingFound = false;
+        sharedState.partyMemberStates.forEach((p, idx) => {
+            if (!p.isDead) {
+                if (!firstLivingFound) {
+                    p.actionPoints = DEFAULT_ACTION_POINTS;
+                    firstLivingFound = true;
+                    sharedState.activePlayerIndex = idx;
+                } else {
+                    p.actionPoints = 0;
+                }
+                p.turnEnded = false;
+            } else {
+                p.actionPoints = 0;
+            }
+            p.weaponCooldowns = {};
+            p.spellCooldowns = {};
+            p.itemCooldowns = {};
+            p.threat = 0;
+        });
+
+        const bossName = sharedState.zoneCards.find(c => c && c.arenaReward)?.name || 'a new challenger';
+        sharedState.log.push({ message: `⚔️ Round ${arenaState.round}! ${bossName} enters the arena!`, type: 'info' });
+
+        // Reset PVE turn timer for the new round
+        startPveTurnTimer(io, party.id, sharedState);
+        broadcastAdventureUpdate(io, party);
+        return;
+    }
 
     sharedState.isLoadingNextArea = true;
     broadcastAdventureUpdate(io, party);

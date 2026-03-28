@@ -5,7 +5,7 @@ import { gameData, lootPools } from '../data/index.js';
 import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, addItemToInventoryServer, consumeMaterials, getZoneAreaCard } from '../utilsHelpers.js';
 import { checkAndEndTurnForPlayer } from './adventure-state.js';
 import { rollD20 } from '../shared.js';
-import { RESOURCE_HIT_TARGET, BRIBE_CAPTAIN_COST, DOCKS_LOCKOUT_MS } from '../constants.js';
+import { RESOURCE_HIT_TARGET, BRIBE_CAPTAIN_COST, DOCKS_LOCKOUT_MS, ARENA_CHEST_BASE_GOLD, ARENA_CHEST_GOLD_PER_ROUND } from '../constants.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 
 
@@ -278,6 +278,65 @@ export async function processInteractWithCard(io, party, player, payload) {
         actingPlayerState.actionPoints--;
 
         if (card.type === 'treasure') {
+            // --- ARENA CHEST: Special handling ---
+            if (card.isArenaChest && sharedState.arenaState) {
+                const arenaRound = card.arenaRound || 1;
+                const totalGold = ARENA_CHEST_BASE_GOLD + (arenaRound * ARENA_CHEST_GOLD_PER_ROUND);
+                let foundItemsLog = '';
+
+                // Give gold to all party members (split evenly)
+                const goldPerPlayer = Math.floor(totalGold / party.members.length);
+                party.members.forEach(memberName => {
+                    const memberPlayer = players[memberName];
+                    if (memberPlayer && memberPlayer.character) {
+                        memberPlayer.character.gold += goldPerPlayer;
+                        if (memberPlayer.id) io.to(memberPlayer.id).emit('characterUpdate', memberPlayer.character);
+                    }
+                });
+                foundItemsLog += `${totalGold} Gold (split), `;
+
+                // Give 1 T{round} Weapon
+                const weaponCategory = `T${arenaRound} Weapon`;
+                const weaponItem = lootPools.getRandomFromCategory(weaponCategory);
+                if (weaponItem) {
+                    if (addItemToInventoryServer(character, weaponItem, 1, sharedState.groundLoot)) {
+                        foundItemsLog += `${weaponItem.name}, `;
+                    } else {
+                        sharedState.log.push({ message: `Found ${weaponItem.name}, but inventory was full. It was left on the ground.`, type: 'damage' });
+                    }
+                }
+
+                // Give 1 T{round} Equipment
+                const equipCategory = `T${arenaRound} Equipment`;
+                const equipItem = lootPools.getRandomFromCategory(equipCategory);
+                if (equipItem) {
+                    if (addItemToInventoryServer(character, equipItem, 1, sharedState.groundLoot)) {
+                        foundItemsLog += `${equipItem.name}, `;
+                    } else {
+                        sharedState.log.push({ message: `Found ${equipItem.name}, but inventory was full. It was left on the ground.`, type: 'damage' });
+                    }
+                }
+
+                if (foundItemsLog) {
+                    foundItemsLog = foundItemsLog.slice(0, -2);
+                    sharedState.log.push({ message: `${character.characterName} opened the Arena Treasure Chest (Round ${arenaRound}) and found: ${foundItemsLog}!`, type: 'success' });
+                }
+
+                sharedState.log.push({ message: `The arena gates close. Return home with your spoils!`, type: 'info' });
+
+                // Mark chest as claimed — blocks continuing
+                sharedState.arenaState.chestClaimed = true;
+                sharedState.arenaState.chestAvailable = false;
+
+                io.to(player.id).emit('characterUpdate', character);
+                const areaCard = getZoneAreaCard(sharedState.currentZone);
+                sharedState.zoneCards[cardIndex] = areaCard;
+
+                await checkAndEndTurnForPlayer(io, party, player);
+                return;
+            }
+
+            // --- NORMAL TREASURE CHEST ---
             let foundItemsLog = '';
 
             // Handle guaranteed category drops (e.g., "T1 Weapon", "T1 Armor")
