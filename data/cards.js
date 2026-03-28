@@ -284,7 +284,7 @@ export const cardPools = {
                 }
             }, count: 1
         },
-        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", loot: [{ name: "Goblin Lucky Charm", type: "questItem", price: 0, description: "A strange, surprisingly shiny goblin trinket." }, { name: "Gold Pouch" }, { name: "Healing Potion" }, { name: "Whetstone" }, { name: "Thread" }, { name: "Iron" }, { name: "Coal" }], lootCount: 3, icon: "📦", imageUrl: '/assets/goblincaves-treasure.jpg' }, count: 1 },
+        { card: { name: "Treasure Chest", type: "treasure", description: "A locked chest. What could be inside?", guaranteedItems: ["Goblin Lucky Charm"], loot: [{ name: "Gold Pouch" }, { name: "Healing Potion" }, { name: "Whetstone" }, { name: "Thread" }, { name: "Iron" }, { name: "Coal" }], lootCount: 3, icon: "📦", imageUrl: '/assets/goblincaves-treasure.jpg' }, count: 1 },
         {
             card: {
                 name: "Goblin Shaman",

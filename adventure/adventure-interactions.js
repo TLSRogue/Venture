@@ -294,6 +294,20 @@ export async function processInteractWithCard(io, party, player, payload) {
                 });
             }
 
+            // Handle guaranteed specific item drops (e.g., "Goblin Lucky Charm")
+            if (card.guaranteedItems && card.guaranteedItems.length > 0) {
+                card.guaranteedItems.forEach(itemName => {
+                    const itemData = gameData.allItems.find(i => i.name === itemName);
+                    if (itemData) {
+                        if (addItemToInventoryServer(character, itemData, 1, sharedState.groundLoot)) {
+                            foundItemsLog += `${itemData.name}, `;
+                        } else {
+                            sharedState.log.push({ message: `Found ${itemData.name}, but inventory was full. It was left on the ground.`, type: 'damage' });
+                        }
+                    }
+                });
+            }
+
             // Handle regular loot pool picks
             const lootTable = card.loot ? card.loot.map(item => gameData.allItems.find(i => i.name === item.name) || item) : (!card.guaranteedCategories ? gameData.genericTreasureLoot.map(item => gameData.allItems.find(i => i.name === item.name) || item) : []);
             const numItems = card.lootCount || (lootTable.length > 0 ? 3 : 0);
