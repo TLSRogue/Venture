@@ -734,6 +734,7 @@ export const cardPools = {
             card: {
                 name: "BB Rhino", type: "enemy", isBoss: true, health: 20, maxHealth: 20, description: "A thick-skinned brute with unstoppable momentum.", icon: "🦏",
                 imageUrl: '/assets/arena-rhino.jpg',
+                imagePosition: 'center 20%',
                 isBattleBrother: true,
                 physicalResistance: 1, // Increased by round
                 arenaReward: 150,
@@ -765,6 +766,7 @@ export const cardPools = {
             card: {
                 name: "BB Tiger", type: "enemy", isBoss: true, health: 20, maxHealth: 20, description: "A swift and cunning predator with razor-sharp claws.", icon: "🐅",
                 imageUrl: '/assets/arena-tiger.jpg',
+                imagePosition: 'center 20%',
                 isBattleBrother: true,
                 magicalResistance: 1, // Increased by round
                 arenaReward: 150,

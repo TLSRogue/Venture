@@ -796,6 +796,9 @@ function renderZoneCards(cards) {
             if (card.physicalResistance) {
                 tooltipContent += `<br><span style="color: #aaa; font-size: 0.9em;">🛡️ Physical Resistance: ${card.physicalResistance}</span>`;
             }
+            if (card.magicalResistance) {
+                tooltipContent += `<br><span style="color: #6495ED; font-size: 0.9em;">✨ Magical Resistance: ${card.magicalResistance}</span>`;
+            }
 
             cardEl.addEventListener('mouseover', (e) => {
                 if (!e.altKey) showTooltip(tooltipContent);
@@ -818,7 +821,8 @@ function renderZoneCards(cards) {
 
         let visualHTML;
         if (card.imageUrl) {
-            visualHTML = `<img src="${card.imageUrl}" class="card-image" alt="${card.name}">`;
+            const imgStyle = card.imagePosition ? `style="object-position: ${card.imagePosition};"` : '';
+            visualHTML = `<img src="${card.imageUrl}" class="card-image" alt="${card.name}" ${imgStyle}>`;
         } else if (card.icon && card.icon.includes('/')) {
             visualHTML = `<img src="${card.icon}" class="card-image" alt="${card.name}" style="object-fit: contain; padding: 5px;">`;
         } else {
@@ -830,17 +834,42 @@ function renderZoneCards(cards) {
             ${visualHTML}
         `;
 
-        // Display Physical Resistance on Card
-        if (card.physicalResistance) {
-            const resistanceBadge = document.createElement('div');
-            resistanceBadge.className = 'card-resistance-badge';
-            resistanceBadge.innerHTML = `🛡️ ${card.physicalResistance}`;
-            resistanceBadge.addEventListener('mouseover', (e) => {
-                e.stopPropagation();
-                showTooltip(`🛡️ <strong>Physical Resistance: ${card.physicalResistance}</strong><br><br>Reduces all Physical damage taken by ${card.physicalResistance}.<br><em>Use magic or elemental attacks to bypass!</em>`);
-            });
-            resistanceBadge.addEventListener('mouseout', () => hideTooltip());
-            cardEl.appendChild(resistanceBadge);
+        // Display Resistances on Card
+        if (card.physicalResistance || card.magicalResistance) {
+            const resContainer = document.createElement('div');
+            resContainer.className = 'card-resistances-container';
+            resContainer.style.position = 'absolute';
+            resContainer.style.top = '35px';
+            resContainer.style.right = '5px';
+            resContainer.style.display = 'flex';
+            resContainer.style.flexDirection = 'column';
+            resContainer.style.gap = '4px';
+            resContainer.style.zIndex = '10';
+
+            const buildBadge = (icon, val, typeStr, desc, color) => {
+                const badge = document.createElement('div');
+                badge.className = 'card-resistance-badge';
+                // Override absolute positioning from CSS because we're in a flex container
+                badge.style.position = 'relative';
+                badge.style.top = 'auto';
+                badge.style.right = 'auto';
+                if (color) badge.style.borderColor = color;
+                badge.innerHTML = `${icon} ${val}`;
+                badge.addEventListener('mouseover', (e) => {
+                    e.stopPropagation();
+                    showTooltip(`${icon} <strong>${typeStr} Resistance: ${val}</strong><br><br>${desc}`);
+                });
+                badge.addEventListener('mouseout', () => hideTooltip());
+                return badge;
+            };
+
+            if (card.physicalResistance) {
+                resContainer.appendChild(buildBadge('🛡️', card.physicalResistance, 'Physical', `Reduces all Physical damage taken by ${card.physicalResistance}.<br><em>Use magic or elemental attacks to bypass!</em>`, '#bdc3c7'));
+            }
+            if (card.magicalResistance) {
+                resContainer.appendChild(buildBadge('✨', card.magicalResistance, 'Magical', `Reduces all Magical damage taken by ${card.magicalResistance}.<br><em>Use physical attacks to bypass!</em>`, '#6495ED'));
+            }
+            cardEl.appendChild(resContainer);
         }
 
         if (card.type === 'enemy') {
