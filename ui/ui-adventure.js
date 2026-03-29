@@ -1550,6 +1550,7 @@ export function showCharacterSheet() {
         defense: (gameState.defense || 0) + (bonuses.defense || 0),
         luck: (gameState.luck || 0) + (bonuses.luck || 0),
         physicalResistance: (gameState.physicalResistance || 0) + (bonuses.physicalResistance || 0),
+        magicalResistance: (gameState.magicalResistance || 0) + (bonuses.magicalResistance || 0),
         fireResistance: (gameState.fireResistance || 0) + (bonuses.fireResistance || 0),
         frostResistance: (gameState.frostResistance || 0) + (bonuses.frostResistance || 0),
         natureResistance: (gameState.natureResistance || 0) + (bonuses.natureResistance || 0),
@@ -1569,6 +1570,7 @@ export function showCharacterSheet() {
 
     let resistancesHTML = '';
     if (calculatedStats.physicalResistance > 0) resistancesHTML += `<p>🛡️ Physical: ${calculatedStats.physicalResistance}</p>`;
+    if (calculatedStats.magicalResistance > 0) resistancesHTML += `<p>✨ Magical: ${calculatedStats.magicalResistance}</p>`;
     if (calculatedStats.fireResistance > 0) resistancesHTML += `<p>🔥 Fire: ${calculatedStats.fireResistance}</p>`;
     if (calculatedStats.frostResistance > 0) resistancesHTML += `<p>❄️ Frost: ${calculatedStats.frostResistance}</p>`;
     if (calculatedStats.natureResistance > 0) resistancesHTML += `<p>🌿 Nature: ${calculatedStats.natureResistance}</p>`;

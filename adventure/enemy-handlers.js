@@ -4,7 +4,7 @@
 import { players } from '../serverState.js';
 import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer } from '../utilsHelpers.js';
-import { applyDamage, applyDoTEffects, decrementEnemyReactionCooldowns } from './combat-core.js';
+import { applyDamage, applyDoTEffects, decrementEnemyReactionCooldowns, getEffectiveResistance } from './combat-core.js';
 import { rollD20 } from '../shared.js';
 
 /**
@@ -327,7 +327,7 @@ function handlePowderKegDetonate(enemy, sharedState, target, attack, ctx) {
                 const playerObj = players[p.name];
                 if (playerObj) {
                     const bonuses = getBonusStatsForPlayer(playerObj.character, p);
-                    const resistance = bonuses.fireResistance || 0;
+                    const resistance = getEffectiveResistance(bonuses, 'Fire');
                     const damage = Math.max(1, (4 + (enemy.arenaDamageBonus || 0)) - resistance);
 
                     applyDamage(p, damage);

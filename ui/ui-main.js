@@ -194,6 +194,7 @@ export function buildItemTooltip(item, options = {}) {
             strength: '💪 Strength', agility: '🏃 Agility', wisdom: '🧠 Wisdom',
             defense: '🛡️ Defense', maxHealth: '❤️ Max Health',
             physicalResistance: '🔰 Physical Resistance',
+            magicalResistance: '✨ Magical Resistance',
             firePower: '🔥 Fire Power', frostPower: '❄️ Frost Power',
             holyPower: '✨ Holy Power', shadowPower: '🌑 Shadow Power',
             rollBonus: '🎯 Attack Roll'
@@ -306,7 +307,7 @@ function buildComparisonSection(newItem, equippedItem) {
 
     const statLabels = {
         strength: 'Str', agility: 'Agi', wisdom: 'Wis', defense: 'Def',
-        maxHealth: 'Max HP', physicalResistance: 'Phys Res',
+        maxHealth: 'Max HP', physicalResistance: 'Phys Res', magicalResistance: 'Magic Res',
         firePower: 'Fire', frostPower: 'Frost', holyPower: 'Holy', shadowPower: 'Shadow'
     };
 

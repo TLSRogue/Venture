@@ -7,7 +7,7 @@ import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer } from '../utilsHelpers.js';
 import { checkAndEndTurnForPlayer, defeatEnemyInParty } from './adventure-state.js';
 import { handleResolveReaction } from './reaction-handlers.js';
-import { applyDamage, normalizeTarget, resolveAttackRoll, checkVexorDodge, checkVampirePhaseTransition, checkEnemyReaction, applyChillStack, getCombatContext, getHostileTargets, getAvailablePlayerReactions } from './combat-core.js';
+import { applyDamage, normalizeTarget, resolveAttackRoll, checkVexorDodge, checkVampirePhaseTransition, checkEnemyReaction, applyChillStack, getCombatContext, getHostileTargets, getAvailablePlayerReactions, getEffectiveResistance } from './combat-core.js';
 import { INVENTORY_SIZE } from '../constants.js';
 import { SpellHandlers, getSpecialSpellDamage } from './spell-handlers.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
@@ -667,7 +667,7 @@ export async function applySpellAttack(io, party, player, ctx) {
                     }
 
                     if (counterDmg > 0) {
-                        const playerResistance = counterType === 'Physical' ? (bonuses.physicalResistance || 0) : 0;
+                        const playerResistance = getEffectiveResistance(bonuses, counterType);
                         const finalCounterDmg = Math.max(1, counterDmg - playerResistance);
 
                         applyDamage(actingPlayerState, finalCounterDmg);

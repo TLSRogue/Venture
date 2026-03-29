@@ -9,6 +9,37 @@ import { getBonusStatsForPlayer } from '../utilsHelpers.js';
 import { rollD20 } from '../shared.js';
 import { DEFAULT_HIT_TARGET } from '../constants.js';
 
+// --- DAMAGE TYPE CLASSIFICATION ---
+
+/**
+ * All damage types considered "magical". Everything else (Physical) is non-magical.
+ * magicalResistance absorbs damage from any of these types.
+ */
+export const MAGICAL_DAMAGE_TYPES = ['Fire', 'Frost', 'Nature', 'Arcane', 'Holy'];
+
+/**
+ * Calculate effective resistance for a given damage type.
+ * Physical → physicalResistance only.
+ * Magical types → specific resistance + magicalResistance (stacking/additive).
+ * @param {object} bonuses - The bonus stats object from getBonusStatsForPlayer
+ * @param {string} damageType - The damage type (e.g., 'Physical', 'Fire', 'Frost')
+ * @returns {number} Total effective resistance
+ */
+export function getEffectiveResistance(bonuses, damageType) {
+    if (!bonuses || !damageType) return 0;
+    if (damageType === 'Physical') {
+        return bonuses.physicalResistance || 0;
+    }
+    // For magical damage types, stack specific + generic magical resistance
+    if (MAGICAL_DAMAGE_TYPES.includes(damageType)) {
+        const specificKey = damageType.toLowerCase() + 'Resistance';
+        const specificRes = bonuses[specificKey] || 0;
+        const magicalRes = bonuses.magicalResistance || 0;
+        return specificRes + magicalRes;
+    }
+    return 0;
+}
+
 // --- COMBAT CONTEXT HELPERS ---
 
 /**
@@ -224,9 +255,9 @@ export function normalizeTarget(sharedState, targetIndex, encounter) {
             character,
             team: playerState.team,
             getResistanceImpl: (damageType) => {
-                if (damageType === 'Physical' && character) {
+                if (character) {
                     const bonuses = getBonusStatsForPlayer(character, playerState);
-                    return bonuses.physicalResistance || 0;
+                    return getEffectiveResistance(bonuses, damageType);
                 }
                 return 0;
             }
@@ -245,9 +276,15 @@ export function normalizeTarget(sharedState, targetIndex, encounter) {
                 id: memberState.playerId,
                 name: memberState.name,
                 getResistanceImpl: (damageType) => {
+                    const buff = memberState.buffs?.find(b => b.bonus?.physicalResistance);
+                    const buffPhysRes = buff ? buff.bonus.physicalResistance : 0;
                     if (damageType === 'Physical') {
-                        const buff = memberState.buffs?.find(b => b.bonus?.physicalResistance);
-                        return buff ? buff.bonus.physicalResistance : 0;
+                        return buffPhysRes;
+                    }
+                    // For magical types, check for magicalResistance from buffs
+                    if (MAGICAL_DAMAGE_TYPES.includes(damageType)) {
+                        const magResBuff = memberState.buffs?.find(b => b.bonus?.magicalResistance);
+                        return (magResBuff ? magResBuff.bonus.magicalResistance : 0);
                     }
                     return 0;
                 }
@@ -271,6 +308,12 @@ export function normalizeTarget(sharedState, targetIndex, encounter) {
                 const baseResistance = enemy.physicalResistance || 0;
                 const buffResistance = enemy.buffs?.find(b => b.bonus?.physicalResistance)?.bonus.physicalResistance || 0;
                 return baseResistance + buffResistance;
+            }
+            // For magical types, use enemy's magicalResistance (base + buff)
+            if (MAGICAL_DAMAGE_TYPES.includes(damageType)) {
+                const baseMagRes = enemy.magicalResistance || 0;
+                const buffMagRes = enemy.buffs?.find(b => b.bonus?.magicalResistance)?.bonus.magicalResistance || 0;
+                return baseMagRes + buffMagRes;
             }
             return 0;
         }

@@ -5,7 +5,7 @@ import { gameData, lootPools } from '../data/index.js';
 import { rollD20 } from '../shared.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient, getZoneAreaCard } from '../utilsHelpers.js';
-import { applyDamage, applyDoTEffects, applyChillStack, processChillReduction, getAvailablePlayerReactions, processEndOfTurnEffects, processRejuvenateHealing } from './combat-core.js';
+import { applyDamage, applyDoTEffects, applyChillStack, processChillReduction, getAvailablePlayerReactions, processEndOfTurnEffects, processRejuvenateHealing, getEffectiveResistance } from './combat-core.js';
 import { PVP_TURN_DURATION_MS, PVE_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS, INTERVENE_TIMER_MS, INVENTORY_SIZE, DEFAULT_ACTION_POINTS, STARTING_HEALTH, ARENA_HP_SCALE_PER_ROUND, ARENA_DAMAGE_BONUS_PER_ROUND, ARENA_CHEST_BASE_GOLD, ARENA_CHEST_GOLD_PER_ROUND } from '../constants.js';
 import { spawnArenaBoss } from '../handlersAdventure.js';
 import * as PartyManager from '../party/party-manager.js';
@@ -1078,9 +1078,10 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                     damageToDeal += ralliedBuff.bonus.damageBonus;
                 }
 
-                if (attack.damageType === 'Physical') {
-                    const bonuses = getBonusStatsForPlayer(targetCharacter, targetPlayerState);
-                    const resistance = bonuses.physicalResistance || 0;
+                // Apply resistance for all damage types
+                const bonuses = getBonusStatsForPlayer(targetCharacter, targetPlayerState);
+                const resistance = getEffectiveResistance(bonuses, attack.damageType);
+                if (resistance > 0) {
                     damageToDeal = Math.max(1, damageToDeal - resistance);
                 }
                 // UNIFIED: Use shared reaction availability helper
