@@ -3,7 +3,7 @@
 import { players, parties, duels, pvpEncounters } from './serverState.js';
 import { gameData, itemsByName } from './data/index.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from './utilsBroadcast.js';
-import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, playerHasMaterials, consumeMaterials, addItemToInventoryServer } from './utilsHelpers.js';
+import { buildZoneDeckForServer, drawCardsForServer, getBonusStatsForPlayer, playerHasMaterials, consumeMaterials, addItemToInventoryServer, getZoneAreaCard } from './utilsHelpers.js';
 import { ARENA_ENTRY_FEE, ARENA_HP_SCALE_PER_ROUND, ARENA_DAMAGE_BONUS_PER_ROUND, DEFAULT_ACTION_POINTS, STARTING_HEALTH, BOSS_HP_SCALE_PER_PLAYER } from './constants.js';
 
 import * as actions from './adventure/adventure-actions.js';
