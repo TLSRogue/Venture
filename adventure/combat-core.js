@@ -760,8 +760,15 @@ export function checkEnemyReaction(enemy, attackTypeInput, attackerPlayerState, 
         const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
 
         if (isSuccess) {
-            // Check if this is a block-style reaction (damage reduction) or negate-style (full parry)
-            if (reaction.blockAmount) {
+            // Check if this is a reflection, block-style reaction (damage reduction) or negate-style (full parry)
+            if (reaction.reflect) {
+                result.negated = true;
+                result.reflected = true;
+                log.push({
+                    message: `${enemy.name}'s ${reaction.name}: ${rollDisplay} ${reaction.message}`,
+                    type: 'reaction'
+                });
+            } else if (reaction.blockAmount) {
                 // Block-style: reduces damage by blockAmount
                 result.blockAmount = reaction.blockAmount;
                 log.push({

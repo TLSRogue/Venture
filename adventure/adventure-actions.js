@@ -194,18 +194,28 @@ export async function processWeaponAttack(io, party, player, payload) {
                 logMessage += ` But the attack was parried!`;
                 log.push({ message: logMessage, type: 'info' });
 
-                // Apply counter-damage to the player
-                if (reactionResult.counterDamage > 0) {
-                    const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
-                    const resistance = reactionResult.counterDamageType === 'Physical' ? (bonuses.physicalResistance || 0) : 0;
-                    const counterDmg = Math.max(1, reactionResult.counterDamage - resistance);
+                // Apply counter-damage or reflection to the player
+                let counterDmg = 0;
+                let counterType = reactionResult.counterDamageType || 'Physical';
 
-                    applyDamage(actingPlayerState, counterDmg);
-                    let counterMsg = `${actingPlayerState.name} takes ${counterDmg} ${reactionResult.counterDamageType} damage from the counter-attack!`;
+                if (reactionResult.reflected) {
+                    counterDmg = dmgResult.finalDamage;
+                    counterType = dmgResult.damageType;
+                } else {
+                    counterDmg = reactionResult.counterDamage || 0;
+                }
+
+                if (counterDmg > 0) {
+                    const bonuses = getBonusStatsForPlayer(character, actingPlayerState);
+                    const resistance = counterType === 'Physical' ? (bonuses.physicalResistance || 0) : 0;
+                    const finalCounterDmg = Math.max(1, counterDmg - resistance);
+
+                    applyDamage(actingPlayerState, finalCounterDmg);
+                    let counterMsg = `${actingPlayerState.name} takes ${finalCounterDmg} ${counterType} damage from the ${reactionResult.reflected ? 'reflected attack' : 'counter-attack'}!`;
                     if (resistance > 0) counterMsg += ` (${resistance} resisted)`;
                     log.push({ message: counterMsg, type: 'damage' });
 
-                    // Check if player died from counter-attack
+                    // Check if player died from counter-attack/reflection
                     if (actingPlayerState.health <= 0) {
                         actingPlayerState.health = 0;
                         actingPlayerState.isDead = true;

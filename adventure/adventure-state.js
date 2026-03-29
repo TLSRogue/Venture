@@ -517,6 +517,36 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     // --- ARENA: Spawn treasure chest after boss kill ---
     if (sharedState.arenaState && enemy.arenaReward) {
         const arenaState = sharedState.arenaState;
+
+        // --- BATTLE BROTHERS: ENRAGE MECHANIC ---
+        if (enemy.isBattleBrother) {
+            const otherBrother = sharedState.zoneCards.find(c => c && c.isBattleBrother && c.id !== enemy.id);
+            if (otherBrother) {
+                // Apply Enraged Buff to survivor
+                if (!otherBrother.buffs) otherBrother.buffs = [];
+                otherBrother.buffs.push({
+                    type: 'Enraged',
+                    extraAttacks: 1,
+                    icon: '🔥',
+                    duration: 99
+                });
+                
+                // Double damage directly on the card for simplicity
+                if (otherBrother.attackTable) {
+                    otherBrother.attackTable = otherBrother.attackTable.map(a => {
+                        if (a.damage) return { ...a, damage: a.damage * 2 };
+                        return a;
+                    });
+                }
+                // Double flat arena damage bonus
+                if (otherBrother.arenaDamageBonus) otherBrother.arenaDamageBonus *= 2;
+
+                sharedState.log.push({ message: `${otherBrother.name} becomes ENRAGED by their brother's fall! Damage doubled and attacks twice per turn!`, type: 'damage' });
+                broadcastAdventureUpdate(io, party);
+                return; // Wait for both to be dead before spawning reward chest
+            }
+        }
+
         arenaState.defeatedBosses.push(enemy.name);
         arenaState.chestAvailable = true;
 

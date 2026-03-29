@@ -655,12 +655,23 @@ export async function applySpellAttack(io, party, player, ctx) {
                     const actionVerb = attackTypes.includes('magic') ? 'deflects' : 'parries';
                     log.push({ message: `${t.name} ${actionVerb} the ${spell.name}!`, type: 'info' });
 
-                    if (reactionResult.counterDamage > 0) {
-                        const playerResistance = reactionResult.counterDamageType === 'Physical' ? (bonuses.physicalResistance || 0) : 0;
-                        const counterDmg = Math.max(1, reactionResult.counterDamage - playerResistance);
+                    // Apply counter-damage or reflection to the player
+                    let counterDmg = 0;
+                    let counterType = reactionResult.counterDamageType || 'Physical';
 
-                        applyDamage(actingPlayerState, counterDmg);
-                        let counterMsg = `${actingPlayerState.name} takes ${counterDmg} ${reactionResult.counterDamageType} damage from the counter-attack!`;
+                    if (reactionResult.reflected) {
+                        counterDmg = damageToDeal;
+                        counterType = spell.damageType || 'Magic';
+                    } else {
+                        counterDmg = reactionResult.counterDamage || 0;
+                    }
+
+                    if (counterDmg > 0) {
+                        const playerResistance = counterType === 'Physical' ? (bonuses.physicalResistance || 0) : 0;
+                        const finalCounterDmg = Math.max(1, counterDmg - playerResistance);
+
+                        applyDamage(actingPlayerState, finalCounterDmg);
+                        let counterMsg = `${actingPlayerState.name} takes ${finalCounterDmg} ${counterType} damage from the ${reactionResult.reflected ? 'reflected spell' : 'counter-attack'}!`;
                         if (playerResistance > 0) counterMsg += ` (${playerResistance} resisted)`;
                         log.push({ message: counterMsg, type: 'damage' });
 

@@ -55,6 +55,66 @@ export function spawnArenaBoss(party, round) {
     // Place boss in center slot, flanking slots empty by default
     sharedState.zoneCards = [null, bossCard, null];
 
+    // --- BATTLE BROTHERS SPECIAL SPAWN ---
+    if (bossCard.isBattleBrother) {
+        let rhino, tiger;
+        
+        // Ensure we have both templates. bossCard is one of them.
+        if (bossCard.name === 'BB Rhino') {
+            rhino = bossCard;
+            const tigerTemplate = arenaState.bossPool.find(b => b.name === 'BB Tiger');
+            tiger = JSON.parse(JSON.stringify(tigerTemplate || bossCard)); // Fallback to clone if not found, but should be found
+        } else {
+            tiger = bossCard;
+            const rhinoTemplate = arenaState.bossPool.find(b => b.name === 'BB Rhino');
+            rhino = JSON.parse(JSON.stringify(rhinoTemplate || bossCard));
+        }
+
+        // Apply scaling to the second brother (the first is already scaled above)
+        const scaleBrother = (b) => {
+            b.id = Date.now() + 5;
+            b.debuffs = [];
+            b.buffs = [];
+            const hpRoundMult = 1 + (round - 1) * ARENA_HP_SCALE_PER_ROUND;
+            const hpPartyMult = 1 + (partySize - 1) * BOSS_HP_SCALE_PER_PLAYER;
+            const sHP = Math.floor(b.maxHealth * hpRoundMult * hpPartyMult);
+            b.health = sHP;
+            b.maxHealth = sHP;
+            
+            const dmgBonus = (round - 1) * ARENA_DAMAGE_BONUS_PER_ROUND;
+            b.arenaDamageBonus = dmgBonus;
+            if (b.attackTable) {
+                b.attackTable = b.attackTable.map(entry => {
+                    if (entry.damage) return { ...entry, damage: entry.damage + dmgBonus };
+                    return entry;
+                });
+            }
+        };
+
+        if (rhino !== bossCard) scaleBrother(rhino);
+        if (tiger !== bossCard) scaleBrother(tiger);
+
+        // Apply per-round resistance scaling
+        // Rhino: +1 Phys Res per round. Tiger: +1 Mag Res per round.
+        rhino.physicalResistance = (rhino.physicalResistance || 0) + (round - 1);
+        tiger.magicalResistance = (tiger.magicalResistance || 0) + (round - 1);
+
+        // Ensure both are marked as boss for reward logic
+        rhino.isBoss = true;
+        tiger.isBoss = true;
+
+        // Position: Rhino Left (0), Empty Middle (1), Tiger Right (2)
+        sharedState.zoneCards = [
+            rhino,
+            getZoneAreaCard('arena', 1),
+            tiger
+        ];
+        
+        // Mark both as defeated in the pool so they don't spawn again separately
+        if (!arenaState.defeatedBosses.includes('BB Rhino')) arenaState.defeatedBosses.push('BB Rhino');
+        if (!arenaState.defeatedBosses.includes('BB Tiger')) arenaState.defeatedBosses.push('BB Tiger');
+    }
+
     // Boss-specific flanking setup
     if (bossCard.name === 'Vexor, Lord of the Arena') {
         const columnCard = gameData.specialCards.stoneColumn;

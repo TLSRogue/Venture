@@ -782,9 +782,162 @@ export const EnemySpecialHandlers = {
     },
     'Angry Rooster': {
         'Enrage': handleAngryRoosterEnrage
+    },
+    'BB Rhino': {
+        'Daze and Stun': handleRhinoDazeStun,
+        'remove all Threat': handleRhinoClearThreat,
+        'Stun to all Players': handleRhinoAoEStun,
+        'Daze to the Player': handleRhinoDazeStun // Fallback for the simpler daze version
+    },
+    'BB Tiger': {
+        'Bleed to the Player': handleTigerBleed,
+        'Heals self or Rhino': handleTigerHeal,
+        'Deal 4 Physical Damage and Stun': handleTigerStun
     }
 };
+// --- BB RHINO HANDLERS ---
+function handleRhinoDazeStun(enemy, sharedState, target, attack, ctx) {
+    const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);
+    if (alivePlayers.length > 0) {
+        const sortedPlayers = [...alivePlayers].sort((a, b) => (b.threat || 0) - (a.threat || 0));
+        const targetPlayer = sortedPlayers[0];
+        const playerObj = ctx.players[targetPlayer.name];
+        if (playerObj) {
+            const bonuses = getBonusStatsForPlayer(playerObj.character, targetPlayer);
+            const resistance = bonuses.physicalResistance || 0;
+            const damage = Math.max(1, (4 + (enemy.arenaDamageBonus || 0)) - resistance);
+            applyDamage(targetPlayer, damage);
+            
+            if (!targetPlayer.debuffs) targetPlayer.debuffs = [];
+            // Check if stun is mentioned in message
+            if (attack.message.includes('Stun')) {
+                targetPlayer.debuffs.push({ type: 'stun', duration: 1 });
+                sharedState.log.push({ message: `BB Rhino charges ${targetPlayer.name} for ${damage} Physical damage, Dazing and Stunning them!`, type: 'damage' });
+            } else {
+                sharedState.log.push({ message: `BB Rhino charges ${targetPlayer.name} for ${damage} Physical damage and Dazes them!`, type: 'damage' });
+            }
+            targetPlayer.debuffs.push({ type: 'daze', duration: 2 });
+            
+            if (targetPlayer.health <= 0) { targetPlayer.isDead = true; targetPlayer.health = 0; }
+        }
+    }
+    return { handled: true };
+}
 
+function handleRhinoClearThreat(enemy, sharedState, target, attack, ctx) {
+    const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);
+    if (alivePlayers.length > 0) {
+        const sortedPlayers = [...alivePlayers].sort((a, b) => (b.threat || 0) - (a.threat || 0));
+        const targetPlayer = sortedPlayers[0];
+        const playerObj = ctx.players[targetPlayer.name];
+        if (playerObj) {
+            const bonuses = getBonusStatsForPlayer(playerObj.character, targetPlayer);
+            const resistance = bonuses.physicalResistance || 0;
+            const damage = Math.max(1, (5 + (enemy.arenaDamageBonus || 0)) - resistance);
+            applyDamage(targetPlayer, damage);
+            
+            targetPlayer.threat = 0;
+            
+            sharedState.log.push({ message: `BB Rhino slams ${targetPlayer.name} for ${damage} Physical damage and removes all their threat!`, type: 'damage' });
+            if (targetPlayer.health <= 0) { targetPlayer.isDead = true; targetPlayer.health = 0; }
+        }
+    }
+    return { handled: true };
+}
+
+function handleRhinoAoEStun(enemy, sharedState, target, attack, ctx) {
+    sharedState.partyMemberStates.forEach(p => {
+        if (!p.isDead) {
+            const playerObj = ctx.players[p.name];
+            if (playerObj) {
+                const bonuses = getBonusStatsForPlayer(playerObj.character, p);
+                const resistance = bonuses.physicalResistance || 0;
+                const damage = Math.max(1, (5 + (enemy.arenaDamageBonus || 0)) - resistance);
+                applyDamage(p, damage);
+                
+                if (!p.debuffs) p.debuffs = [];
+                p.debuffs.push({ type: 'stun', duration: 1 });
+                
+                sharedState.log.push({ message: `BB Rhino's ground slam hits ${p.name} for ${damage} Physical damage and STUNS them!`, type: 'damage' });
+                if (p.health <= 0) { p.isDead = true; p.health = 0; }
+            }
+        }
+    });
+    return { handled: true };
+}
+
+// --- BB TIGER HANDLERS ---
+function handleTigerBleed(enemy, sharedState, target, attack, ctx) {
+    const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);
+    if (alivePlayers.length > 0) {
+        const sortedPlayers = [...alivePlayers].sort((a, b) => (b.threat || 0) - (a.threat || 0));
+        const targetPlayer = sortedPlayers[0];
+        const playerObj = ctx.players[targetPlayer.name];
+        if (playerObj) {
+            const bonuses = getBonusStatsForPlayer(playerObj.character, targetPlayer);
+            const resistance = bonuses.physicalResistance || 0;
+            const damage = Math.max(1, (3 + (enemy.arenaDamageBonus || 0)) - resistance);
+            applyDamage(targetPlayer, damage);
+            
+            const roundCount = sharedState.arenaState?.round || 1;
+            const bleedDamage = 1 + (roundCount - 1); // scaling bleed
+            
+            if (!targetPlayer.debuffs) targetPlayer.debuffs = [];
+            targetPlayer.debuffs.push({ type: 'bleed', duration: 3, damage: bleedDamage, damageType: 'Physical' });
+            
+            sharedState.log.push({ message: `BB Tiger lunges at ${targetPlayer.name} for ${damage} Physical damage and causes Bleeding (${bleedDamage})!`, type: 'damage' });
+            if (targetPlayer.health <= 0) { targetPlayer.isDead = true; targetPlayer.health = 0; }
+        }
+    }
+    return { handled: true };
+}
+
+function handleTigerHeal(enemy, sharedState, target, attack, ctx) {
+    const rhino = sharedState.zoneCards.find(c => c && c.name === 'BB Rhino');
+    const roundCount = sharedState.arenaState?.round || 1;
+    const healAmount = 5 + roundCount;
+    
+    let healTarget = null;
+    if (rhino && rhino.health > 0) {
+        if (enemy.health < rhino.health) {
+            healTarget = enemy;
+        } else {
+            healTarget = rhino;
+        }
+    } else {
+        healTarget = enemy;
+    }
+    
+    if (healTarget) {
+        const oldHealth = healTarget.health;
+        healTarget.health = Math.min(healTarget.maxHealth, healTarget.health + healAmount);
+        const actualHeal = healTarget.health - oldHealth;
+        sharedState.log.push({ message: `BB Tiger heals ${healTarget.name === enemy.name ? 'itself' : healTarget.name} for ${actualHeal} HP!`, type: 'heal' });
+    }
+    return { handled: true };
+}
+
+function handleTigerStun(enemy, sharedState, target, attack, ctx) {
+    const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);
+    if (alivePlayers.length > 0) {
+        const sortedPlayers = [...alivePlayers].sort((a, b) => (b.threat || 0) - (a.threat || 0));
+        const targetPlayer = sortedPlayers[0];
+        const playerObj = ctx.players[targetPlayer.name];
+        if (playerObj) {
+            const bonuses = getBonusStatsForPlayer(playerObj.character, targetPlayer);
+            const resistance = bonuses.physicalResistance || 0;
+            const damage = Math.max(1, (4 + (enemy.arenaDamageBonus || 0)) - resistance);
+            applyDamage(targetPlayer, damage);
+            
+            if (!targetPlayer.debuffs) targetPlayer.debuffs = [];
+            targetPlayer.debuffs.push({ type: 'stun', duration: 1 });
+            
+            sharedState.log.push({ message: `BB Tiger swipes ${targetPlayer.name} for ${damage} Physical damage and STUNS them!`, type: 'damage' });
+            if (targetPlayer.health <= 0) { targetPlayer.isDead = true; targetPlayer.health = 0; }
+        }
+    }
+    return { handled: true };
+}
 /**
  * Main dispatch function - finds and executes the appropriate handler
  * @param {Object} enemy - The enemy card

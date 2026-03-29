@@ -730,6 +730,68 @@ export const cardPools = {
                 ]
             }, count: 1
         },
+        {
+            card: {
+                name: "BB Rhino", type: "enemy", isBoss: true, health: 20, maxHealth: 20, description: "A thick-skinned brute with unstoppable momentum.", icon: "🦏",
+                imageUrl: '/assets/arena-rhino.jpg',
+                isBattleBrother: true,
+                physicalResistance: 1, // Increased by round
+                arenaReward: 150,
+                attackTable: [
+                    { range: [1, 2], action: 'miss', message: "Miss!" },
+                    { range: [3, 7], action: 'special', message: "Melee - Deal 4 Physical Damage and Daze to the Player with the most threat!" },
+                    { range: [8, 12], action: 'special', message: "Melee - Deal 4 Physical Damage, Daze and Stun to the Player with the most threat!" },
+                    { range: [13, 16], action: 'special', message: "Melee - Deal 5 Physical Damage and remove all Threat from the player with the most threat!" },
+                    { range: [17, 20], action: 'special', message: "Melee/AoE - Deal 5 Physical Damage and Stun to all Players." }
+                ],
+                reactions: [
+                    {
+                        name: "Return to Sender",
+                        cooldown: 3,
+                        triggerOn: "ranged",
+                        roll: 11,
+                        reflect: true,
+                        message: "The Rhino lowers its head and reflects the attack back at the sender!"
+                    }
+                ],
+                guaranteedLoot: { gold: { min: 75, max: 150 } },
+                lootTable: [
+                    { range: [1, 10], gold: { min: 25, max: 50 } },
+                    { range: [11, 20], items: ["Rhino Horn"] }
+                ]
+            }, count: 1
+        },
+        {
+            card: {
+                name: "BB Tiger", type: "enemy", isBoss: true, health: 20, maxHealth: 20, description: "A swift and cunning predator with razor-sharp claws.", icon: "🐅",
+                imageUrl: '/assets/arena-tiger.jpg',
+                isBattleBrother: true,
+                magicalResistance: 1, // Increased by round
+                arenaReward: 150,
+                attackTable: [
+                    { range: [1, 2], action: 'miss', message: "Miss!" },
+                    { range: [3, 10], action: 'special', message: "Melee - Deal 3 Physical Damage and Bleed to the Player with the most threat!" },
+                    { range: [11, 15], action: 'special', message: "Heal - Heals self or Rhino whoever is lowest hp for 5+ Round Count." },
+                    { range: [16, 20], action: 'special', message: "Melee - Deal 4 Physical Damage and Stun to the Player with the most threat!" }
+                ],
+                reactions: [
+                    {
+                        name: "Shield Bash",
+                        cooldown: 2,
+                        triggerOn: "melee",
+                        roll: 11,
+                        damage: 4,
+                        damageType: "Physical",
+                        message: "The Tiger dodges and counters with a swift strike!"
+                    }
+                ],
+                guaranteedLoot: { gold: { min: 75, max: 150 } },
+                lootTable: [
+                    { range: [1, 10], gold: { min: 25, max: 50 } },
+                    { range: [11, 20], items: ["Tiger Fang"] }
+                ]
+            }, count: 1
+        },
     ],
 
     // --- NEW: PvP Zone Card Pool ---
@@ -1112,7 +1174,7 @@ export const specialCards = {
         type: "area",
         description: "The bloodstained floor of the arena.",
         icon: "⚔️",
-        imageUrl: '/assets/arena-floor.jpg',
+        imageUrl: '/assets/arena-empty.jpg',
         allowSpawnOver: true
     }
 };

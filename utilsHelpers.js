@@ -166,7 +166,8 @@ export function getZoneAreaCard(zoneName, index = 0) {
         sewers: gameData.specialCards.emptyCanal,
         goblinCaves: gameData.specialCards.goblinCavesTunnel,
         darkForest: gameData.specialCards.darkForestTrail,
-        mansion: gameData.specialCards.mansionHall
+        mansion: gameData.specialCards.mansionHall,
+        arena: gameData.specialCards.arenaFloor
     };
     const areaCard = zoneAreaCards[zoneName];
     // Add index to Date.now() to ensure unique IDs within the same call block
