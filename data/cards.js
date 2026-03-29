@@ -1000,7 +1000,7 @@ export const cardPools = {
 
 export const specialCards = {
     powderKeg: {
-        name: "Powder Keg", type: "enemy", health: 4, maxHealth: 4, description: "It's fizzing ominously.", charges: 0, icon: "💣",
+        name: "Powder Keg", type: "enemy", health: 6, maxHealth: 6, description: "It's fizzing ominously.", charges: 0, icon: "💣", imageUrl: '/assets/powder-keg.jpg',
         attackTable: [
             { range: [1, 20], action: 'special', message: "The Powder Keg fizzes..." }
         ]
