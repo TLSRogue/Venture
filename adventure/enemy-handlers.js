@@ -294,14 +294,15 @@ function handlePulvisUnstableKegs(enemy, sharedState, target, attack, ctx) {
     const kegCount = 2;
     let spawned = 0;
     for (let k = 0; k < kegCount; k++) {
-        const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null);
+        // Find a slot that is empty or allows spawning over (like Arena Floor)
+        const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null || (c && c.allowSpawnOver));
         if (emptySlotIndex !== -1) {
             const kegCard = {
                 ...gameData.specialCards.powderKeg,
                 id: Date.now() + k,
                 kegTimer: 2,
-                maxHealth: 4,
-                health: 4
+                maxHealth: 6,
+                health: 6
             };
             sharedState.zoneCards[emptySlotIndex] = kegCard;
             spawned++;
