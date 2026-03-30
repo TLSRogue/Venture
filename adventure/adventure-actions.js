@@ -287,7 +287,7 @@ export async function processWeaponAttack(io, party, player, payload) {
 
         // Flame Shield burn-on-melee counter effect
         if (weapon.range === 'melee' || (!weapon.range && !['Staff', 'Two-Hand Bow', 'One-Hand Crossbow', 'Wand'].includes(weapon.weaponType))) {
-            const flameShield = target.buffs?.find(b => b.type === 'Flame Shield');
+            const flameShield = target.state?.buffs?.find(b => b.type === 'Flame Shield');
             if (flameShield && flameShield.burnOnMelee) {
                 // Apply burn to the attacker
                 const burnDebuff = { ...flameShield.burnOnMelee };
@@ -298,7 +298,7 @@ export async function processWeaponAttack(io, party, player, payload) {
             }
 
             // Ice Barrier chill-on-melee counter effect
-            const iceBarrier = target.buffs?.find(b => b.type === 'Ice Barrier');
+            const iceBarrier = target.state?.buffs?.find(b => b.type === 'Ice Barrier');
             if (iceBarrier && iceBarrier.chillOnMelee) {
                 // Apply chill to the attacker
                 applyChillStack(actingPlayerState, iceBarrier.chillOnMelee, log);

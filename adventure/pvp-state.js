@@ -405,11 +405,11 @@ export function startNextPvpTurn(io, encounterId) {
 export async function processPvpPlayerEndTurn(io, encounter, playerState) {
     if (!playerState || playerState.turnEnded) return;
 
+    // Rejuvenate healing before buff duration drops
+    processRejuvenateHealing(playerState, encounter.log);
+
     // UNIFIED: Use shared end-of-turn effects
     processEndOfTurnEffects(playerState, encounter.log);
-
-    // Rejuvenate healing
-    processRejuvenateHealing(playerState, encounter.log);
 
     // Check Death
     if (playerState.health <= 0) {

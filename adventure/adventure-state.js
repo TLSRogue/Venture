@@ -1038,17 +1038,31 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
         // Small delay between player turn ending and first enemy action
         await new Promise(resolve => setTimeout(resolve, 1500));
     }
-    const enemies = sharedState.zoneCards.map((card, index) => ({ card, index })).filter(e => e.card && e.card.type === 'enemy');
-    for (let i = startIndex; i < enemies.length; i++) {
-        const { card: enemy, index: enemyIndex } = enemies[i];
+    const enemies = [];
+    sharedState.zoneCards.forEach((card, index) => {
+        if (card && card.type === 'enemy') {
+            const baseAttacks = card.attacksPerTurn || 1;
+            const extraAttacks = (card.buffs || []).reduce((sum, b) => sum + (b.extraAttacks || 0), 0);
+            const totalAttacks = baseAttacks + extraAttacks;
+            for (let k = 0; k < totalAttacks; k++) {
+                enemies.push({ card, index, attackNum: k, totalAttacks });
+            }
+        }
+    });
 
-        delete enemy.usedThickHideThisTurn;
+    for (let i = startIndex; i < enemies.length; i++) {
+        const { card: enemy, index: enemyIndex, attackNum, totalAttacks } = enemies[i];
+
+        if (attackNum === 0) {
+            delete enemy.usedThickHideThisTurn;
+        }
 
         if (!enemy || enemy.health <= 0) continue;
         try {
 
             // End of Turn: DoT damage, buff/debuff decrement, chill reduction, reaction cooldowns
             const processEndOfTurn = () => {
+                if (attackNum < totalAttacks - 1) return false;
                 const died = processEnemyEndOfTurn(enemy, sharedState);
                 if (died) {
                     defeatEnemyInParty(io, party, enemy, enemyIndex);
@@ -1059,10 +1073,14 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
             };
 
             if (enemy.debuffs.some(d => d.type === 'stun' || d.type === 'frozen')) {
-                const effect = enemy.debuffs.find(d => d.type === 'stun' || d.type === 'frozen');
-                sharedState.log.push({ message: `${enemy.name} is ${effect.type === 'frozen' ? 'Frozen' : 'stunned'} and cannot act!`, type: 'reaction' });
+                if (attackNum === 0) {
+                    const effect = enemy.debuffs.find(d => d.type === 'stun' || d.type === 'frozen');
+                    sharedState.log.push({ message: `${enemy.name} is ${effect.type === 'frozen' ? 'Frozen' : 'stunned'} and cannot act!`, type: 'reaction' });
+                }
                 processEndOfTurn();
-                broadcastAdventureUpdate(io, party);
+                if (attackNum === totalAttacks - 1) {
+                    broadcastAdventureUpdate(io, party);
+                }
                 continue;
             }
             const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);
@@ -1116,6 +1134,10 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
                 const ralliedBuff = enemy.buffs?.find(b => b.type === 'Rallied' && b.bonus?.damageBonus);
                 if (ralliedBuff) {
                     damageToDeal += ralliedBuff.bonus.damageBonus;
+                }
+
+                if (enemy.arenaDamageBonus) {
+                    damageToDeal += enemy.arenaDamageBonus;
                 }
 
                 // Apply resistance for all damage types
@@ -1604,8 +1626,8 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
     }
 
     // End-of-turn effects: DoT + Chill + buff/debuff decrement + Rejuvenate
-    processEndOfTurnEffects(playerState, sharedState.log);
     processRejuvenateHealing(playerState, sharedState.log);
+    processEndOfTurnEffects(playerState, sharedState.log);
 
     // Death check after DoT
     if (playerState.health <= 0) {
@@ -1678,8 +1700,8 @@ function processPartyEndOfTurn(sharedState) {
         if (playerState.isDead) continue;
 
         // Apply DoT, Chill reduction, buff/debuff decrement, and Rejuvenate
-        processEndOfTurnEffects(playerState, sharedState.log);
         processRejuvenateHealing(playerState, sharedState.log);
+        processEndOfTurnEffects(playerState, sharedState.log);
 
         // Check for death from DoT
         if (playerState.health <= 0) {

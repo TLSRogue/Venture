@@ -726,8 +726,8 @@ export const cardPools = {
                 arenaReward: 100,
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
-                    { range: [4, 8], action: 'special', message: "Vexor swings his massive axe at the biggest threat!" },
-                    { range: [9, 12], action: 'special', message: "Vexor bashes the weakest foe with his shield!" },
+                    { range: [4, 8], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 2, damageType: 'Physical' }, message: "Vexor swings his massive axe!" },
+                    { range: [9, 12], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', debuff: { type: 'stun', duration: 1 }, message: "Vexor bashes you with his shield!" },
                     { range: [13, 16], action: 'special', message: "Vexor catches his breath and taunts his enemies!" },
                     { range: [17, 20], action: 'special', message: "Whirlwind! Vexor spins wildly, hitting everyone!" }
                 ],
@@ -750,8 +750,8 @@ export const cardPools = {
                 arenaReward: 150,
                 attackTable: [
                     { range: [1, 2], action: 'miss', message: "Miss!" },
-                    { range: [3, 7], action: 'special', message: "Melee - Deal 4 Physical Damage and Daze to the Player with the most threat!" },
-                    { range: [8, 12], action: 'special', message: "Melee - Deal 4 Physical Damage, Daze and Stun to the Player with the most threat!" },
+                    { range: [3, 7], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', debuff: { type: 'daze', duration: 1 }, message: "Rhino Charge! Deals 4 Physical Damage and Daze!" },
+                    { range: [8, 12], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', debuff: { type: 'stun', duration: 1 }, message: "Rhino Stomp! Deals 4 Physical Damage and Stun!" },
                     { range: [13, 16], action: 'special', message: "Melee - Deal 5 Physical Damage and remove all Threat from the player with the most threat!" },
                     { range: [17, 20], action: 'special', message: "Melee/AoE - Deal 5 Physical Damage and Stun to all Players." }
                 ],
@@ -782,9 +782,9 @@ export const cardPools = {
                 arenaReward: 150,
                 attackTable: [
                     { range: [1, 2], action: 'miss', message: "Miss!" },
-                    { range: [3, 10], action: 'special', message: "Melee - Deal 3 Physical Damage and Bleed to the Player with the most threat!" },
+                    { range: [3, 10], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 2, damageType: 'Physical' }, message: "Tiger Swipe! Deals 3 Physical Damage and Bleed!" },
                     { range: [11, 15], action: 'special', message: "Heal - Heals self or Rhino whoever is lowest hp for 5+ Round Count." },
-                    { range: [16, 20], action: 'special', message: "Melee - Deal 4 Physical Damage and Stun to the Player with the most threat!" }
+                    { range: [16, 20], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', debuff: { type: 'stun', duration: 1 }, message: "Tiger Pounce! Deals 4 Physical Damage and Stun!" }
                 ],
                 reactions: [
                     {
