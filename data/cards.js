@@ -690,8 +690,18 @@ export const cardPools = {
             card: {
                 name: "Pulvis Cadus", type: "enemy", isBoss: true, health: 40, maxHealth: 40, description: "A master of strange concoctions and explosives.", icon: "⚗️",
                 imageUrl: '/assets/arena-pulvis-mech.jpg',
-                bonuses: { fireResistance: 2, physicalResistance: 2, magicalResistance: 1 },
+                bonuses: { fireResistance: 2, physicalResistance: 2 },
+                magicalResistance: 1,
                 arenaReward: 100,
+                reactions: [
+                    {
+                        name: "Bomb Drop",
+                        cooldown: 5,
+                        triggerOn: ["melee", "ranged", "magic", "damage"],
+                        roll: 1,
+                        message: "Pulvis Cadus drops a Bomb as a reaction!"
+                    }
+                ],
                 attackTable: [
                     { range: [1, 3], action: 'miss', message: "Miss!" },
                     { range: [4, 7], action: 'attack', attackRange: 'ranged', damage: 5, damageType: 'Fire', message: "Bomb Toss! Deals 5 Fire Damage!" },

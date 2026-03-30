@@ -279,6 +279,46 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
     }
     // Defeat message is now consolidated with loot drops below
 
+    // --- PULVIS CADUS FAILSAFE ---
+    if (enemy.name === 'Pulvis Cadus') {
+        const kegIndices = sharedState.zoneCards.map((c, i) => c && c.name === 'Powder Keg' ? i : -1).filter(i => i !== -1);
+        if (kegIndices.length > 0) {
+            sharedState.log.push({ message: `Pulvis Cadus detonates his remaining payload as he falls!`, type: 'damage' });
+            kegIndices.forEach(idx => {
+                const keg = sharedState.zoneCards[idx];
+                
+                // 4 Fire damage to all players
+                sharedState.partyMemberStates.forEach(p => {
+                    if (!p.isDead) {
+                        const playerObj = players[p.name];
+                        if (playerObj) {
+                            const bonuses = getBonusStatsForPlayer(playerObj.character, p);
+                            const resistance = getEffectiveResistance(bonuses, 'Fire');
+                            const baseDmg = 4 + (enemy.arenaDamageBonus || 0); // Keg base damage
+                            const damage = Math.max(1, baseDmg - resistance);
+                            applyDamage(p, damage);
+                            let msg = `${p.name} takes ${damage} Fire damage from an exploding keg!`;
+                            if (resistance > 0) msg += ` (${resistance} resisted)`;
+                            sharedState.log.push({ message: msg, type: 'damage' });
+                            if (p.health <= 0) {
+                                p.health = 0;
+                                p.isDead = true;
+                                sharedState.log.push({ message: `${p.name} has been defeated by the explosion!`, type: 'damage' });
+                            }
+                        }
+                    }
+                });
+
+                // Remove the keg
+                if (keg.overlayedCard) {
+                    sharedState.zoneCards[idx] = { ...keg.overlayedCard, id: Date.now() + idx };
+                } else {
+                    sharedState.zoneCards[idx] = getZoneAreaCard(sharedState.currentZone);
+                }
+            });
+        }
+    }
+
     // --- LOOT GOBLIN: Special Death Rewards ---
     if (enemy.name === 'Loot Goblin') {
         // Return stolen gold to party leader

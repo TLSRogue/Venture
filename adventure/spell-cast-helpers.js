@@ -644,12 +644,17 @@ export async function applySpellAttack(io, party, player, ctx) {
             }
 
             // Enemy reaction check
+            let triggeredBombDrop = false;
             if (!isPvP && !t.isPlayer && t.state) {
                 const attackTypes = [];
                 if (spell.range) attackTypes.push(spell.range);
                 if (spell.isMagic) attackTypes.push('magic');
 
                 const reactionResult = checkEnemyReaction(t.state, attackTypes, actingPlayerState, log);
+                
+                if (reactionResult.reactionName === 'Bomb Drop') {
+                    triggeredBombDrop = true;
+                }
 
                 if (reactionResult.negated) {
                     const actionVerb = attackTypes.includes('magic') ? 'deflects' : 'parries';
@@ -697,6 +702,21 @@ export async function applySpellAttack(io, party, player, ctx) {
                 applyDamage(t.state, damageToDeal);
                 hitDescription = `Dealt ${damageToDeal} ${spell.damageType || 'Magic'} damage to ${t.name} [id:${t.id}].`;
                 if (damageToDeal < baseDamage) hitDescription += ` (${baseDamage - damageToDeal} resisted)`;
+
+                if (triggeredBombDrop && damageToDeal > 0) {
+                    const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null || (c && (c.allowSpawnOver || c.type === 'area')));
+                    if (emptySlotIndex !== -1) {
+                        const kegCard = {
+                            ...gameData.specialCards.powderKeg,
+                            id: Date.now() + 500,
+                            kegTimer: 2,
+                            maxHealth: 6,
+                            health: 6,
+                            overlayedCard: sharedState.zoneCards[emptySlotIndex] !== null ? sharedState.zoneCards[emptySlotIndex] : null
+                        };
+                        sharedState.zoneCards[emptySlotIndex] = kegCard;
+                    }
+                }
             }
 
             // Apply debuffs

@@ -180,6 +180,8 @@ export async function processWeaponAttack(io, party, player, payload) {
         }
 
         // --- ENEMY REACTION CHECK ---
+        let triggeredBombDrop = false;
+
         // Check if the enemy can react to this attack (only for PVE attacks against enemies)
         if (!isPvP && !target.isPlayer && target.state) {
             // Build attack types array: staff weapons count as both ranged and magic
@@ -188,6 +190,10 @@ export async function processWeaponAttack(io, party, player, payload) {
                 attackTypes.push('magic');
             }
             const reactionResult = checkEnemyReaction(target.state, attackTypes, actingPlayerState, log);
+
+            if (reactionResult.reactionName === 'Bomb Drop') {
+                triggeredBombDrop = true;
+            }
 
             if (reactionResult.negated) {
                 // Full parry - attack is completely negated
@@ -250,6 +256,21 @@ export async function processWeaponAttack(io, party, player, payload) {
         // Apply Damage
         target.applyDamage(dmgResult.finalDamage);
         logMessage += ` Deals ${dmgResult.finalDamage} ${dmgResult.damageType} damage! [id:${target.id}]`;
+
+        if (triggeredBombDrop && dmgResult.finalDamage > 0) {
+            const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null || (c && (c.allowSpawnOver || c.type === 'area')));
+            if (emptySlotIndex !== -1) {
+                const kegCard = {
+                    ...gameData.specialCards.powderKeg,
+                    id: Date.now() + 500,
+                    kegTimer: 2,
+                    maxHealth: 6,
+                    health: 6,
+                    overlayedCard: sharedState.zoneCards[emptySlotIndex] !== null ? sharedState.zoneCards[emptySlotIndex] : null
+                };
+                sharedState.zoneCards[emptySlotIndex] = kegCard;
+            }
+        }
 
         // Track weapon-hit quests (e.g., "Hit 5 times with Wooden Training Sword")
         character.quests.forEach(quest => {

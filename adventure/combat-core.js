@@ -803,6 +803,7 @@ export function checkEnemyReaction(enemy, attackTypeInput, attackerPlayerState, 
         const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
 
         if (isSuccess) {
+            result.reactionName = reaction.name;
             // Check if this is a reflection, block-style reaction (damage reduction) or negate-style (full parry)
             if (reaction.reflect) {
                 result.negated = true;

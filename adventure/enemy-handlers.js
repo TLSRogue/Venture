@@ -294,15 +294,16 @@ function handlePulvisUnstableKegs(enemy, sharedState, target, attack, ctx) {
     const kegCount = 2;
     let spawned = 0;
     for (let k = 0; k < kegCount; k++) {
-        // Find a slot that is empty or allows spawning over (like Arena Floor)
-        const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null || (c && c.allowSpawnOver));
+        // Find a slot that is empty or allows spawning over (like Area cards or specific generic cards)
+        const emptySlotIndex = sharedState.zoneCards.findIndex(c => c === null || (c && (c.allowSpawnOver || c.type === 'area')));
         if (emptySlotIndex !== -1) {
             const kegCard = {
                 ...gameData.specialCards.powderKeg,
                 id: Date.now() + k,
                 kegTimer: 2,
                 maxHealth: 6,
-                health: 6
+                health: 6,
+                overlayedCard: sharedState.zoneCards[emptySlotIndex] !== null ? sharedState.zoneCards[emptySlotIndex] : null
             };
             sharedState.zoneCards[emptySlotIndex] = kegCard;
             spawned++;
@@ -713,11 +714,13 @@ function handleAngryRoosterEnrage(enemy, sharedState, target, attack, ctx) {
 
 // --- FILL KEGS SPECIAL (Pulvis Cadus) ---
 function handlePulvisFillKegs(enemy, sharedState, target, attack, ctx) {
-    const emptyIndices = sharedState.zoneCards.map((card, idx) => card === null ? idx : -1).filter(idx => idx !== -1);
+    const emptyIndices = sharedState.zoneCards.map((card, idx) => card === null || (card && (card.allowSpawnOver || card.type === 'area')) ? idx : -1).filter(idx => idx !== -1);
     emptyIndices.forEach(idx => {
         const kegCard = { ...gameData.specialCards.powderKeg };
         kegCard.id = Date.now() + idx;
         kegCard.debuffs = [];
+        kegCard.kegTimer = 2; // Add timer for consistency
+        kegCard.overlayedCard = sharedState.zoneCards[idx] !== null ? sharedState.zoneCards[idx] : null;
         sharedState.zoneCards[idx] = kegCard;
     });
     if (emptyIndices.length > 0) {
