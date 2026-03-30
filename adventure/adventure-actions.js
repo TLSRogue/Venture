@@ -114,7 +114,7 @@ export async function processWeaponAttack(io, party, player, payload) {
 
         // Pre-consume resources for PvP flow
         actingPlayerState.actionPoints -= weapon.cost;
-        actingPlayerState.threat += weapon.cost;
+        actingPlayerState.threat = Math.min(10, (actingPlayerState.threat || 0) + );
         actingPlayerState.weaponCooldowns[weaponSlot] = weapon.cooldown;
 
         const reactionInitiated = handlePvpReactionCheck(io, encounter, actingPlayerState, target.state, actionDetails);
@@ -125,7 +125,7 @@ export async function processWeaponAttack(io, party, player, payload) {
     } else {
         // PVEm / Instant Consume
         actingPlayerState.actionPoints -= weapon.cost;
-        actingPlayerState.threat += weapon.cost;
+        actingPlayerState.threat = Math.min(10, (actingPlayerState.threat || 0) + );
         actingPlayerState.weaponCooldowns[weaponSlot] = weapon.cooldown;
     }
 
@@ -436,7 +436,7 @@ export async function processEquipItem(io, party, player, payload) {
 
         if (actingPlayerState.actionPoints < 1) return;
         actingPlayerState.actionPoints--;
-        actingPlayerState.threat += 1;
+        actingPlayerState.threat = Math.min(10, (actingPlayerState.threat || 0) + );
 
         const logTarget = party.sharedState.pvpEncounterId ? pvpEncounters[party.sharedState.pvpEncounterId] : party.sharedState;
         logTarget.log.push({ message: `${character.characterName} spends 1 AP to change equipment.`, type: 'info' });
@@ -544,7 +544,7 @@ export async function processUseItemAbility(io, party, player, payload) {
 
     const ability = item.activatedAbility;
     actingPlayerState.actionPoints -= ability.cost;
-    actingPlayerState.threat += ability.cost;
+    actingPlayerState.threat = Math.min(10, (actingPlayerState.threat || 0) + );
     actingPlayerState.itemCooldowns[item.name] = ability.cooldown;
 
     if (ability.buff) {
@@ -600,7 +600,7 @@ export async function processUseConsumable(io, party, player, payload) {
     }
 
     actingPlayerState.actionPoints -= cost;
-    actingPlayerState.threat += cost;
+    actingPlayerState.threat = Math.min(10, (actingPlayerState.threat || 0) + );
 
     // Handle enemy-targeted consumables
     if (item.targetEnemy) {
@@ -749,7 +749,7 @@ export async function processUnequipItem(io, party, player, payload) {
 
         if (actingPlayerState.actionPoints < 1) return;
         actingPlayerState.actionPoints--;
-        actingPlayerState.threat += 1;
+        actingPlayerState.threat = Math.min(10, (actingPlayerState.threat || 0) + );
 
         const logTarget = party.sharedState.pvpEncounterId ? pvpEncounters[party.sharedState.pvpEncounterId] : party.sharedState;
         logTarget.log.push({ message: `${character.characterName} spends 1 AP to unequip ${itemToUnequip.name}.`, type: 'info' });

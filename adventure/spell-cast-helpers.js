@@ -253,7 +253,7 @@ export async function handleZoneEffectSpell(io, party, player, ctx) {
 
     actingPlayerState.actionPoints -= cost;
     actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
-    actingPlayerState.threat += cost;
+    actingPlayerState.threat = Math.min(10, (actingPlayerState.threat || 0) + );
 
     let description = `${character.characterName} casts ${spell.name}! ${attackResult.rollDisplay}`;
 
@@ -311,9 +311,9 @@ export function resolveSpellRollAndConsume(ctx) {
     // Consume Resources
     actingPlayerState.actionPoints -= cost;
     actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
-    actingPlayerState.threat += cost;
+    actingPlayerState.threat = Math.min(10, (actingPlayerState.threat || 0) + );
     if (spell.bonusThreat) {
-        actingPlayerState.threat += spell.bonusThreat;
+        actingPlayerState.threat = Math.min(10, (actingPlayerState.threat || 0) + );
         log.push({ message: `${character.characterName} generates ${spell.bonusThreat} bonus threat!`, type: 'reaction' });
     }
 
