@@ -17,6 +17,28 @@ import { DEFAULT_HIT_TARGET } from '../constants.js';
  */
 export const MAGICAL_DAMAGE_TYPES = ['Fire', 'Frost', 'Nature', 'Arcane', 'Holy'];
 
+// --- THREAT MANAGEMENT ---
+
+/**
+ * Modify a player's threat by a given amount, clamping to [0, 10].
+ * Positive values increase threat, negative values decrease it.
+ * @param {object} playerState - The player state object
+ * @param {number} amount - The amount to change threat by
+ */
+export function modifyThreat(playerState, amount) {
+    const old = playerState.threat || 0;
+    playerState.threat = Math.max(0, Math.min(10, old + amount));
+}
+
+/**
+ * Set a player's threat to an exact value, clamping to [0, 10].
+ * @param {object} playerState - The player state object
+ * @param {number} value - The value to set threat to
+ */
+export function setThreat(playerState, value) {
+    playerState.threat = Math.max(0, Math.min(10, value));
+}
+
 /**
  * Calculate effective resistance for a given damage type.
  * Physical → physicalResistance only.

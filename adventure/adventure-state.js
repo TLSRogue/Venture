@@ -5,7 +5,7 @@ import { gameData, lootPools } from '../data/index.js';
 import { rollD20 } from '../shared.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient, getZoneAreaCard } from '../utilsHelpers.js';
-import { applyDamage, applyDoTEffects, applyChillStack, processChillReduction, getAvailablePlayerReactions, processEndOfTurnEffects, processRejuvenateHealing, getEffectiveResistance } from './combat-core.js';
+import { applyDamage, applyDoTEffects, applyChillStack, processChillReduction, getAvailablePlayerReactions, processEndOfTurnEffects, processRejuvenateHealing, getEffectiveResistance, modifyThreat, setThreat } from './combat-core.js';
 import { PVP_TURN_DURATION_MS, PVE_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS, INTERVENE_TIMER_MS, INVENTORY_SIZE, DEFAULT_ACTION_POINTS, STARTING_HEALTH, ARENA_HP_SCALE_PER_ROUND, ARENA_DAMAGE_BONUS_PER_ROUND, ARENA_CHEST_BASE_GOLD, ARENA_CHEST_GOLD_PER_ROUND } from '../constants.js';
 import { spawnArenaBoss } from '../handlersAdventure.js';
 import * as PartyManager from '../party/party-manager.js';
@@ -579,7 +579,7 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
                     });
                 }
                 // Double flat arena damage bonus
-                if (otherBrother.arenaDamageBonus) otherBrother.arenaDamageBonus *= 2;
+                if (otherBrother.arenaDamageBonus != null) otherBrother.arenaDamageBonus *= 2;
 
                 sharedState.log.push({ message: `${otherBrother.name} becomes ENRAGED by their brother's fall! Damage doubled and attacks twice per turn!`, type: 'damage' });
                 broadcastAdventureUpdate(io, party);
@@ -747,7 +747,7 @@ export async function processVentureDeeper(io, player, party) {
             p.weaponCooldowns = {};
             p.spellCooldowns = {};
             p.itemCooldowns = {};
-            p.threat = 0;
+            setThreat(p, 0);
         });
 
         // Reset PVE turn timer for the new area
@@ -855,7 +855,7 @@ export async function processVentureDeeper(io, player, party) {
             p.weaponCooldowns = {};
             p.spellCooldowns = {};
             p.itemCooldowns = {};
-            p.threat = 0;
+            setThreat(p, 0);
         });
 
         const bossName = sharedState.zoneCards.find(c => c && c.arenaReward)?.name || 'a new challenger';
@@ -1636,15 +1636,20 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
         sharedState.log.push({ message: `${playerState.name} has succumbed to their wounds!`, type: 'damage' });
     }
 
-    // 3. Set turnEnded
+    // 3. Capture remaining AP for threat reduction before zeroing
+    const remainingAP = playerState.actionPoints || 0;
+
+    // 4. Set turnEnded and zero AP
     playerState.turnEnded = true;
     playerState.actionPoints = 0;
 
-    // 4. Reduce Threat if unused AP (PvE Logic)
-    if (!party.sharedState.pvpEncounterId && playerState.actionPoints > 0) {
-        const threatReduction = playerState.actionPoints;
-        playerState.threat = Math.max(0, (playerState.threat || 0) - threatReduction);
-        sharedState.log.push({ message: `${playerState.name} reduces threat by ${threatReduction} (${playerState.actionPoints} unused AP).`, type: 'info' });
+    // 5. Reduce Threat by unused AP (PvE only)
+    if (!party.sharedState.pvpEncounterId && remainingAP > 0) {
+        const oldThreat = playerState.threat || 0;
+        modifyThreat(playerState, -remainingAP);
+        if (oldThreat > 0) {
+            sharedState.log.push({ message: `${playerState.name} reduces threat by ${Math.min(remainingAP, oldThreat)} (${remainingAP} unused AP).`, type: 'info' });
+        }
     }
 
     // Find next living player

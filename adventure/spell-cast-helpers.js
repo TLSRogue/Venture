@@ -7,7 +7,7 @@ import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer } from '../utilsHelpers.js';
 import { checkAndEndTurnForPlayer, defeatEnemyInParty } from './adventure-state.js';
 import { handleResolveReaction } from './reaction-handlers.js';
-import { applyDamage, normalizeTarget, resolveAttackRoll, checkVexorDodge, checkVampirePhaseTransition, checkEnemyReaction, applyChillStack, getCombatContext, getHostileTargets, getAvailablePlayerReactions, getEffectiveResistance } from './combat-core.js';
+import { applyDamage, normalizeTarget, resolveAttackRoll, checkVexorDodge, checkVampirePhaseTransition, checkEnemyReaction, applyChillStack, getCombatContext, getHostileTargets, getAvailablePlayerReactions, getEffectiveResistance, modifyThreat } from './combat-core.js';
 import { INVENTORY_SIZE } from '../constants.js';
 import { SpellHandlers, getSpecialSpellDamage } from './spell-handlers.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
@@ -253,7 +253,7 @@ export async function handleZoneEffectSpell(io, party, player, ctx) {
 
     actingPlayerState.actionPoints -= cost;
     actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
-    actingPlayerState.threat = Math.min(10, (actingPlayerState.threat || 0) + );
+    modifyThreat(actingPlayerState, spell.threat || 1);
 
     let description = `${character.characterName} casts ${spell.name}! ${attackResult.rollDisplay}`;
 
@@ -311,9 +311,9 @@ export function resolveSpellRollAndConsume(ctx) {
     // Consume Resources
     actingPlayerState.actionPoints -= cost;
     actingPlayerState.spellCooldowns[spell.name] = spell.cooldown;
-    actingPlayerState.threat = Math.min(10, (actingPlayerState.threat || 0) + );
+    modifyThreat(actingPlayerState, spell.threat || 1);
     if (spell.bonusThreat) {
-        actingPlayerState.threat = Math.min(10, (actingPlayerState.threat || 0) + );
+        modifyThreat(actingPlayerState, spell.bonusThreat);
         log.push({ message: `${character.characterName} generates ${spell.bonusThreat} bonus threat!`, type: 'reaction' });
     }
 

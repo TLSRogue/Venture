@@ -4,154 +4,21 @@
 import { players } from '../serverState.js';
 import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer } from '../utilsHelpers.js';
-import { applyDamage, applyDoTEffects, decrementEnemyReactionCooldowns, getEffectiveResistance } from './combat-core.js';
+import { applyDamage, applyDoTEffects, decrementEnemyReactionCooldowns, getEffectiveResistance, setThreat } from './combat-core.js';
 import { rollD20 } from '../shared.js';
 
 /**
- * Rat types that can be summoned by the Rat King
+ * Summonable enemy types - pulled from canonical specialCards data.
+ * These getters ensure summoned enemies always match the card pool definitions.
  */
-const RAT_TYPES = [
-    {
-        name: "Sewer Rat", type: "enemy", health: 6, maxHealth: 6, icon: "🐀",
-        imageUrl: '/assets/sewer-rat.jpg',
-        attackTable: [
-            { range: [1, 3], action: 'miss', message: "Miss!" },
-            { range: [4, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Bite! Deals 2 Physical Damage!" }
-        ],
-        // Loot Table: Roll D20 on kill
-        lootTable: [
-            { range: [1, 5], items: ["Rat Meat"] },
-            { range: [6, 10], items: ["Rat Meat", "Rat Eye"] },
-            { range: [11, 15], items: ["Rat Meat", "Rat Tail"] },
-            { range: [16, 19], items: ["Rat Meat", "Rat Tail", "Rat Eye"] },
-            { range: [20, 20], items: ["Rat Meat", "Rat Tail", "Rat Eye", "Rat Eye"] }
-        ]
-    },
-    {
-        name: "Plague Rat", type: "enemy", health: 10, maxHealth: 10, icon: "🐀",
-        imageUrl: '/assets/plague-rat.jpg',
-        attackTable: [
-            { range: [1, 3], action: 'miss', message: "Miss!" },
-            { range: [4, 14], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Maul! Deals 3 Physical Damage!" },
-            { range: [15, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Infectious Bite! Deals 2 Nature Damage and Poisons!" }
-        ],
-        // Loot Table: Roll D20 on kill
-        lootTable: [
-            { range: [1, 5], items: ["Rat Meat"] },
-            { range: [6, 10], items: ["Rat Meat", "Rat Eye"] },
-            { range: [11, 15], items: ["Rat Meat", "Rat Tail"] },
-            { range: [16, 19], items: ["Rat Meat", "Rat Tail", "Plague Essence"] },
-            { range: [20, 20], items: ["Rat Meat", "Rat Tail", "Plague Essence", "Plague Essence"] }
-        ]
-    }
-];
+function getRatTypes() {
+    return [gameData.specialCards.sewerRat, gameData.specialCards.plagueRat];
+}
 
-/**
- * Goblin types that can be spawned by Gorbon - matches full card pool definitions
- */
-const GOBLIN_TYPES = [
-    {
-        name: "Goblin Warrior",
-        type: "enemy",
-        health: 10,
-        maxHealth: 10,
-        description: "A brutish goblin warrior.",
-        icon: "👺",
-        imageUrl: '/assets/goblincaves-warrior.jpg',
-        attackTable: [
-            { range: [1, 3], action: 'miss', message: "The warrior swings wildly. Miss!" },
-            { range: [4, 12], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Brutal Swing! Deals 4 Physical Damage!" },
-            { range: [13, 17], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Headbutt! Deals 3 Physical Damage and Dazes!" },
-            { range: [18, 20], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', message: "Overhead Smash! Deals 5 Physical Damage!" }
-        ],
-        reactions: [
-            {
-                name: "Parry",
-                cooldown: 2,
-                triggerOn: "melee",
-                roll: 11,
-                damage: 3,
-                damageType: "Physical",
-                message: "The Goblin Warrior parries and counter-attacks!"
-            }
-        ],
-        // Loot Table: Roll D20 on kill
-        lootTable: [
-            { range: [1, 5], gold: { min: 1, max: 3 }, fromCategory: "T1 Material" },
-            { range: [6, 10], gold: { min: 2, max: 5 }, fromCategory: "T2 Material" },
-            { range: [11, 15], gold: { min: 3, max: 8 }, fromCategories: ["T1 Weapon", "T1 Equipment"] },
-            { range: [16, 19], gold: { min: 5, max: 10 }, items: ["Thread", "Whetstone"] },
-            { range: [20, 20], gold: { min: 8, max: 15 }, items: ["Warrior's Cleaver", "Whetstone"] }
-        ]
-    },
-    {
-        name: "Goblin Archer",
-        type: "enemy",
-        health: 8,
-        maxHealth: 8,
-        description: "A sneaky goblin archer.",
-        icon: "👺",
-        imageUrl: '/assets/goblincaves-archer.jpg',
-        attackTable: [
-            { range: [1, 3], action: 'miss', message: "The arrow whizzes past. Miss!" },
-            { range: [4, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Physical', message: "Barbed Arrow! Deals 3 Physical Damage!" },
-            { range: [13, 17], action: 'attack', attackRange: 'ranged', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Serrated Arrow! Deals 2 Physical Damage and causes Bleed!" },
-            { range: [18, 20], action: 'attack', attackRange: 'ranged', damage: 4, damageType: 'Physical', debuff: { type: 'trap', duration: 1 }, message: "Net Trap! Deals 4 Physical Damage and Traps you!" }
-        ],
-        reactions: [
-            {
-                name: "Evasive Shot",
-                cooldown: 2,
-                triggerOn: ["melee", "ranged"],
-                roll: 11,
-                damage: 3,
-                damageType: "Physical",
-                message: "The Archer dodges and fires a quick shot!"
-            }
-        ],
-        // Loot Table: Roll D20 on kill
-        lootTable: [
-            { range: [1, 5], gold: { min: 1, max: 3 }, fromCategory: "T1 Material" },
-            { range: [6, 10], gold: { min: 2, max: 5 }, fromCategory: "T2 Material" },
-            { range: [11, 15], gold: { min: 3, max: 8 }, fromCategories: ["T1 Weapon", "T1 Equipment"] },
-            { range: [16, 19], gold: { min: 5, max: 10 }, items: ["Thread", "Feather"] },
-            { range: [20, 20], gold: { min: 8, max: 15 }, items: ["Archer's Shortbow", "Feather"] }
-        ]
-    },
-    {
-        name: "Goblin Shaman",
-        type: "enemy",
-        health: 8,
-        maxHealth: 8,
-        description: "A mystical goblin shaman.",
-        icon: "👺",
-        imageUrl: '/assets/goblincaves-shaman.jpg',
-        attackTable: [
-            { range: [1, 3], action: 'miss', message: "The Shaman's hex fizzles. Miss!" },
-            { range: [4, 12], action: 'attack', attackRange: 'ranged', isMagic: true, damage: 3, damageType: 'Nature', message: "Hex! Deals 3 Nature Damage!" },
-            { range: [13, 17], action: 'attack', attackRange: 'ranged', isMagic: true, damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Toxic Curse! Deals 2 Nature Damage and Poisons!" },
-            { range: [18, 20], action: 'special', isMagic: true, message: "The Shaman chants and heals an ally!" }
-        ],
-        reactions: [
-            {
-                name: "Hex Ward",
-                cooldown: 2,
-                triggerOn: "magic",
-                roll: 11,
-                blockAmount: 3,
-                message: "The Shaman's ward absorbs the magic!"
-            }
-        ],
-        // Loot Table: Roll D20 on kill
-        lootTable: [
-            { range: [1, 5], gold: { min: 1, max: 5 }, fromCategory: "T1 Material" },
-            { range: [6, 10], gold: { min: 3, max: 8 }, fromCategory: "T2 Material" },
-            { range: [11, 15], gold: { min: 5, max: 10 }, fromCategories: ["T1 Weapon", "T1 Equipment"] },
-            { range: [16, 19], gold: { min: 5, max: 15 }, items: ["Thread", "Magic Essence"] },
-            { range: [20, 20], gold: { min: 10, max: 20 }, items: ["Shaman's Fetish", "Magic Essence"] }
-        ]
-    }
-];
+function getGoblinTypes() {
+    return [gameData.specialCards.goblinWarrior, gameData.specialCards.goblinArcher, gameData.specialCards.goblinShaman];
+}
+
 
 /**
  * Handler result type:
@@ -166,7 +33,8 @@ const GOBLIN_TYPES = [
 
 // --- RAT KING HANDLERS ---
 function handleRatKingSummon(enemy, sharedState, target, attack, ctx) {
-    const randomRat = RAT_TYPES[Math.floor(Math.random() * RAT_TYPES.length)];
+    const ratTypes = getRatTypes();
+    const randomRat = ratTypes[Math.floor(Math.random() * ratTypes.length)];
 
     // First try empty slots, then overlay non-enemy cards (but NOT other enemies)
     let spawnIndex = sharedState.zoneCards.findIndex(c => c === null);
@@ -224,7 +92,8 @@ function handleGorbonRally(enemy, sharedState, target, attack, ctx) {
         }
 
         if (spawnIndex !== -1) {
-            const randomGoblin = GOBLIN_TYPES[Math.floor(Math.random() * GOBLIN_TYPES.length)];
+            const goblinTypes = getGoblinTypes();
+            const randomGoblin = goblinTypes[Math.floor(Math.random() * goblinTypes.length)];
             const newGoblin = {
                 ...randomGoblin,
                 type: 'enemy',
@@ -416,7 +285,7 @@ function handleVexorTaunt(enemy, sharedState, target, attack, ctx) {
     const sortedPlayers = [...sharedState.partyMemberStates].filter(p => !p.isDead).sort((a, b) => (a.threat || 0) - (b.threat || 0));
     if (sortedPlayers.length > 0) {
         const targetPlayer = sortedPlayers[0];
-        targetPlayer.threat = 10;
+        setThreat(targetPlayer, 10);
         sharedState.log.push({ message: `${targetPlayer.name} is taunted! Threat increased to 10!`, type: 'info' });
     }
     return { handled: true };
@@ -840,7 +709,7 @@ function handleRhinoClearThreat(enemy, sharedState, target, attack, ctx) {
             const damage = Math.max(1, (5 + (enemy.arenaDamageBonus || 0)) - resistance);
             applyDamage(targetPlayer, damage);
             
-            targetPlayer.threat = 0;
+            setThreat(targetPlayer, 0);
             
             sharedState.log.push({ message: `BB Rhino slams ${targetPlayer.name} for ${damage} Physical damage and removes all their threat!`, type: 'damage' });
             if (targetPlayer.health <= 0) { targetPlayer.isDead = true; targetPlayer.health = 0; }

@@ -703,8 +703,8 @@ export const cardPools = {
                     }
                 ],
                 attackTable: [
-                    { range: [1, 3], action: 'miss', message: "Miss!" },
-                    { range: [4, 7], action: 'attack', attackRange: 'ranged', damage: 5, damageType: 'Fire', message: "Bomb Toss! Deals 5 Fire Damage!" },
+                    { range: [1, 2], action: 'miss', message: "Miss!" },
+                    { range: [3, 7], action: 'attack', attackRange: 'ranged', damage: 5, damageType: 'Fire', message: "Bomb Toss! Deals 5 Fire Damage!" },
                     { range: [8, 12], action: 'attack', attackRange: 'ranged', damage: 5, damageType: 'Arcane', debuff: { type: 'daze', duration: 2 }, message: "Flash Bang! Deals 5 Arcane Damage and Dazes you!" },
                     { range: [13, 15], action: 'special', message: "A Quick Fix! Pulvis Cadus heals and repairs his chassis." },
                     { range: [16, 20], action: 'special', message: "Pulvis Cadus throws out some unstable kegs!" }
@@ -1009,6 +1009,137 @@ export const cardPools = {
 };
 
 export const specialCards = {
+    // --- Summonable Enemies (used by boss handlers, must stay in sync with card pool) ---
+    sewerRat: {
+        name: "Sewer Rat", type: "enemy", health: 6, maxHealth: 6, icon: "🐀",
+        imageUrl: '/assets/sewer-rat.jpg',
+        attackTable: [
+            { range: [1, 3], action: 'miss', message: "Miss!" },
+            { range: [4, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Physical', message: "Bite! Deals 2 Physical Damage!" }
+        ],
+        guaranteedLoot: { items: ["Rat Meat"] },
+        lootTable: [
+            { range: [1, 10], items: ["Rat Tail"] },
+            { range: [11, 15], items: ["Rat Tail", "Rat Eye"] },
+            { range: [16, 19], items: ["Rat Tail", "Rat Eye", "Rat Eye"] },
+            { range: [20, 20], items: ["Rat Tail", "Rat Eye", "Rat Eye", "Rat Meat"] }
+        ]
+    },
+    plagueRat: {
+        name: "Plague Rat", type: "enemy", health: 10, maxHealth: 10, icon: "🐀",
+        imageUrl: '/assets/plague-rat.jpg',
+        attackTable: [
+            { range: [1, 3], action: 'miss', message: "Miss!" },
+            { range: [4, 14], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', message: "Maul! Deals 3 Physical Damage!" },
+            { range: [15, 20], action: 'attack', attackRange: 'melee', damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Infectious Bite! Deals 2 Nature Damage and Poisons!" }
+        ],
+        guaranteedLoot: { items: ["Rat Meat", "Rat Tail"] },
+        lootTable: [
+            { range: [1, 10], items: ["Rat Eye"] },
+            { range: [11, 15], items: ["Rat Eye", "Rat Tail"] },
+            { range: [16, 19], items: ["Rat Tail", "Plague Essence"] },
+            { range: [20, 20], items: ["Plague Essence", "Plague Essence"] }
+        ]
+    },
+    goblinWarrior: {
+        name: "Goblin Warrior",
+        type: "enemy",
+        health: 7,
+        maxHealth: 7,
+        description: "A brutish goblin warrior.",
+        icon: "👺",
+        imageUrl: '/assets/goblincaves-warrior.jpg',
+        attackTable: [
+            { range: [1, 3], action: 'miss', message: "The warrior swings wildly. Miss!" },
+            { range: [4, 12], action: 'attack', attackRange: 'melee', damage: 4, damageType: 'Physical', message: "Brutal Swing! Deals 4 Physical Damage!" },
+            { range: [13, 17], action: 'attack', attackRange: 'melee', damage: 3, damageType: 'Physical', debuff: { type: 'daze', duration: 2 }, message: "Headbutt! Deals 3 Physical Damage and Dazes!" },
+            { range: [18, 20], action: 'attack', attackRange: 'melee', damage: 5, damageType: 'Physical', message: "Overhead Smash! Deals 5 Physical Damage!" }
+        ],
+        reactions: [
+            {
+                name: "Parry",
+                cooldown: 2,
+                triggerOn: "melee",
+                roll: 11,
+                damage: 3,
+                damageType: "Physical",
+                message: "The Goblin Warrior parries and counter-attacks!"
+            }
+        ],
+        guaranteedLoot: { gold: { min: 1, max: 20 } },
+        lootTable: [
+            { range: [1, 10], fromCategory: "T1 Material" },
+            { range: [11, 15], fromCategories: ["T1 Weapon", "T1 Equipment"] },
+            { range: [16, 19], items: ["Thread", "Whetstone"] },
+            { range: [20, 20], items: ["Warrior's Cleaver", "Whetstone"] }
+        ]
+    },
+    goblinArcher: {
+        name: "Goblin Archer",
+        type: "enemy",
+        health: 6,
+        maxHealth: 6,
+        description: "A sneaky goblin archer.",
+        icon: "👺",
+        imageUrl: '/assets/goblincaves-archer.jpg',
+        attackTable: [
+            { range: [1, 3], action: 'miss', message: "The arrow whizzes past. Miss!" },
+            { range: [4, 12], action: 'attack', attackRange: 'ranged', damage: 3, damageType: 'Physical', message: "Barbed Arrow! Deals 3 Physical Damage!" },
+            { range: [13, 17], action: 'attack', attackRange: 'ranged', damage: 2, damageType: 'Physical', debuff: { type: 'bleed', duration: 2, damage: 1, damageType: 'Physical' }, message: "Serrated Arrow! Deals 2 Physical Damage and causes Bleed!" },
+            { range: [18, 20], action: 'attack', attackRange: 'ranged', damage: 4, damageType: 'Physical', debuff: { type: 'trap', duration: 1 }, message: "Net Trap! Deals 4 Physical Damage and Traps you!" }
+        ],
+        reactions: [
+            {
+                name: "Evasive Shot",
+                cooldown: 2,
+                triggerOn: ["melee", "ranged"],
+                roll: 11,
+                damage: 3,
+                damageType: "Physical",
+                message: "The Archer dodges and fires a quick shot!"
+            }
+        ],
+        guaranteedLoot: { gold: { min: 1, max: 20 } },
+        lootTable: [
+            { range: [1, 10], fromCategory: "T1 Material" },
+            { range: [11, 15], fromCategories: ["T1 Weapon", "T1 Equipment"] },
+            { range: [16, 19], items: ["Thread", "Feather"] },
+            { range: [20, 20], items: ["Archer's Shortbow", "Feather"] }
+        ]
+    },
+    goblinShaman: {
+        name: "Goblin Shaman",
+        type: "enemy",
+        health: 6,
+        maxHealth: 6,
+        description: "A mystical goblin shaman.",
+        icon: "👺",
+        imageUrl: '/assets/goblincaves-shaman.jpg',
+        attackTable: [
+            { range: [1, 3], action: 'miss', message: "The Shaman's hex fizzles. Miss!" },
+            { range: [4, 12], action: 'attack', attackRange: 'ranged', isMagic: true, damage: 3, damageType: 'Nature', message: "Hex! Deals 3 Nature Damage!" },
+            { range: [13, 17], action: 'attack', attackRange: 'ranged', isMagic: true, damage: 2, damageType: 'Nature', debuff: { type: 'poison', duration: 2, damage: 1, damageType: 'Nature' }, message: "Toxic Curse! Deals 2 Nature Damage and Poisons!" },
+            { range: [18, 20], action: 'special', isMagic: true, message: "The Shaman chants and heals an ally!" }
+        ],
+        reactions: [
+            {
+                name: "Hex Ward",
+                cooldown: 2,
+                triggerOn: "magic",
+                roll: 11,
+                blockAmount: 3,
+                message: "The Shaman's ward absorbs the magic!"
+            }
+        ],
+        guaranteedLoot: { gold: { min: 1, max: 20 } },
+        lootTable: [
+            { range: [1, 10], fromCategory: "T1 Material" },
+            { range: [11, 15], fromCategories: ["T1 Weapon", "T1 Equipment"] },
+            { range: [16, 19], items: ["Thread", "Magic Essence"] },
+            { range: [20, 20], items: ["Shaman's Fetish", "Magic Essence"] }
+        ]
+    },
+    // --- Arena & Boss Special Cards ---
     powderKeg: {
         name: "Powder Keg", type: "enemy", health: 6, maxHealth: 6, description: "It's fizzing ominously.", charges: 0, icon: "💣", imageUrl: '/assets/powder-keg.jpg',
         attackTable: [
