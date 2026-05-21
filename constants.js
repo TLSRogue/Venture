@@ -23,7 +23,7 @@ export const BRIBE_CAPTAIN_COST = 1000;
 export const DEFAULT_ACTION_POINTS = 3;
 export const DEFAULT_HIT_TARGET = 15;
 export const RESOURCE_HIT_TARGET = 11;
-export const BOSS_HP_SCALE_PER_PLAYER = 0.20; // +20% per additional player
+export const BOSS_HP_SCALE_PER_PLAYER = 0.2; // +20% per additional player
 
 // Starting Character Stats
 export const STARTING_HEALTH = 10;

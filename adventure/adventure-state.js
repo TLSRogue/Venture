@@ -4,25 +4,53 @@ import { players, parties, pvpZoneQueues, pvpEncounters } from '../serverState.j
 import { gameData, lootPools } from '../data/index.js';
 import { rollD20 } from '../shared.js';
 import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
-import { getBonusStatsForPlayer, addItemToInventoryServer, drawCardsForServer, createStateForClient, getZoneAreaCard } from '../utilsHelpers.js';
-import { applyDamage, applyDoTEffects, applyChillStack, processChillReduction, getAvailablePlayerReactions, processEndOfTurnEffects, processRejuvenateHealing, getEffectiveResistance, modifyThreat, setThreat } from './combat-core.js';
-import { PVP_TURN_DURATION_MS, PVE_TURN_DURATION_MS, LOOT_ROLL_DURATION_MS, REACTION_TIMER_MS, PVP_QUEUE_TIMEOUT_MS, INTERVENE_TIMER_MS, INVENTORY_SIZE, DEFAULT_ACTION_POINTS, STARTING_HEALTH, ARENA_HP_SCALE_PER_ROUND, ARENA_DAMAGE_BONUS_PER_ROUND, ARENA_CHEST_BASE_GOLD, ARENA_CHEST_GOLD_PER_ROUND } from '../constants.js';
+import {
+  getBonusStatsForPlayer,
+  addItemToInventoryServer,
+  drawCardsForServer,
+  createStateForClient,
+  getZoneAreaCard,
+} from '../utilsHelpers.js';
+import {
+  applyDamage,
+  applyDoTEffects,
+  applyChillStack,
+  processChillReduction,
+  getAvailablePlayerReactions,
+  processEndOfTurnEffects,
+  processRejuvenateHealing,
+  getEffectiveResistance,
+  modifyThreat,
+  setThreat,
+} from './combat-core.js';
+import {
+  PVP_TURN_DURATION_MS,
+  PVE_TURN_DURATION_MS,
+  LOOT_ROLL_DURATION_MS,
+  REACTION_TIMER_MS,
+  PVP_QUEUE_TIMEOUT_MS,
+  INTERVENE_TIMER_MS,
+  INVENTORY_SIZE,
+  DEFAULT_ACTION_POINTS,
+  STARTING_HEALTH,
+  ARENA_HP_SCALE_PER_ROUND,
+  ARENA_DAMAGE_BONUS_PER_ROUND,
+  ARENA_CHEST_BASE_GOLD,
+  ARENA_CHEST_GOLD_PER_ROUND,
+} from '../constants.js';
 import { spawnArenaBoss } from '../handlersAdventure.js';
 import * as PartyManager from '../party/party-manager.js';
 import { processEnemyEndOfTurn, handleEnemySpecialAction } from './enemy-handlers.js';
 import {
-    handlePvpPlayerDeath,
-    checkPvpWinCondition,
-    endPvpEncounter,
-    endDuelEncounter,
-    startPvpEncounter,
-    startNextPvpTurn,
-    processPvpPlayerEndTurn
+  handlePvpPlayerDeath,
+  checkPvpWinCondition,
+  endPvpEncounter,
+  endDuelEncounter,
+  startPvpEncounter,
+  startNextPvpTurn,
+  processPvpPlayerEndTurn,
 } from './pvp-state.js';
-import {
-    determineLootWinnerAndDistribute,
-    processNextLootRoll
-} from './loot-manager.js';
+import { determineLootWinnerAndDistribute, processNextLootRoll } from './loot-manager.js';
 
 const PVP_ZONES = ['blighted_wastes'];
 
@@ -30,48 +58,57 @@ const PVP_ZONES = ['blighted_wastes'];
  * Helper function to proceed to normal reaction after intervene phase is complete.
  * Called either when no one intervenes or after intervene roll fails.
  */
-function proceedToNormalReaction(io, party, targetPlayerState, availableReactions, attack, enemy, enemyIndex, isFleeing) {
-    const { sharedState } = party;
+function proceedToNormalReaction(
+  io,
+  party,
+  targetPlayerState,
+  availableReactions,
+  attack,
+  enemy,
+  enemyIndex,
+  isFleeing
+) {
+  const { sharedState } = party;
 
-    // Clear intervene state
-    if (sharedState.interveneTimeout) {
-        clearTimeout(sharedState.interveneTimeout);
-        sharedState.interveneTimeout = null;
+  // Clear intervene state
+  if (sharedState.interveneTimeout) {
+    clearTimeout(sharedState.interveneTimeout);
+    sharedState.interveneTimeout = null;
+  }
+  sharedState.pendingIntervene = null;
+
+  // Set up normal reaction
+  sharedState.pendingReaction = {
+    attackerName: enemy.name,
+    attackerIndex: enemyIndex,
+    targetName: targetPlayerState.name,
+    damage: attack.damage,
+    damageType: attack.damageType,
+    attackRange: attack.attackRange || 'melee',
+    debuff: attack.debuff || null,
+    message: attack.message,
+    isFleeing: isFleeing,
+    endOfTurnProcessed: true,
+  };
+
+  const reactionPayload = {
+    damage: attack.damage,
+    attacker: enemy.name,
+    attackMessage: attack.message,
+    availableReactions: availableReactions.map((r) => ({ name: r.name })),
+    timer: REACTION_TIMER_MS,
+  };
+
+  io.to(targetPlayerState.playerId).emit('party:requestReaction', reactionPayload);
+  party.reactionTimeout = setTimeout(() => {
+    const playerSocket = io.sockets.sockets.get(targetPlayerState.playerId);
+    if (playerSocket) {
+      // Use the handleResolveReaction function defined in this file
+      handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
     }
-    sharedState.pendingIntervene = null;
+  }, REACTION_TIMER_MS);
 
-    // Set up normal reaction
-    sharedState.pendingReaction = {
-        attackerName: enemy.name,
-        attackerIndex: enemyIndex,
-        targetName: targetPlayerState.name,
-        damage: attack.damage,
-        damageType: attack.damageType,
-        attackRange: attack.attackRange || 'melee',
-        debuff: attack.debuff || null,
-        message: attack.message,
-        isFleeing: isFleeing,
-        endOfTurnProcessed: true
-    };
-
-    const reactionPayload = {
-        damage: attack.damage,
-        attacker: enemy.name,
-        attackMessage: attack.message,
-        availableReactions: availableReactions.map(r => ({ name: r.name })),
-        timer: REACTION_TIMER_MS
-    };
-
-    io.to(targetPlayerState.playerId).emit('party:requestReaction', reactionPayload);
-    party.reactionTimeout = setTimeout(() => {
-        const playerSocket = io.sockets.sockets.get(targetPlayerState.playerId);
-        if (playerSocket) {
-            // Use the handleResolveReaction function defined in this file
-            handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
-        }
-    }, REACTION_TIMER_MS);
-
-    broadcastAdventureUpdate(io, party);
+  broadcastAdventureUpdate(io, party);
 }
 
 /**
@@ -81,856 +118,947 @@ function proceedToNormalReaction(io, party, targetPlayerState, availableReaction
  * @param {Object} payload - { accept: boolean }
  */
 export async function resolveIntervene(io, socket, payload) {
-    const name = socket.characterName;
-    const player = players[name];
-    if (!player?.character?.partyId) return;
+  const name = socket.characterName;
+  const player = players[name];
+  if (!player?.character?.partyId) return;
 
-    const party = parties[player.character.partyId];
-    if (!party?.sharedState?.pendingIntervene) return;
+  const party = parties[player.character.partyId];
+  if (!party?.sharedState?.pendingIntervene) return;
 
-    const { sharedState } = party;
-    const interveneData = sharedState.pendingIntervene;
+  const { sharedState } = party;
+  const interveneData = sharedState.pendingIntervene;
 
-    // Verify this player is a potential intervenor
-    if (!interveneData.potentialIntervenors.includes(name)) return;
+  // Verify this player is a potential intervenor
+  if (!interveneData.potentialIntervenors.includes(name)) return;
 
-    // Mark as responded
-    if (!interveneData.respondedIntervenors.includes(name)) {
-        interveneData.respondedIntervenors.push(name);
+  // Mark as responded
+  if (!interveneData.respondedIntervenors.includes(name)) {
+    interveneData.respondedIntervenors.push(name);
+  }
+
+  const intervenorState = sharedState.partyMemberStates.find((p) => p.name === name);
+  if (!intervenorState || intervenorState.isDead) return;
+
+  if (payload.accept) {
+    // Clear the timeout since someone is intervening
+    if (sharedState.interveneTimeout) {
+      clearTimeout(sharedState.interveneTimeout);
+      sharedState.interveneTimeout = null;
     }
 
-    const intervenorState = sharedState.partyMemberStates.find(p => p.name === name);
-    if (!intervenorState || intervenorState.isDead) return;
+    // Get intervene spell
+    const interveneSpell = player.character.equippedSpells.find((s) => s.isIntervene);
+    if (!interveneSpell) return;
 
-    if (payload.accept) {
-        // Clear the timeout since someone is intervening
-        if (sharedState.interveneTimeout) {
-            clearTimeout(sharedState.interveneTimeout);
-            sharedState.interveneTimeout = null;
-        }
+    // Put spell on cooldown
+    intervenorState.spellCooldowns[interveneSpell.name] = interveneSpell.cooldown;
 
-        // Get intervene spell
-        const interveneSpell = player.character.equippedSpells.find(s => s.isIntervene);
-        if (!interveneSpell) return;
+    // Roll for intervene success
+    const bonuses = getBonusStatsForPlayer(player.character, intervenorState);
+    const defenseValue = player.character.defense + (bonuses.defense || 0);
+    const roll = rollD20();
+    const total = roll + defenseValue;
+    const isSuccess = roll !== 1 && total >= interveneSpell.hit;
 
-        // Put spell on cooldown
-        intervenorState.spellCooldowns[interveneSpell.name] = interveneSpell.cooldown;
+    const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
+    const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
 
-        // Roll for intervene success
-        const bonuses = getBonusStatsForPlayer(player.character, intervenorState);
-        const defenseValue = player.character.defense + (bonuses.defense || 0);
-        const roll = rollD20();
-        const total = roll + defenseValue;
-        const isSuccess = roll !== 1 && total >= interveneSpell.hit;
+    if (roll === 1) {
+      // Critical failure - intervenor takes damage, no second reaction
+      sharedState.log.push({ message: `${name}'s Intervene: ${rollDisplay} Critical Failure!`, type: 'damage' });
 
-        const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
-        const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+      const damageToDeal = interveneData.damage;
+      applyDamage(intervenorState, damageToDeal);
 
-        if (roll === 1) {
-            // Critical failure - intervenor takes damage, no second reaction
-            sharedState.log.push({ message: `${name}'s Intervene: ${rollDisplay} Critical Failure!`, type: 'damage' });
+      sharedState.log.push({
+        message: `${interveneData.attackerName} ${interveneData.message} ${name} intercepts but takes ${damageToDeal} damage! [id:${intervenorState.playerId}]`,
+        type: 'damage',
+      });
 
-            const damageToDeal = interveneData.damage;
-            applyDamage(intervenorState, damageToDeal);
+      if (intervenorState.health <= 0) {
+        intervenorState.isDead = true;
+        intervenorState.lootableInventory = [...player.character.inventory.filter(Boolean)];
+        player.character.inventory = Array(INVENTORY_SIZE).fill(null);
+        io.to(player.id).emit('characterUpdate', player.character);
+        sharedState.log.push({ message: `${name} has been defeated!`, type: 'damage' });
+      }
 
-            sharedState.log.push({
-                message: `${interveneData.attackerName} ${interveneData.message} ${name} intercepts but takes ${damageToDeal} damage! [id:${intervenorState.playerId}]`,
-                type: 'damage'
-            });
+      sharedState.pendingIntervene = null;
 
-            if (intervenorState.health <= 0) {
-                intervenorState.isDead = true;
-                intervenorState.lootableInventory = [...player.character.inventory.filter(Boolean)];
-                player.character.inventory = Array(INVENTORY_SIZE).fill(null);
-                io.to(player.id).emit('characterUpdate', player.character);
-                sharedState.log.push({ message: `${name} has been defeated!`, type: 'damage' });
-            }
+      // Continue enemy phase
+      const lastAttackerIndex = interveneData.attackerIndex;
+      const enemies = sharedState.zoneCards
+        .map((c, i) => ({ card: c, index: i }))
+        .filter((e) => e.card && e.card.type === 'enemy');
+      const lastEnemyListIndex = enemies.findIndex((e) => e.index === lastAttackerIndex);
 
-            sharedState.pendingIntervene = null;
+      broadcastAdventureUpdate(io, party);
+      await runEnemyPhaseForParty(io, party.id, false, lastEnemyListIndex + 1);
+    } else if (isSuccess) {
+      // Success - intervenor becomes new target and gets their own reactions
+      sharedState.log.push({
+        message: `${name}'s Intervene: ${rollDisplay} Success! Intercepting attack!`,
+        type: 'success',
+      });
 
-            // Continue enemy phase
-            const lastAttackerIndex = interveneData.attackerIndex;
-            const enemies = sharedState.zoneCards.map((c, i) => ({ card: c, index: i })).filter(e => e.card && e.card.type === 'enemy');
-            const lastEnemyListIndex = enemies.findIndex(e => e.index === lastAttackerIndex);
+      // Build available reactions for the intervenor
+      const newAvailableReactions = [];
 
-            broadcastAdventureUpdate(io, party);
-            await runEnemyPhaseForParty(io, party.id, false, lastEnemyListIndex + 1);
+      // Check for dodge
+      const dodgeSpell = player.character.equippedSpells.find((s) => s.name === 'Dodge');
+      if (dodgeSpell && (intervenorState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
+        newAvailableReactions.push({ name: 'Dodge' });
+      }
 
-        } else if (isSuccess) {
-            // Success - intervenor becomes new target and gets their own reactions
-            sharedState.log.push({ message: `${name}'s Intervene: ${rollDisplay} Success! Intercepting attack!`, type: 'success' });
+      // Check for block
+      const shield = player.character.equipment.offHand;
+      if (
+        shield &&
+        shield.type === 'shield' &&
+        shield.reaction &&
+        (intervenorState.itemCooldowns[shield.name] || 0) <= 0
+      ) {
+        newAvailableReactions.push({ name: 'Block' });
+      }
 
-            // Build available reactions for the intervenor
-            const newAvailableReactions = [];
+      // Clear intervene state
+      sharedState.pendingIntervene = null;
 
-            // Check for dodge
-            const dodgeSpell = player.character.equippedSpells.find(s => s.name === "Dodge");
-            if (dodgeSpell && (intervenorState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
-                newAvailableReactions.push({ name: 'Dodge' });
-            }
-
-            // Check for block
-            const shield = player.character.equipment.offHand;
-            if (shield && shield.type === 'shield' && shield.reaction && (intervenorState.itemCooldowns[shield.name] || 0) <= 0) {
-                newAvailableReactions.push({ name: 'Block' });
-            }
-
-            // Clear intervene state
-            sharedState.pendingIntervene = null;
-
-            // Set up reaction for the intervenor as the new target
-            const enemy = sharedState.zoneCards[interveneData.attackerIndex];
-            proceedToNormalReaction(io, party, intervenorState, newAvailableReactions,
-                { damage: interveneData.damage, damageType: interveneData.damageType, attackRange: interveneData.attackRange, debuff: interveneData.debuff, message: interveneData.message },
-                enemy, interveneData.attackerIndex, interveneData.isFleeing);
-
-        } else {
-            // Failed roll - intervenor takes full damage with no second reaction
-            sharedState.log.push({ message: `${name}'s Intervene: ${rollDisplay} Failed!`, type: 'damage' });
-
-            const damageToDeal = interveneData.damage;
-            applyDamage(intervenorState, damageToDeal);
-
-            sharedState.log.push({
-                message: `${interveneData.attackerName} ${interveneData.message} ${name} intercepts but takes ${damageToDeal} damage! [id:${intervenorState.playerId}]`,
-                type: 'damage'
-            });
-
-            if (intervenorState.health <= 0) {
-                intervenorState.isDead = true;
-                intervenorState.lootableInventory = [...player.character.inventory.filter(Boolean)];
-                player.character.inventory = Array(INVENTORY_SIZE).fill(null);
-                io.to(player.id).emit('characterUpdate', player.character);
-                sharedState.log.push({ message: `${name} has been defeated!`, type: 'damage' });
-            }
-
-            sharedState.pendingIntervene = null;
-
-            // Continue enemy phase
-            const lastAttackerIndex = interveneData.attackerIndex;
-            const enemies = sharedState.zoneCards.map((c, i) => ({ card: c, index: i })).filter(e => e.card && e.card.type === 'enemy');
-            const lastEnemyListIndex = enemies.findIndex(e => e.index === lastAttackerIndex);
-
-            broadcastAdventureUpdate(io, party);
-            await runEnemyPhaseForParty(io, party.id, false, lastEnemyListIndex + 1);
-        }
+      // Set up reaction for the intervenor as the new target
+      const enemy = sharedState.zoneCards[interveneData.attackerIndex];
+      proceedToNormalReaction(
+        io,
+        party,
+        intervenorState,
+        newAvailableReactions,
+        {
+          damage: interveneData.damage,
+          damageType: interveneData.damageType,
+          attackRange: interveneData.attackRange,
+          debuff: interveneData.debuff,
+          message: interveneData.message,
+        },
+        enemy,
+        interveneData.attackerIndex,
+        interveneData.isFleeing
+      );
     } else {
-        // Declined - check if all potential intervenors have responded
-        const allResponded = interveneData.potentialIntervenors.every(name =>
-            interveneData.respondedIntervenors.includes(name)
-        );
+      // Failed roll - intervenor takes full damage with no second reaction
+      sharedState.log.push({ message: `${name}'s Intervene: ${rollDisplay} Failed!`, type: 'damage' });
 
-        if (allResponded) {
-            // Everyone declined - proceed to normal target
-            const originalTargetState = sharedState.partyMemberStates.find(p => p.name === interveneData.originalTargetName);
-            const enemy = sharedState.zoneCards[interveneData.attackerIndex];
+      const damageToDeal = interveneData.damage;
+      applyDamage(intervenorState, damageToDeal);
 
-            proceedToNormalReaction(io, party, originalTargetState, interveneData.availableReactions,
-                { damage: interveneData.damage, damageType: interveneData.damageType, attackRange: interveneData.attackRange, debuff: interveneData.debuff, message: interveneData.message },
-                enemy, interveneData.attackerIndex, interveneData.isFleeing);
-        }
+      sharedState.log.push({
+        message: `${interveneData.attackerName} ${interveneData.message} ${name} intercepts but takes ${damageToDeal} damage! [id:${intervenorState.playerId}]`,
+        type: 'damage',
+      });
+
+      if (intervenorState.health <= 0) {
+        intervenorState.isDead = true;
+        intervenorState.lootableInventory = [...player.character.inventory.filter(Boolean)];
+        player.character.inventory = Array(INVENTORY_SIZE).fill(null);
+        io.to(player.id).emit('characterUpdate', player.character);
+        sharedState.log.push({ message: `${name} has been defeated!`, type: 'damage' });
+      }
+
+      sharedState.pendingIntervene = null;
+
+      // Continue enemy phase
+      const lastAttackerIndex = interveneData.attackerIndex;
+      const enemies = sharedState.zoneCards
+        .map((c, i) => ({ card: c, index: i }))
+        .filter((e) => e.card && e.card.type === 'enemy');
+      const lastEnemyListIndex = enemies.findIndex((e) => e.index === lastAttackerIndex);
+
+      broadcastAdventureUpdate(io, party);
+      await runEnemyPhaseForParty(io, party.id, false, lastEnemyListIndex + 1);
     }
+  } else {
+    // Declined - check if all potential intervenors have responded
+    const allResponded = interveneData.potentialIntervenors.every((name) =>
+      interveneData.respondedIntervenors.includes(name)
+    );
+
+    if (allResponded) {
+      // Everyone declined - proceed to normal target
+      const originalTargetState = sharedState.partyMemberStates.find(
+        (p) => p.name === interveneData.originalTargetName
+      );
+      const enemy = sharedState.zoneCards[interveneData.attackerIndex];
+
+      proceedToNormalReaction(
+        io,
+        party,
+        originalTargetState,
+        interveneData.availableReactions,
+        {
+          damage: interveneData.damage,
+          damageType: interveneData.damageType,
+          attackRange: interveneData.attackRange,
+          debuff: interveneData.debuff,
+          message: interveneData.message,
+        },
+        enemy,
+        interveneData.attackerIndex,
+        interveneData.isFleeing
+      );
+    }
+  }
 }
 
-
-
-
 export async function checkAndEndTurnForPlayer(io, party, player) {
-    const { sharedState } = party;
-    if (sharedState.pvpEncounterId) {
-        const encounter = pvpEncounters[sharedState.pvpEncounterId];
-        if (!encounter) return;
-        const actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
-        if (actingPlayerState && actingPlayerState.actionPoints <= 0 && !actingPlayerState.turnEnded) {
-            encounter.log.push({ message: `${player.character.characterName} is out of Action Points.`, type: 'info' });
-            // Call full end turn handler to apply DoT and decrement buffs/debuffs
-            await processPvpPlayerEndTurn(io, encounter, actingPlayerState);
-
-            const activePlayerId = encounter.turnOrder[encounter.activeTurnIndex];
-            if (activePlayerId === player.id) {
-                startNextPvpTurn(io, encounter.id);
-            }
-        }
-        return;
-    }
-    const actingPlayerState = sharedState.partyMemberStates.find(p => p.playerId === player.id);
+  const { sharedState } = party;
+  if (sharedState.pvpEncounterId) {
+    const encounter = pvpEncounters[sharedState.pvpEncounterId];
+    if (!encounter) return;
+    const actingPlayerState = encounter.playerStates.find((p) => p.playerId === player.id);
     if (actingPlayerState && actingPlayerState.actionPoints <= 0 && !actingPlayerState.turnEnded) {
-        sharedState.log.push({ message: `${player.character.characterName} is out of Action Points.`, type: 'info' });
-        // Call full end turn handler to apply DoT and decrement buffs/debuffs
-        await processPlayerEndTurn(io, party.id, actingPlayerState.name);
+      encounter.log.push({ message: `${player.character.characterName} is out of Action Points.`, type: 'info' });
+      // Call full end turn handler to apply DoT and decrement buffs/debuffs
+      await processPvpPlayerEndTurn(io, encounter, actingPlayerState);
+
+      const activePlayerId = encounter.turnOrder[encounter.activeTurnIndex];
+      if (activePlayerId === player.id) {
+        startNextPvpTurn(io, encounter.id);
+      }
     }
+    return;
+  }
+  const actingPlayerState = sharedState.partyMemberStates.find((p) => p.playerId === player.id);
+  if (actingPlayerState && actingPlayerState.actionPoints <= 0 && !actingPlayerState.turnEnded) {
+    sharedState.log.push({ message: `${player.character.characterName} is out of Action Points.`, type: 'info' });
+    // Call full end turn handler to apply DoT and decrement buffs/debuffs
+    await processPlayerEndTurn(io, party.id, actingPlayerState.name);
+  }
 }
 
 export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
-    const { sharedState } = party;
-    if (sharedState.pvpEncounterId) {
-        const encounter = pvpEncounters[sharedState.pvpEncounterId];
-        if (!encounter) return;
-        const defeatedPlayerState = encounter.playerStates.find(p => p.playerId === enemy.playerId);
-        if (defeatedPlayerState && !defeatedPlayerState.isDead) {
-            defeatedPlayerState.isDead = true;
-            const defeatedPlayerObject = players[defeatedPlayerState.name];
-            if (defeatedPlayerObject) {
-                handlePvpPlayerDeath(io, defeatedPlayerObject, encounter);
-            }
-            checkPvpWinCondition(io, encounter, defeatedPlayerState);
-        }
-        return;
+  const { sharedState } = party;
+  if (sharedState.pvpEncounterId) {
+    const encounter = pvpEncounters[sharedState.pvpEncounterId];
+    if (!encounter) return;
+    const defeatedPlayerState = encounter.playerStates.find((p) => p.playerId === enemy.playerId);
+    if (defeatedPlayerState && !defeatedPlayerState.isDead) {
+      defeatedPlayerState.isDead = true;
+      const defeatedPlayerObject = players[defeatedPlayerState.name];
+      if (defeatedPlayerObject) {
+        handlePvpPlayerDeath(io, defeatedPlayerObject, encounter);
+      }
+      checkPvpWinCondition(io, encounter, defeatedPlayerState);
     }
-    // Defeat message is now consolidated with loot drops below
+    return;
+  }
+  // Defeat message is now consolidated with loot drops below
 
-    // --- PULVIS CADUS FAILSAFE ---
-    if (enemy.name === 'Pulvis Cadus') {
-        const kegIndices = sharedState.zoneCards.map((c, i) => c && c.name === 'Powder Keg' ? i : -1).filter(i => i !== -1);
-        if (kegIndices.length > 0) {
-            sharedState.log.push({ message: `Pulvis Cadus detonates his remaining payload as he falls!`, type: 'damage' });
-            kegIndices.forEach(idx => {
-                const keg = sharedState.zoneCards[idx];
-                
-                // 4 Fire damage to all players
-                sharedState.partyMemberStates.forEach(p => {
-                    if (!p.isDead) {
-                        const playerObj = players[p.name];
-                        if (playerObj) {
-                            const bonuses = getBonusStatsForPlayer(playerObj.character, p);
-                            const resistance = getEffectiveResistance(bonuses, 'Fire');
-                            const baseDmg = 4 + (enemy.arenaDamageBonus || 0); // Keg base damage
-                            const damage = Math.max(1, baseDmg - resistance);
-                            applyDamage(p, damage);
-                            let msg = `${p.name} takes ${damage} Fire damage from an exploding keg!`;
-                            if (resistance > 0) msg += ` (${resistance} resisted)`;
-                            sharedState.log.push({ message: msg, type: 'damage' });
-                            if (p.health <= 0) {
-                                p.health = 0;
-                                p.isDead = true;
-                                sharedState.log.push({ message: `${p.name} has been defeated by the explosion!`, type: 'damage' });
-                            }
-                        }
-                    }
-                });
+  // --- PULVIS CADUS FAILSAFE ---
+  if (enemy.name === 'Pulvis Cadus') {
+    const kegIndices = sharedState.zoneCards
+      .map((c, i) => (c && c.name === 'Powder Keg' ? i : -1))
+      .filter((i) => i !== -1);
+    if (kegIndices.length > 0) {
+      sharedState.log.push({ message: `Pulvis Cadus detonates his remaining payload as he falls!`, type: 'damage' });
+      kegIndices.forEach((idx) => {
+        const keg = sharedState.zoneCards[idx];
 
-                // Remove the keg
-                if (keg.overlayedCard) {
-                    sharedState.zoneCards[idx] = { ...keg.overlayedCard, id: Date.now() + idx };
-                } else {
-                    sharedState.zoneCards[idx] = getZoneAreaCard(sharedState.currentZone);
-                }
-            });
-        }
-    }
-
-    // --- LOOT GOBLIN: Special Death Rewards ---
-    if (enemy.name === 'Loot Goblin') {
-        // Return stolen gold to party leader
-        if (enemy.stolenGold > 0) {
-            const leader = players[party.leaderId];
-            if (leader && leader.character) {
-                leader.character.gold += enemy.stolenGold;
-                sharedState.log.push({ message: `Recovered ${enemy.stolenGold}g of stolen treasure!`, type: 'success' });
-                if (leader.id) io.to(leader.id).emit('characterUpdate', leader.character);
+        // 4 Fire damage to all players
+        sharedState.partyMemberStates.forEach((p) => {
+          if (!p.isDead) {
+            const playerObj = players[p.name];
+            if (playerObj) {
+              const bonuses = getBonusStatsForPlayer(playerObj.character, p);
+              const resistance = getEffectiveResistance(bonuses, 'Fire');
+              const baseDmg = 4 + (enemy.arenaDamageBonus || 0); // Keg base damage
+              const damage = Math.max(1, baseDmg - resistance);
+              applyDamage(p, damage);
+              let msg = `${p.name} takes ${damage} Fire damage from an exploding keg!`;
+              if (resistance > 0) msg += ` (${resistance} resisted)`;
+              sharedState.log.push({ message: msg, type: 'damage' });
+              if (p.health <= 0) {
+                p.health = 0;
+                p.isDead = true;
+                sharedState.log.push({ message: `${p.name} has been defeated by the explosion!`, type: 'damage' });
+              }
             }
-        }
-
-        // Tier-based loot pools
-        const tierLootPools = {
-            1: ['Iron', 'Wood', 'Coal', 'Cow Hide', 'Healing Potion', 'Iron Sword', 'Leather Armor', 'Cloth'],
-            2: ['Steel Bar', 'Obsidian Chunk', 'Magic Essence', 'Tier 1 Gemstone', 'Iron Armor', 'Steel Armor', 'Longbow'],
-            3: ['Drake Scale', 'Gold Nugget', 'Gem of Strength', 'Gem of Agility', 'Gem of Wisdom', 'Magna Clavis', 'Gorbon\'s Crown']
-        };
-
-        const lootPool = tierLootPools[enemy.tier] || tierLootPools[1];
-        const goblinTier = enemy.tier || 1;
-
-        sharedState.log.push({ message: `The Tier ${goblinTier} Loot Goblin's sack spills open!`, type: 'success' });
-
-        // Drop 3 random items from the tier pool
-        for (let i = 0; i < 3; i++) {
-            const randomItemName = lootPool[Math.floor(Math.random() * lootPool.length)];
-            const itemData = gameData.allItems.find(item => item.name === randomItemName);
-            if (itemData) {
-                sharedState.groundLoot.push({ ...itemData, quantity: 1 });
-                sharedState.log.push({ message: `Found: ${itemData.icon || '❓'} ${itemData.name}`, type: 'success' });
-            }
-        }
-
-        // Skip normal loot processing for Loot Goblin
-        // Restore overlayed card if enemy was spawned over one, otherwise use zone area card
-        if (enemy.overlayedCard) {
-            sharedState.zoneCards[enemyIndex] = { ...enemy.overlayedCard, id: Date.now() };
-        } else {
-            sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone);
-        }
-        if (!sharedState.zoneCards.some(c => c && c.type === 'enemy')) {
-            sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = DEFAULT_ACTION_POINTS; });
-        }
-        return;
-    }
-
-    let lootToDistribute = [];
-    // --- NEW: Handle gold and traits from loot table entries ---
-    let lootTableGold = 0;
-
-    if (enemy.lootTable && enemy.lootTable.length > 0) {
-        const roll = rollD20();
-        const lootDrop = enemy.lootTable.find(entry => roll >= entry.range[0] && roll <= entry.range[1]);
-
-        if (lootDrop) {
-            // 1. Handle "gold" in loot table
-            if (lootDrop.gold) {
-                if (lootDrop.gold.min !== undefined && lootDrop.gold.max !== undefined) {
-                    lootTableGold = Math.floor(Math.random() * (lootDrop.gold.max - lootDrop.gold.min + 1)) + lootDrop.gold.min;
-                }
-            }
-
-            // 2. Handle "trait" (e.g. { trait: 'T1 Recipe', chance: 1.0 })
-            if (lootDrop.trait) {
-                // Determine count (default 1)
-                const count = lootDrop.count || 1;
-                const itemsWithTrait = gameData.allItems.filter(i => i.traits && i.traits.includes(lootDrop.trait));
-
-                if (itemsWithTrait.length > 0) {
-                    for (let i = 0; i < count; i++) {
-                        const randomItem = itemsWithTrait[Math.floor(Math.random() * itemsWithTrait.length)];
-                        lootToDistribute.push(randomItem);
-                    }
-                }
-            }
-
-            // 3. Handle standard items list
-            if (lootDrop.items && lootDrop.items.length > 0) {
-                lootDrop.items.forEach(itemName => {
-                    const itemData = gameData.allItems.find(i => i.name === itemName);
-                    if (itemData) lootToDistribute.push(itemData);
-                });
-            }
-
-            // 4. Handle fromCategory
-            if (lootDrop.fromCategory) {
-                const count = lootDrop.count || 1;
-                for (let i = 0; i < count; i++) {
-                    const itemData = lootPools.getRandomFromCategory(lootDrop.fromCategory);
-                    if (itemData) lootToDistribute.push(itemData);
-                }
-            }
-
-            // 5. Handle fromCategories
-            if (lootDrop.fromCategories) {
-                const count = lootDrop.count || 1;
-                for (let i = 0; i < count; i++) {
-                    const itemData = lootPools.getRandomFromCategories(lootDrop.fromCategories);
-                    if (itemData) lootToDistribute.push(itemData);
-                }
-            }
-
-            // 6. Handle legacy randomItems
-            if (lootDrop.randomItems && lootDrop.randomItems.pool) {
-                for (let i = 0; i < lootDrop.randomItems.count; i++) {
-                    const randomItemName = lootDrop.randomItems.pool[Math.floor(Math.random() * lootDrop.randomItems.pool.length)];
-                    const itemData = gameData.allItems.find(i => i.name === randomItemName);
-                    if (itemData) lootToDistribute.push(itemData);
-                }
-            }
-        }
-    }
-
-    // Handle separate guaranteedLoot (Legacy & Hybrid support)
-    if (enemy.guaranteedLoot && enemy.guaranteedLoot.items) {
-        enemy.guaranteedLoot.items.forEach(itemName => {
-            const itemData = gameData.allItems.find(i => i.name === itemName);
-            if (itemData) lootToDistribute.push(itemData);
-        });
-    }
-
-    // Collect dropped items...
-    const droppedItemNames = [];
-    const rollableItems = [];
-
-    lootToDistribute.forEach(itemData => {
-        if (itemData.rarity === 'uncommon' || itemData.rarity === 'rare') {
-            rollableItems.push(itemData);
-        } else {
-            sharedState.groundLoot.push({ ...itemData, quantity: 1 });
-            droppedItemNames.push(itemData.name);
-        }
-    });
-
-    // Calculate Gold Distribution (before logging so we can include in combined message)
-    let totalGoldDropped = 0;
-
-    // 1. Loot Table Gold
-    if (lootTableGold > 0) {
-        totalGoldDropped += lootTableGold;
-    }
-
-    // 2. Guaranteed Gold
-    if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
-        let goldAmount;
-        const goldConfig = enemy.guaranteedLoot.gold;
-        if (goldConfig.min !== undefined && goldConfig.max !== undefined) {
-            goldAmount = Math.floor(Math.random() * (goldConfig.max - goldConfig.min + 1)) + goldConfig.min;
-        } else if (enemy.guaranteedLoot.minGold !== undefined && enemy.guaranteedLoot.maxGold !== undefined) {
-            // Legacy format support
-            goldAmount = Math.floor(Math.random() * (enemy.guaranteedLoot.maxGold - enemy.guaranteedLoot.minGold + 1)) + enemy.guaranteedLoot.minGold;
-        } else {
-            goldAmount = rollD20() + rollD20();
-        }
-        totalGoldDropped += goldAmount;
-    }
-
-    // Build consolidated defeat message
-    let defeatMessage = `${enemy.name} defeated!`;
-    const dropParts = [];
-    if (droppedItemNames.length > 0) {
-        dropParts.push(droppedItemNames.join(', '));
-    }
-    if (totalGoldDropped > 0) {
-        dropParts.push(`${totalGoldDropped}g`);
-    }
-    if (dropParts.length > 0) {
-        defeatMessage += ` Dropped: ${dropParts.join(', ')}`;
-    }
-    sharedState.log.push({ message: defeatMessage, type: 'success' });
-
-    // Process rollable items (uncommon/rare) - these get their own message since they need action
-    rollableItems.forEach(itemData => {
-        if (sharedState.pendingLootRoll) {
-            // Queue the item for rolling after current roll completes
-            if (!sharedState.lootRollQueue) sharedState.lootRollQueue = [];
-            sharedState.lootRollQueue.push(itemData);
-            sharedState.log.push({ message: `Found ${itemData.name}! Queued for rolling.`, type: 'info' });
-        } else {
-            sharedState.log.push({ message: `Party found: [${itemData.name}]! A roll will begin.`, type: 'success' });
-            sharedState.pendingLootRoll = {
-                item: itemData,
-                rolls: [],
-                endTime: Date.now() + LOOT_ROLL_DURATION_MS,
-            };
-            party.members.forEach(memberName => {
-                const member = players[memberName];
-                if (member && member.id) {
-                    io.to(member.id).emit('party:lootRollStarted', sharedState.pendingLootRoll);
-                }
-            });
-            setTimeout(() => {
-                determineLootWinnerAndDistribute(io, party.id);
-            }, LOOT_ROLL_DURATION_MS);
-        }
-    });
-
-    // Calculate per-player gold share
-    const totalGoldPerPlayer = Math.floor(totalGoldDropped / party.members.length);
-
-    // Update Party Members (Quests, Gold, State)
-    party.members.forEach(memberName => {
-        const member = players[memberName];
-        if (!member || !member.character) return;
-        const character = member.character;
-
-        // Update Quests
-        character.quests.forEach(quest => {
-            if (quest.status === 'active' && (quest.details.target === enemy.name || quest.details.target === enemy.questTarget || (quest.details.target === 'Goblin' && enemy.name.includes('Goblin')))) {
-                quest.progress++;
-                if (quest.progress >= quest.details.required) {
-                    quest.status = 'readyToTurnIn';
-                    if (member.id) io.to(member.id).emit('questObjectiveComplete', quest.details.title);
-                }
-            }
+          }
         });
 
-        // Add Gold
-        if (totalGoldPerPlayer > 0) {
-            character.gold += totalGoldPerPlayer;
+        // Remove the keg
+        if (keg.overlayedCard) {
+          sharedState.zoneCards[idx] = { ...keg.overlayedCard, id: Date.now() + idx };
+        } else {
+          sharedState.zoneCards[idx] = getZoneAreaCard(sharedState.currentZone);
         }
+      });
+    }
+  }
 
-        if (member.id) io.to(member.id).emit('characterUpdate', character);
-    });
-    // Restore overlayed card if enemy was spawned over one, otherwise use zone-specific area card
+  // --- LOOT GOBLIN: Special Death Rewards ---
+  if (enemy.name === 'Loot Goblin') {
+    // Return stolen gold to party leader
+    if (enemy.stolenGold > 0) {
+      const leader = players[party.leaderId];
+      if (leader && leader.character) {
+        leader.character.gold += enemy.stolenGold;
+        sharedState.log.push({ message: `Recovered ${enemy.stolenGold}g of stolen treasure!`, type: 'success' });
+        if (leader.id) io.to(leader.id).emit('characterUpdate', leader.character);
+      }
+    }
+
+    // Tier-based loot pools
+    const tierLootPools = {
+      1: ['Iron', 'Wood', 'Coal', 'Cow Hide', 'Healing Potion', 'Iron Sword', 'Leather Armor', 'Cloth'],
+      2: ['Steel Bar', 'Obsidian Chunk', 'Magic Essence', 'Tier 1 Gemstone', 'Iron Armor', 'Steel Armor', 'Longbow'],
+      3: [
+        'Drake Scale',
+        'Gold Nugget',
+        'Gem of Strength',
+        'Gem of Agility',
+        'Gem of Wisdom',
+        'Magna Clavis',
+        "Gorbon's Crown",
+      ],
+    };
+
+    const lootPool = tierLootPools[enemy.tier] || tierLootPools[1];
+    const goblinTier = enemy.tier || 1;
+
+    sharedState.log.push({ message: `The Tier ${goblinTier} Loot Goblin's sack spills open!`, type: 'success' });
+
+    // Drop 3 random items from the tier pool
+    for (let i = 0; i < 3; i++) {
+      const randomItemName = lootPool[Math.floor(Math.random() * lootPool.length)];
+      const itemData = gameData.allItems.find((item) => item.name === randomItemName);
+      if (itemData) {
+        sharedState.groundLoot.push({ ...itemData, quantity: 1 });
+        sharedState.log.push({ message: `Found: ${itemData.icon || '❓'} ${itemData.name}`, type: 'success' });
+      }
+    }
+
+    // Skip normal loot processing for Loot Goblin
+    // Restore overlayed card if enemy was spawned over one, otherwise use zone area card
     if (enemy.overlayedCard) {
-        sharedState.zoneCards[enemyIndex] = { ...enemy.overlayedCard, id: Date.now() };
+      sharedState.zoneCards[enemyIndex] = { ...enemy.overlayedCard, id: Date.now() };
     } else {
-        sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone);
+      sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone);
     }
-    if (!sharedState.zoneCards.some(c => c && c.type === 'enemy')) {
-        sharedState.partyMemberStates.forEach(p => { if (!p.isDead) p.actionPoints = DEFAULT_ACTION_POINTS; });
+    if (!sharedState.zoneCards.some((c) => c && c.type === 'enemy')) {
+      sharedState.partyMemberStates.forEach((p) => {
+        if (!p.isDead) p.actionPoints = DEFAULT_ACTION_POINTS;
+      });
     }
+    return;
+  }
 
-    // --- ARENA: Spawn treasure chest after boss kill ---
-    if (sharedState.arenaState && enemy.arenaReward) {
-        const arenaState = sharedState.arenaState;
+  let lootToDistribute = [];
+  // --- NEW: Handle gold and traits from loot table entries ---
+  let lootTableGold = 0;
 
-        // --- BATTLE BROTHERS: ENRAGE MECHANIC ---
-        if (enemy.isBattleBrother) {
-            const otherBrother = sharedState.zoneCards.find(c => c && c.isBattleBrother && c.id !== enemy.id);
-            if (otherBrother) {
-                // Apply Enraged Buff to survivor
-                if (!otherBrother.buffs) otherBrother.buffs = [];
-                otherBrother.buffs.push({
-                    type: 'Enraged',
-                    extraAttacks: 1,
-                    icon: '🔥',
-                    duration: 99
-                });
-                
-                // Double damage directly on the card for simplicity
-                if (otherBrother.attackTable) {
-                    otherBrother.attackTable = otherBrother.attackTable.map(a => {
-                        if (a.damage) return { ...a, damage: a.damage * 2 };
-                        return a;
-                    });
-                }
-                // Double flat arena damage bonus
-                if (otherBrother.arenaDamageBonus != null) otherBrother.arenaDamageBonus *= 2;
+  if (enemy.lootTable && enemy.lootTable.length > 0) {
+    const roll = rollD20();
+    const lootDrop = enemy.lootTable.find((entry) => roll >= entry.range[0] && roll <= entry.range[1]);
 
-                sharedState.log.push({ message: `${otherBrother.name} becomes ENRAGED by their brother's fall! Damage doubled and attacks twice per turn!`, type: 'damage' });
-                broadcastAdventureUpdate(io, party);
-                return; // Wait for both to be dead before spawning reward chest
-            }
+    if (lootDrop) {
+      // 1. Handle "gold" in loot table
+      if (lootDrop.gold) {
+        if (lootDrop.gold.min !== undefined && lootDrop.gold.max !== undefined) {
+          lootTableGold = Math.floor(Math.random() * (lootDrop.gold.max - lootDrop.gold.min + 1)) + lootDrop.gold.min;
         }
+      }
 
-        arenaState.defeatedBosses.push(enemy.name);
-        arenaState.chestAvailable = true;
+      // 2. Handle "trait" (e.g. { trait: 'T1 Recipe', chance: 1.0 })
+      if (lootDrop.trait) {
+        // Determine count (default 1)
+        const count = lootDrop.count || 1;
+        const itemsWithTrait = gameData.allItems.filter((i) => i.traits && i.traits.includes(lootDrop.trait));
 
-        // Spawn Arena Treasure Chest in the center slot
-        const chestTemplate = gameData.specialCards.arenaChest;
-        const chestCard = {
-            ...chestTemplate,
-            id: Date.now() + 100,
-            arenaRound: arenaState.round,
-        };
-
-        // Place chest in center, clear flanking slots (columns etc.)
-        sharedState.zoneCards = [
-            null,
-            chestCard,
-            null
-        ];
-
-        const bossesRemaining = arenaState.bossPool.filter(b => !arenaState.defeatedBosses.includes(b.name)).length;
-        if (bossesRemaining > 0) {
-            sharedState.log.push({ message: `⚔️ Round ${arenaState.round} complete! A treasure chest appears. Open it to claim your rewards, or continue for greater glory...`, type: 'success' });
-        } else {
-            sharedState.log.push({ message: `⚔️ Round ${arenaState.round} complete! You have defeated all arena champions! Claim your reward!`, type: 'success' });
+        if (itemsWithTrait.length > 0) {
+          for (let i = 0; i < count; i++) {
+            const randomItem = itemsWithTrait[Math.floor(Math.random() * itemsWithTrait.length)];
+            lootToDistribute.push(randomItem);
+          }
         }
+      }
+
+      // 3. Handle standard items list
+      if (lootDrop.items && lootDrop.items.length > 0) {
+        lootDrop.items.forEach((itemName) => {
+          const itemData = gameData.allItems.find((i) => i.name === itemName);
+          if (itemData) lootToDistribute.push(itemData);
+        });
+      }
+
+      // 4. Handle fromCategory
+      if (lootDrop.fromCategory) {
+        const count = lootDrop.count || 1;
+        for (let i = 0; i < count; i++) {
+          const itemData = lootPools.getRandomFromCategory(lootDrop.fromCategory);
+          if (itemData) lootToDistribute.push(itemData);
+        }
+      }
+
+      // 5. Handle fromCategories
+      if (lootDrop.fromCategories) {
+        const count = lootDrop.count || 1;
+        for (let i = 0; i < count; i++) {
+          const itemData = lootPools.getRandomFromCategories(lootDrop.fromCategories);
+          if (itemData) lootToDistribute.push(itemData);
+        }
+      }
+
+      // 6. Handle legacy randomItems
+      if (lootDrop.randomItems && lootDrop.randomItems.pool) {
+        for (let i = 0; i < lootDrop.randomItems.count; i++) {
+          const randomItemName =
+            lootDrop.randomItems.pool[Math.floor(Math.random() * lootDrop.randomItems.pool.length)];
+          const itemData = gameData.allItems.find((i) => i.name === randomItemName);
+          if (itemData) lootToDistribute.push(itemData);
+        }
+      }
     }
+  }
+
+  // Handle separate guaranteedLoot (Legacy & Hybrid support)
+  if (enemy.guaranteedLoot && enemy.guaranteedLoot.items) {
+    enemy.guaranteedLoot.items.forEach((itemName) => {
+      const itemData = gameData.allItems.find((i) => i.name === itemName);
+      if (itemData) lootToDistribute.push(itemData);
+    });
+  }
+
+  // Collect dropped items...
+  const droppedItemNames = [];
+  const rollableItems = [];
+
+  lootToDistribute.forEach((itemData) => {
+    if (itemData.rarity === 'uncommon' || itemData.rarity === 'rare') {
+      rollableItems.push(itemData);
+    } else {
+      sharedState.groundLoot.push({ ...itemData, quantity: 1 });
+      droppedItemNames.push(itemData.name);
+    }
+  });
+
+  // Calculate Gold Distribution (before logging so we can include in combined message)
+  let totalGoldDropped = 0;
+
+  // 1. Loot Table Gold
+  if (lootTableGold > 0) {
+    totalGoldDropped += lootTableGold;
+  }
+
+  // 2. Guaranteed Gold
+  if (enemy.guaranteedLoot && enemy.guaranteedLoot.gold) {
+    let goldAmount;
+    const goldConfig = enemy.guaranteedLoot.gold;
+    if (goldConfig.min !== undefined && goldConfig.max !== undefined) {
+      goldAmount = Math.floor(Math.random() * (goldConfig.max - goldConfig.min + 1)) + goldConfig.min;
+    } else if (enemy.guaranteedLoot.minGold !== undefined && enemy.guaranteedLoot.maxGold !== undefined) {
+      // Legacy format support
+      goldAmount =
+        Math.floor(Math.random() * (enemy.guaranteedLoot.maxGold - enemy.guaranteedLoot.minGold + 1)) +
+        enemy.guaranteedLoot.minGold;
+    } else {
+      goldAmount = rollD20() + rollD20();
+    }
+    totalGoldDropped += goldAmount;
+  }
+
+  // Build consolidated defeat message
+  let defeatMessage = `${enemy.name} defeated!`;
+  const dropParts = [];
+  if (droppedItemNames.length > 0) {
+    dropParts.push(droppedItemNames.join(', '));
+  }
+  if (totalGoldDropped > 0) {
+    dropParts.push(`${totalGoldDropped}g`);
+  }
+  if (dropParts.length > 0) {
+    defeatMessage += ` Dropped: ${dropParts.join(', ')}`;
+  }
+  sharedState.log.push({ message: defeatMessage, type: 'success' });
+
+  // Process rollable items (uncommon/rare) - these get their own message since they need action
+  rollableItems.forEach((itemData) => {
+    if (sharedState.pendingLootRoll) {
+      // Queue the item for rolling after current roll completes
+      if (!sharedState.lootRollQueue) sharedState.lootRollQueue = [];
+      sharedState.lootRollQueue.push(itemData);
+      sharedState.log.push({ message: `Found ${itemData.name}! Queued for rolling.`, type: 'info' });
+    } else {
+      sharedState.log.push({ message: `Party found: [${itemData.name}]! A roll will begin.`, type: 'success' });
+      sharedState.pendingLootRoll = {
+        item: itemData,
+        rolls: [],
+        endTime: Date.now() + LOOT_ROLL_DURATION_MS,
+      };
+      party.members.forEach((memberName) => {
+        const member = players[memberName];
+        if (member && member.id) {
+          io.to(member.id).emit('party:lootRollStarted', sharedState.pendingLootRoll);
+        }
+      });
+      setTimeout(() => {
+        determineLootWinnerAndDistribute(io, party.id);
+      }, LOOT_ROLL_DURATION_MS);
+    }
+  });
+
+  // Calculate per-player gold share
+  const totalGoldPerPlayer = Math.floor(totalGoldDropped / party.members.length);
+
+  // Update Party Members (Quests, Gold, State)
+  party.members.forEach((memberName) => {
+    const member = players[memberName];
+    if (!member || !member.character) return;
+    const character = member.character;
+
+    // Update Quests
+    character.quests.forEach((quest) => {
+      if (
+        quest.status === 'active' &&
+        (quest.details.target === enemy.name ||
+          quest.details.target === enemy.questTarget ||
+          (quest.details.target === 'Goblin' && enemy.name.includes('Goblin')))
+      ) {
+        quest.progress++;
+        if (quest.progress >= quest.details.required) {
+          quest.status = 'readyToTurnIn';
+          if (member.id) io.to(member.id).emit('questObjectiveComplete', quest.details.title);
+        }
+      }
+    });
+
+    // Add Gold
+    if (totalGoldPerPlayer > 0) {
+      character.gold += totalGoldPerPlayer;
+    }
+
+    if (member.id) io.to(member.id).emit('characterUpdate', character);
+  });
+  // Restore overlayed card if enemy was spawned over one, otherwise use zone-specific area card
+  if (enemy.overlayedCard) {
+    sharedState.zoneCards[enemyIndex] = { ...enemy.overlayedCard, id: Date.now() };
+  } else {
+    sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone);
+  }
+  if (!sharedState.zoneCards.some((c) => c && c.type === 'enemy')) {
+    sharedState.partyMemberStates.forEach((p) => {
+      if (!p.isDead) p.actionPoints = DEFAULT_ACTION_POINTS;
+    });
+  }
+
+  // --- ARENA: Spawn treasure chest after boss kill ---
+  if (sharedState.arenaState && enemy.arenaReward) {
+    const arenaState = sharedState.arenaState;
+
+    // --- BATTLE BROTHERS: ENRAGE MECHANIC ---
+    if (enemy.isBattleBrother) {
+      const otherBrother = sharedState.zoneCards.find((c) => c && c.isBattleBrother && c.id !== enemy.id);
+      if (otherBrother) {
+        // Apply Enraged Buff to survivor
+        if (!otherBrother.buffs) otherBrother.buffs = [];
+        otherBrother.buffs.push({
+          type: 'Enraged',
+          extraAttacks: 1,
+          icon: '🔥',
+          duration: 99,
+        });
+
+        // Double damage directly on the card for simplicity
+        if (otherBrother.attackTable) {
+          otherBrother.attackTable = otherBrother.attackTable.map((a) => {
+            if (a.damage) return { ...a, damage: a.damage * 2 };
+            return a;
+          });
+        }
+        // Double flat arena damage bonus
+        if (otherBrother.arenaDamageBonus != null) otherBrother.arenaDamageBonus *= 2;
+
+        sharedState.log.push({
+          message: `${otherBrother.name} becomes ENRAGED by their brother's fall! Damage doubled and attacks twice per turn!`,
+          type: 'damage',
+        });
+        broadcastAdventureUpdate(io, party);
+        return; // Wait for both to be dead before spawning reward chest
+      }
+    }
+
+    arenaState.defeatedBosses.push(enemy.name);
+    arenaState.chestAvailable = true;
+
+    // Spawn Arena Treasure Chest in the center slot
+    const chestTemplate = gameData.specialCards.arenaChest;
+    const chestCard = {
+      ...chestTemplate,
+      id: Date.now() + 100,
+      arenaRound: arenaState.round,
+    };
+
+    // Place chest in center, clear flanking slots (columns etc.)
+    sharedState.zoneCards = [null, chestCard, null];
+
+    const bossesRemaining = arenaState.bossPool.filter((b) => !arenaState.defeatedBosses.includes(b.name)).length;
+    if (bossesRemaining > 0) {
+      sharedState.log.push({
+        message: `⚔️ Round ${arenaState.round} complete! A treasure chest appears. Open it to claim your rewards, or continue for greater glory...`,
+        type: 'success',
+      });
+    } else {
+      sharedState.log.push({
+        message: `⚔️ Round ${arenaState.round} complete! You have defeated all arena champions! Claim your reward!`,
+        type: 'success',
+      });
+    }
+  }
 }
 
 export async function processEndAdventure(io, player, party) {
-    const { sharedState } = party;
-    if (!sharedState) return;
+  const { sharedState } = party;
+  if (!sharedState) return;
 
-    // Check if any party member is trapped - cannot flee while trapped
-    const trappedPlayer = sharedState.partyMemberStates?.find(p => !p.isDead && p.debuffs?.some(d => d.type === 'trap'));
-    if (trappedPlayer) {
-        sharedState.log.push({ message: `${trappedPlayer.name} is trapped and cannot flee!`, type: 'reaction' });
-        broadcastAdventureUpdate(io, party);
-        return;
+  // Check if any party member is trapped - cannot flee while trapped
+  const trappedPlayer = sharedState.partyMemberStates?.find(
+    (p) => !p.isDead && p.debuffs?.some((d) => d.type === 'trap')
+  );
+  if (trappedPlayer) {
+    sharedState.log.push({ message: `${trappedPlayer.name} is trapped and cannot flee!`, type: 'reaction' });
+    broadcastAdventureUpdate(io, party);
+    return;
+  }
+
+  if (sharedState.pvpEncounterId) {
+    const encounter = pvpEncounters[sharedState.pvpEncounterId];
+    if (!encounter) return;
+    const actingPlayerState = encounter.playerStates.find((p) => p.playerId === player.id);
+
+    if (actingPlayerState && !actingPlayerState.turnEnded) {
+      actingPlayerState.turnEnded = true;
+      encounter.log.push({
+        message: `${player.character.characterName} forfeits their turn to request mercy...`,
+        type: 'reaction',
+      });
+
+      const opponentPartyId = party.id === encounter.partyAId ? encounter.partyBId : encounter.partyAId;
+      const opponentParty = parties[opponentPartyId];
+
+      if (opponentParty) {
+        const opponentLeader = players[opponentParty.leaderId];
+        if (opponentLeader && opponentLeader.id) {
+          io.to(opponentLeader.id).emit('party:pvpFleeRequest', { fleeingPartyName: party.id });
+          encounter.log.push({ message: `A plea for mercy has been sent to the opposing party leader.`, type: 'info' });
+        }
+      }
+      broadcastAdventureUpdate(io, party);
     }
+    return;
+  }
 
-    if (sharedState.pvpEncounterId) {
-        const encounter = pvpEncounters[sharedState.pvpEncounterId];
-        if (!encounter) return;
-        const actingPlayerState = encounter.playerStates.find(p => p.playerId === player.id);
-
-        if (actingPlayerState && !actingPlayerState.turnEnded) {
-            actingPlayerState.turnEnded = true;
-            encounter.log.push({ message: `${player.character.characterName} forfeits their turn to request mercy...`, type: 'reaction' });
-
-            const opponentPartyId = (party.id === encounter.partyAId) ? encounter.partyBId : encounter.partyAId;
-            const opponentParty = parties[opponentPartyId];
-
-            if (opponentParty) {
-                const opponentLeader = players[opponentParty.leaderId];
-                if (opponentLeader && opponentLeader.id) {
-                    io.to(opponentLeader.id).emit('party:pvpFleeRequest', { fleeingPartyName: party.id });
-                    encounter.log.push({ message: `A plea for mercy has been sent to the opposing party leader.`, type: 'info' });
-                }
-            }
-            broadcastAdventureUpdate(io, party);
+  const endTheAdventure = () => {
+    const alivePlayers = sharedState.partyMemberStates.filter((p) => !p.isDead && p.health > 0);
+    const isWipe = alivePlayers.length === 0;
+    party.members.forEach((memberName) => {
+      const memberPlayer = players[memberName];
+      const memberCharacter = memberPlayer?.character;
+      if (memberCharacter) {
+        // Remove failed defense quest
+        if (sharedState.defenseQuest && sharedState.defenseQuest.active) {
+          memberCharacter.quests = memberCharacter.quests.filter(
+            (q) => q.details.id !== sharedState.defenseQuest.questId || q.status === 'completed'
+          );
         }
-        return;
-    }
-
-    const endTheAdventure = () => {
-        const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead && p.health > 0);
-        const isWipe = alivePlayers.length === 0;
-        party.members.forEach(memberName => {
-            const memberPlayer = players[memberName];
-            const memberCharacter = memberPlayer?.character;
-            if (memberCharacter) {
-                // Remove failed defense quest
-                if (sharedState.defenseQuest && sharedState.defenseQuest.active) {
-                    memberCharacter.quests = memberCharacter.quests.filter(q => q.details.id !== sharedState.defenseQuest.questId || q.status === "completed");
-                }
-                if (!sharedState.partyMemberStates.find(p => p.name === memberName)?.isDead) {
-                    const bonuses = getBonusStatsForPlayer(memberCharacter, null);
-                    memberCharacter.health = STARTING_HEALTH + bonuses.maxHealth;
-                }
-                if (memberPlayer.id) {
-                    io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
-                    if (isWipe) {
-                        io.to(memberPlayer.id).emit('party:adventureEnded', { outcome: 'loss', message: 'Your party was wiped out!' });
-                    } else {
-                        io.to(memberPlayer.id).emit('party:adventureEnded');
-                    }
-                }
-            }
-        });
-        if (party.isSoloParty) {
-            PartyManager.cleanupSoloParty(io, party, player);
-        } else {
-            PartyManager.endPartyAdventure(io, party.id);
+        if (!sharedState.partyMemberStates.find((p) => p.name === memberName)?.isDead) {
+          const bonuses = getBonusStatsForPlayer(memberCharacter, null);
+          memberCharacter.health = STARTING_HEALTH + bonuses.maxHealth;
         }
-    };
-    const inCombat = sharedState.zoneCards.some(c => c && c.type === 'enemy');
-    if (inCombat) {
-        sharedState.log.push({ message: "The party tries to flee combat to return home. Enemies get a final attack!", type: 'reaction' });
-        broadcastAdventureUpdate(io, party);
-        await runEnemyPhaseForParty(io, party.id, true);
-        // Tick player DoTs, buffs, and debuffs as if the turn ended
-        processPartyEndOfTurn(sharedState);
-        broadcastAdventureUpdate(io, party);
-        const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead && p.health > 0);
-        if (alivePlayers.length > 0) {
-            sharedState.log.push({ message: "They escaped and returned home safely!", type: 'success' });
-            endTheAdventure();
-        } else {
-            sharedState.log.push({ message: "The party was wiped out while trying to return home!", type: 'damage' });
-            endTheAdventure();
+        if (memberPlayer.id) {
+          io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
+          if (isWipe) {
+            io.to(memberPlayer.id).emit('party:adventureEnded', {
+              outcome: 'loss',
+              message: 'Your party was wiped out!',
+            });
+          } else {
+            io.to(memberPlayer.id).emit('party:adventureEnded');
+          }
         }
+      }
+    });
+    if (party.isSoloParty) {
+      PartyManager.cleanupSoloParty(io, party, player);
     } else {
-        // Process end-of-turn effects (DoT, buff/debuff durations) before leaving
-        processPartyEndOfTurn(sharedState);
-        broadcastAdventureUpdate(io, party);
-
-        sharedState.log.push({ message: "The party returns home.", type: 'info' });
-        endTheAdventure();
+      PartyManager.endPartyAdventure(io, party.id);
     }
+  };
+  const inCombat = sharedState.zoneCards.some((c) => c && c.type === 'enemy');
+  if (inCombat) {
+    sharedState.log.push({
+      message: 'The party tries to flee combat to return home. Enemies get a final attack!',
+      type: 'reaction',
+    });
+    broadcastAdventureUpdate(io, party);
+    await runEnemyPhaseForParty(io, party.id, true);
+    // Tick player DoTs, buffs, and debuffs as if the turn ended
+    processPartyEndOfTurn(sharedState);
+    broadcastAdventureUpdate(io, party);
+    const alivePlayers = sharedState.partyMemberStates.filter((p) => !p.isDead && p.health > 0);
+    if (alivePlayers.length > 0) {
+      sharedState.log.push({ message: 'They escaped and returned home safely!', type: 'success' });
+      endTheAdventure();
+    } else {
+      sharedState.log.push({ message: 'The party was wiped out while trying to return home!', type: 'damage' });
+      endTheAdventure();
+    }
+  } else {
+    // Process end-of-turn effects (DoT, buff/debuff durations) before leaving
+    processPartyEndOfTurn(sharedState);
+    broadcastAdventureUpdate(io, party);
+
+    sharedState.log.push({ message: 'The party returns home.', type: 'info' });
+    endTheAdventure();
+  }
 }
 
 export async function processVentureDeeper(io, player, party) {
-    if (player.character.characterName !== party.leaderId || !party.sharedState) return;
-    const { sharedState } = party;
-    const zoneName = sharedState.currentZone;
+  if (player.character.characterName !== party.leaderId || !party.sharedState) return;
+  const { sharedState } = party;
+  const zoneName = sharedState.currentZone;
 
-    // Check if any party member is trapped - cannot flee while trapped
-    const trappedPlayer = sharedState.partyMemberStates?.find(p => !p.isDead && p.debuffs?.some(d => d.type === 'trap'));
-    if (trappedPlayer) {
-        sharedState.log.push({ message: `${trappedPlayer.name} is trapped and cannot flee!`, type: 'reaction' });
-        broadcastAdventureUpdate(io, party);
-        return;
-    }
-    const proceedToNextArea = () => {
-        sharedState.isLoadingNextArea = false;
-        sharedState.zoneCards = [];
-        sharedState.groundLoot = [];
-        sharedState.zoneEffects = []; // Clear zone effects when moving to a new area
-        drawCardsForServer(sharedState, 3);
-        sharedState.turnNumber = 0;
-        sharedState.isPlayerTurn = true;
-        sharedState.activePlayerIndex = 0;
-        sharedState.activePhase = 'player';
-        // Make sure only the first living player gets AP
-        let firstLivingFound = false;
-        sharedState.partyMemberStates.forEach((p, idx) => {
-            if (!p.isDead) {
-                if (!firstLivingFound) {
-                    p.actionPoints = DEFAULT_ACTION_POINTS;
-                    firstLivingFound = true;
-                    sharedState.activePlayerIndex = idx;
-                } else {
-                    p.actionPoints = 0;
-                }
-                p.turnEnded = false;
-            } else {
-                p.actionPoints = 0;
-            }
-            p.weaponCooldowns = {};
-            p.spellCooldowns = {};
-            p.itemCooldowns = {};
-            setThreat(p, 0);
-        });
-
-        // Reset PVE turn timer for the new area
-        startPveTurnTimer(io, party.id, sharedState);
-    };
-
-    // Helper: End adventure when party wipes (all dead)
-    const endTheAdventureAfterWipe = () => {
-        sharedState.isLoadingNextArea = false;
-        party.members.forEach(memberName => {
-            const memberPlayer = players[memberName];
-            const memberCharacter = memberPlayer?.character;
-            if (memberCharacter) {
-                // Remove failed defense quest
-                if (sharedState.defenseQuest && sharedState.defenseQuest.active) {
-                    memberCharacter.quests = memberCharacter.quests.filter(q => q.details.id !== sharedState.defenseQuest.questId || q.status === "completed");
-                }
-                // Don't restore health for dead players
-                if (memberPlayer.id) {
-                    io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
-                    io.to(memberPlayer.id).emit('party:adventureEnded', { outcome: 'loss', message: 'Your party succumbed to their wounds!' });
-                }
-            }
-        });
-        if (party.isSoloParty) {
-            PartyManager.cleanupSoloParty(io, party, player);
-        } else {
-            PartyManager.endPartyAdventure(io, party.id);
-        }
-    };
-
-    // --- ARENA-SPECIFIC: Continue to next round ---
-    if (zoneName === 'arena' && sharedState.arenaState) {
-        const arenaState = sharedState.arenaState;
-
-        if (arenaState.chestClaimed) {
-            sharedState.log.push({ message: `You've already claimed your rewards! Return home.`, type: 'info' });
-            broadcastAdventureUpdate(io, party);
-            return;
-        }
-
-        const bossesRemaining = arenaState.bossPool.filter(b => !arenaState.defeatedBosses.includes(b.name)).length;
-        if (bossesRemaining === 0) {
-            sharedState.log.push({ message: `No more challengers remain! Claim your treasure chest.`, type: 'info' });
-            broadcastAdventureUpdate(io, party);
-            return;
-        }
-
-        // Process end-of-turn effects before transitioning
-        processPartyEndOfTurn(sharedState);
-        broadcastAdventureUpdate(io, party);
-
-        // Check if anyone died from DoT
-        const aliveAfterDoT = sharedState.partyMemberStates.filter(p => !p.isDead);
-        if (aliveAfterDoT.length === 0) {
-            sharedState.log.push({ message: `The party succumbed to their wounds between rounds!`, type: 'damage' });
-            broadcastAdventureUpdate(io, party);
-            // Use the existing wipe logic
-            party.members.forEach(memberName => {
-                const memberPlayer = players[memberName];
-                if (memberPlayer?.character && memberPlayer.id) {
-                    io.to(memberPlayer.id).emit('characterUpdate', memberPlayer.character);
-                    io.to(memberPlayer.id).emit('party:adventureEnded', { outcome: 'loss', message: 'Your party succumbed to their wounds!' });
-                }
-            });
-            if (party.isSoloParty) {
-                PartyManager.cleanupSoloParty(io, party, player);
-            } else {
-                PartyManager.endPartyAdventure(io, party.id);
-            }
-            return;
-        }
-
-        // Advance to next round
-        arenaState.round++;
-        arenaState.chestAvailable = false;
-
-        // Clear zone for next boss
-        sharedState.zoneCards = [];
-        sharedState.groundLoot = [];
-        sharedState.zoneEffects = [];
-
-        // Spawn next boss with scaling
-        spawnArenaBoss(party, arenaState.round);
-
-        // Reset turn state (AP, cooldowns, threat) but NOT health
-        sharedState.turnNumber = 0;
-        sharedState.isPlayerTurn = true;
-        sharedState.activePlayerIndex = 0;
-        sharedState.activePhase = 'player';
-        let firstLivingFound = false;
-        sharedState.partyMemberStates.forEach((p, idx) => {
-            if (!p.isDead) {
-                if (!firstLivingFound) {
-                    p.actionPoints = DEFAULT_ACTION_POINTS;
-                    firstLivingFound = true;
-                    sharedState.activePlayerIndex = idx;
-                } else {
-                    p.actionPoints = 0;
-                }
-                p.turnEnded = false;
-            } else {
-                p.actionPoints = 0;
-            }
-            p.weaponCooldowns = {};
-            p.spellCooldowns = {};
-            p.itemCooldowns = {};
-            setThreat(p, 0);
-        });
-
-        const bossName = sharedState.zoneCards.find(c => c && c.arenaReward)?.name || 'a new challenger';
-        sharedState.log.push({ message: `⚔️ Round ${arenaState.round}! ${bossName} enters the arena!`, type: 'info' });
-
-        // Reset PVE turn timer for the new round
-        startPveTurnTimer(io, party.id, sharedState);
-        broadcastAdventureUpdate(io, party);
-        return;
-    }
-
-    sharedState.isLoadingNextArea = true;
+  // Check if any party member is trapped - cannot flee while trapped
+  const trappedPlayer = sharedState.partyMemberStates?.find(
+    (p) => !p.isDead && p.debuffs?.some((d) => d.type === 'trap')
+  );
+  if (trappedPlayer) {
+    sharedState.log.push({ message: `${trappedPlayer.name} is trapped and cannot flee!`, type: 'reaction' });
     broadcastAdventureUpdate(io, party);
+    return;
+  }
+  const proceedToNextArea = () => {
+    sharedState.isLoadingNextArea = false;
+    sharedState.zoneCards = [];
+    sharedState.groundLoot = [];
+    sharedState.zoneEffects = []; // Clear zone effects when moving to a new area
+    drawCardsForServer(sharedState, 3);
+    sharedState.turnNumber = 0;
+    sharedState.isPlayerTurn = true;
+    sharedState.activePlayerIndex = 0;
+    sharedState.activePhase = 'player';
+    // Make sure only the first living player gets AP
+    let firstLivingFound = false;
+    sharedState.partyMemberStates.forEach((p, idx) => {
+      if (!p.isDead) {
+        if (!firstLivingFound) {
+          p.actionPoints = DEFAULT_ACTION_POINTS;
+          firstLivingFound = true;
+          sharedState.activePlayerIndex = idx;
+        } else {
+          p.actionPoints = 0;
+        }
+        p.turnEnded = false;
+      } else {
+        p.actionPoints = 0;
+      }
+      p.weaponCooldowns = {};
+      p.spellCooldowns = {};
+      p.itemCooldowns = {};
+      setThreat(p, 0);
+    });
 
-    if (PVP_ZONES.includes(zoneName)) {
-        if (!pvpZoneQueues[zoneName]) {
-            pvpZoneQueues[zoneName] = [];
+    // Reset PVE turn timer for the new area
+    startPveTurnTimer(io, party.id, sharedState);
+  };
+
+  // Helper: End adventure when party wipes (all dead)
+  const endTheAdventureAfterWipe = () => {
+    sharedState.isLoadingNextArea = false;
+    party.members.forEach((memberName) => {
+      const memberPlayer = players[memberName];
+      const memberCharacter = memberPlayer?.character;
+      if (memberCharacter) {
+        // Remove failed defense quest
+        if (sharedState.defenseQuest && sharedState.defenseQuest.active) {
+          memberCharacter.quests = memberCharacter.quests.filter(
+            (q) => q.details.id !== sharedState.defenseQuest.questId || q.status === 'completed'
+          );
         }
-        const opponentQueueEntry = pvpZoneQueues[zoneName].shift();
-        if (opponentQueueEntry) {
-            clearTimeout(opponentQueueEntry.timerId);
-            const opponentParty = parties[opponentQueueEntry.partyId];
-            if (opponentParty) {
-                startPvpEncounter(io, party, opponentParty);
-            }
-        } else {
-            sharedState.log.push({ message: "You venture deeper, wary of your surroundings...", type: 'info' });
-            const timerId = setTimeout(() => {
-                const myEntryIndex = pvpZoneQueues[zoneName].findIndex(entry => entry.partyId === party.id);
-                if (myEntryIndex !== -1) {
-                    pvpZoneQueues[zoneName].splice(myEntryIndex, 1);
-                    sharedState.log.push({ message: "The path ahead is clear... for now.", type: 'info' });
-                    proceedToNextArea();
-                    broadcastAdventureUpdate(io, party);
-                }
-            }, PVP_QUEUE_TIMEOUT_MS);
-            pvpZoneQueues[zoneName].push({ partyId: party.id, timerId });
+        // Don't restore health for dead players
+        if (memberPlayer.id) {
+          io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
+          io.to(memberPlayer.id).emit('party:adventureEnded', {
+            outcome: 'loss',
+            message: 'Your party succumbed to their wounds!',
+          });
         }
-        return;
-    }
-    const inCombat = sharedState.zoneCards.some(c => c && c.type === 'enemy');
-    if (inCombat) {
-        sharedState.log.push({ message: "The party attempts to flee, but the enemies get one last attack!", type: 'reaction' });
-        await runEnemyPhaseForParty(io, party.id, true);
-        // Tick player DoTs, buffs, and debuffs as if the turn ended
-        processPartyEndOfTurn(sharedState);
-        broadcastAdventureUpdate(io, party);
-        const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead && p.health > 0);
-        if (alivePlayers.length > 0) {
-            sharedState.log.push({ message: "They successfully escaped to a new area!", type: 'success' });
-            proceedToNextArea();
-        } else {
-            sharedState.log.push({ message: "The party was wiped out while trying to flee!", type: 'damage' });
-            broadcastAdventureUpdate(io, party);
-            endTheAdventureAfterWipe();
-            return;
-        }
+      }
+    });
+    if (party.isSoloParty) {
+      PartyManager.cleanupSoloParty(io, party, player);
     } else {
-        // Process end-of-turn effects (DoT, buff/debuff durations) before leaving
-        processPartyEndOfTurn(sharedState);
-        broadcastAdventureUpdate(io, party);
-
-        // Check if anyone died from DoT before proceeding
-        const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);
-        if (alivePlayers.length === 0) {
-            sharedState.log.push({ message: "The party succumbed to their wounds before they could venture deeper!", type: 'damage' });
-            broadcastAdventureUpdate(io, party);
-            endTheAdventureAfterWipe();
-            return;
-        } else {
-            sharedState.log.push({ message: "The party ventures deeper into the zone!", type: 'info' });
-            proceedToNextArea();
-        }
+      PartyManager.endPartyAdventure(io, party.id);
     }
+  };
+
+  // --- ARENA-SPECIFIC: Continue to next round ---
+  if (zoneName === 'arena' && sharedState.arenaState) {
+    const arenaState = sharedState.arenaState;
+
+    if (arenaState.chestClaimed) {
+      sharedState.log.push({ message: `You've already claimed your rewards! Return home.`, type: 'info' });
+      broadcastAdventureUpdate(io, party);
+      return;
+    }
+
+    const bossesRemaining = arenaState.bossPool.filter((b) => !arenaState.defeatedBosses.includes(b.name)).length;
+    if (bossesRemaining === 0) {
+      sharedState.log.push({ message: `No more challengers remain! Claim your treasure chest.`, type: 'info' });
+      broadcastAdventureUpdate(io, party);
+      return;
+    }
+
+    // Process end-of-turn effects before transitioning
+    processPartyEndOfTurn(sharedState);
     broadcastAdventureUpdate(io, party);
+
+    // Check if anyone died from DoT
+    const aliveAfterDoT = sharedState.partyMemberStates.filter((p) => !p.isDead);
+    if (aliveAfterDoT.length === 0) {
+      sharedState.log.push({ message: `The party succumbed to their wounds between rounds!`, type: 'damage' });
+      broadcastAdventureUpdate(io, party);
+      // Use the existing wipe logic
+      party.members.forEach((memberName) => {
+        const memberPlayer = players[memberName];
+        if (memberPlayer?.character && memberPlayer.id) {
+          io.to(memberPlayer.id).emit('characterUpdate', memberPlayer.character);
+          io.to(memberPlayer.id).emit('party:adventureEnded', {
+            outcome: 'loss',
+            message: 'Your party succumbed to their wounds!',
+          });
+        }
+      });
+      if (party.isSoloParty) {
+        PartyManager.cleanupSoloParty(io, party, player);
+      } else {
+        PartyManager.endPartyAdventure(io, party.id);
+      }
+      return;
+    }
+
+    // Advance to next round
+    arenaState.round++;
+    arenaState.chestAvailable = false;
+
+    // Clear zone for next boss
+    sharedState.zoneCards = [];
+    sharedState.groundLoot = [];
+    sharedState.zoneEffects = [];
+
+    // Spawn next boss with scaling
+    spawnArenaBoss(party, arenaState.round);
+
+    // Reset turn state (AP, cooldowns, threat) but NOT health
+    sharedState.turnNumber = 0;
+    sharedState.isPlayerTurn = true;
+    sharedState.activePlayerIndex = 0;
+    sharedState.activePhase = 'player';
+    let firstLivingFound = false;
+    sharedState.partyMemberStates.forEach((p, idx) => {
+      if (!p.isDead) {
+        if (!firstLivingFound) {
+          p.actionPoints = DEFAULT_ACTION_POINTS;
+          firstLivingFound = true;
+          sharedState.activePlayerIndex = idx;
+        } else {
+          p.actionPoints = 0;
+        }
+        p.turnEnded = false;
+      } else {
+        p.actionPoints = 0;
+      }
+      p.weaponCooldowns = {};
+      p.spellCooldowns = {};
+      p.itemCooldowns = {};
+      setThreat(p, 0);
+    });
+
+    const bossName = sharedState.zoneCards.find((c) => c && c.arenaReward)?.name || 'a new challenger';
+    sharedState.log.push({ message: `⚔️ Round ${arenaState.round}! ${bossName} enters the arena!`, type: 'info' });
+
+    // Reset PVE turn timer for the new round
+    startPveTurnTimer(io, party.id, sharedState);
+    broadcastAdventureUpdate(io, party);
+    return;
+  }
+
+  sharedState.isLoadingNextArea = true;
+  broadcastAdventureUpdate(io, party);
+
+  if (PVP_ZONES.includes(zoneName)) {
+    if (!pvpZoneQueues[zoneName]) {
+      pvpZoneQueues[zoneName] = [];
+    }
+    const opponentQueueEntry = pvpZoneQueues[zoneName].shift();
+    if (opponentQueueEntry) {
+      clearTimeout(opponentQueueEntry.timerId);
+      const opponentParty = parties[opponentQueueEntry.partyId];
+      if (opponentParty) {
+        startPvpEncounter(io, party, opponentParty);
+      }
+    } else {
+      sharedState.log.push({ message: 'You venture deeper, wary of your surroundings...', type: 'info' });
+      const timerId = setTimeout(() => {
+        const myEntryIndex = pvpZoneQueues[zoneName].findIndex((entry) => entry.partyId === party.id);
+        if (myEntryIndex !== -1) {
+          pvpZoneQueues[zoneName].splice(myEntryIndex, 1);
+          sharedState.log.push({ message: 'The path ahead is clear... for now.', type: 'info' });
+          proceedToNextArea();
+          broadcastAdventureUpdate(io, party);
+        }
+      }, PVP_QUEUE_TIMEOUT_MS);
+      pvpZoneQueues[zoneName].push({ partyId: party.id, timerId });
+    }
+    return;
+  }
+  const inCombat = sharedState.zoneCards.some((c) => c && c.type === 'enemy');
+  if (inCombat) {
+    sharedState.log.push({
+      message: 'The party attempts to flee, but the enemies get one last attack!',
+      type: 'reaction',
+    });
+    await runEnemyPhaseForParty(io, party.id, true);
+    // Tick player DoTs, buffs, and debuffs as if the turn ended
+    processPartyEndOfTurn(sharedState);
+    broadcastAdventureUpdate(io, party);
+    const alivePlayers = sharedState.partyMemberStates.filter((p) => !p.isDead && p.health > 0);
+    if (alivePlayers.length > 0) {
+      sharedState.log.push({ message: 'They successfully escaped to a new area!', type: 'success' });
+      proceedToNextArea();
+    } else {
+      sharedState.log.push({ message: 'The party was wiped out while trying to flee!', type: 'damage' });
+      broadcastAdventureUpdate(io, party);
+      endTheAdventureAfterWipe();
+      return;
+    }
+  } else {
+    // Process end-of-turn effects (DoT, buff/debuff durations) before leaving
+    processPartyEndOfTurn(sharedState);
+    broadcastAdventureUpdate(io, party);
+
+    // Check if anyone died from DoT before proceeding
+    const alivePlayers = sharedState.partyMemberStates.filter((p) => !p.isDead);
+    if (alivePlayers.length === 0) {
+      sharedState.log.push({
+        message: 'The party succumbed to their wounds before they could venture deeper!',
+        type: 'damage',
+      });
+      broadcastAdventureUpdate(io, party);
+      endTheAdventureAfterWipe();
+      return;
+    } else {
+      sharedState.log.push({ message: 'The party ventures deeper into the zone!', type: 'info' });
+      proceedToNextArea();
+    }
+  }
+  broadcastAdventureUpdate(io, party);
 }
 
 /**
@@ -943,651 +1071,709 @@ export async function processVentureDeeper(io, player, party) {
  * @param {string} [activeTeam] - The team that just finished their turn (zone effects hit enemies of this team)
  */
 export function processZoneEffects(io, party, encounter = null, activeTeam = null) {
-    const { sharedState } = party;
-    if (!sharedState.zoneEffects || sharedState.zoneEffects.length === 0) return;
+  const { sharedState } = party;
+  if (!sharedState.zoneEffects || sharedState.zoneEffects.length === 0) return;
 
-    const log = encounter ? encounter.log : sharedState.log;
+  const log = encounter ? encounter.log : sharedState.log;
 
-    sharedState.zoneEffects.forEach(effect => {
-        // In PVP, only tick zone effects after the caster's team turn
-        if (encounter && activeTeam && effect.casterTeam && effect.casterTeam !== activeTeam) {
-            return; // Skip — not this caster's team turn
-        }
-
-        if (effect.type === 'blizzard') {
-            log.push({ message: `${effect.icon} The Blizzard rages on!`, type: 'info' });
-
-            const damage = effect.damage;
-
-            if (encounter && activeTeam) {
-                // PVP: Damage all living enemy-team players
-                const enemyTeam = activeTeam === 'A' ? 'B' : 'A';
-                encounter.playerStates.forEach(p => {
-                    if (p.team === enemyTeam && !p.isDead && p.health > 0) {
-                        applyDamage(p, damage);
-                        log.push({
-                            message: `${p.name} takes ${damage} Frost damage from Blizzard!`,
-                            type: 'damage'
-                        });
-
-                        if (effect.chillAmount && effect.chillAmount > 0) {
-                            applyChillStack(p, effect.chillAmount, log);
-                        }
-
-                        if (p.health <= 0) {
-                            p.health = 0;
-                            p.isDead = true;
-                            log.push({ message: `${p.name} has been slain by the Blizzard!`, type: 'damage' });
-                            const defeatedPlayer = players[p.name];
-                            if (defeatedPlayer) {
-                                handlePvpPlayerDeath(io, defeatedPlayer, encounter);
-                            }
-                            checkPvpWinCondition(io, encounter, p);
-                        }
-                    }
-                });
-            } else {
-                // PVE: Damage all living enemies in zoneCards
-                sharedState.zoneCards.forEach((card, idx) => {
-                    if (card && card.type === 'enemy' && !card.isDead && card.health > 0) {
-                        applyDamage(card, damage);
-                        sharedState.log.push({
-                            message: `${card.name} takes ${damage} Frost damage from Blizzard!`,
-                            type: 'damage'
-                        });
-
-                        if (effect.chillAmount && effect.chillAmount > 0) {
-                            applyChillStack(card, effect.chillAmount, sharedState.log);
-                        }
-
-                        if (card.health <= 0) {
-                            defeatEnemyInParty(io, party, card, idx);
-                        }
-                    }
-                });
-            }
-        }
-
-        // Decrement duration (only for effects that were processed this turn)
-        effect.duration--;
-    });
-
-    // Remove expired effects in-place (preserve shared array reference between parties)
-    for (let i = sharedState.zoneEffects.length - 1; i >= 0; i--) {
-        if (sharedState.zoneEffects[i].duration <= 0) {
-            const e = sharedState.zoneEffects[i];
-            log.push({ message: `${e.icon || '🌨️'} ${e.name} has faded.`, type: 'info' });
-            sharedState.zoneEffects.splice(i, 1);
-        }
+  sharedState.zoneEffects.forEach((effect) => {
+    // In PVP, only tick zone effects after the caster's team turn
+    if (encounter && activeTeam && effect.casterTeam && effect.casterTeam !== activeTeam) {
+      return; // Skip — not this caster's team turn
     }
+
+    if (effect.type === 'blizzard') {
+      log.push({ message: `${effect.icon} The Blizzard rages on!`, type: 'info' });
+
+      const damage = effect.damage;
+
+      if (encounter && activeTeam) {
+        // PVP: Damage all living enemy-team players
+        const enemyTeam = activeTeam === 'A' ? 'B' : 'A';
+        encounter.playerStates.forEach((p) => {
+          if (p.team === enemyTeam && !p.isDead && p.health > 0) {
+            applyDamage(p, damage);
+            log.push({
+              message: `${p.name} takes ${damage} Frost damage from Blizzard!`,
+              type: 'damage',
+            });
+
+            if (effect.chillAmount && effect.chillAmount > 0) {
+              applyChillStack(p, effect.chillAmount, log);
+            }
+
+            if (p.health <= 0) {
+              p.health = 0;
+              p.isDead = true;
+              log.push({ message: `${p.name} has been slain by the Blizzard!`, type: 'damage' });
+              const defeatedPlayer = players[p.name];
+              if (defeatedPlayer) {
+                handlePvpPlayerDeath(io, defeatedPlayer, encounter);
+              }
+              checkPvpWinCondition(io, encounter, p);
+            }
+          }
+        });
+      } else {
+        // PVE: Damage all living enemies in zoneCards
+        sharedState.zoneCards.forEach((card, idx) => {
+          if (card && card.type === 'enemy' && !card.isDead && card.health > 0) {
+            applyDamage(card, damage);
+            sharedState.log.push({
+              message: `${card.name} takes ${damage} Frost damage from Blizzard!`,
+              type: 'damage',
+            });
+
+            if (effect.chillAmount && effect.chillAmount > 0) {
+              applyChillStack(card, effect.chillAmount, sharedState.log);
+            }
+
+            if (card.health <= 0) {
+              defeatEnemyInParty(io, party, card, idx);
+            }
+          }
+        });
+      }
+    }
+
+    // Decrement duration (only for effects that were processed this turn)
+    effect.duration--;
+  });
+
+  // Remove expired effects in-place (preserve shared array reference between parties)
+  for (let i = sharedState.zoneEffects.length - 1; i >= 0; i--) {
+    if (sharedState.zoneEffects[i].duration <= 0) {
+      const e = sharedState.zoneEffects[i];
+      log.push({ message: `${e.icon || '🌨️'} ${e.name} has faded.`, type: 'info' });
+      sharedState.zoneEffects.splice(i, 1);
+    }
+  }
 }
 
-
 export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, startIndex = 0) {
-    const party = parties[partyId];
-    if (!party || !party.sharedState || party.sharedState.pendingReaction) return;
-    const { sharedState } = party;
-    if (startIndex === 0) {
-        sharedState.isPlayerTurn = false;
-        sharedState.activePhase = 'enemy';
-        if (!isFleeing) {
-            sharedState.log.push({ message: "--- Zone's Turn ---", type: 'info' });
-        }
-
-        broadcastAdventureUpdate(io, party);
-        // Small delay between player turn ending and first enemy action
-        await new Promise(resolve => setTimeout(resolve, 1500));
+  const party = parties[partyId];
+  if (!party || !party.sharedState || party.sharedState.pendingReaction) return;
+  const { sharedState } = party;
+  if (startIndex === 0) {
+    sharedState.isPlayerTurn = false;
+    sharedState.activePhase = 'enemy';
+    if (!isFleeing) {
+      sharedState.log.push({ message: "--- Zone's Turn ---", type: 'info' });
     }
-    const enemies = [];
-    sharedState.zoneCards.forEach((card, index) => {
-        if (card && card.type === 'enemy') {
-            const baseAttacks = card.attacksPerTurn || 1;
-            const extraAttacks = (card.buffs || []).reduce((sum, b) => sum + (b.extraAttacks || 0), 0);
-            const totalAttacks = baseAttacks + extraAttacks;
-            for (let k = 0; k < totalAttacks; k++) {
-                enemies.push({ card, index, attackNum: k, totalAttacks });
-            }
+
+    broadcastAdventureUpdate(io, party);
+    // Small delay between player turn ending and first enemy action
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+  const enemies = [];
+  sharedState.zoneCards.forEach((card, index) => {
+    if (card && card.type === 'enemy') {
+      const baseAttacks = card.attacksPerTurn || 1;
+      const extraAttacks = (card.buffs || []).reduce((sum, b) => sum + (b.extraAttacks || 0), 0);
+      const totalAttacks = baseAttacks + extraAttacks;
+      for (let k = 0; k < totalAttacks; k++) {
+        enemies.push({ card, index, attackNum: k, totalAttacks });
+      }
+    }
+  });
+
+  for (let i = startIndex; i < enemies.length; i++) {
+    const { card: enemy, index: enemyIndex, attackNum, totalAttacks } = enemies[i];
+
+    if (attackNum === 0) {
+      delete enemy.usedThickHideThisTurn;
+    }
+
+    if (!enemy || enemy.health <= 0) continue;
+    try {
+      // End of Turn: DoT damage, buff/debuff decrement, chill reduction, reaction cooldowns
+      const processEndOfTurn = () => {
+        if (attackNum < totalAttacks - 1) return false;
+        const died = processEnemyEndOfTurn(enemy, sharedState);
+        if (died) {
+          defeatEnemyInParty(io, party, enemy, enemyIndex);
+          broadcastAdventureUpdate(io, party);
+          return true;
         }
-    });
+        return false;
+      };
 
-    for (let i = startIndex; i < enemies.length; i++) {
-        const { card: enemy, index: enemyIndex, attackNum, totalAttacks } = enemies[i];
-
+      if (enemy.debuffs.some((d) => d.type === 'stun' || d.type === 'frozen')) {
         if (attackNum === 0) {
-            delete enemy.usedThickHideThisTurn;
+          const effect = enemy.debuffs.find((d) => d.type === 'stun' || d.type === 'frozen');
+          sharedState.log.push({
+            message: `${enemy.name} is ${effect.type === 'frozen' ? 'Frozen' : 'stunned'} and cannot act!`,
+            type: 'reaction',
+          });
+        }
+        processEndOfTurn();
+        if (attackNum === totalAttacks - 1) {
+          broadcastAdventureUpdate(io, party);
+        }
+        continue;
+      }
+      const alivePlayers = sharedState.partyMemberStates.filter((p) => !p.isDead);
+      if (alivePlayers.length === 0) continue;
+      let targetPlayerState;
+      if (alivePlayers.length > 0) {
+        const maxThreat = Math.max(...alivePlayers.map((p) => p.threat));
+        const topThreatPlayers = alivePlayers.filter((p) => p.threat === maxThreat);
+        targetPlayerState = topThreatPlayers[Math.floor(Math.random() * topThreatPlayers.length)];
+      } else {
+        continue;
+      }
+      const targetPlayerObject = players[targetPlayerState.name];
+      if (!targetPlayerObject) continue;
+
+      // Apply Daze modifier to enemy roll (-3 to attack roll)
+      const dazeDebuff = enemy.debuffs.find((d) => d.type === 'daze');
+      const dazeModifier = dazeDebuff ? -3 : 0;
+      // Apply Stealth modifier (-5 to attack roll if target is stealthed)
+      const stealthBuff = targetPlayerState.buffs.find((b) => b.type === 'Stealth');
+      const stealthModifier = stealthBuff ? -5 : 0;
+
+      let roll = rollD20();
+      const modifiedRoll = Math.max(1, roll + dazeModifier + stealthModifier); // Minimum roll of 1
+
+      if (dazeDebuff && dazeModifier !== 0) {
+        sharedState.log.push({ message: `${enemy.name} is dazed! (-3 to attack roll)`, type: 'info' });
+      }
+      if (stealthBuff) {
+        sharedState.log.push({ message: `${enemy.name}'s attack is hindered by shadows! (-5 to hit)`, type: 'info' });
+      }
+      const attack = enemy.attackTable
+        ? enemy.attackTable.find((a) => modifiedRoll >= a.range[0] && modifiedRoll <= a.range[1])
+        : null;
+
+      // Check for Silence - prevents magic attacks
+      if (attack && attack.isMagic) {
+        const silenceDebuff = (enemy.debuffs || []).find((d) => d.type.toLowerCase() === 'silence');
+        if (silenceDebuff) {
+          sharedState.log.push({ message: `${enemy.name} is Silenced and cannot use magic!`, type: 'info' });
+          processEndOfTurn();
+          broadcastAdventureUpdate(io, party);
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+          continue;
+        }
+      }
+
+      if (attack && attack.action === 'attack') {
+        const targetCharacter = targetPlayerObject.character;
+        let damageToDeal = attack.damage;
+
+        // Apply Rallied buff damage bonus (from Gorbon's rally)
+        const ralliedBuff = enemy.buffs?.find((b) => b.type === 'Rallied' && b.bonus?.damageBonus);
+        if (ralliedBuff) {
+          damageToDeal += ralliedBuff.bonus.damageBonus;
         }
 
-        if (!enemy || enemy.health <= 0) continue;
-        try {
+        if (enemy.arenaDamageBonus) {
+          damageToDeal += enemy.arenaDamageBonus;
+        }
 
-            // End of Turn: DoT damage, buff/debuff decrement, chill reduction, reaction cooldowns
-            const processEndOfTurn = () => {
-                if (attackNum < totalAttacks - 1) return false;
-                const died = processEnemyEndOfTurn(enemy, sharedState);
-                if (died) {
-                    defeatEnemyInParty(io, party, enemy, enemyIndex);
-                    broadcastAdventureUpdate(io, party);
-                    return true;
-                }
-                return false;
+        // Apply resistance for all damage types
+        const bonuses = getBonusStatsForPlayer(targetCharacter, targetPlayerState);
+        const resistance = getEffectiveResistance(bonuses, attack.damageType);
+        if (resistance > 0) {
+          damageToDeal = Math.max(1, damageToDeal - resistance);
+        }
+        // UNIFIED: Use shared reaction availability helper
+        const attackDetails = { attackRange: attack.attackRange || 'melee', damageType: attack.damageType };
+        const availableReactions = getAvailablePlayerReactions(
+          targetCharacter,
+          targetPlayerState,
+          attackDetails,
+          sharedState.log
+        );
+        // --- END OF REACTION LOGIC ---
+        if (availableReactions.length > 0 && !isFleeing) {
+          // FIX: Process end of turn effects BEFORE waiting for reaction
+          // This ensures DOT damage is applied even if we pause for reaction
+          if (processEndOfTurn()) {
+            // Enemy died from DOT - skip the reaction setup
+            broadcastAdventureUpdate(io, party);
+            continue;
+          }
+
+          // --- INTERVENE CHECK ---
+          // Check if any OTHER party member can intervene before we offer reactions to target
+          const potentialIntervenors = [];
+          sharedState.partyMemberStates.forEach((pmState) => {
+            if (pmState.name === targetPlayerState.name || pmState.isDead) return;
+            const pmPlayer = players[pmState.name];
+            if (!pmPlayer?.character) return;
+
+            // Check for Intervene spell
+            const interveneSpell = pmPlayer.character.equippedSpells.find((s) => s.isIntervene);
+            if (!interveneSpell) return;
+
+            // Check cooldown
+            if ((pmState.spellCooldowns[interveneSpell.name] || 0) > 0) return;
+
+            // Check for shield equipped
+            const shield = pmPlayer.character.equipment.offHand;
+            if (!shield || shield.type !== 'shield') return;
+
+            potentialIntervenors.push({
+              playerState: pmState,
+              player: pmPlayer,
+              spell: interveneSpell,
+            });
+          });
+
+          // If there are potential intervenors, ask them first
+          if (potentialIntervenors.length > 0) {
+            // Store the attack info so we can resume after intervene decision
+            sharedState.pendingIntervene = {
+              attackerName: enemy.name,
+              attackerIndex: enemyIndex,
+              originalTargetName: targetPlayerState.name,
+              damage: attack.damage,
+              damageType: attack.damageType,
+              attackRange: attack.attackRange || 'melee',
+              debuff: attack.debuff || null,
+              message: attack.message,
+              availableReactions: availableReactions,
+              potentialIntervenors: potentialIntervenors.map((pi) => pi.playerState.name),
+              respondedIntervenors: [],
+              isFleeing: isFleeing,
+              endOfTurnProcessed: true,
             };
 
-            if (enemy.debuffs.some(d => d.type === 'stun' || d.type === 'frozen')) {
-                if (attackNum === 0) {
-                    const effect = enemy.debuffs.find(d => d.type === 'stun' || d.type === 'frozen');
-                    sharedState.log.push({ message: `${enemy.name} is ${effect.type === 'frozen' ? 'Frozen' : 'stunned'} and cannot act!`, type: 'reaction' });
-                }
-                processEndOfTurn();
-                if (attackNum === totalAttacks - 1) {
-                    broadcastAdventureUpdate(io, party);
-                }
-                continue;
-            }
-            const alivePlayers = sharedState.partyMemberStates.filter(p => !p.isDead);
-            if (alivePlayers.length === 0) continue;
-            let targetPlayerState;
-            if (alivePlayers.length > 0) {
-                const maxThreat = Math.max(...alivePlayers.map(p => p.threat));
-                const topThreatPlayers = alivePlayers.filter(p => p.threat === maxThreat);
-                targetPlayerState = topThreatPlayers[Math.floor(Math.random() * topThreatPlayers.length)];
-            } else {
-                continue;
-            }
-            const targetPlayerObject = players[targetPlayerState.name];
-            if (!targetPlayerObject) continue;
+            // Notify all potential intervenors
+            const intervenePayload = {
+              attacker: enemy.name,
+              target: targetPlayerState.name,
+              damage: attack.damage,
+              attackMessage: attack.message,
+              timer: INTERVENE_TIMER_MS,
+            };
 
-            // Apply Daze modifier to enemy roll (-3 to attack roll)
-            const dazeDebuff = enemy.debuffs.find(d => d.type === 'daze');
-            const dazeModifier = dazeDebuff ? -3 : 0;
-            // Apply Stealth modifier (-5 to attack roll if target is stealthed)
-            const stealthBuff = targetPlayerState.buffs.find(b => b.type === 'Stealth');
-            const stealthModifier = stealthBuff ? -5 : 0;
+            potentialIntervenors.forEach((pi) => {
+              io.to(pi.playerState.playerId).emit('party:requestIntervene', intervenePayload);
+            });
 
-            let roll = rollD20();
-            const modifiedRoll = Math.max(1, roll + dazeModifier + stealthModifier); // Minimum roll of 1
+            // Set timeout for intervene response
+            sharedState.interveneTimeout = setTimeout(() => {
+              // Nobody intervened in time - continue to normal target
+              proceedToNormalReaction(
+                io,
+                party,
+                targetPlayerState,
+                availableReactions,
+                attack,
+                enemy,
+                enemyIndex,
+                isFleeing
+              );
+            }, INTERVENE_TIMER_MS);
 
-            if (dazeDebuff && dazeModifier !== 0) {
-                sharedState.log.push({ message: `${enemy.name} is dazed! (-3 to attack roll)`, type: 'info' });
-            }
-            if (stealthBuff) {
-                sharedState.log.push({ message: `${enemy.name}'s attack is hindered by shadows! (-5 to hit)`, type: 'info' });
-            }
-            const attack = enemy.attackTable ? enemy.attackTable.find(a => modifiedRoll >= a.range[0] && modifiedRoll <= a.range[1]) : null;
-
-            // Check for Silence - prevents magic attacks
-            if (attack && attack.isMagic) {
-                const silenceDebuff = (enemy.debuffs || []).find(d => d.type.toLowerCase() === 'silence');
-                if (silenceDebuff) {
-                    sharedState.log.push({ message: `${enemy.name} is Silenced and cannot use magic!`, type: 'info' });
-                    processEndOfTurn();
-                    broadcastAdventureUpdate(io, party);
-                    await new Promise(resolve => setTimeout(resolve, 1200));
-                    continue;
-                }
-            }
-
-            if (attack && attack.action === 'attack') {
-                const targetCharacter = targetPlayerObject.character;
-                let damageToDeal = attack.damage;
-
-                // Apply Rallied buff damage bonus (from Gorbon's rally)
-                const ralliedBuff = enemy.buffs?.find(b => b.type === 'Rallied' && b.bonus?.damageBonus);
-                if (ralliedBuff) {
-                    damageToDeal += ralliedBuff.bonus.damageBonus;
-                }
-
-                if (enemy.arenaDamageBonus) {
-                    damageToDeal += enemy.arenaDamageBonus;
-                }
-
-                // Apply resistance for all damage types
-                const bonuses = getBonusStatsForPlayer(targetCharacter, targetPlayerState);
-                const resistance = getEffectiveResistance(bonuses, attack.damageType);
-                if (resistance > 0) {
-                    damageToDeal = Math.max(1, damageToDeal - resistance);
-                }
-                // UNIFIED: Use shared reaction availability helper
-                const attackDetails = { attackRange: attack.attackRange || 'melee', damageType: attack.damageType };
-                const availableReactions = getAvailablePlayerReactions(targetCharacter, targetPlayerState, attackDetails, sharedState.log);
-                // --- END OF REACTION LOGIC ---
-                if (availableReactions.length > 0 && !isFleeing) {
-                    // FIX: Process end of turn effects BEFORE waiting for reaction
-                    // This ensures DOT damage is applied even if we pause for reaction
-                    if (processEndOfTurn()) {
-                        // Enemy died from DOT - skip the reaction setup
-                        broadcastAdventureUpdate(io, party);
-                        continue;
-                    }
-
-                    // --- INTERVENE CHECK ---
-                    // Check if any OTHER party member can intervene before we offer reactions to target
-                    const potentialIntervenors = [];
-                    sharedState.partyMemberStates.forEach(pmState => {
-                        if (pmState.name === targetPlayerState.name || pmState.isDead) return;
-                        const pmPlayer = players[pmState.name];
-                        if (!pmPlayer?.character) return;
-
-                        // Check for Intervene spell
-                        const interveneSpell = pmPlayer.character.equippedSpells.find(s => s.isIntervene);
-                        if (!interveneSpell) return;
-
-                        // Check cooldown
-                        if ((pmState.spellCooldowns[interveneSpell.name] || 0) > 0) return;
-
-                        // Check for shield equipped
-                        const shield = pmPlayer.character.equipment.offHand;
-                        if (!shield || shield.type !== 'shield') return;
-
-                        potentialIntervenors.push({
-                            playerState: pmState,
-                            player: pmPlayer,
-                            spell: interveneSpell
-                        });
-                    });
-
-                    // If there are potential intervenors, ask them first
-                    if (potentialIntervenors.length > 0) {
-                        // Store the attack info so we can resume after intervene decision
-                        sharedState.pendingIntervene = {
-                            attackerName: enemy.name,
-                            attackerIndex: enemyIndex,
-                            originalTargetName: targetPlayerState.name,
-                            damage: attack.damage,
-                            damageType: attack.damageType,
-                            attackRange: attack.attackRange || 'melee',
-                            debuff: attack.debuff || null,
-                            message: attack.message,
-                            availableReactions: availableReactions,
-                            potentialIntervenors: potentialIntervenors.map(pi => pi.playerState.name),
-                            respondedIntervenors: [],
-                            isFleeing: isFleeing,
-                            endOfTurnProcessed: true
-                        };
-
-                        // Notify all potential intervenors
-                        const intervenePayload = {
-                            attacker: enemy.name,
-                            target: targetPlayerState.name,
-                            damage: attack.damage,
-                            attackMessage: attack.message,
-                            timer: INTERVENE_TIMER_MS
-                        };
-
-                        potentialIntervenors.forEach(pi => {
-                            io.to(pi.playerState.playerId).emit('party:requestIntervene', intervenePayload);
-                        });
-
-                        // Set timeout for intervene response
-                        sharedState.interveneTimeout = setTimeout(() => {
-                            // Nobody intervened in time - continue to normal target
-                            proceedToNormalReaction(io, party, targetPlayerState, availableReactions, attack, enemy, enemyIndex, isFleeing);
-                        }, INTERVENE_TIMER_MS);
-
-                        broadcastAdventureUpdate(io, party);
-                        return;
-                    }
-                    // --- END INTERVENE CHECK ---
-
-                    sharedState.pendingReaction = {
-                        attackerName: enemy.name,
-                        attackerIndex: enemyIndex,
-                        targetName: targetPlayerState.name,
-                        damage: attack.damage,
-                        damageType: attack.damageType,
-                        attackRange: attack.attackRange || 'melee',
-                        debuff: attack.debuff || null,
-                        message: attack.message,
-                        isFleeing: isFleeing,
-                        endOfTurnProcessed: true  // Mark that DOT was already processed
-                    };
-                    const reactionPayload = {
-                        damage: attack.damage,
-                        attacker: enemy.name,
-                        attackMessage: attack.message,
-                        availableReactions: availableReactions.map(r => ({ name: r.name })),
-                        timer: REACTION_TIMER_MS
-                    };
-                    io.to(targetPlayerState.playerId).emit('party:requestReaction', reactionPayload);
-                    party.reactionTimeout = setTimeout(() => {
-                        const playerSocket = io.sockets.sockets.get(targetPlayerState.playerId);
-                        if (playerSocket) {
-                            handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
-                        }
-                    }, REACTION_TIMER_MS);
-                    broadcastAdventureUpdate(io, party);
-                    return;
-                } else {
-                    applyDamage(targetPlayerState, damageToDeal);
-                    let attackMessage = `${enemy.name} ${attack.message} It hits ${targetPlayerState.name} for ${damageToDeal} damage! [id:${targetPlayerState.playerId}]`;
-                    if (damageToDeal < attack.damage) {
-                        attackMessage += ` (${attack.damage - damageToDeal} resisted)`;
-                    }
-                    if (attack.debuff) {
-                        const debuff = attack.debuff;
-                        const existingIndex = targetPlayerState.debuffs.findIndex(d => d.type === debuff.type);
-                        if (existingIndex !== -1) targetPlayerState.debuffs.splice(existingIndex, 1);
-                        targetPlayerState.debuffs.push({ ...debuff });
-                        attackMessage += ` ${targetPlayerState.name} is now ${debuff.type}!`;
-                    }
-                    sharedState.log.push({ message: attackMessage, type: 'damage' });
-
-                    // Flame Shield burn-on-melee counter for enemy melee attacks
-                    if (attack.attackRange === 'melee' || !attack.attackRange) {
-                        const flameShield = targetPlayerState.buffs?.find(b => b.type === 'Flame Shield');
-                        if (flameShield && flameShield.burnOnMelee) {
-                            // Apply burn to the enemy
-                            if (!enemy.debuffs) enemy.debuffs = [];
-                            const burnDebuff = { ...flameShield.burnOnMelee };
-                            const existingBurn = enemy.debuffs.findIndex(d => d.type.toLowerCase() === 'burn');
-                            if (existingBurn !== -1) enemy.debuffs.splice(existingBurn, 1);
-                            enemy.debuffs.push(burnDebuff);
-                            sharedState.log.push({ message: `${enemy.name} is burned by ${targetPlayerState.name}'s Flame Shield!`, type: 'damage' });
-                        }
-
-                        // Ice Barrier chill-on-melee counter for enemy melee attacks
-                        const iceBarrier = targetPlayerState.buffs?.find(b => b.type === 'Ice Barrier');
-                        if (iceBarrier && iceBarrier.chillOnMelee) {
-                            // Apply chill to the enemy
-                            applyChillStack(enemy, iceBarrier.chillOnMelee, sharedState.log);
-                            sharedState.log.push({ message: `${enemy.name} is chilled by ${targetPlayerState.name}'s Ice Barrier!`, type: 'damage' });
-                        }
-                    }
-                }
-            } else if (attack && attack.action === 'special') {
-                // --- UNIFIED SPECIAL HANDLER ---
-                // Try to handle using improved handler registry first
-                let handlerResult = { handled: false };
-                try {
-                    handlerResult = handleEnemySpecialAction(enemy, sharedState, targetPlayerState, attack, {
-                        io,
-                        party,
-                        enemyIndex,
-                        targetPlayerObject,
-                        players
-                    });
-                } catch (err) {
-                    console.error(`Error handling special action for ${enemy.name}:`, err);
-                    sharedState.log.push({ message: `(Error processing ${enemy.name}: ${err.message})`, type: 'error' });
-                }
-
-                if (handlerResult.handled) {
-                    if (handlerResult.rerollAttack) {
-                        i--; // Go back one step to retry this enemy
-                        continue;
-                    }
-                    if (handlerResult.removeEnemy) {
-                        // Enemy removed itself (e.g. Loot Goblin escape, Human Victim consumed)
-                        sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone, enemyIndex);
-                    }
-                    if (!handlerResult.skipEndOfTurn) {
-                        processEndOfTurn();
-                    }
-
-                    // Update client and wait so the special action can be seen
-                    broadcastAdventureUpdate(io, party);
-                    await new Promise(resolve => setTimeout(resolve, 1200));
-                    continue;
-                } else {
-                    // Unhandled special action — log it as fallback
-                    sharedState.log.push({ message: attack.message, type: 'info' });
-                    broadcastAdventureUpdate(io, party);
-                    await new Promise(resolve => setTimeout(resolve, 1200));
-                }
-
-                // --- VAMPIRE: From The Shadows (kept inline because it uses the reaction system) ---
-                if (enemy.name === 'Vampire' && attack.message.includes('From The Shadows')) {
-                    const sortedPlayers = [...sharedState.partyMemberStates].filter(p => !p.isDead).sort((a, b) => (a.threat || 0) - (b.threat || 0));
-                    if (sortedPlayers.length > 0) {
-                        const target = sortedPlayers[0];
-                        const playerObj = players[target.name];
-                        if (playerObj) {
-                            const vampireAttackDetails = { attackRange: 'melee', damageType: 'Physical' };
-                            const availableReactions = getAvailablePlayerReactions(playerObj.character, target, vampireAttackDetails, sharedState.log);
-
-                            if (availableReactions.length > 0) {
-                                sharedState.pendingReaction = {
-                                    attackerName: enemy.name,
-                                    attackerIndex: enemyIndex,
-                                    targetName: target.name,
-                                    damage: 8,
-                                    damageType: 'Physical',
-                                    attackRange: 'melee',
-                                    debuff: { type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' },
-                                    message: 'strikes from the shadows!',
-                                    isFleeing: false,
-                                    endOfTurnProcessed: true,
-                                    isSpecial: true
-                                };
-                                const reactionPayload = {
-                                    damage: 8,
-                                    attacker: enemy.name,
-                                    attackMessage: 'strikes from the shadows!',
-                                    availableReactions: availableReactions.map(r => ({ name: r.name })),
-                                    timer: REACTION_TIMER_MS
-                                };
-                                io.to(target.playerId).emit('party:requestReaction', reactionPayload);
-                                party.reactionTimeout = setTimeout(() => {
-                                    const playerSocket = io.sockets.sockets.get(target.playerId);
-                                    if (playerSocket) {
-                                        handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
-                                    }
-                                }, REACTION_TIMER_MS);
-                                broadcastAdventureUpdate(io, party);
-                                return;
-                            } else {
-                                const bonuses = getBonusStatsForPlayer(playerObj.character, target);
-                                const resistance = bonuses.physicalResistance || 0;
-                                const damage = Math.max(1, 8 - resistance);
-                                applyDamage(target, damage);
-
-                                if (!target.debuffs) target.debuffs = [];
-                                target.debuffs.push({ type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' });
-
-                                sharedState.log.push({ message: `The Vampire strikes ${target.name} from the shadows for ${damage} damage and causes heavy Bleeding!`, type: 'damage' });
-                                if (target.health <= 0) { target.isDead = true; target.health = 0; }
-                            }
-                        }
-                    }
-                }
-            } else {
-                sharedState.log.push({ message: `${enemy.name} misses its attack.`, type: 'info' });
-            }
-            if (targetPlayerState.health <= 0) {
-                targetPlayerState.health = 0;
-                targetPlayerState.isDead = true;
-                if (party.sharedState.pvpEncounter) {
-                    handlePvpPlayerDeath(io, targetPlayerObject, party);
-                } else {
-                    if (targetPlayerObject.character) {
-                        targetPlayerState.lootableInventory = [...targetPlayerObject.character.inventory.filter(Boolean)];
-                        targetPlayerObject.character.inventory = Array(INVENTORY_SIZE).fill(null);
-                        if (targetPlayerObject.id) io.to(targetPlayerObject.id).emit('characterUpdate', targetPlayerObject.character);
-                    }
-                }
-                sharedState.log.push({ message: `${targetPlayerState.name} has been defeated!`, type: 'damage' });
-            }
-
-            // --- EXTRA ATTACK FOR ENRAGED ENEMIES ---
-            const enragedBuff = enemy.buffs?.find(b => b.type === 'Enraged' && b.extraAttacks);
-            if (enragedBuff && enemy.health > 0) {
-                for (let extraAttackNum = 0; extraAttackNum < enragedBuff.extraAttacks; extraAttackNum++) {
-                    const alivePlayersForExtra = sharedState.partyMemberStates.filter(p => !p.isDead);
-                    if (alivePlayersForExtra.length === 0) break;
-
-                    const maxThreatExtra = Math.max(...alivePlayersForExtra.map(p => p.threat));
-                    const topThreatPlayersExtra = alivePlayersForExtra.filter(p => p.threat === maxThreatExtra);
-                    const extraTarget = topThreatPlayersExtra[Math.floor(Math.random() * topThreatPlayersExtra.length)];
-                    const extraTargetObj = players[extraTarget.name];
-                    if (!extraTargetObj) break;
-
-                    let extraRoll = rollD20();
-                    const extraAttack = enemy.attackTable ? enemy.attackTable.find(a => extraRoll >= a.range[0] && extraRoll <= a.range[1]) : null;
-
-                    if (extraAttack && extraAttack.action === 'attack') {
-                        let extraDamage = extraAttack.damage;
-                        if (extraAttack.damageType === 'Physical') {
-                            const bonuses = getBonusStatsForPlayer(extraTargetObj.character, extraTarget);
-                            const resistance = bonuses.physicalResistance || 0;
-                            extraDamage = Math.max(1, extraDamage - resistance);
-                        }
-                        applyDamage(extraTarget, extraDamage);
-                        sharedState.log.push({ message: `[ENRAGED] ${enemy.name} ${extraAttack.message}`, type: 'damage' });
-
-                        if (extraAttack.debuff) {
-                            if (!extraTarget.debuffs) extraTarget.debuffs = [];
-                            extraTarget.debuffs.push({ ...extraAttack.debuff });
-                        }
-
-                        if (extraTarget.health <= 0) {
-                            extraTarget.health = 0;
-                            extraTarget.isDead = true;
-                            sharedState.log.push({ message: `${extraTarget.name} has been defeated!`, type: 'damage' });
-                        }
-                    } else if (extraAttack) {
-                        sharedState.log.push({ message: `[ENRAGED] ${enemy.name} ${extraAttack.message}`, type: 'info' });
-                    }
-                    broadcastAdventureUpdate(io, party);
-                    await new Promise(resolve => setTimeout(resolve, 800));
-                }
-            }
-
-            // --- END OF TURN PROCESSING (DoT + Decrement) ---
-            if (processEndOfTurn()) continue;
-
-            // Broadcast and delay so players see each enemy act sequentially
             broadcastAdventureUpdate(io, party);
-            await new Promise(resolve => setTimeout(resolve, 1200));
-        } catch (error) {
-            console.error(`Error processing turn for enemy ${enemy.name}:`, error);
-        }
-    }
-    if (!isFleeing) {
-        // Handle Defense Quest Spawns
-        if (sharedState.defenseQuest && sharedState.defenseQuest.active && !sharedState.defenseQuest.spawningComplete) {
-            
-            if (sharedState.defenseQuest.turnCount < sharedState.defenseQuest.maxTurns) {
-                sharedState.defenseQuest.turnCount++;
-                sharedState.log.push({ message: `Defense Quest: Turn ${sharedState.defenseQuest.turnCount} of ${sharedState.defenseQuest.maxTurns}...`, type: 'info' });
+            return;
+          }
+          // --- END INTERVENE CHECK ---
+
+          sharedState.pendingReaction = {
+            attackerName: enemy.name,
+            attackerIndex: enemyIndex,
+            targetName: targetPlayerState.name,
+            damage: attack.damage,
+            damageType: attack.damageType,
+            attackRange: attack.attackRange || 'melee',
+            debuff: attack.debuff || null,
+            message: attack.message,
+            isFleeing: isFleeing,
+            endOfTurnProcessed: true, // Mark that DOT was already processed
+          };
+          const reactionPayload = {
+            damage: attack.damage,
+            attacker: enemy.name,
+            attackMessage: attack.message,
+            availableReactions: availableReactions.map((r) => ({ name: r.name })),
+            timer: REACTION_TIMER_MS,
+          };
+          io.to(targetPlayerState.playerId).emit('party:requestReaction', reactionPayload);
+          party.reactionTimeout = setTimeout(() => {
+            const playerSocket = io.sockets.sockets.get(targetPlayerState.playerId);
+            if (playerSocket) {
+              handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
+            }
+          }, REACTION_TIMER_MS);
+          broadcastAdventureUpdate(io, party);
+          return;
+        } else {
+          applyDamage(targetPlayerState, damageToDeal);
+          let attackMessage = `${enemy.name} ${attack.message} It hits ${targetPlayerState.name} for ${damageToDeal} damage! [id:${targetPlayerState.playerId}]`;
+          if (damageToDeal < attack.damage) {
+            attackMessage += ` (${attack.damage - damageToDeal} resisted)`;
+          }
+          if (attack.debuff) {
+            const debuff = attack.debuff;
+            const existingIndex = targetPlayerState.debuffs.findIndex((d) => d.type === debuff.type);
+            if (existingIndex !== -1) targetPlayerState.debuffs.splice(existingIndex, 1);
+            targetPlayerState.debuffs.push({ ...debuff });
+            attackMessage += ` ${targetPlayerState.name} is now ${debuff.type}!`;
+          }
+          sharedState.log.push({ message: attackMessage, type: 'damage' });
+
+          // Flame Shield burn-on-melee counter for enemy melee attacks
+          if (attack.attackRange === 'melee' || !attack.attackRange) {
+            const flameShield = targetPlayerState.buffs?.find((b) => b.type === 'Flame Shield');
+            if (flameShield && flameShield.burnOnMelee) {
+              // Apply burn to the enemy
+              if (!enemy.debuffs) enemy.debuffs = [];
+              const burnDebuff = { ...flameShield.burnOnMelee };
+              const existingBurn = enemy.debuffs.findIndex((d) => d.type.toLowerCase() === 'burn');
+              if (existingBurn !== -1) enemy.debuffs.splice(existingBurn, 1);
+              enemy.debuffs.push(burnDebuff);
+              sharedState.log.push({
+                message: `${enemy.name} is burned by ${targetPlayerState.name}'s Flame Shield!`,
+                type: 'damage',
+              });
             }
 
-            if (sharedState.defenseQuest.turnCount >= sharedState.defenseQuest.maxTurns) {
-                // Spawn Revolter
-                const emptySlotIndex = sharedState.zoneCards.findIndex(c => c && c.type !== 'enemy' && (c.type === 'area' || c.type === 'resource'));
-                if (emptySlotIndex !== -1) {
-                    const revolterTemplate = gameData.cardPools.farmlands.find(p => p.card.name === 'Farmhand Revolter');
-                    if (revolterTemplate) {
-                        const spawnedEnemy = {
-                            ...revolterTemplate.card,
-                            id: Date.now(),
-                            health: revolterTemplate.card.health,
-                            maxHealth: revolterTemplate.card.maxHealth,
-                            buffs: [],
-                            debuffs: []
-                        };
-                        sharedState.zoneCards[emptySlotIndex] = spawnedEnemy;
-                        sharedState.log.push({ message: `The Farmhand Revolter has arrived! Protect the Loyal Farmhand!`, type: 'damage' });
-                    }
-                    sharedState.defenseQuest.spawningComplete = true; // Quest ends spawning phase
-                } else {
-                    sharedState.log.push({ message: `The Farmhand Revolter is looking for an opening!`, type: 'damage' });
-                }
-            } else {
-                // Spawn up to 2 Angry Farmhands
-                let spawnedCount = 0;
-                for (let i = 0; i < sharedState.zoneCards.length && spawnedCount < 2; i++) {
-                    if (sharedState.zoneCards[i] && (sharedState.zoneCards[i].type === 'area' || sharedState.zoneCards[i].type === 'resource')) {
-                        const template = gameData.cardPools.farmlands.find(p => p.card.name === 'Angry Farmhand');
-                        if (template) {
-                            sharedState.zoneCards[i] = {
-                                ...template.card,
-                                id: Date.now() + i,
-                                health: template.card.health,
-                                maxHealth: template.card.maxHealth,
-                                buffs: [],
-                                debuffs: []
-                            };
-                            spawnedCount++;
-                        }
-                    }
-                }
-                if (spawnedCount > 0) {
-                     sharedState.log.push({ message: `${spawnedCount} Angry Farmhand(s) joined the fray!`, type: 'damage' });
-                }
+            // Ice Barrier chill-on-melee counter for enemy melee attacks
+            const iceBarrier = targetPlayerState.buffs?.find((b) => b.type === 'Ice Barrier');
+            if (iceBarrier && iceBarrier.chillOnMelee) {
+              // Apply chill to the enemy
+              applyChillStack(enemy, iceBarrier.chillOnMelee, sharedState.log);
+              sharedState.log.push({
+                message: `${enemy.name} is chilled by ${targetPlayerState.name}'s Ice Barrier!`,
+                type: 'damage',
+              });
             }
+          }
+        }
+      } else if (attack && attack.action === 'special') {
+        // --- UNIFIED SPECIAL HANDLER ---
+        // Try to handle using improved handler registry first
+        let handlerResult = { handled: false };
+        try {
+          handlerResult = handleEnemySpecialAction(enemy, sharedState, targetPlayerState, attack, {
+            io,
+            party,
+            enemyIndex,
+            targetPlayerObject,
+            players,
+          });
+        } catch (err) {
+          console.error(`Error handling special action for ${enemy.name}:`, err);
+          sharedState.log.push({ message: `(Error processing ${enemy.name}: ${err.message})`, type: 'error' });
         }
 
-        // Process zone effects at the end of the entire round
-        processZoneEffects(io, party);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        startNextPlayerTurn(io, party.id);
+        if (handlerResult.handled) {
+          if (handlerResult.rerollAttack) {
+            i--; // Go back one step to retry this enemy
+            continue;
+          }
+          if (handlerResult.removeEnemy) {
+            // Enemy removed itself (e.g. Loot Goblin escape, Human Victim consumed)
+            sharedState.zoneCards[enemyIndex] = getZoneAreaCard(sharedState.currentZone, enemyIndex);
+          }
+          if (!handlerResult.skipEndOfTurn) {
+            processEndOfTurn();
+          }
+
+          // Update client and wait so the special action can be seen
+          broadcastAdventureUpdate(io, party);
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+          continue;
+        } else {
+          // Unhandled special action — log it as fallback
+          sharedState.log.push({ message: attack.message, type: 'info' });
+          broadcastAdventureUpdate(io, party);
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+        }
+
+        // --- VAMPIRE: From The Shadows (kept inline because it uses the reaction system) ---
+        if (enemy.name === 'Vampire' && attack.message.includes('From The Shadows')) {
+          const sortedPlayers = [...sharedState.partyMemberStates]
+            .filter((p) => !p.isDead)
+            .sort((a, b) => (a.threat || 0) - (b.threat || 0));
+          if (sortedPlayers.length > 0) {
+            const target = sortedPlayers[0];
+            const playerObj = players[target.name];
+            if (playerObj) {
+              const vampireAttackDetails = { attackRange: 'melee', damageType: 'Physical' };
+              const availableReactions = getAvailablePlayerReactions(
+                playerObj.character,
+                target,
+                vampireAttackDetails,
+                sharedState.log
+              );
+
+              if (availableReactions.length > 0) {
+                sharedState.pendingReaction = {
+                  attackerName: enemy.name,
+                  attackerIndex: enemyIndex,
+                  targetName: target.name,
+                  damage: 8,
+                  damageType: 'Physical',
+                  attackRange: 'melee',
+                  debuff: { type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' },
+                  message: 'strikes from the shadows!',
+                  isFleeing: false,
+                  endOfTurnProcessed: true,
+                  isSpecial: true,
+                };
+                const reactionPayload = {
+                  damage: 8,
+                  attacker: enemy.name,
+                  attackMessage: 'strikes from the shadows!',
+                  availableReactions: availableReactions.map((r) => ({ name: r.name })),
+                  timer: REACTION_TIMER_MS,
+                };
+                io.to(target.playerId).emit('party:requestReaction', reactionPayload);
+                party.reactionTimeout = setTimeout(() => {
+                  const playerSocket = io.sockets.sockets.get(target.playerId);
+                  if (playerSocket) {
+                    handleResolveReaction(io, playerSocket, { reactionType: 'take_damage' });
+                  }
+                }, REACTION_TIMER_MS);
+                broadcastAdventureUpdate(io, party);
+                return;
+              } else {
+                const bonuses = getBonusStatsForPlayer(playerObj.character, target);
+                const resistance = bonuses.physicalResistance || 0;
+                const damage = Math.max(1, 8 - resistance);
+                applyDamage(target, damage);
+
+                if (!target.debuffs) target.debuffs = [];
+                target.debuffs.push({ type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' });
+
+                sharedState.log.push({
+                  message: `The Vampire strikes ${target.name} from the shadows for ${damage} damage and causes heavy Bleeding!`,
+                  type: 'damage',
+                });
+                if (target.health <= 0) {
+                  target.isDead = true;
+                  target.health = 0;
+                }
+              }
+            }
+          }
+        }
+      } else {
+        sharedState.log.push({ message: `${enemy.name} misses its attack.`, type: 'info' });
+      }
+      if (targetPlayerState.health <= 0) {
+        targetPlayerState.health = 0;
+        targetPlayerState.isDead = true;
+        if (party.sharedState.pvpEncounter) {
+          handlePvpPlayerDeath(io, targetPlayerObject, party);
+        } else {
+          if (targetPlayerObject.character) {
+            targetPlayerState.lootableInventory = [...targetPlayerObject.character.inventory.filter(Boolean)];
+            targetPlayerObject.character.inventory = Array(INVENTORY_SIZE).fill(null);
+            if (targetPlayerObject.id)
+              io.to(targetPlayerObject.id).emit('characterUpdate', targetPlayerObject.character);
+          }
+        }
+        sharedState.log.push({ message: `${targetPlayerState.name} has been defeated!`, type: 'damage' });
+      }
+
+      // --- EXTRA ATTACK FOR ENRAGED ENEMIES ---
+      const enragedBuff = enemy.buffs?.find((b) => b.type === 'Enraged' && b.extraAttacks);
+      if (enragedBuff && enemy.health > 0) {
+        for (let extraAttackNum = 0; extraAttackNum < enragedBuff.extraAttacks; extraAttackNum++) {
+          const alivePlayersForExtra = sharedState.partyMemberStates.filter((p) => !p.isDead);
+          if (alivePlayersForExtra.length === 0) break;
+
+          const maxThreatExtra = Math.max(...alivePlayersForExtra.map((p) => p.threat));
+          const topThreatPlayersExtra = alivePlayersForExtra.filter((p) => p.threat === maxThreatExtra);
+          const extraTarget = topThreatPlayersExtra[Math.floor(Math.random() * topThreatPlayersExtra.length)];
+          const extraTargetObj = players[extraTarget.name];
+          if (!extraTargetObj) break;
+
+          let extraRoll = rollD20();
+          const extraAttack = enemy.attackTable
+            ? enemy.attackTable.find((a) => extraRoll >= a.range[0] && extraRoll <= a.range[1])
+            : null;
+
+          if (extraAttack && extraAttack.action === 'attack') {
+            let extraDamage = extraAttack.damage;
+            if (extraAttack.damageType === 'Physical') {
+              const bonuses = getBonusStatsForPlayer(extraTargetObj.character, extraTarget);
+              const resistance = bonuses.physicalResistance || 0;
+              extraDamage = Math.max(1, extraDamage - resistance);
+            }
+            applyDamage(extraTarget, extraDamage);
+            sharedState.log.push({ message: `[ENRAGED] ${enemy.name} ${extraAttack.message}`, type: 'damage' });
+
+            if (extraAttack.debuff) {
+              if (!extraTarget.debuffs) extraTarget.debuffs = [];
+              extraTarget.debuffs.push({ ...extraAttack.debuff });
+            }
+
+            if (extraTarget.health <= 0) {
+              extraTarget.health = 0;
+              extraTarget.isDead = true;
+              sharedState.log.push({ message: `${extraTarget.name} has been defeated!`, type: 'damage' });
+            }
+          } else if (extraAttack) {
+            sharedState.log.push({ message: `[ENRAGED] ${enemy.name} ${extraAttack.message}`, type: 'info' });
+          }
+          broadcastAdventureUpdate(io, party);
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        }
+      }
+
+      // --- END OF TURN PROCESSING (DoT + Decrement) ---
+      if (processEndOfTurn()) continue;
+
+      // Broadcast and delay so players see each enemy act sequentially
+      broadcastAdventureUpdate(io, party);
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+    } catch (error) {
+      console.error(`Error processing turn for enemy ${enemy.name}:`, error);
     }
+  }
+  if (!isFleeing) {
+    // Handle Defense Quest Spawns
+    if (sharedState.defenseQuest && sharedState.defenseQuest.active && !sharedState.defenseQuest.spawningComplete) {
+      if (sharedState.defenseQuest.turnCount < sharedState.defenseQuest.maxTurns) {
+        sharedState.defenseQuest.turnCount++;
+        sharedState.log.push({
+          message: `Defense Quest: Turn ${sharedState.defenseQuest.turnCount} of ${sharedState.defenseQuest.maxTurns}...`,
+          type: 'info',
+        });
+      }
+
+      if (sharedState.defenseQuest.turnCount >= sharedState.defenseQuest.maxTurns) {
+        // Spawn Revolter
+        const emptySlotIndex = sharedState.zoneCards.findIndex(
+          (c) => c && c.type !== 'enemy' && (c.type === 'area' || c.type === 'resource')
+        );
+        if (emptySlotIndex !== -1) {
+          const revolterTemplate = gameData.cardPools.farmlands.find((p) => p.card.name === 'Farmhand Revolter');
+          if (revolterTemplate) {
+            const spawnedEnemy = {
+              ...revolterTemplate.card,
+              id: Date.now(),
+              health: revolterTemplate.card.health,
+              maxHealth: revolterTemplate.card.maxHealth,
+              buffs: [],
+              debuffs: [],
+            };
+            sharedState.zoneCards[emptySlotIndex] = spawnedEnemy;
+            sharedState.log.push({
+              message: `The Farmhand Revolter has arrived! Protect the Loyal Farmhand!`,
+              type: 'damage',
+            });
+          }
+          sharedState.defenseQuest.spawningComplete = true; // Quest ends spawning phase
+        } else {
+          sharedState.log.push({ message: `The Farmhand Revolter is looking for an opening!`, type: 'damage' });
+        }
+      } else {
+        // Spawn up to 2 Angry Farmhands
+        let spawnedCount = 0;
+        for (let i = 0; i < sharedState.zoneCards.length && spawnedCount < 2; i++) {
+          if (
+            sharedState.zoneCards[i] &&
+            (sharedState.zoneCards[i].type === 'area' || sharedState.zoneCards[i].type === 'resource')
+          ) {
+            const template = gameData.cardPools.farmlands.find((p) => p.card.name === 'Angry Farmhand');
+            if (template) {
+              sharedState.zoneCards[i] = {
+                ...template.card,
+                id: Date.now() + i,
+                health: template.card.health,
+                maxHealth: template.card.maxHealth,
+                buffs: [],
+                debuffs: [],
+              };
+              spawnedCount++;
+            }
+          }
+        }
+        if (spawnedCount > 0) {
+          sharedState.log.push({ message: `${spawnedCount} Angry Farmhand(s) joined the fray!`, type: 'damage' });
+        }
+      }
+    }
+
+    // Process zone effects at the end of the entire round
+    processZoneEffects(io, party);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    startNextPlayerTurn(io, party.id);
+  }
 }
 
 export function startNextPlayerTurn(io, partyId) {
-    const party = parties[partyId];
-    if (!party || !party.sharedState) return;
-    const { sharedState } = party;
-    sharedState.turnNumber++;
-    sharedState.isPlayerTurn = true;
-    sharedState.activePhase = 'player';
-    
-    // Find first living player
-    let firstLivingIndex = -1;
-    for (let i = 0; i < sharedState.partyMemberStates.length; i++) {
-        if (!sharedState.partyMemberStates[i].isDead) {
-            firstLivingIndex = i;
-            break;
-        }
-    }
-    
-    if (firstLivingIndex === -1) return; // All dead, should not happen here but safety
-    
-    sharedState.activePlayerIndex = firstLivingIndex;
+  const party = parties[partyId];
+  if (!party || !party.sharedState) return;
+  const { sharedState } = party;
+  sharedState.turnNumber++;
+  sharedState.isPlayerTurn = true;
+  sharedState.activePhase = 'player';
 
-    sharedState.log.push({ message: "--- Players' Turn ---", type: 'info' });
-    
-    sharedState.partyMemberStates.forEach((p, idx) => {
-        if (p.isDead) {
-            p.turnEnded = true;
-            p.actionPoints = 0;
-        } else {
-            // DoT Damage processed at END of turn now.
-            // Check if DOT killed the player
-            if (p.health <= 0) {
-                p.isDead = true;
-                p.turnEnded = true;
-                p.actionPoints = 0;
-                sharedState.log.push({ message: `${p.name} has succumbed to their wounds!`, type: 'damage' });
-                return;
-            }
-
-            p.turnEnded = false;
-            p.actionPoints = 0; // Clear AP for everyone to start
-            
-            // Cooldowns decrement at start of round
-            Object.keys(p.weaponCooldowns).forEach(k => { if (p.weaponCooldowns[k] > 0) p.weaponCooldowns[k]--; });
-            Object.keys(p.spellCooldowns).forEach(k => { if (p.spellCooldowns[k] > 0) p.spellCooldowns[k]--; });
-            Object.keys(p.itemCooldowns).forEach(k => { if (p.itemCooldowns[k] > 0) p.itemCooldowns[k]--; });
-        }
-    });
-    
-    // Give AP to first player
-    const firstPlayer = sharedState.partyMemberStates[firstLivingIndex];
-    if (!firstPlayer.isDead) {
-        const disablingDebuff = firstPlayer.debuffs.find(d => d.type === 'stun' || d.type === 'frozen');
-        if (disablingDebuff) {
-            firstPlayer.actionPoints = DEFAULT_ACTION_POINTS - 1; // Lose 1 AP due to stun/frozen
-            const effectName = disablingDebuff.type === 'frozen' ? 'Frozen' : 'stunned';
-            sharedState.log.push({ message: `${firstPlayer.name} is ${effectName} and starts with reduced Action Points!`, type: 'reaction' });
-        } else {
-            firstPlayer.actionPoints = DEFAULT_ACTION_POINTS;
-        }
+  // Find first living player
+  let firstLivingIndex = -1;
+  for (let i = 0; i < sharedState.partyMemberStates.length; i++) {
+    if (!sharedState.partyMemberStates[i].isDead) {
+      firstLivingIndex = i;
+      break;
     }
-    
-    // Start PVE turn timer
-    startPveTurnTimer(io, partyId, sharedState);
-    
-    broadcastAdventureUpdate(io, party);
+  }
+
+  if (firstLivingIndex === -1) return; // All dead, should not happen here but safety
+
+  sharedState.activePlayerIndex = firstLivingIndex;
+
+  sharedState.log.push({ message: "--- Players' Turn ---", type: 'info' });
+
+  sharedState.partyMemberStates.forEach((p, idx) => {
+    if (p.isDead) {
+      p.turnEnded = true;
+      p.actionPoints = 0;
+    } else {
+      // DoT Damage processed at END of turn now.
+      // Check if DOT killed the player
+      if (p.health <= 0) {
+        p.isDead = true;
+        p.turnEnded = true;
+        p.actionPoints = 0;
+        sharedState.log.push({ message: `${p.name} has succumbed to their wounds!`, type: 'damage' });
+        return;
+      }
+
+      p.turnEnded = false;
+      p.actionPoints = 0; // Clear AP for everyone to start
+
+      // Cooldowns decrement at start of round
+      Object.keys(p.weaponCooldowns).forEach((k) => {
+        if (p.weaponCooldowns[k] > 0) p.weaponCooldowns[k]--;
+      });
+      Object.keys(p.spellCooldowns).forEach((k) => {
+        if (p.spellCooldowns[k] > 0) p.spellCooldowns[k]--;
+      });
+      Object.keys(p.itemCooldowns).forEach((k) => {
+        if (p.itemCooldowns[k] > 0) p.itemCooldowns[k]--;
+      });
+    }
+  });
+
+  // Give AP to first player
+  const firstPlayer = sharedState.partyMemberStates[firstLivingIndex];
+  if (!firstPlayer.isDead) {
+    const disablingDebuff = firstPlayer.debuffs.find((d) => d.type === 'stun' || d.type === 'frozen');
+    if (disablingDebuff) {
+      firstPlayer.actionPoints = DEFAULT_ACTION_POINTS - 1; // Lose 1 AP due to stun/frozen
+      const effectName = disablingDebuff.type === 'frozen' ? 'Frozen' : 'stunned';
+      sharedState.log.push({
+        message: `${firstPlayer.name} is ${effectName} and starts with reduced Action Points!`,
+        type: 'reaction',
+      });
+    } else {
+      firstPlayer.actionPoints = DEFAULT_ACTION_POINTS;
+    }
+  }
+
+  // Start PVE turn timer
+  startPveTurnTimer(io, partyId, sharedState);
+
+  broadcastAdventureUpdate(io, party);
 }
 
 /**
@@ -1595,101 +1781,106 @@ export function startNextPlayerTurn(io, partyId) {
  * Consolidates the duplicated timer setup logic (was in 3 places).
  */
 function startPveTurnTimer(io, partyId, sharedState) {
-    if (sharedState.turnTimerId) clearTimeout(sharedState.turnTimerId);
-    if (sharedState.pvpEncounterId) return;
-    
-    const activePlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
-    if (!activePlayer || activePlayer.isDead) return;
-    
-    sharedState.turnTimerEndsAt = Date.now() + PVE_TURN_DURATION_MS;
-    sharedState.turnTimerId = setTimeout(() => {
-        const currentPlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
-        if (currentPlayer && !currentPlayer.turnEnded && !currentPlayer.isDead) {
-            sharedState.log.push({ message: `⏳ ${currentPlayer.name}'s time expired! Turn ends.`, type: 'info' });
-            processPlayerEndTurn(io, partyId, currentPlayer.name);
-        }
-    }, PVE_TURN_DURATION_MS);
+  if (sharedState.turnTimerId) clearTimeout(sharedState.turnTimerId);
+  if (sharedState.pvpEncounterId) return;
+
+  const activePlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
+  if (!activePlayer || activePlayer.isDead) return;
+
+  sharedState.turnTimerEndsAt = Date.now() + PVE_TURN_DURATION_MS;
+  sharedState.turnTimerId = setTimeout(() => {
+    const currentPlayer = sharedState.partyMemberStates[sharedState.activePlayerIndex];
+    if (currentPlayer && !currentPlayer.turnEnded && !currentPlayer.isDead) {
+      sharedState.log.push({ message: `⏳ ${currentPlayer.name}'s time expired! Turn ends.`, type: 'info' });
+      processPlayerEndTurn(io, partyId, currentPlayer.name);
+    }
+  }, PVE_TURN_DURATION_MS);
 }
 
 export async function processPlayerEndTurn(io, partyId, playerName) {
-    const party = parties[partyId];
-    if (!party || !party.sharedState) return;
-    const { sharedState } = party;
-    const playerState = sharedState.partyMemberStates.find(p => p.name === playerName);
-    if (!playerState) return;
+  const party = parties[partyId];
+  if (!party || !party.sharedState) return;
+  const { sharedState } = party;
+  const playerState = sharedState.partyMemberStates.find((p) => p.name === playerName);
+  if (!playerState) return;
 
-    // Clear any active turn timer when a player ends their turn
-    if (sharedState.turnTimerId) {
-        clearTimeout(sharedState.turnTimerId);
-        sharedState.turnTimerId = null;
-        sharedState.turnTimerEndsAt = null;
+  // Clear any active turn timer when a player ends their turn
+  if (sharedState.turnTimerId) {
+    clearTimeout(sharedState.turnTimerId);
+    sharedState.turnTimerId = null;
+    sharedState.turnTimerEndsAt = null;
+  }
+
+  // End-of-turn effects: DoT + Chill + buff/debuff decrement + Rejuvenate
+  processRejuvenateHealing(playerState, sharedState.log);
+  processEndOfTurnEffects(playerState, sharedState.log);
+
+  // Death check after DoT
+  if (playerState.health <= 0) {
+    playerState.health = 0;
+    playerState.isDead = true;
+    sharedState.log.push({ message: `${playerState.name} has succumbed to their wounds!`, type: 'damage' });
+  }
+
+  // 3. Capture remaining AP for threat reduction before zeroing
+  const remainingAP = playerState.actionPoints || 0;
+
+  // 4. Set turnEnded and zero AP
+  playerState.turnEnded = true;
+  playerState.actionPoints = 0;
+
+  // 5. Reduce Threat by unused AP (PvE only)
+  if (!party.sharedState.pvpEncounterId && remainingAP > 0) {
+    const oldThreat = playerState.threat || 0;
+    modifyThreat(playerState, -remainingAP);
+    if (oldThreat > 0) {
+      sharedState.log.push({
+        message: `${playerState.name} reduces threat by ${Math.min(remainingAP, oldThreat)} (${remainingAP} unused AP).`,
+        type: 'info',
+      });
     }
+  }
 
-    // End-of-turn effects: DoT + Chill + buff/debuff decrement + Rejuvenate
-    processRejuvenateHealing(playerState, sharedState.log);
-    processEndOfTurnEffects(playerState, sharedState.log);
-
-    // Death check after DoT
-    if (playerState.health <= 0) {
-        playerState.health = 0;
-        playerState.isDead = true;
-        sharedState.log.push({ message: `${playerState.name} has succumbed to their wounds!`, type: 'damage' });
+  // Find next living player
+  let nextLivingIndex = -1;
+  for (let i = sharedState.activePlayerIndex + 1; i < sharedState.partyMemberStates.length; i++) {
+    if (!sharedState.partyMemberStates[i].isDead) {
+      nextLivingIndex = i;
+      break;
     }
+  }
 
-    // 3. Capture remaining AP for threat reduction before zeroing
-    const remainingAP = playerState.actionPoints || 0;
+  if (nextLivingIndex !== -1) {
+    // Pass AP to next player
+    sharedState.activePlayerIndex = nextLivingIndex;
+    const nextPlayer = sharedState.partyMemberStates[nextLivingIndex];
 
-    // 4. Set turnEnded and zero AP
-    playerState.turnEnded = true;
-    playerState.actionPoints = 0;
-
-    // 5. Reduce Threat by unused AP (PvE only)
-    if (!party.sharedState.pvpEncounterId && remainingAP > 0) {
-        const oldThreat = playerState.threat || 0;
-        modifyThreat(playerState, -remainingAP);
-        if (oldThreat > 0) {
-            sharedState.log.push({ message: `${playerState.name} reduces threat by ${Math.min(remainingAP, oldThreat)} (${remainingAP} unused AP).`, type: 'info' });
-        }
-    }
-
-    // Find next living player
-    let nextLivingIndex = -1;
-    for (let i = sharedState.activePlayerIndex + 1; i < sharedState.partyMemberStates.length; i++) {
-        if (!sharedState.partyMemberStates[i].isDead) {
-            nextLivingIndex = i;
-            break;
-        }
-    }
-
-    if (nextLivingIndex !== -1) {
-        // Pass AP to next player
-        sharedState.activePlayerIndex = nextLivingIndex;
-        const nextPlayer = sharedState.partyMemberStates[nextLivingIndex];
-        
-        const disablingDebuff = nextPlayer.debuffs.find(d => d.type === 'stun' || d.type === 'frozen');
-        if (disablingDebuff) {
-            nextPlayer.actionPoints = DEFAULT_ACTION_POINTS - 1;
-            const effectName = disablingDebuff.type === 'frozen' ? 'Frozen' : 'stunned';
-            sharedState.log.push({ message: `${nextPlayer.name} is ${effectName} and starts with reduced Action Points!`, type: 'reaction' });
-        } else {
-            nextPlayer.actionPoints = DEFAULT_ACTION_POINTS;
-        }
-        
-        // Start PVE turn timer for the next player
-        startPveTurnTimer(io, partyId, sharedState);
-        
-        broadcastAdventureUpdate(io, party);
+    const disablingDebuff = nextPlayer.debuffs.find((d) => d.type === 'stun' || d.type === 'frozen');
+    if (disablingDebuff) {
+      nextPlayer.actionPoints = DEFAULT_ACTION_POINTS - 1;
+      const effectName = disablingDebuff.type === 'frozen' ? 'Frozen' : 'stunned';
+      sharedState.log.push({
+        message: `${nextPlayer.name} is ${effectName} and starts with reduced Action Points!`,
+        type: 'reaction',
+      });
     } else {
-        // All players have gone
-        broadcastAdventureUpdate(io, party);
-        // Call enemy phase
-        const allTurnsEnded = sharedState.partyMemberStates.every(p => p.turnEnded || p.isDead);
-        if (allTurnsEnded) {
-            await runEnemyPhaseForParty(io, partyId);
-        }
+      nextPlayer.actionPoints = DEFAULT_ACTION_POINTS;
     }
-}
 
+    // Start PVE turn timer for the next player
+    startPveTurnTimer(io, partyId, sharedState);
+
+    broadcastAdventureUpdate(io, party);
+  } else {
+    // All players have gone
+    broadcastAdventureUpdate(io, party);
+    // Call enemy phase
+    const allTurnsEnded = sharedState.partyMemberStates.every((p) => p.turnEnded || p.isDead);
+    if (allTurnsEnded) {
+      await runEnemyPhaseForParty(io, partyId);
+    }
+  }
+}
 
 /**
  * Process end-of-turn effects for all living party members.
@@ -1699,357 +1890,364 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
  * @returns {boolean} - True if any player died from DoT damage
  */
 function processPartyEndOfTurn(sharedState) {
-    let anyPlayerDied = false;
+  let anyPlayerDied = false;
 
-    for (const playerState of sharedState.partyMemberStates) {
-        if (playerState.isDead) continue;
+  for (const playerState of sharedState.partyMemberStates) {
+    if (playerState.isDead) continue;
 
-        // Apply DoT, Chill reduction, buff/debuff decrement, and Rejuvenate
-        processRejuvenateHealing(playerState, sharedState.log);
-        processEndOfTurnEffects(playerState, sharedState.log);
+    // Apply DoT, Chill reduction, buff/debuff decrement, and Rejuvenate
+    processRejuvenateHealing(playerState, sharedState.log);
+    processEndOfTurnEffects(playerState, sharedState.log);
 
-        // Check for death from DoT
-        if (playerState.health <= 0) {
-            playerState.health = 0;
-            playerState.isDead = true;
-            sharedState.log.push({ message: `${playerState.name} has succumbed to their wounds!`, type: 'damage' });
-            anyPlayerDied = true;
-        }
+    // Check for death from DoT
+    if (playerState.health <= 0) {
+      playerState.health = 0;
+      playerState.isDead = true;
+      sharedState.log.push({ message: `${playerState.name} has succumbed to their wounds!`, type: 'damage' });
+      anyPlayerDied = true;
     }
+  }
 
-    return anyPlayerDied;
+  return anyPlayerDied;
 }
 
-
 // Re-export functions to maintain API compatibility
-export {
-    handlePvpPlayerDeath,
-    endDuelEncounter,
-    startPvpEncounter,
-    startNextPvpTurn,
-    processPvpPlayerEndTurn
-};
+export { handlePvpPlayerDeath, endDuelEncounter, startPvpEncounter, startNextPvpTurn, processPvpPlayerEndTurn };
 
 export async function handleResolveReaction(io, socket, payload) {
-    const name = socket.characterName;
-    const player = players[name];
-    if (!player) return;
-    let party = parties[player.character.partyId];
-    if (!party || !party.sharedState) return;
-    const isPvp = !!party.sharedState.pvpEncounterId;
-    const encounter = isPvp ? pvpEncounters[party.sharedState.pvpEncounterId] : null;
-    const stateObject = isPvp ? encounter : party.sharedState;
-    if (!stateObject || !stateObject.pendingReaction) return;
-    const reaction = stateObject.pendingReaction;
-    if (reaction.targetName !== name) return;
-    if (stateObject.reactionTimeout) {
-        clearTimeout(stateObject.reactionTimeout);
-        stateObject.reactionTimeout = null;
+  const name = socket.characterName;
+  const player = players[name];
+  if (!player) return;
+  let party = parties[player.character.partyId];
+  if (!party || !party.sharedState) return;
+  const isPvp = !!party.sharedState.pvpEncounterId;
+  const encounter = isPvp ? pvpEncounters[party.sharedState.pvpEncounterId] : null;
+  const stateObject = isPvp ? encounter : party.sharedState;
+  if (!stateObject || !stateObject.pendingReaction) return;
+  const reaction = stateObject.pendingReaction;
+  if (reaction.targetName !== name) return;
+  if (stateObject.reactionTimeout) {
+    clearTimeout(stateObject.reactionTimeout);
+    stateObject.reactionTimeout = null;
+  }
+  const { reactionType } = payload;
+  const reactingPlayerState = isPvp
+    ? encounter.playerStates.find((p) => p.name === name)
+    : party.sharedState.partyMemberStates.find((p) => p.name === name);
+  const reactingPlayer = players[name];
+  let finalDamage = reaction.damage;
+  let dodged = false;
+  let blocked = false;
+  let logMessage = '';
+
+  if (reactionType === 'Dodge') {
+    const dodgeSpell = reactingPlayer.character.equippedSpells.find((s) => s.name === 'Dodge');
+    if (dodgeSpell && (reactingPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
+      reactingPlayerState.spellCooldowns[dodgeSpell.name] = dodgeSpell.cooldown;
+      const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
+      const statValue = reactingPlayer.character.agility + bonuses.agility;
+      const roll = rollD20();
+      const total = roll + statValue;
+      const isSuccess = roll !== 1 && total >= dodgeSpell.hit;
+      const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
+      const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+      if (roll === 1) {
+        logMessage = `${name}'s Dodge: ${rollDisplay} Critical Failure!`;
+      } else if (isSuccess) {
+        finalDamage = 0;
+        dodged = true;
+        logMessage = `${name}'s Dodge: ${rollDisplay} Avoided!`;
+      } else {
+        logMessage = `${name}'s Dodge: ${rollDisplay} Failed!`;
+      }
+    } else {
+      logMessage = `${name} tries to Dodge, but fails!`;
     }
-    const { reactionType } = payload;
-    const reactingPlayerState = isPvp ? encounter.playerStates.find(p => p.name === name) : party.sharedState.partyMemberStates.find(p => p.name === name);
-    const reactingPlayer = players[name];
-    let finalDamage = reaction.damage;
-    let dodged = false;
-    let blocked = false;
-    let logMessage = '';
-
-    if (reactionType === 'Dodge') {
-        const dodgeSpell = reactingPlayer.character.equippedSpells.find(s => s.name === "Dodge");
-        if (dodgeSpell && (reactingPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
-            reactingPlayerState.spellCooldowns[dodgeSpell.name] = dodgeSpell.cooldown;
-            const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
-            const statValue = reactingPlayer.character.agility + bonuses.agility;
-            const roll = rollD20();
-            const total = roll + statValue;
-            const isSuccess = roll !== 1 && total >= dodgeSpell.hit;
-            const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
-            const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
-            if (roll === 1) {
-                logMessage = `${name}'s Dodge: ${rollDisplay} Critical Failure!`;
-            } else if (isSuccess) {
-                finalDamage = 0;
-                dodged = true;
-                logMessage = `${name}'s Dodge: ${rollDisplay} Avoided!`;
-            } else {
-                logMessage = `${name}'s Dodge: ${rollDisplay} Failed!`;
-            }
-        } else {
-            logMessage = `${name} tries to Dodge, but fails!`;
-        }
-    } else if (reactionType === 'Block') {
-        const shield = reactingPlayer.character.equipment.offHand;
-        if (shield && shield.reaction && (reactingPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
-            reactingPlayerState.itemCooldowns[shield.name] = shield.cooldown;
-            const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
-            const statValue = reactingPlayer.character.defense + bonuses.defense;
-            const roll = rollD20();
-            const total = roll + statValue;
-            const isSuccess = roll !== 1 && total >= shield.reaction.hit;
-            const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
-            const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
-            if (roll === 1) {
-                logMessage = `${name}'s Block: ${rollDisplay} Critical Failure!`;
-            } else if (isSuccess) {
-                const damageReduction = shield.reaction.value;
-                finalDamage = Math.max(1, finalDamage - damageReduction);
-                blocked = true;
-                logMessage = `${name}'s Block: ${rollDisplay} Blocked ${damageReduction} damage!`;
-            } else {
-                logMessage = `${name}'s Block: ${rollDisplay} Failed!`;
-            }
-        } else {
-            logMessage = `${name} tries to Block, but fails!`;
-        }
+  } else if (reactionType === 'Block') {
+    const shield = reactingPlayer.character.equipment.offHand;
+    if (shield && shield.reaction && (reactingPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
+      reactingPlayerState.itemCooldowns[shield.name] = shield.cooldown;
+      const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
+      const statValue = reactingPlayer.character.defense + bonuses.defense;
+      const roll = rollD20();
+      const total = roll + statValue;
+      const isSuccess = roll !== 1 && total >= shield.reaction.hit;
+      const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
+      const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+      if (roll === 1) {
+        logMessage = `${name}'s Block: ${rollDisplay} Critical Failure!`;
+      } else if (isSuccess) {
+        const damageReduction = shield.reaction.value;
+        finalDamage = Math.max(1, finalDamage - damageReduction);
+        blocked = true;
+        logMessage = `${name}'s Block: ${rollDisplay} Blocked ${damageReduction} damage!`;
+      } else {
+        logMessage = `${name}'s Block: ${rollDisplay} Failed!`;
+      }
+    } else {
+      logMessage = `${name} tries to Block, but fails!`;
     }
-    // --- NEW LOGIC FOR EVASIVE SHOT REACTION ---
-    else if (reactionType === 'Evasive Shot') {
-        const evasiveShotSpell = reactingPlayer.character.equippedSpells.find(s => s.name === "Evasive Shot");
-        const mainHand = reactingPlayer.character.equipment.mainHand;
-        const offHand = reactingPlayer.character.equipment.offHand;
-        const requiredTypes = evasiveShotSpell?.requires?.weaponType || [];
-        // Find the ranged weapon (check mainHand first, then offHand for crossbows)
-        const rangedWeapon = (mainHand && requiredTypes.includes(mainHand.weaponType)) ? mainHand :
-            (offHand && requiredTypes.includes(offHand.weaponType)) ? offHand : null;
+  }
+  // --- NEW LOGIC FOR EVASIVE SHOT REACTION ---
+  else if (reactionType === 'Evasive Shot') {
+    const evasiveShotSpell = reactingPlayer.character.equippedSpells.find((s) => s.name === 'Evasive Shot');
+    const mainHand = reactingPlayer.character.equipment.mainHand;
+    const offHand = reactingPlayer.character.equipment.offHand;
+    const requiredTypes = evasiveShotSpell?.requires?.weaponType || [];
+    // Find the ranged weapon (check mainHand first, then offHand for crossbows)
+    const rangedWeapon =
+      mainHand && requiredTypes.includes(mainHand.weaponType)
+        ? mainHand
+        : offHand && requiredTypes.includes(offHand.weaponType)
+          ? offHand
+          : null;
 
-        if (evasiveShotSpell && rangedWeapon && (reactingPlayerState.spellCooldowns[evasiveShotSpell.name] || 0) <= 0) {
-            reactingPlayerState.spellCooldowns[evasiveShotSpell.name] = evasiveShotSpell.cooldown;
-            const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
-            const statValue = reactingPlayer.character.agility + bonuses.agility;
-            const roll = rollD20();
-            const total = roll + statValue;
-            const { avoidHit, counterHit } = evasiveShotSpell.reactionDetails;
+    if (evasiveShotSpell && rangedWeapon && (reactingPlayerState.spellCooldowns[evasiveShotSpell.name] || 0) <= 0) {
+      reactingPlayerState.spellCooldowns[evasiveShotSpell.name] = evasiveShotSpell.cooldown;
+      const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
+      const statValue = reactingPlayer.character.agility + bonuses.agility;
+      const roll = rollD20();
+      const total = roll + statValue;
+      const { avoidHit, counterHit } = evasiveShotSpell.reactionDetails;
 
-            const isSuccess = roll !== 1 && total >= avoidHit;
-            const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
-            const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+      const isSuccess = roll !== 1 && total >= avoidHit;
+      const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
+      const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
 
-            if (roll === 1) {
-                logMessage = `${name}'s Evasive Shot: ${rollDisplay} Critical Failure!`;
-            } else if (isSuccess) {
-                finalDamage = 0;
-                dodged = true;
-                logMessage = `${name}'s Evasive Shot: ${rollDisplay} Avoided!`;
+      if (roll === 1) {
+        logMessage = `${name}'s Evasive Shot: ${rollDisplay} Critical Failure!`;
+      } else if (isSuccess) {
+        finalDamage = 0;
+        dodged = true;
+        logMessage = `${name}'s Evasive Shot: ${rollDisplay} Avoided!`;
 
-                if (total >= counterHit) {
-                    let counterDamage = rangedWeapon.weaponDamage;
+        if (total >= counterHit) {
+          let counterDamage = rangedWeapon.weaponDamage;
 
-                    if (isPvp) {
-                        // PVP counter-attack - target is another player
-                        const attackerPlayerState = encounter.playerStates.find(p => p.playerId === reaction.attackerPlayerId);
-                        if (attackerPlayerState && !attackerPlayerState.isDead) {
-                            const attackerCharacter = players[attackerPlayerState.name]?.character;
-                            let damageToDeal = counterDamage;
+          if (isPvp) {
+            // PVP counter-attack - target is another player
+            const attackerPlayerState = encounter.playerStates.find((p) => p.playerId === reaction.attackerPlayerId);
+            if (attackerPlayerState && !attackerPlayerState.isDead) {
+              const attackerCharacter = players[attackerPlayerState.name]?.character;
+              let damageToDeal = counterDamage;
 
-                            if (attackerCharacter) {
-                                const attackerBonuses = getBonusStatsForPlayer(attackerCharacter, attackerPlayerState);
-                                const resistance = attackerBonuses.physicalResistance || 0;
-                                damageToDeal = Math.max(1, counterDamage - resistance);
-                            }
+              if (attackerCharacter) {
+                const attackerBonuses = getBonusStatsForPlayer(attackerCharacter, attackerPlayerState);
+                const resistance = attackerBonuses.physicalResistance || 0;
+                damageToDeal = Math.max(1, counterDamage - resistance);
+              }
 
-                            applyDamage(attackerPlayerState, damageToDeal);
+              applyDamage(attackerPlayerState, damageToDeal);
 
-                            let counterLog = ` They counter-attack, dealing ${damageToDeal} damage to ${attackerPlayerState.name}!`;
-                            if (damageToDeal < counterDamage) counterLog += ` (${counterDamage - damageToDeal} resisted)`;
-                            stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
+              let counterLog = ` They counter-attack, dealing ${damageToDeal} damage to ${attackerPlayerState.name}!`;
+              if (damageToDeal < counterDamage) counterLog += ` (${counterDamage - damageToDeal} resisted)`;
+              stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
 
-                            if (attackerPlayerState.health <= 0) {
-                                defeatEnemyInParty(io, party, { playerId: attackerPlayerState.playerId }, null);
-                            }
-                            logMessage = ''; // Clear message to prevent double logging
-                        }
-                    } else {
-                        // PVE counter-attack - target is an enemy card
-                        const attackerEnemy = stateObject.zoneCards[reaction.attackerIndex];
-                        if (attackerEnemy && attackerEnemy.health > 0) {
-                            const resistance = attackerEnemy.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
-                            let damageToDeal = Math.max(1, counterDamage - resistance);
-
-                            applyDamage(attackerEnemy, damageToDeal);
-
-                            let counterLog = ` They counter-attack, dealing ${damageToDeal} damage to ${attackerEnemy.name}!`;
-                            stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
-
-                            if (attackerEnemy.health <= 0) {
-                                defeatEnemyInParty(io, party, attackerEnemy, reaction.attackerIndex);
-                            }
-                            logMessage = ''; // Clear message to prevent double logging
-                        }
-                    }
-                }
-            } else {
-                logMessage = `${name}'s Evasive Shot: ${rollDisplay} Failed!`;
+              if (attackerPlayerState.health <= 0) {
+                defeatEnemyInParty(io, party, { playerId: attackerPlayerState.playerId }, null);
+              }
+              logMessage = ''; // Clear message to prevent double logging
             }
-        } else {
-            logMessage = `${name} tries to use Evasive Shot, but fails!`;
-        }
-    }
-    // --- END OF NEW LOGIC ---
-    // --- PARRY REACTION LOGIC ---
-    else if (reactionType === 'Parry') {
-        const parrySpell = reactingPlayer.character.equippedSpells.find(s => s.name === "Parry");
-        const mainHand = reactingPlayer.character.equipment.mainHand;
-        const rangedWeaponTypes = ['Two-Hand Bow', 'Two-Hand Staff'];
-        const hasMeleeWeapon = mainHand && mainHand.type === 'weapon' &&
-            (mainHand.range === 'melee' || (!mainHand.range && !rangedWeaponTypes.includes(mainHand.weaponType)));
+          } else {
+            // PVE counter-attack - target is an enemy card
+            const attackerEnemy = stateObject.zoneCards[reaction.attackerIndex];
+            if (attackerEnemy && attackerEnemy.health > 0) {
+              const resistance =
+                attackerEnemy.buffs?.find((b) => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
+              let damageToDeal = Math.max(1, counterDamage - resistance);
 
-        if (parrySpell && hasMeleeWeapon && (reactingPlayerState.spellCooldowns[parrySpell.name] || 0) <= 0) {
-            reactingPlayerState.spellCooldowns[parrySpell.name] = parrySpell.cooldown;
-            const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
+              applyDamage(attackerEnemy, damageToDeal);
 
-            // Use defense stat
-            const statValue = reactingPlayer.character.defense + (bonuses.defense || 0);
+              let counterLog = ` They counter-attack, dealing ${damageToDeal} damage to ${attackerEnemy.name}!`;
+              stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
 
-            const roll = rollD20();
-            const total = roll + statValue;
-            const { avoidHit, counterHit } = parrySpell.reactionDetails;
-
-            const isSuccess = roll !== 1 && total >= avoidHit;
-            const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
-            const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
-
-            if (roll === 1) {
-                logMessage = `${name}'s Parry: ${rollDisplay} Critical Failure!`;
-            } else if (isSuccess) {
-                finalDamage = 0;
-                dodged = true;
-                logMessage = `${name}'s Parry: ${rollDisplay} Deflected!`;
-
-                if (total >= counterHit) {
-                    let counterDamage = mainHand.weaponDamage;
-
-                    if (isPvp) {
-                        // PVP counter-attack - target is another player
-                        const attackerPlayerState = encounter.playerStates.find(p => p.playerId === reaction.attackerPlayerId);
-                        if (attackerPlayerState && !attackerPlayerState.isDead) {
-                            const attackerCharacter = players[attackerPlayerState.name]?.character;
-                            let damageToDeal = counterDamage;
-
-                            if (attackerCharacter) {
-                                const attackerBonuses = getBonusStatsForPlayer(attackerCharacter, attackerPlayerState);
-                                const resistance = attackerBonuses.physicalResistance || 0;
-                                damageToDeal = Math.max(1, counterDamage - resistance);
-                            }
-
-                            applyDamage(attackerPlayerState, damageToDeal);
-
-                            let counterLog = ` They riposte, dealing ${damageToDeal} damage to ${attackerPlayerState.name}!`;
-                            if (damageToDeal < counterDamage) counterLog += ` (${counterDamage - damageToDeal} resisted)`;
-                            stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
-
-                            if (attackerPlayerState.health <= 0) {
-                                defeatEnemyInParty(io, party, { playerId: attackerPlayerState.playerId }, null);
-                            }
-                            logMessage = ''; // Clear message to prevent double logging
-                        }
-                    } else {
-                        // PVE counter-attack - target is an enemy card
-                        const attackerEnemy = stateObject.zoneCards[reaction.attackerIndex];
-                        if (attackerEnemy && attackerEnemy.health > 0) {
-                            const resistance = attackerEnemy.buffs?.find(b => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
-                            let damageToDeal = Math.max(1, counterDamage - resistance);
-
-                            applyDamage(attackerEnemy, damageToDeal);
-
-                            let counterLog = ` They riposte, dealing ${damageToDeal} damage to ${attackerEnemy.name}!`;
-                            stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
-
-                            if (attackerEnemy.health <= 0) {
-                                defeatEnemyInParty(io, party, attackerEnemy, reaction.attackerIndex);
-                            }
-                            logMessage = ''; // Clear message to prevent double logging
-                        }
-                    }
-                }
-            } else {
-                logMessage = `${name}'s Parry: ${rollDisplay} Failed!`;
+              if (attackerEnemy.health <= 0) {
+                defeatEnemyInParty(io, party, attackerEnemy, reaction.attackerIndex);
+              }
+              logMessage = ''; // Clear message to prevent double logging
             }
-        } else {
-            logMessage = `${name} tries to Parry, but fails!`;
+          }
         }
+      } else {
+        logMessage = `${name}'s Evasive Shot: ${rollDisplay} Failed!`;
+      }
+    } else {
+      logMessage = `${name} tries to use Evasive Shot, but fails!`;
     }
-    // --- END PARRY LOGIC ---
-    else {
-        logMessage = `${name} braces for the attack!`;
+  }
+  // --- END OF NEW LOGIC ---
+  // --- PARRY REACTION LOGIC ---
+  else if (reactionType === 'Parry') {
+    const parrySpell = reactingPlayer.character.equippedSpells.find((s) => s.name === 'Parry');
+    const mainHand = reactingPlayer.character.equipment.mainHand;
+    const rangedWeaponTypes = ['Two-Hand Bow', 'Two-Hand Staff'];
+    const hasMeleeWeapon =
+      mainHand &&
+      mainHand.type === 'weapon' &&
+      (mainHand.range === 'melee' || (!mainHand.range && !rangedWeaponTypes.includes(mainHand.weaponType)));
+
+    if (parrySpell && hasMeleeWeapon && (reactingPlayerState.spellCooldowns[parrySpell.name] || 0) <= 0) {
+      reactingPlayerState.spellCooldowns[parrySpell.name] = parrySpell.cooldown;
+      const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
+
+      // Use defense stat
+      const statValue = reactingPlayer.character.defense + (bonuses.defense || 0);
+
+      const roll = rollD20();
+      const total = roll + statValue;
+      const { avoidHit, counterHit } = parrySpell.reactionDetails;
+
+      const isSuccess = roll !== 1 && total >= avoidHit;
+      const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
+      const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
+
+      if (roll === 1) {
+        logMessage = `${name}'s Parry: ${rollDisplay} Critical Failure!`;
+      } else if (isSuccess) {
+        finalDamage = 0;
+        dodged = true;
+        logMessage = `${name}'s Parry: ${rollDisplay} Deflected!`;
+
+        if (total >= counterHit) {
+          let counterDamage = mainHand.weaponDamage;
+
+          if (isPvp) {
+            // PVP counter-attack - target is another player
+            const attackerPlayerState = encounter.playerStates.find((p) => p.playerId === reaction.attackerPlayerId);
+            if (attackerPlayerState && !attackerPlayerState.isDead) {
+              const attackerCharacter = players[attackerPlayerState.name]?.character;
+              let damageToDeal = counterDamage;
+
+              if (attackerCharacter) {
+                const attackerBonuses = getBonusStatsForPlayer(attackerCharacter, attackerPlayerState);
+                const resistance = attackerBonuses.physicalResistance || 0;
+                damageToDeal = Math.max(1, counterDamage - resistance);
+              }
+
+              applyDamage(attackerPlayerState, damageToDeal);
+
+              let counterLog = ` They riposte, dealing ${damageToDeal} damage to ${attackerPlayerState.name}!`;
+              if (damageToDeal < counterDamage) counterLog += ` (${counterDamage - damageToDeal} resisted)`;
+              stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
+
+              if (attackerPlayerState.health <= 0) {
+                defeatEnemyInParty(io, party, { playerId: attackerPlayerState.playerId }, null);
+              }
+              logMessage = ''; // Clear message to prevent double logging
+            }
+          } else {
+            // PVE counter-attack - target is an enemy card
+            const attackerEnemy = stateObject.zoneCards[reaction.attackerIndex];
+            if (attackerEnemy && attackerEnemy.health > 0) {
+              const resistance =
+                attackerEnemy.buffs?.find((b) => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
+              let damageToDeal = Math.max(1, counterDamage - resistance);
+
+              applyDamage(attackerEnemy, damageToDeal);
+
+              let counterLog = ` They riposte, dealing ${damageToDeal} damage to ${attackerEnemy.name}!`;
+              stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
+
+              if (attackerEnemy.health <= 0) {
+                defeatEnemyInParty(io, party, attackerEnemy, reaction.attackerIndex);
+              }
+              logMessage = ''; // Clear message to prevent double logging
+            }
+          }
+        }
+      } else {
+        logMessage = `${name}'s Parry: ${rollDisplay} Failed!`;
+      }
+    } else {
+      logMessage = `${name} tries to Parry, but fails!`;
+    }
+  }
+  // --- END PARRY LOGIC ---
+  else {
+    logMessage = `${name} braces for the attack!`;
+  }
+
+  if (logMessage) stateObject.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
+
+  if (finalDamage > 0 || (reaction.debuff && !dodged)) {
+    let damageToDeal = 0;
+    let damageMessage = `${reaction.attackerName} ${reaction.message}`;
+
+    if (finalDamage > 0) {
+      damageToDeal = finalDamage;
+      if (reaction.damageType === 'Physical') {
+        const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
+        const resistance = bonuses.physicalResistance || 0;
+        damageToDeal = Math.max(1, finalDamage - resistance);
+      }
+      applyDamage(reactingPlayerState, damageToDeal);
+      damageMessage += ` It hits ${name} for ${damageToDeal} damage! [id:${reactingPlayerState.playerId}]`;
+      if (damageToDeal < finalDamage) {
+        damageMessage += ` (${finalDamage - damageToDeal} resisted)`;
+      }
     }
 
-    if (logMessage) stateObject.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
-
-    if ((finalDamage > 0 || (reaction.debuff && !dodged))) {
-        let damageToDeal = 0;
-        let damageMessage = `${reaction.attackerName} ${reaction.message}`;
-
-        if (finalDamage > 0) {
-            damageToDeal = finalDamage;
-            if (reaction.damageType === 'Physical') {
-                const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
-                const resistance = bonuses.physicalResistance || 0;
-                damageToDeal = Math.max(1, finalDamage - resistance);
-            }
-            applyDamage(reactingPlayerState, damageToDeal);
-            damageMessage += ` It hits ${name} for ${damageToDeal} damage! [id:${reactingPlayerState.playerId}]`;
-            if (damageToDeal < finalDamage) {
-                damageMessage += ` (${finalDamage - damageToDeal} resisted)`;
-            }
-        }
-
-        if (reaction.debuff && !dodged) {
-            const debuff = reaction.debuff;
-            const existingIndex = reactingPlayerState.debuffs.findIndex(d => d.type.toLowerCase() === debuff.type.toLowerCase());
-            if (existingIndex !== -1) reactingPlayerState.debuffs.splice(existingIndex, 1);
-            reactingPlayerState.debuffs.push({ ...debuff });
-            damageMessage += ` ${name} is now ${debuff.type}!`;
-        }
-        stateObject.log.push({ message: damageMessage, type: 'damage' });
+    if (reaction.debuff && !dodged) {
+      const debuff = reaction.debuff;
+      const existingIndex = reactingPlayerState.debuffs.findIndex(
+        (d) => d.type.toLowerCase() === debuff.type.toLowerCase()
+      );
+      if (existingIndex !== -1) reactingPlayerState.debuffs.splice(existingIndex, 1);
+      reactingPlayerState.debuffs.push({ ...debuff });
+      damageMessage += ` ${name} is now ${debuff.type}!`;
     }
-    if (reactingPlayerState.health <= 0) {
-        reactingPlayerState.health = 0;
-        reactingPlayerState.isDead = true;
-        if (isPvp) {
-            handlePvpPlayerDeath(io, reactingPlayer, encounter);
-        } else {
-            if (reactingPlayer.character) {
-                reactingPlayerState.lootableInventory = [...reactingPlayer.character.inventory.filter(Boolean)];
-                reactingPlayer.character.inventory = Array(INVENTORY_SIZE).fill(null);
-                if (reactingPlayer.id) io.to(reactingPlayer.id).emit('characterUpdate', reactingPlayer.character);
-            }
-        }
-        stateObject.log.push({ message: `${name} has been defeated!`, type: 'damage' });
-    }
-    const wasFleeing = reaction.isFleeing || false;
-    stateObject.pendingReaction = null;
+    stateObject.log.push({ message: damageMessage, type: 'damage' });
+  }
+  if (reactingPlayerState.health <= 0) {
+    reactingPlayerState.health = 0;
+    reactingPlayerState.isDead = true;
     if (isPvp) {
-        const duration = encounter.turnTimeRemaining;
-        if (duration > 0) {
-            const timerEndsAt = Date.now() + duration;
-            encounter.turnTimerId = setTimeout(() => {
-                const currentEncounter = pvpEncounters[encounter.id];
-                if (currentEncounter) {
-                    const activePlayerId = currentEncounter.turnOrder[currentEncounter.activeTurnIndex];
-                    const activePlayer = currentEncounter.playerStates.find(p => p.playerId === activePlayerId);
-                    if (activePlayer) {
-                        currentEncounter.log.push({ message: `${activePlayer.name}'s time expired! Turn ends.`, type: 'damage' });
-                        activePlayer.turnEnded = true;
-                    }
-                    startNextPvpTurn(io, currentEncounter.id);
-                }
-            }, duration);
-            encounter.turnTimerEndsAt = timerEndsAt;
-        }
-        const defendingTeam = reactingPlayerState.team;
-        const allDefendersDead = encounter.playerStates.filter(p => p.team === defendingTeam).every(p => p.isDead);
-        if (allDefendersDead) {
-            const winningTeam = defendingTeam === 'A' ? 'B' : 'A';
-            const winningParty = (winningTeam === 'A') ? parties[encounter.partyAId] : parties[encounter.partyBId];
-            const losingParty = (winningTeam === 'A') ? parties[encounter.partyBId] : parties[encounter.partyAId];
-            endPvpEncounter(io, winningParty, losingParty);
-        } else {
-            broadcastAdventureUpdate(io, party);
-        }
-        return;
+      handlePvpPlayerDeath(io, reactingPlayer, encounter);
+    } else {
+      if (reactingPlayer.character) {
+        reactingPlayerState.lootableInventory = [...reactingPlayer.character.inventory.filter(Boolean)];
+        reactingPlayer.character.inventory = Array(INVENTORY_SIZE).fill(null);
+        if (reactingPlayer.id) io.to(reactingPlayer.id).emit('characterUpdate', reactingPlayer.character);
+      }
     }
-    const lastAttackerIndex = reaction.attackerIndex;
-    const enemies = party.sharedState.zoneCards.map((c, i) => ({ card: c, index: i })).filter(e => e.card && e.card.type === 'enemy');
-    const lastEnemyListIndex = enemies.findIndex(e => e.index === lastAttackerIndex);
-    await runEnemyPhaseForParty(io, party.id, wasFleeing, lastEnemyListIndex + 1);
+    stateObject.log.push({ message: `${name} has been defeated!`, type: 'damage' });
+  }
+  const wasFleeing = reaction.isFleeing || false;
+  stateObject.pendingReaction = null;
+  if (isPvp) {
+    const duration = encounter.turnTimeRemaining;
+    if (duration > 0) {
+      const timerEndsAt = Date.now() + duration;
+      encounter.turnTimerId = setTimeout(() => {
+        const currentEncounter = pvpEncounters[encounter.id];
+        if (currentEncounter) {
+          const activePlayerId = currentEncounter.turnOrder[currentEncounter.activeTurnIndex];
+          const activePlayer = currentEncounter.playerStates.find((p) => p.playerId === activePlayerId);
+          if (activePlayer) {
+            currentEncounter.log.push({ message: `${activePlayer.name}'s time expired! Turn ends.`, type: 'damage' });
+            activePlayer.turnEnded = true;
+          }
+          startNextPvpTurn(io, currentEncounter.id);
+        }
+      }, duration);
+      encounter.turnTimerEndsAt = timerEndsAt;
+    }
+    const defendingTeam = reactingPlayerState.team;
+    const allDefendersDead = encounter.playerStates.filter((p) => p.team === defendingTeam).every((p) => p.isDead);
+    if (allDefendersDead) {
+      const winningTeam = defendingTeam === 'A' ? 'B' : 'A';
+      const winningParty = winningTeam === 'A' ? parties[encounter.partyAId] : parties[encounter.partyBId];
+      const losingParty = winningTeam === 'A' ? parties[encounter.partyBId] : parties[encounter.partyAId];
+      endPvpEncounter(io, winningParty, losingParty);
+    } else {
+      broadcastAdventureUpdate(io, party);
+    }
+    return;
+  }
+  const lastAttackerIndex = reaction.attackerIndex;
+  const enemies = party.sharedState.zoneCards
+    .map((c, i) => ({ card: c, index: i }))
+    .filter((e) => e.card && e.card.type === 'enemy');
+  const lastEnemyListIndex = enemies.findIndex((e) => e.index === lastAttackerIndex);
+  await runEnemyPhaseForParty(io, party.id, wasFleeing, lastEnemyListIndex + 1);
 }

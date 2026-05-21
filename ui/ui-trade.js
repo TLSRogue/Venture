@@ -10,18 +10,18 @@ let currentTradeId = null;
 let tradeChatHistory = [];
 
 export function renderTradeModal(tradeState, isPlayer1) {
-    // If it's a new trade session (or re-render), store ID
-    // If ID changed, clear chat
-    if (currentTradeId !== tradeState.id) {
-        currentTradeId = tradeState.id;
-        tradeChatHistory = [];
-    }
+  // If it's a new trade session (or re-render), store ID
+  // If ID changed, clear chat
+  if (currentTradeId !== tradeState.id) {
+    currentTradeId = tradeState.id;
+    tradeChatHistory = [];
+  }
 
-    // Determine which side is local player
-    const localState = isPlayer1 ? tradeState.player1 : tradeState.player2;
-    const remoteState = isPlayer1 ? tradeState.player2 : tradeState.player1;
+  // Determine which side is local player
+  const localState = isPlayer1 ? tradeState.player1 : tradeState.player2;
+  const remoteState = isPlayer1 ? tradeState.player2 : tradeState.player1;
 
-    const modalContent = `
+  const modalContent = `
         <div class="trade-wrapper">
             <h2 class="trade-title">Trading with <span class="partner-name">${remoteState.name}</span></h2>
             
@@ -88,10 +88,11 @@ export function renderTradeModal(tradeState, isPlayer1) {
 
             <!-- Action Buttons -->
             <div class="trade-actions">
-                ${!localState.locked
-            ? `<button class="btn btn-warning action-btn" id="trade-lock-btn">🔒 Lock Offer</button>`
-            : `<button class="btn btn-secondary action-btn" id="trade-unlock-btn" ${localState.confirmed ? 'disabled' : ''}>🔓 Unlock</button>`
-        }
+                ${
+                  !localState.locked
+                    ? `<button class="btn btn-warning action-btn" id="trade-lock-btn">🔒 Lock Offer</button>`
+                    : `<button class="btn btn-secondary action-btn" id="trade-unlock-btn" ${localState.confirmed ? 'disabled' : ''}>🔓 Unlock</button>`
+                }
                 
                 <button class="btn btn-success action-btn" id="trade-confirm-btn" ${!localState.locked || localState.confirmed ? 'disabled' : ''}>
                     ✅ Confirm Trade
@@ -101,14 +102,18 @@ export function renderTradeModal(tradeState, isPlayer1) {
             </div>
 
             <!-- Inventory Picker (Only visible if not locked) -->
-            ${!localState.locked ? `
+            ${
+              !localState.locked
+                ? `
             <div class="trade-inventory-section">
                 <h3>Your Inventory <small>(Click to add)</small></h3>
                 <div class="mini-inventory-grid" id="trade-inventory-list">
                     ${renderInventoryForTrade(gameState.inventory, localState.offer.items)}
                 </div>
             </div>
-            ` : ''}
+            `
+                : ''
+            }
         </div>
         
         <style>
@@ -345,157 +350,166 @@ export function renderTradeModal(tradeState, isPlayer1) {
         </style>
     `;
 
-    showModal(modalContent);
+  showModal(modalContent);
 
-    const modalEl = document.getElementById('modal-content');
-    if (modalEl) {
-        modalEl.style.maxWidth = '900px';
-        modalEl.style.width = '95%';
-    }
+  const modalEl = document.getElementById('modal-content');
+  if (modalEl) {
+    modalEl.style.maxWidth = '900px';
+    modalEl.style.width = '95%';
+  }
 
-    // --- Listeners ---
+  // --- Listeners ---
 
-    // Gold Input
-    if (document.getElementById('trade-gold-input')) {
-        document.getElementById('trade-gold-input').addEventListener('change', (e) => {
-            updateOffer(currentTradeId, localState.offer.items, parseInt(e.target.value) || 0);
-        });
-    }
+  // Gold Input
+  if (document.getElementById('trade-gold-input')) {
+    document.getElementById('trade-gold-input').addEventListener('change', (e) => {
+      updateOffer(currentTradeId, localState.offer.items, parseInt(e.target.value) || 0);
+    });
+  }
 
-    // Inventory Picker
-    const invList = document.getElementById('trade-inventory-list');
-    if (invList) {
-        invList.addEventListener('click', (e) => {
-            const itemEl = e.target.closest('.inv-item');
-            if (itemEl && !itemEl.classList.contains('disabled')) {
-                const index = parseInt(itemEl.dataset.index);
-                const item = gameState.inventory[index];
-                const newItems = [...localState.offer.items, { Type: 'inventory', index, item }]; // Note: Capital 'Type' might be safer if used elsewhere, but stick to lowercase 'type' for consistency
-                // Oops, previous code used 'type', stick to that.
-                const newItemsClean = [...localState.offer.items, { type: 'inventory', index, item }];
+  // Inventory Picker
+  const invList = document.getElementById('trade-inventory-list');
+  if (invList) {
+    invList.addEventListener('click', (e) => {
+      const itemEl = e.target.closest('.inv-item');
+      if (itemEl && !itemEl.classList.contains('disabled')) {
+        const index = parseInt(itemEl.dataset.index);
+        const item = gameState.inventory[index];
+        const newItems = [...localState.offer.items, { Type: 'inventory', index, item }]; // Note: Capital 'Type' might be safer if used elsewhere, but stick to lowercase 'type' for consistency
+        // Oops, previous code used 'type', stick to that.
+        const newItemsClean = [...localState.offer.items, { type: 'inventory', index, item }];
 
-                updateOffer(currentTradeId, newItemsClean, parseInt(document.getElementById('trade-gold-input').value) || 0);
-            }
-        });
-    }
+        updateOffer(currentTradeId, newItemsClean, parseInt(document.getElementById('trade-gold-input').value) || 0);
+      }
+    });
+  }
 
-    // Remove Item
-    const offerList = document.getElementById('local-offer-slots');
-    if (offerList && !localState.locked) {
-        offerList.addEventListener('click', (e) => {
-            if (e.target.closest('.remove-btn')) {
-                const slotEl = e.target.closest('.trade-slot');
-                const removeIdx = parseInt(slotEl.dataset.offerIndex);
-                const newItems = [...localState.offer.items];
-                newItems.splice(removeIdx, 1);
-                updateOffer(currentTradeId, newItems, parseInt(document.getElementById('trade-gold-input').value) || 0);
-            }
-        });
-    }
+  // Remove Item
+  const offerList = document.getElementById('local-offer-slots');
+  if (offerList && !localState.locked) {
+    offerList.addEventListener('click', (e) => {
+      if (e.target.closest('.remove-btn')) {
+        const slotEl = e.target.closest('.trade-slot');
+        const removeIdx = parseInt(slotEl.dataset.offerIndex);
+        const newItems = [...localState.offer.items];
+        newItems.splice(removeIdx, 1);
+        updateOffer(currentTradeId, newItems, parseInt(document.getElementById('trade-gold-input').value) || 0);
+      }
+    });
+  }
 
-    // Chat
-    const chatInput = document.getElementById('trade-chat-input');
-    const sendBtn = document.getElementById('trade-chat-send-btn');
-    if (chatInput && sendBtn) {
-        const sendChat = () => {
-            const msg = chatInput.value.trim();
-            if (msg) {
-                Network.emitTradeChat(currentTradeId, msg);
-                chatInput.value = '';
-            }
-        };
-        sendBtn.addEventListener('click', sendChat);
-        chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendChat();
-        });
+  // Chat
+  const chatInput = document.getElementById('trade-chat-input');
+  const sendBtn = document.getElementById('trade-chat-send-btn');
+  if (chatInput && sendBtn) {
+    const sendChat = () => {
+      const msg = chatInput.value.trim();
+      if (msg) {
+        Network.emitTradeChat(currentTradeId, msg);
+        chatInput.value = '';
+      }
+    };
+    sendBtn.addEventListener('click', sendChat);
+    chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendChat();
+    });
 
-        // Auto-scroll chat to bottom
-        const log = document.getElementById('trade-chat-log');
-        log.scrollTop = log.scrollHeight;
+    // Auto-scroll chat to bottom
+    const log = document.getElementById('trade-chat-log');
+    log.scrollTop = log.scrollHeight;
 
-        // Refocus input if we just rendered and aren't typing elsewhere
-        // (Optional: might be annoying if updating frequently)
-    }
+    // Refocus input if we just rendered and aren't typing elsewhere
+    // (Optional: might be annoying if updating frequently)
+  }
 
-
-    document.getElementById('trade-lock-btn')?.addEventListener('click', () => Network.emitTradeLock(tradeState.id, true));
-    document.getElementById('trade-unlock-btn')?.addEventListener('click', () => Network.emitTradeLock(tradeState.id, false));
-    document.getElementById('trade-confirm-btn')?.addEventListener('click', () => Network.emitTradeConfirm(tradeState.id));
-    document.getElementById('trade-cancel-btn')?.addEventListener('click', () => Network.emitTradeCancel(tradeState.id));
+  document
+    .getElementById('trade-lock-btn')
+    ?.addEventListener('click', () => Network.emitTradeLock(tradeState.id, true));
+  document
+    .getElementById('trade-unlock-btn')
+    ?.addEventListener('click', () => Network.emitTradeLock(tradeState.id, false));
+  document
+    .getElementById('trade-confirm-btn')
+    ?.addEventListener('click', () => Network.emitTradeConfirm(tradeState.id));
+  document.getElementById('trade-cancel-btn')?.addEventListener('click', () => Network.emitTradeCancel(tradeState.id));
 }
 
 function updateOffer(tradeId, items, gold) {
-    if (gold < 0) gold = 0;
-    if (gold > gameState.gold) gold = gameState.gold;
-    Network.emitTradeUpdate(tradeId, { items, gold });
+  if (gold < 0) gold = 0;
+  if (gold > gameState.gold) gold = gameState.gold;
+  Network.emitTradeUpdate(tradeId, { items, gold });
 }
 
 export function appendChatMessage(senderName, message) {
-    tradeChatHistory.push({ senderName, message });
-    // If trade modal is open, update the log div
-    const log = document.getElementById('trade-chat-log');
-    if (log) {
-        log.innerHTML = renderChatLog();
-        log.scrollTop = log.scrollHeight;
-    }
+  tradeChatHistory.push({ senderName, message });
+  // If trade modal is open, update the log div
+  const log = document.getElementById('trade-chat-log');
+  if (log) {
+    log.innerHTML = renderChatLog();
+    log.scrollTop = log.scrollHeight;
+  }
 }
 
 function renderChatLog() {
-    return tradeChatHistory.map(entry => {
-        const isSelf = entry.senderName === gameState.characterName;
-        return `<div class="chat-msg ${isSelf ? 'self' : ''}">
+  return tradeChatHistory
+    .map((entry) => {
+      const isSelf = entry.senderName === gameState.characterName;
+      return `<div class="chat-msg ${isSelf ? 'self' : ''}">
             <span class="name">${isSelf ? 'You' : entry.senderName}:</span>
             <span class="text">${entry.message}</span>
         </div>`;
-    }).join('');
+    })
+    .join('');
 }
 
 function getStatusText(state) {
-    state.activeStatusClass = '';
-    if (state.confirmed) {
-        state.activeStatusClass = 'confirmed';
-        return 'CONFIRMED';
-    }
-    if (state.locked) {
-        state.activeStatusClass = 'locked';
-        return 'LOCKED';
-    }
-    return 'OFFERING';
+  state.activeStatusClass = '';
+  if (state.confirmed) {
+    state.activeStatusClass = 'confirmed';
+    return 'CONFIRMED';
+  }
+  if (state.locked) {
+    state.activeStatusClass = 'locked';
+    return 'LOCKED';
+  }
+  return 'OFFERING';
 }
 
 function renderOfferSlots(items, isLocal, isLocked) {
-    // Dynamic slots, no fixed limit in loop
-    // But we still want to show at least a few empty squares for aesthetics if it's empty
-    const minSlots = 12;
-    const totalSlots = Math.max(minSlots, items.length + 1); // allow growing
+  // Dynamic slots, no fixed limit in loop
+  // But we still want to show at least a few empty squares for aesthetics if it's empty
+  const minSlots = 12;
+  const totalSlots = Math.max(minSlots, items.length + 1); // allow growing
 
-    const slots = [];
-    for (let i = 0; i < totalSlots; i++) {
-        if (i < items.length) {
-            const wrapper = items[i];
-            const item = wrapper.item;
-            slots.push(`
+  const slots = [];
+  for (let i = 0; i < totalSlots; i++) {
+    if (i < items.length) {
+      const wrapper = items[i];
+      const item = wrapper.item;
+      slots.push(`
                 <div class="trade-slot" data-offer-index="${i}" title="${item.name}">
                     ${item.icon || '📦'}
                     ${isLocal && !isLocked ? '<button class="remove-btn">x</button>' : ''}
                 </div>
             `);
-        } else {
-            // Render empty slot
-            // If we are showing more than items.length, these are fillers
-            slots.push(`<div class="trade-slot empty"></div>`);
-        }
+    } else {
+      // Render empty slot
+      // If we are showing more than items.length, these are fillers
+      slots.push(`<div class="trade-slot empty"></div>`);
     }
-    return slots.join('');
+  }
+  return slots.join('');
 }
 
 function renderInventoryForTrade(inventory, offeredItems) {
-    return inventory.map((item, idx) => {
-        if (!item) return '';
-        const isOffered = offeredItems.some(off => off.index === idx && off.type === 'inventory');
-        return `
+  return inventory
+    .map((item, idx) => {
+      if (!item) return '';
+      const isOffered = offeredItems.some((off) => off.index === idx && off.type === 'inventory');
+      return `
         <div class="inv-item ${isOffered ? 'disabled' : ''}" data-index="${idx}" title="${item.name}">
             ${item.icon || '📦'}
         </div>`;
-    }).join('');
+    })
+    .join('');
 }

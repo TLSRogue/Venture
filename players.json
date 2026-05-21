@@ -5,9 +5,7 @@
       "characterName": "bob",
       "characterIcon": "🧑",
       "title": "The Novice",
-      "unlockedTitles": [
-        "The Novice"
-      ],
+      "unlockedTitles": ["The Novice"],
       "health": 10,
       "maxHealth": 10,
       "shield": 0,
@@ -171,11 +169,7 @@
           "description": "A clunky metal helmet that protects your skull. +1 Str, +1 Def, +1 Max HP.",
           "tier": 1,
           "icon": "🪖",
-          "traits": [
-            "Heavy",
-            "Physical",
-            "Tier 1"
-          ],
+          "traits": ["Heavy", "Physical", "Tier 1"],
           "rarity": "common",
           "canBeInMerchantWares": true,
           "quantity": 7
@@ -210,11 +204,7 @@
           "description": "Basic, balanced, and barely exciting—but it'll stab just fine. 1 AP, 1 CD | D20+Str (10+) | Deals 2 Physical Damage.",
           "tier": 1,
           "icon": "⚔️",
-          "traits": [
-            "Sword",
-            "Melee",
-            "Tier 1"
-          ],
+          "traits": ["Sword", "Melee", "Tier 1"],
           "rarity": "common",
           "canBeInMerchantWares": true,
           "quantity": 3
@@ -254,9 +244,7 @@
       "characterName": "tester",
       "characterIcon": "🧑",
       "title": "The Novice",
-      "unlockedTitles": [
-        "The Novice"
-      ],
+      "unlockedTitles": ["The Novice"],
       "health": 10,
       "maxHealth": 10,
       "shield": 0,
@@ -396,12 +384,7 @@
           "description": "A simple iron sword enchanted with ever-burning flames. 1 AP, 1 CD | D20+Str (10+) | Deals 2 Fire Damage.",
           "tier": 1,
           "icon": "🔥⚔️",
-          "traits": [
-            "Sword",
-            "Melee",
-            "Fire",
-            "Tier 1"
-          ],
+          "traits": ["Sword", "Melee", "Fire", "Tier 1"],
           "rarity": "uncommon",
           "canBeInMerchantWares": true,
           "quantity": 2
@@ -428,11 +411,7 @@
           "description": "A simple leather cap that cushions light blows. +1 Agi, +1 Max HP.",
           "tier": 1,
           "icon": "🪖",
-          "traits": [
-            "Medium",
-            "Physical",
-            "Tier 1"
-          ],
+          "traits": ["Medium", "Physical", "Tier 1"],
           "rarity": "common",
           "canBeInMerchantWares": true,
           "quantity": 2
@@ -449,11 +428,7 @@
           "description": "A flowing garment woven with arcane threads. +1 Wis, +1 Max HP.",
           "tier": 1,
           "icon": "👘",
-          "traits": [
-            "Light",
-            "Magical",
-            "Tier 1"
-          ],
+          "traits": ["Light", "Magical", "Tier 1"],
           "rarity": "common",
           "canBeInMerchantWares": true,
           "quantity": 6

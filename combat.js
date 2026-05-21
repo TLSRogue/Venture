@@ -12,66 +12,66 @@ import * as UIMain from './ui/ui-main.js';
  */
 
 export function endTurn() {
-    if (gameState.inDuel) {
-        Network.emitDuelAction({ type: 'endTurn' });
-    } else if (gameState.partyId) {
-        // This now handles both solo and party adventures, as both have a partyId
-        Network.emitPartyAction({ type: 'endTurn' });
-        document.getElementById('end-turn-btn').disabled = true; // Disable locally until server update
-        UIMain.addToLog("You have ended your turn.", "info");
-    }
-    Interactions.clearSelection();
+  if (gameState.inDuel) {
+    Network.emitDuelAction({ type: 'endTurn' });
+  } else if (gameState.partyId) {
+    // This now handles both solo and party adventures, as both have a partyId
+    Network.emitPartyAction({ type: 'endTurn' });
+    document.getElementById('end-turn-btn').disabled = true; // Disable locally until server update
+    UIMain.addToLog('You have ended your turn.', 'info');
+  }
+  Interactions.clearSelection();
 }
 
 export function castSpell(spellIndex, targetIndex) {
-    if (gameState.inDuel) {
-        Network.emitDuelAction({
-            type: 'castSpell',
-            payload: { spellIndex, targetIndex }
-        });
-    } else if (gameState.partyId) {
-        Network.emitPartyAction({
-            type: 'castSpell',
-            payload: { spellIndex, targetIndex }
-        });
-    }
-    Interactions.clearSelection();
+  if (gameState.inDuel) {
+    Network.emitDuelAction({
+      type: 'castSpell',
+      payload: { spellIndex, targetIndex },
+    });
+  } else if (gameState.partyId) {
+    Network.emitPartyAction({
+      type: 'castSpell',
+      payload: { spellIndex, targetIndex },
+    });
+  }
+  Interactions.clearSelection();
 }
 
 export function weaponAttack(targetIndex) {
-    const selectedAction = gameState.turnState.selectedAction;
-    if (!selectedAction || selectedAction.type !== 'weapon') {
-        return;
-    }
+  const selectedAction = gameState.turnState.selectedAction;
+  if (!selectedAction || selectedAction.type !== 'weapon') {
+    return;
+  }
 
-    if (gameState.inDuel) {
-        Network.emitDuelAction({
-            type: 'weaponAttack',
-            payload: { weaponSlot: selectedAction.slot, targetIndex: 'opponent' }
-        });
-    } else if (gameState.partyId) {
-        Network.emitPartyAction({
-            type: 'weaponAttack',
-            payload: { weaponSlot: selectedAction.slot, targetIndex }
-        });
-    }
-    Interactions.clearSelection();
+  if (gameState.inDuel) {
+    Network.emitDuelAction({
+      type: 'weaponAttack',
+      payload: { weaponSlot: selectedAction.slot, targetIndex: 'opponent' },
+    });
+  } else if (gameState.partyId) {
+    Network.emitPartyAction({
+      type: 'weaponAttack',
+      payload: { weaponSlot: selectedAction.slot, targetIndex },
+    });
+  }
+  Interactions.clearSelection();
 }
 
 export function useItemAbility(slot) {
-    const item = gameState.equipment[slot];
-    if (!item || !item.activatedAbility) return;
+  const item = gameState.equipment[slot];
+  if (!item || !item.activatedAbility) return;
 
-    if (gameState.inDuel) {
-        Network.emitDuelAction({
-            type: 'useItemAbility',
-            payload: { slot }
-        });
-    } else if (gameState.partyId) {
-        Network.emitPartyAction({
-            type: 'useItemAbility',
-            payload: { slot }
-        });
-    }
-    Interactions.clearSelection();
+  if (gameState.inDuel) {
+    Network.emitDuelAction({
+      type: 'useItemAbility',
+      payload: { slot },
+    });
+  } else if (gameState.partyId) {
+    Network.emitPartyAction({
+      type: 'useItemAbility',
+      payload: { slot },
+    });
+  }
+  Interactions.clearSelection();
 }

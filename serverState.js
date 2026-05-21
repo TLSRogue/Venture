@@ -15,65 +15,67 @@ import { runMigrations } from './migrations.js';
 let players = {};
 
 try {
-    const data = fs.readFileSync('players.json', 'utf8');
-    const savedPlayers = JSON.parse(data);
-    let dataWasMigrated = false;
+  const data = fs.readFileSync('players.json', 'utf8');
+  const savedPlayers = JSON.parse(data);
+  let dataWasMigrated = false;
 
-    for (const characterName in savedPlayers) {
-        if (savedPlayers.hasOwnProperty(characterName)) {
-            const character = savedPlayers[characterName].character;
+  for (const characterName in savedPlayers) {
+    if (savedPlayers.hasOwnProperty(characterName)) {
+      const character = savedPlayers[characterName].character;
 
-            // Run all migrations/refreshes via the centralized module
-            const wasMigrated = runMigrations(character, characterName);
-            if (wasMigrated) dataWasMigrated = true;
+      // Run all migrations/refreshes via the centralized module
+      const wasMigrated = runMigrations(character, characterName);
+      if (wasMigrated) dataWasMigrated = true;
 
-            players[characterName] = {
-                id: null,
-                character: character
-            };
-        }
+      players[characterName] = {
+        id: null,
+        character: character,
+      };
     }
+  }
 
-    if (dataWasMigrated) {
-        fs.writeFileSync('players.json', JSON.stringify(players, null, 2));
-        console.log('Successfully saved migrated player data to players.json.');
-    }
+  if (dataWasMigrated) {
+    fs.writeFileSync('players.json', JSON.stringify(players, null, 2));
+    console.log('Successfully saved migrated player data to players.json.');
+  }
 
-    console.log('Player data loaded successfully from players.json');
+  console.log('Player data loaded successfully from players.json');
 } catch (err) {
-    console.log('No existing players.json file found. Starting with a clean state.');
-    players = {};
+  console.log('No existing players.json file found. Starting with a clean state.');
+  players = {};
 }
 
 function createInitialCharacter(characterName, characterIcon) {
-    return {
-        ...DEFAULT_CHARACTER_STATS,
-        characterName: characterName,
-        characterIcon: characterIcon,
-        // Deep-clone arrays/objects so new characters don't share references
-        inventory: Array(INVENTORY_SIZE).fill(null),
-        unlockedTitles: [...DEFAULT_CHARACTER_STATS.unlockedTitles],
-        bank: [],
-        buffs: [],
-        debuffs: [],
-        spellbook: [],
-        knownRecipes: [],
-        quests: [],
-        merchantStock: [],
-        spellCooldowns: {},
-        weaponCooldowns: {},
-        itemCooldowns: {},
-        cardDefeatTimes: {},
-        equippedSpells: [
-            gameData.allSpells.find(s => s.name === 'Punch'),
-            gameData.allSpells.find(s => s.name === 'Kick'),
-            gameData.allSpells.find(s => s.name === 'Dodge')
-        ].filter(Boolean).map(s => ({ ...s })),
-        equipment: {
-            ...DEFAULT_CHARACTER_STATS.equipment,
-            mainHand: { ...gameData.allItems.find(i => i.name === "Wooden Training Sword") },
-        },
-    };
+  return {
+    ...DEFAULT_CHARACTER_STATS,
+    characterName: characterName,
+    characterIcon: characterIcon,
+    // Deep-clone arrays/objects so new characters don't share references
+    inventory: Array(INVENTORY_SIZE).fill(null),
+    unlockedTitles: [...DEFAULT_CHARACTER_STATS.unlockedTitles],
+    bank: [],
+    buffs: [],
+    debuffs: [],
+    spellbook: [],
+    knownRecipes: [],
+    quests: [],
+    merchantStock: [],
+    spellCooldowns: {},
+    weaponCooldowns: {},
+    itemCooldowns: {},
+    cardDefeatTimes: {},
+    equippedSpells: [
+      gameData.allSpells.find((s) => s.name === 'Punch'),
+      gameData.allSpells.find((s) => s.name === 'Kick'),
+      gameData.allSpells.find((s) => s.name === 'Dodge'),
+    ]
+      .filter(Boolean)
+      .map((s) => ({ ...s })),
+    equipment: {
+      ...DEFAULT_CHARACTER_STATS.equipment,
+      mainHand: { ...gameData.allItems.find((i) => i.name === 'Wooden Training Sword') },
+    },
+  };
 }
 
 export { players, createInitialCharacter };
@@ -83,4 +85,3 @@ export let pvpZoneQueues = {};
 export let pvpEncounters = {};
 export let globalChatHistory = [];
 export let trades = {};
-

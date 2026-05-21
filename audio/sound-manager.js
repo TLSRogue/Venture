@@ -13,9 +13,9 @@ let soundEnabled = true;
  * @param {string} path - Path to the sound file
  */
 export function preloadSound(name, path) {
-    const audio = new Audio(path);
-    audio.preload = 'auto';
-    sounds[name] = audio;
+  const audio = new Audio(path);
+  audio.preload = 'auto';
+  sounds[name] = audio;
 }
 
 /**
@@ -24,20 +24,20 @@ export function preloadSound(name, path) {
  * @param {number} volume - Volume from 0.0 to 1.0 (relative to master/sfx volume)
  */
 export function playSound(name, volume = 1.0) {
-    if (!soundEnabled || !sounds[name]) return;
+  if (!soundEnabled || !sounds[name]) return;
 
-    try {
-        // Clone the audio to allow overlapping sounds
-        const sound = sounds[name].cloneNode();
-        const effectiveVolume = volume * masterVolume * sfxVolume;
-        sound.volume = Math.min(1.0, effectiveVolume);
-        sound.play().catch(e => {
-            // Browsers often block autoplay, this is expected
-            console.debug('Audio play blocked:', e.message);
-        });
-    } catch (e) {
-        console.debug('Sound play error:', e);
-    }
+  try {
+    // Clone the audio to allow overlapping sounds
+    const sound = sounds[name].cloneNode();
+    const effectiveVolume = volume * masterVolume * sfxVolume;
+    sound.volume = Math.min(1.0, effectiveVolume);
+    sound.play().catch((e) => {
+      // Browsers often block autoplay, this is expected
+      console.debug('Audio play blocked:', e.message);
+    });
+  } catch (e) {
+    console.debug('Sound play error:', e);
+  }
 }
 
 /**
@@ -45,8 +45,8 @@ export function playSound(name, volume = 1.0) {
  * @param {number} volume - Volume from 0.0 to 1.0
  */
 export function setMasterVolume(volume) {
-    masterVolume = Math.max(0, Math.min(1, volume));
-    localStorage.setItem('masterVolume', masterVolume.toString());
+  masterVolume = Math.max(0, Math.min(1, volume));
+  localStorage.setItem('masterVolume', masterVolume.toString());
 }
 
 /**
@@ -54,7 +54,7 @@ export function setMasterVolume(volume) {
  * @returns {number}
  */
 export function getMasterVolume() {
-    return masterVolume;
+  return masterVolume;
 }
 
 /**
@@ -62,9 +62,9 @@ export function getMasterVolume() {
  * @param {number} volume - Volume from 0.0 to 1.0
  */
 export function setMusicVolume(volume) {
-    musicVolume = Math.max(0, Math.min(1, volume));
-    localStorage.setItem('musicVolume', musicVolume.toString());
-    // TODO: Apply to any playing background music
+  musicVolume = Math.max(0, Math.min(1, volume));
+  localStorage.setItem('musicVolume', musicVolume.toString());
+  // TODO: Apply to any playing background music
 }
 
 /**
@@ -72,7 +72,7 @@ export function setMusicVolume(volume) {
  * @returns {number}
  */
 export function getMusicVolume() {
-    return musicVolume;
+  return musicVolume;
 }
 
 /**
@@ -80,8 +80,8 @@ export function getMusicVolume() {
  * @param {number} volume - Volume from 0.0 to 1.0
  */
 export function setSfxVolume(volume) {
-    sfxVolume = Math.max(0, Math.min(1, volume));
-    localStorage.setItem('sfxVolume', sfxVolume.toString());
+  sfxVolume = Math.max(0, Math.min(1, volume));
+  localStorage.setItem('sfxVolume', sfxVolume.toString());
 }
 
 /**
@@ -89,7 +89,7 @@ export function setSfxVolume(volume) {
  * @returns {number}
  */
 export function getSfxVolume() {
-    return sfxVolume;
+  return sfxVolume;
 }
 
 /**
@@ -97,8 +97,8 @@ export function getSfxVolume() {
  * @param {boolean} enabled
  */
 export function setSoundEnabled(enabled) {
-    soundEnabled = enabled;
-    localStorage.setItem('soundEnabled', enabled.toString());
+  soundEnabled = enabled;
+  localStorage.setItem('soundEnabled', enabled.toString());
 }
 
 /**
@@ -106,22 +106,22 @@ export function setSoundEnabled(enabled) {
  * @returns {boolean}
  */
 export function isSoundEnabled() {
-    return soundEnabled;
+  return soundEnabled;
 }
 
 /**
  * Initialize sound settings from localStorage
  */
 export function initSoundSettings() {
-    const savedMaster = localStorage.getItem('masterVolume');
-    const savedMusic = localStorage.getItem('musicVolume');
-    const savedSfx = localStorage.getItem('sfxVolume');
-    const savedEnabled = localStorage.getItem('soundEnabled');
+  const savedMaster = localStorage.getItem('masterVolume');
+  const savedMusic = localStorage.getItem('musicVolume');
+  const savedSfx = localStorage.getItem('sfxVolume');
+  const savedEnabled = localStorage.getItem('soundEnabled');
 
-    if (savedMaster !== null) masterVolume = parseFloat(savedMaster);
-    if (savedMusic !== null) musicVolume = parseFloat(savedMusic);
-    if (savedSfx !== null) sfxVolume = parseFloat(savedSfx);
-    if (savedEnabled !== null) soundEnabled = savedEnabled === 'true';
+  if (savedMaster !== null) masterVolume = parseFloat(savedMaster);
+  if (savedMusic !== null) musicVolume = parseFloat(savedMusic);
+  if (savedSfx !== null) sfxVolume = parseFloat(savedSfx);
+  if (savedEnabled !== null) soundEnabled = savedEnabled === 'true';
 }
 
 /**
@@ -129,53 +129,53 @@ export function initSoundSettings() {
  * Add your sound files to /assets/sounds/ and register them here
  */
 export function preloadAllSounds() {
-    // Combat sounds
-    preloadSound('hit', '/assets/sounds/hit.mp3');
-    preloadSound('miss', '/assets/sounds/miss.mp3');
-    preloadSound('critical', '/assets/sounds/critical.mp3');
-    preloadSound('block', '/assets/sounds/block.mp3');
-    preloadSound('parry', '/assets/sounds/parry.mp3');
-    preloadSound('dodge', '/assets/sounds/dodge-generic.wav');
-    preloadSound('takedamage', '/assets/sounds/takedamage-generic.wav');
-    preloadSound('fail', '/assets/sounds/fail-generic.wav');
+  // Combat sounds
+  preloadSound('hit', '/assets/sounds/hit.mp3');
+  preloadSound('miss', '/assets/sounds/miss.mp3');
+  preloadSound('critical', '/assets/sounds/critical.mp3');
+  preloadSound('block', '/assets/sounds/block.mp3');
+  preloadSound('parry', '/assets/sounds/parry.mp3');
+  preloadSound('dodge', '/assets/sounds/dodge-generic.wav');
+  preloadSound('takedamage', '/assets/sounds/takedamage-generic.wav');
+  preloadSound('fail', '/assets/sounds/fail-generic.wav');
 
-    // Magic sounds
-    preloadSound('spell_fire', '/assets/sounds/spell_fire.mp3');
-    preloadSound('spell_ice', '/assets/sounds/spell_ice.mp3');
-    preloadSound('spell_heal', '/assets/sounds/spell_heal.mp3');
-    preloadSound('spell_generic', '/assets/sounds/spell_generic.mp3');
-    preloadSound('fireball', '/assets/sounds/fireball-spell.wav');
-    preloadSound('flamestrike', '/assets/sounds/flamestrike-spell.wav');
-    preloadSound('heal', '/assets/sounds/heal-generic.wav');
+  // Magic sounds
+  preloadSound('spell_fire', '/assets/sounds/spell_fire.mp3');
+  preloadSound('spell_ice', '/assets/sounds/spell_ice.mp3');
+  preloadSound('spell_heal', '/assets/sounds/spell_heal.mp3');
+  preloadSound('spell_generic', '/assets/sounds/spell_generic.mp3');
+  preloadSound('fireball', '/assets/sounds/fireball-spell.wav');
+  preloadSound('flamestrike', '/assets/sounds/flamestrike-spell.wav');
+  preloadSound('heal', '/assets/sounds/heal-generic.wav');
 
-    // UI sounds
-    preloadSound('click', '/assets/sounds/click.mp3');
-    preloadSound('open', '/assets/sounds/open.mp3');
-    preloadSound('close', '/assets/sounds/close.mp3');
-    preloadSound('error', '/assets/sounds/error.mp3');
-    preloadSound('sell', '/assets/sounds/sell-merchant.wav');
+  // UI sounds
+  preloadSound('click', '/assets/sounds/click.mp3');
+  preloadSound('open', '/assets/sounds/open.mp3');
+  preloadSound('close', '/assets/sounds/close.mp3');
+  preloadSound('error', '/assets/sounds/error.mp3');
+  preloadSound('sell', '/assets/sounds/sell-merchant.wav');
 
-    // Reward sounds
-    preloadSound('coins', '/assets/sounds/coins.mp3');
-    preloadSound('loot', '/assets/sounds/loot.mp3');
-    preloadSound('levelup', '/assets/sounds/levelup.mp3');
-    preloadSound('quest_accepted', '/assets/sounds/questaccepted.wav');
-    preloadSound('quest_complete', '/assets/sounds/questcomplete.wav');
+  // Reward sounds
+  preloadSound('coins', '/assets/sounds/coins.mp3');
+  preloadSound('loot', '/assets/sounds/loot.mp3');
+  preloadSound('levelup', '/assets/sounds/levelup.mp3');
+  preloadSound('quest_accepted', '/assets/sounds/questaccepted.wav');
+  preloadSound('quest_complete', '/assets/sounds/questcomplete.wav');
 
-    // Combat sounds (wav)
-    preloadSound('punch', '/assets/sounds/punch.wav');
+  // Combat sounds (wav)
+  preloadSound('punch', '/assets/sounds/punch.wav');
 
-    // Adventure sounds
-    preloadSound('enemy_appear', '/assets/sounds/enemy_appear.mp3');
-    preloadSound('victory', '/assets/sounds/victory.mp3');
-    preloadSound('defeat', '/assets/sounds/defeat.mp3');
-    preloadSound('flee', '/assets/sounds/flee.mp3');
+  // Adventure sounds
+  preloadSound('enemy_appear', '/assets/sounds/enemy_appear.mp3');
+  preloadSound('victory', '/assets/sounds/victory.mp3');
+  preloadSound('defeat', '/assets/sounds/defeat.mp3');
+  preloadSound('flee', '/assets/sounds/flee.mp3');
 
-    // Resource sounds
-    preloadSound('mining', '/assets/sounds/mining.mp3');
-    preloadSound('woodcutting', '/assets/sounds/woodcutting.mp3');
-    preloadSound('fishing', '/assets/sounds/fishing.mp3');
-    preloadSound('harvesting', '/assets/sounds/harvesting.mp3');
+  // Resource sounds
+  preloadSound('mining', '/assets/sounds/mining.mp3');
+  preloadSound('woodcutting', '/assets/sounds/woodcutting.mp3');
+  preloadSound('fishing', '/assets/sounds/fishing.mp3');
+  preloadSound('harvesting', '/assets/sounds/harvesting.mp3');
 }
 
 // Initialize on module load

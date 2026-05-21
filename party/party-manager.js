@@ -2,7 +2,7 @@
 
 /**
  * Centralized Party Management Module
- * 
+ *
  * This module consolidates all party-related operations to provide a single
  * source of truth for party state management. All party creation, joining,
  * leaving, and cleanup operations should go through this module.
@@ -18,27 +18,27 @@ import { broadcastPartyUpdate, broadcastOnlinePlayers, broadcastAdventureUpdate 
  * @returns {string|null} The new party ID, or null if creation failed
  */
 export function createParty(io, socket) {
-    const name = socket.characterName;
-    if (!name || !players[name] || players[name].character.partyId) {
-        return null;
-    }
+  const name = socket.characterName;
+  if (!name || !players[name] || players[name].character.partyId) {
+    return null;
+  }
 
-    const partyId = `PARTY-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-    parties[partyId] = {
-        id: partyId,
-        leaderId: name,
-        members: [name],
-        sharedState: null,
-        isSoloParty: false
-    };
-    players[name].character.partyId = partyId;
+  const partyId = `PARTY-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+  parties[partyId] = {
+    id: partyId,
+    leaderId: name,
+    members: [name],
+    sharedState: null,
+    isSoloParty: false,
+  };
+  players[name].character.partyId = partyId;
 
-    socket.emit('characterUpdate', players[name].character);
-    console.log(`Player ${name} created party ${partyId}`);
-    broadcastPartyUpdate(io, partyId);
-    broadcastOnlinePlayers(io);
+  socket.emit('characterUpdate', players[name].character);
+  console.log(`Player ${name} created party ${partyId}`);
+  broadcastPartyUpdate(io, partyId);
+  broadcastOnlinePlayers(io);
 
-    return partyId;
+  return partyId;
 }
 
 /**
@@ -49,29 +49,29 @@ export function createParty(io, socket) {
  * @returns {object} The created party object
  */
 export function createSoloParty(io, player, socket) {
-    const name = player.character.characterName;
-    const partyId = `SOLO-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+  const name = player.character.characterName;
+  const partyId = `SOLO-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
-    const party = {
-        id: partyId,
-        leaderId: name,
-        members: [name],
-        sharedState: null,
-        isSoloParty: true
-    };
+  const party = {
+    id: partyId,
+    leaderId: name,
+    members: [name],
+    sharedState: null,
+    isSoloParty: true,
+  };
 
-    parties[partyId] = party;
-    player.character.partyId = partyId;
+  parties[partyId] = party;
+  player.character.partyId = partyId;
 
-    socket.emit('partyUpdate', {
-        partyId: partyId,
-        leaderId: name,
-        members: [{ name: name, id: socket.id, isLeader: true }],
-        isPartyLeader: true
-    });
+  socket.emit('partyUpdate', {
+    partyId: partyId,
+    leaderId: name,
+    members: [{ name: name, id: socket.id, isLeader: true }],
+    isPartyLeader: true,
+  });
 
-    console.log(`Player ${name} created temporary solo party ${partyId}`);
-    return party;
+  console.log(`Player ${name} created temporary solo party ${partyId}`);
+  return party;
 }
 
 /**
@@ -82,32 +82,32 @@ export function createSoloParty(io, player, socket) {
  * @returns {boolean} True if join succeeded, false otherwise
  */
 export function joinParty(io, socket, partyId) {
-    const name = socket.characterName;
-    const player = players[name];
+  const name = socket.characterName;
+  const player = players[name];
 
-    if (!player || !player.character || player.character.partyId) {
-        return false;
-    }
+  if (!player || !player.character || player.character.partyId) {
+    return false;
+  }
 
-    const party = parties[partyId];
-    if (!party) {
-        socket.emit('partyError', 'Party not found.');
-        return false;
-    }
-    if (party.members.length >= 3) {
-        socket.emit('partyError', 'Party is full.');
-        return false;
-    }
+  const party = parties[partyId];
+  if (!party) {
+    socket.emit('partyError', 'Party not found.');
+    return false;
+  }
+  if (party.members.length >= 3) {
+    socket.emit('partyError', 'Party is full.');
+    return false;
+  }
 
-    party.members.push(name);
-    player.character.partyId = partyId;
+  party.members.push(name);
+  player.character.partyId = partyId;
 
-    socket.emit('characterUpdate', player.character);
-    console.log(`Player ${name} joined party ${partyId}`);
-    broadcastPartyUpdate(io, partyId);
-    broadcastOnlinePlayers(io);
+  socket.emit('characterUpdate', player.character);
+  console.log(`Player ${name} joined party ${partyId}`);
+  broadcastPartyUpdate(io, partyId);
+  broadcastOnlinePlayers(io);
 
-    return true;
+  return true;
 }
 
 /**
@@ -117,51 +117,51 @@ export function joinParty(io, socket, partyId) {
  * @param {object} socket - The player's socket
  */
 export function removePlayerFromParty(io, socket) {
-    const name = socket.characterName;
-    if (!name || !players[name] || !players[name].character) return;
+  const name = socket.characterName;
+  if (!name || !players[name] || !players[name].character) return;
 
-    const partyId = players[name].character.partyId;
-    if (!partyId) return; // Player isn't in a party
+  const partyId = players[name].character.partyId;
+  if (!partyId) return; // Player isn't in a party
 
-    const party = parties[partyId];
+  const party = parties[partyId];
 
-    // Handle desync: player thinks they're in a party that doesn't exist
-    if (!party) {
-        players[name].character.partyId = null;
-        console.log(`Corrected state for player ${name} who was in a non-existent party.`);
-        socket.emit('characterUpdate', players[name].character);
-        broadcastOnlinePlayers(io);
-        return;
-    }
-
-    // Clean up adventure state if player was in an adventure
-    cleanupAdventureStateForPlayer(io, party, name);
-
-    // Remove player from party members
-    party.members = party.members.filter(memberName => memberName !== name);
+  // Handle desync: player thinks they're in a party that doesn't exist
+  if (!party) {
     players[name].character.partyId = null;
-
+    console.log(`Corrected state for player ${name} who was in a non-existent party.`);
     socket.emit('characterUpdate', players[name].character);
-    console.log(`Player ${name} left party ${partyId}`);
-
-    // Disband or promote new leader
-    if (party.members.length === 0) {
-        delete parties[partyId];
-        console.log(`Party ${partyId} disbanded.`);
-    } else {
-        if (party.leaderId === name) {
-            party.leaderId = party.members[0];
-            console.log(`New leader for party ${partyId} is ${party.leaderId}`);
-
-            const newLeader = players[party.leaderId];
-            if (newLeader && newLeader.id) {
-                io.to(newLeader.id).emit('partyUpdate', { isPartyLeader: true });
-            }
-        }
-        broadcastPartyUpdate(io, partyId);
-    }
-
     broadcastOnlinePlayers(io);
+    return;
+  }
+
+  // Clean up adventure state if player was in an adventure
+  cleanupAdventureStateForPlayer(io, party, name);
+
+  // Remove player from party members
+  party.members = party.members.filter((memberName) => memberName !== name);
+  players[name].character.partyId = null;
+
+  socket.emit('characterUpdate', players[name].character);
+  console.log(`Player ${name} left party ${partyId}`);
+
+  // Disband or promote new leader
+  if (party.members.length === 0) {
+    delete parties[partyId];
+    console.log(`Party ${partyId} disbanded.`);
+  } else {
+    if (party.leaderId === name) {
+      party.leaderId = party.members[0];
+      console.log(`New leader for party ${partyId} is ${party.leaderId}`);
+
+      const newLeader = players[party.leaderId];
+      if (newLeader && newLeader.id) {
+        io.to(newLeader.id).emit('partyUpdate', { isPartyLeader: true });
+      }
+    }
+    broadcastPartyUpdate(io, partyId);
+  }
+
+  broadcastOnlinePlayers(io);
 }
 
 /**
@@ -171,34 +171,36 @@ export function removePlayerFromParty(io, socket) {
  * @param {string} playerName - The name of the player leaving
  */
 function cleanupAdventureStateForPlayer(io, party, playerName) {
-    if (!party.sharedState || !party.sharedState.partyMemberStates) return;
+  if (!party.sharedState || !party.sharedState.partyMemberStates) return;
 
-    // Check if there is an active defense quest, if so, remove it from this player's character
-    if (party.sharedState.defenseQuest && party.sharedState.defenseQuest.active) {
-        const player = players[playerName];
-        if (player && player.character) {
-             player.character.quests = player.character.quests.filter(q => q.details.id !== party.sharedState.defenseQuest.questId || q.status === "completed");
-        }
+  // Check if there is an active defense quest, if so, remove it from this player's character
+  if (party.sharedState.defenseQuest && party.sharedState.defenseQuest.active) {
+    const player = players[playerName];
+    if (player && player.character) {
+      player.character.quests = player.character.quests.filter(
+        (q) => q.details.id !== party.sharedState.defenseQuest.questId || q.status === 'completed'
+      );
     }
+  }
 
-    const memberIndex = party.sharedState.partyMemberStates.findIndex(p => p.name === playerName);
-    if (memberIndex === -1) return;
+  const memberIndex = party.sharedState.partyMemberStates.findIndex((p) => p.name === playerName);
+  if (memberIndex === -1) return;
 
-    // Remove from adventure state
-    party.sharedState.partyMemberStates.splice(memberIndex, 1);
-    party.sharedState.log.push({
-        message: `${playerName} has left the party (and the adventure).`,
-        type: 'info'
-    });
+  // Remove from adventure state
+  party.sharedState.partyMemberStates.splice(memberIndex, 1);
+  party.sharedState.log.push({
+    message: `${playerName} has left the party (and the adventure).`,
+    type: 'info',
+  });
 
-    // If adventure is now empty, end it
-    if (party.sharedState.partyMemberStates.length === 0) {
-        party.sharedState = null;
-        console.log(`Adventure ended for party ${party.id} (empty).`);
-    } else {
-        // Broadcast update to remaining members
-        broadcastAdventureUpdate(io, party);
-    }
+  // If adventure is now empty, end it
+  if (party.sharedState.partyMemberStates.length === 0) {
+    party.sharedState = null;
+    console.log(`Adventure ended for party ${party.id} (empty).`);
+  } else {
+    // Broadcast update to remaining members
+    broadcastAdventureUpdate(io, party);
+  }
 }
 
 /**
@@ -207,23 +209,25 @@ function cleanupAdventureStateForPlayer(io, party, playerName) {
  * @param {string} partyId - The party ID to disband
  */
 export function disbandParty(io, partyId) {
-    const party = parties[partyId];
-    if (!party) return;
+  const party = parties[partyId];
+  if (!party) return;
 
-    // Clear partyId from all members
-    party.members.forEach(memberName => {
-        const memberPlayer = players[memberName];
-        if (memberPlayer?.character) {
-            memberPlayer.character.partyId = null;
-            if (party.sharedState && party.sharedState.defenseQuest && party.sharedState.defenseQuest.active) {
-                 memberPlayer.character.quests = memberPlayer.character.quests.filter(q => q.details.id !== party.sharedState.defenseQuest.questId || q.status === "completed");
-            }
-        }
-    });
+  // Clear partyId from all members
+  party.members.forEach((memberName) => {
+    const memberPlayer = players[memberName];
+    if (memberPlayer?.character) {
+      memberPlayer.character.partyId = null;
+      if (party.sharedState && party.sharedState.defenseQuest && party.sharedState.defenseQuest.active) {
+        memberPlayer.character.quests = memberPlayer.character.quests.filter(
+          (q) => q.details.id !== party.sharedState.defenseQuest.questId || q.status === 'completed'
+        );
+      }
+    }
+  });
 
-    delete parties[partyId];
-    console.log(`Party ${partyId} disbanded.`);
-    broadcastOnlinePlayers(io);
+  delete parties[partyId];
+  console.log(`Party ${partyId} disbanded.`);
+  broadcastOnlinePlayers(io);
 }
 
 /**
@@ -233,22 +237,24 @@ export function disbandParty(io, partyId) {
  * @param {object} player - The player object (optional, for older cleanup style)
  */
 export function cleanupSoloParty(io, party, player = null) {
-    if (!party.isSoloParty) return;
+  if (!party.isSoloParty) return;
 
-    // Clear the leader's partyId
-    const leader = player || players[party.leaderId];
-    if (leader?.character) {
-        leader.character.partyId = null;
-        if (party.sharedState && party.sharedState.defenseQuest && party.sharedState.defenseQuest.active) {
-             leader.character.quests = leader.character.quests.filter(q => q.details.id !== party.sharedState.defenseQuest.questId || q.status === "completed");
-        }
-        if (leader.id) {
-            io.to(leader.id).emit('partyUpdate', null);
-        }
+  // Clear the leader's partyId
+  const leader = player || players[party.leaderId];
+  if (leader?.character) {
+    leader.character.partyId = null;
+    if (party.sharedState && party.sharedState.defenseQuest && party.sharedState.defenseQuest.active) {
+      leader.character.quests = leader.character.quests.filter(
+        (q) => q.details.id !== party.sharedState.defenseQuest.questId || q.status === 'completed'
+      );
     }
+    if (leader.id) {
+      io.to(leader.id).emit('partyUpdate', null);
+    }
+  }
 
-    delete parties[party.id];
-    console.log(`Solo party ${party.id} cleaned up.`);
+  delete parties[party.id];
+  console.log(`Solo party ${party.id} cleaned up.`);
 }
 
 /**
@@ -258,11 +264,11 @@ export function cleanupSoloParty(io, party, player = null) {
  * @param {string} partyId - The party ID
  */
 export function endPartyAdventure(io, partyId) {
-    const party = parties[partyId];
-    if (!party) return;
+  const party = parties[partyId];
+  if (!party) return;
 
-    party.sharedState = null;
-    broadcastPartyUpdate(io, partyId);
+  party.sharedState = null;
+  broadcastPartyUpdate(io, partyId);
 }
 
 /**
@@ -271,7 +277,7 @@ export function endPartyAdventure(io, partyId) {
  * @returns {object|null} The party object or null
  */
 export function getParty(partyId) {
-    return parties[partyId] || null;
+  return parties[partyId] || null;
 }
 
 /**
@@ -281,8 +287,8 @@ export function getParty(partyId) {
  * @returns {boolean} True if the player is the party leader
  */
 export function isPartyLeader(playerName, partyId) {
-    const party = parties[partyId];
-    return party ? party.leaderId === playerName : false;
+  const party = parties[partyId];
+  return party ? party.leaderId === playerName : false;
 }
 
 /**
@@ -292,33 +298,33 @@ export function isPartyLeader(playerName, partyId) {
  * @param {string} targetCharacterName - The character to invite
  */
 export function sendPartyInvite(io, socket, targetCharacterName) {
-    const inviterName = socket.characterName;
-    const inviter = players[inviterName];
-    const target = players[targetCharacterName];
-    let partyId = inviter?.character?.partyId;
+  const inviterName = socket.characterName;
+  const inviter = players[inviterName];
+  const target = players[targetCharacterName];
+  let partyId = inviter?.character?.partyId;
 
-    if (!inviter || !inviter.character) {
-        return socket.emit('partyError', 'Unable to send invite.');
-    }
+  if (!inviter || !inviter.character) {
+    return socket.emit('partyError', 'Unable to send invite.');
+  }
 
-    // Auto-create party if inviter doesn't have one
+  // Auto-create party if inviter doesn't have one
+  if (!partyId) {
+    partyId = createParty(io, socket);
     if (!partyId) {
-        partyId = createParty(io, socket);
-        if (!partyId) {
-            return socket.emit('partyError', 'Failed to create party.');
-        }
+      return socket.emit('partyError', 'Failed to create party.');
     }
+  }
 
-    if (!target || !target.id) {
-        return socket.emit('partyError', 'The player you are trying to invite is not online.');
-    }
-    if (target.character.partyId) {
-        return socket.emit('partyError', `${target.character.characterName} is already in a party.`);
-    }
+  if (!target || !target.id) {
+    return socket.emit('partyError', 'The player you are trying to invite is not online.');
+  }
+  if (target.character.partyId) {
+    return socket.emit('partyError', `${target.character.characterName} is already in a party.`);
+  }
 
-    io.to(target.id).emit('receivePartyInvite', {
-        inviterName: inviter.character.characterName,
-        partyId: partyId
-    });
-    console.log(`${inviter.character.characterName} invited ${target.character.characterName} to party ${partyId}`);
+  io.to(target.id).emit('receivePartyInvite', {
+    inviterName: inviter.character.characterName,
+    partyId: partyId,
+  });
+  console.log(`${inviter.character.characterName} invited ${target.character.characterName} to party ${partyId}`);
 }

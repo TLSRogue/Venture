@@ -11,201 +11,201 @@ import { DEFAULT_ACTION_POINTS } from './constants.js';
 // --- CORE PLAYER STATS ---
 
 export function getBonusStats() {
-    const bonuses = { ...DEFAULT_BONUS_STATS };
-    for (const slot in gameState.equipment) {
-        const item = gameState.equipment[slot];
-        if (item && item.hands === 2 && slot === 'offHand') continue;
-        if (item && item.bonus) {
-            for (const stat in item.bonus) {
-                bonuses[stat] = (bonuses[stat] || 0) + item.bonus[stat];
-            }
-        }
-        // Include socketed gem bonuses
-        if (item && item.socketedGem && item.socketedGem.gemBonus) {
-            for (const stat in item.socketedGem.gemBonus) {
-                bonuses[stat] = (bonuses[stat] || 0) + item.socketedGem.gemBonus[stat];
-            }
-        }
+  const bonuses = { ...DEFAULT_BONUS_STATS };
+  for (const slot in gameState.equipment) {
+    const item = gameState.equipment[slot];
+    if (item && item.hands === 2 && slot === 'offHand') continue;
+    if (item && item.bonus) {
+      for (const stat in item.bonus) {
+        bonuses[stat] = (bonuses[stat] || 0) + item.bonus[stat];
+      }
     }
-    gameState.inventory.forEach(item => {
-        if (item && item.skillBonus) {
-            for (const skill in item.skillBonus) {
-                bonuses[skill] = (bonuses[skill] || 0) + item.skillBonus[skill];
-            }
-        }
-    });
+    // Include socketed gem bonuses
+    if (item && item.socketedGem && item.socketedGem.gemBonus) {
+      for (const stat in item.socketedGem.gemBonus) {
+        bonuses[stat] = (bonuses[stat] || 0) + item.socketedGem.gemBonus[stat];
+      }
+    }
+  }
+  gameState.inventory.forEach((item) => {
+    if (item && item.skillBonus) {
+      for (const skill in item.skillBonus) {
+        bonuses[skill] = (bonuses[skill] || 0) + item.skillBonus[skill];
+      }
+    }
+  });
 
-    (gameState.buffs || []).forEach(buff => {
-        if (buff.bonus) {
-            for (const stat in buff.bonus) {
-                bonuses[stat] = (bonuses[stat] || 0) + buff.bonus[stat];
-            }
-        }
-    });
-    return bonuses;
+  (gameState.buffs || []).forEach((buff) => {
+    if (buff.bonus) {
+      for (const stat in buff.bonus) {
+        bonuses[stat] = (bonuses[stat] || 0) + buff.bonus[stat];
+      }
+    }
+  });
+  return bonuses;
 }
 
 // --- ITEM & INVENTORY MANAGEMENT (EMITS TO SERVER) ---
 
 export function handleItemAction(action, index, targetIndex = null) {
-    if (gameState.currentZone || gameState.inDuel) {
-        const payload = { inventoryIndex: index };
-        if (targetIndex !== null) {
-            payload.targetIndex = targetIndex;
-        }
-        Network.emitPartyAction({
-            type: action,
-            payload
-        });
-    } else {
-        Network.emitPlayerAction(action, { index });
+  if (gameState.currentZone || gameState.inDuel) {
+    const payload = { inventoryIndex: index };
+    if (targetIndex !== null) {
+      payload.targetIndex = targetIndex;
     }
+    Network.emitPartyAction({
+      type: action,
+      payload,
+    });
+  } else {
+    Network.emitPlayerAction(action, { index });
+  }
 }
 
 export function takeGroundLoot(index) {
-    Network.emitPartyAction({
-        type: 'takeGroundLoot',
-        payload: { groundLootIndex: index }
-    });
+  Network.emitPartyAction({
+    type: 'takeGroundLoot',
+    payload: { groundLootIndex: index },
+  });
 }
 
 export function takeAllGroundLoot() {
-    Network.emitPartyAction({
-        type: 'takeAllGroundLoot',
-        payload: {}
-    });
+  Network.emitPartyAction({
+    type: 'takeAllGroundLoot',
+    payload: {},
+  });
 }
 
 export function equipItem(itemIndex, chosenSlot) {
-    Network.emitPlayerAction('equipItem', { itemIndex, chosenSlot });
+  Network.emitPlayerAction('equipItem', { itemIndex, chosenSlot });
 }
 
 export function unequipItem(slot) {
-    if (gameState.currentZone || gameState.inDuel) {
-        Network.emitPartyAction({
-            type: 'unequipItem',
-            payload: { slot }
-        });
-    } else {
-        Network.emitPlayerAction('unequipItem', { slot });
-    }
+  if (gameState.currentZone || gameState.inDuel) {
+    Network.emitPartyAction({
+      type: 'unequipItem',
+      payload: { slot },
+    });
+  } else {
+    Network.emitPlayerAction('unequipItem', { slot });
+  }
 }
 
 export function unequipSpell(index) {
-    if (gameState.currentZone !== null) return;
-    Network.emitPlayerAction('unequipSpell', { index });
+  if (gameState.currentZone !== null) return;
+  Network.emitPlayerAction('unequipSpell', { index });
 }
 
 export function equipSpell(index) {
-    if (gameState.currentZone !== null || gameState.equippedSpells.length >= 5) return;
-    Network.emitPlayerAction('equipSpell', { index });
+  if (gameState.currentZone !== null || gameState.equippedSpells.length >= 5) return;
+  Network.emitPlayerAction('equipSpell', { index });
 }
 
 export function depositItem(index) {
-    Network.emitPlayerAction('depositItem', { index });
+  Network.emitPlayerAction('depositItem', { index });
 }
 
 export function withdrawItem(index) {
-    Network.emitPlayerAction('withdrawItem', { index });
+  Network.emitPlayerAction('withdrawItem', { index });
 }
 
 export function socketGem(equipmentSlot, gemInventoryIndex) {
-    if (gameState.currentZone || gameState.inDuel) {
-        UIMain.addToLog("Cannot socket gems during combat.", "info");
-        return;
-    }
-    Network.emitPlayerAction('socketGem', { equipmentSlot, gemInventoryIndex });
+  if (gameState.currentZone || gameState.inDuel) {
+    UIMain.addToLog('Cannot socket gems during combat.', 'info');
+    return;
+  }
+  Network.emitPlayerAction('socketGem', { equipmentSlot, gemInventoryIndex });
 }
 
 export function unsocketGem(equipmentSlot) {
-    if (gameState.currentZone || gameState.inDuel) {
-        UIMain.addToLog("Cannot unsocket gems during combat.", "info");
-        return;
-    }
-    Network.emitPlayerAction('unsocketGem', { equipmentSlot });
+  if (gameState.currentZone || gameState.inDuel) {
+    UIMain.addToLog('Cannot unsocket gems during combat.', 'info');
+    return;
+  }
+  Network.emitPlayerAction('unsocketGem', { equipmentSlot });
 }
 
 // --- PLAYER STATE ---
 
 export function returnToHome() {
-    if (gameState.currentZone && gameState.partyId) {
-        // Block action during enemy turn
-        if (gameState.isPlayerTurn === false) {
-            UIMain.showInfoModal("Wait for the enemy turn to complete.");
-            return;
-        }
-
-        if (gameState.isPartyLeader) {
-            Network.emitPartyAction({ type: 'returnHome' });
-        } else {
-            UIMain.showInfoModal("Only the party leader can end the adventure.");
-        }
+  if (gameState.currentZone && gameState.partyId) {
+    // Block action during enemy turn
+    if (gameState.isPlayerTurn === false) {
+      UIMain.showInfoModal('Wait for the enemy turn to complete.');
+      return;
     }
+
+    if (gameState.isPartyLeader) {
+      Network.emitPartyAction({ type: 'returnHome' });
+    } else {
+      UIMain.showInfoModal('Only the party leader can end the adventure.');
+    }
+  }
 }
 
 export function resetToHomeState() {
-    UIMain.setTabsDisabled(false);
+  UIMain.setTabsDisabled(false);
 
-    // Restore header and tabs visibility when returning home
-    document.querySelector('.header').style.display = '';
-    document.querySelector('.tabs').style.display = '';
+  // Restore header and tabs visibility when returning home
+  document.querySelector('.header').style.display = '';
+  document.querySelector('.tabs').style.display = '';
 
-    gameState.currentZone = null;
-    gameState.zoneCards = [];
-    gameState.groundLoot = [];
-    gameState.health = gameState.maxHealth;
-    gameState.spellCooldowns = {};
-    gameState.weaponCooldowns = {};
-    gameState.buffs = [];
-    gameState.debuffs = [];
-    gameState.turnState.isPlayerTurn = true;
-    gameState.inDuel = false;
-    gameState.duelState = null;
-    gameState.pvpEncounter = null;
+  gameState.currentZone = null;
+  gameState.zoneCards = [];
+  gameState.groundLoot = [];
+  gameState.health = gameState.maxHealth;
+  gameState.spellCooldowns = {};
+  gameState.weaponCooldowns = {};
+  gameState.buffs = [];
+  gameState.debuffs = [];
+  gameState.turnState.isPlayerTurn = true;
+  gameState.inDuel = false;
+  gameState.duelState = null;
+  gameState.pvpEncounter = null;
 
-    // Clear temporary solo/duel parties - these were created just for this adventure
-    if (gameState.partyId && (gameState.partyId.startsWith('SOLO-') || gameState.partyId.startsWith('DUEL-PARTY-'))) {
-        Network.emitLeaveParty();
-        gameState.partyId = null;
-        gameState.isPartyLeader = false;
-        gameState.partyMembers = [];
-    }
+  // Clear temporary solo/duel parties - these were created just for this adventure
+  if (gameState.partyId && (gameState.partyId.startsWith('SOLO-') || gameState.partyId.startsWith('DUEL-PARTY-'))) {
+    Network.emitLeaveParty();
+    gameState.partyId = null;
+    gameState.isPartyLeader = false;
+    gameState.partyMembers = [];
+  }
 
-    Interactions.clearSelection();
-    document.getElementById('end-turn-btn').disabled = false;
-    UIMain.hideModal();
-    UIPlayer.showTab('home');
-    UIMain.addToLog("Returned home safely. Health and cooldowns have been restored.");
-    gameState.focus = 0;
-    UIPlayer.renderSpells();
-    UIPlayer.renderInventory();
-    UIPlayer.updateDisplay();
+  Interactions.clearSelection();
+  document.getElementById('end-turn-btn').disabled = false;
+  UIMain.hideModal();
+  UIPlayer.showTab('home');
+  UIMain.addToLog('Returned home safely. Health and cooldowns have been restored.');
+  gameState.focus = 0;
+  UIPlayer.renderSpells();
+  UIPlayer.renderInventory();
+  UIPlayer.updateDisplay();
 }
 
 export function resetPlayerCombatState() {
-    gameState.actionPoints = DEFAULT_ACTION_POINTS;
-    gameState.spellCooldowns = {};
-    gameState.weaponCooldowns = {};
-    gameState.itemCooldowns = {};
+  gameState.actionPoints = DEFAULT_ACTION_POINTS;
+  gameState.spellCooldowns = {};
+  gameState.weaponCooldowns = {};
+  gameState.itemCooldowns = {};
 
-    const persistentBuffs = ['Well Fed (Agi)', 'Well Fed (Str)', 'Light Source'];
+  const persistentBuffs = ['Well Fed (Agi)', 'Well Fed (Str)', 'Light Source'];
 
-    const currentBuffs = gameState.buffs || [];
-    const expiredBuffs = currentBuffs.filter(b => !persistentBuffs.includes(b.type));
+  const currentBuffs = gameState.buffs || [];
+  const expiredBuffs = currentBuffs.filter((b) => !persistentBuffs.includes(b.type));
 
-    if (expiredBuffs.length > 0) {
-        UIMain.addToLog(`Combat buffs worn off: ${expiredBuffs.map(b => b.type).join(', ')}.`, 'info');
-    }
-    gameState.buffs = currentBuffs.filter(b => persistentBuffs.includes(b.type));
+  if (expiredBuffs.length > 0) {
+    UIMain.addToLog(`Combat buffs worn off: ${expiredBuffs.map((b) => b.type).join(', ')}.`, 'info');
+  }
+  gameState.buffs = currentBuffs.filter((b) => persistentBuffs.includes(b.type));
 
-    const currentDebuffs = gameState.debuffs || [];
-    if (currentDebuffs.length > 0) {
-        UIMain.addToLog("All debuffs have been cleared.", 'heal');
-        gameState.debuffs = [];
-    }
+  const currentDebuffs = gameState.debuffs || [];
+  if (currentDebuffs.length > 0) {
+    UIMain.addToLog('All debuffs have been cleared.', 'heal');
+    gameState.debuffs = [];
+  }
 
-    gameState.shield = 0;
-    gameState.focus = 0;
+  gameState.shield = 0;
+  gameState.focus = 0;
 
-    UIMain.addToLog("Cooldowns and Action Points have been reset.", "success");
+  UIMain.addToLog('Cooldowns and Action Points have been reset.', 'success');
 }

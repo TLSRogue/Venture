@@ -1,343 +1,370 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Venture - Card Game RPG</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
     <script src="/socket.io/socket.io.js"></script>
-</head>
+  </head>
 
-<body>
+  <body>
     <div id="tooltip"></div>
-    <div class="game-container" style="display: none;">
-        <div class="header">
-            <div id="character-info" style="display: none; align-items: center;">
-                <img id="character-avatar-display" src="" class="header-avatar"
-                    style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; margin-right: 15px; display: none;">
-                <div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <h1 id="character-name-display" style="margin: 0;"></h1>
-                        <button id="change-avatar-btn" class="btn-xs" title="Change Avatar">✏️</button>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <p id="character-title-display" style="margin: 0;"></p>
-                        <button id="change-title-btn" class="btn-xs" title="Change Title">🏆</button>
-                    </div>
-                </div>
+    <div class="game-container" style="display: none">
+      <div class="header">
+        <div id="character-info" style="display: none; align-items: center">
+          <img
+            id="character-avatar-display"
+            src=""
+            class="header-avatar"
+            style="
+              width: 64px;
+              height: 64px;
+              border-radius: 50%;
+              object-fit: cover;
+              border: 2px solid #fff;
+              margin-right: 15px;
+              display: none;
+            "
+          />
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px">
+              <h1 id="character-name-display" style="margin: 0"></h1>
+              <button id="change-avatar-btn" class="btn-xs" title="Change Avatar">✏️</button>
             </div>
-            <h1 id="default-header-title">⚔️ Venture - Card Game RPG ⚔️</h1>
-            <p>Embark on an epic adventure with cards and dice!</p>
+            <div style="display: flex; align-items: center; gap: 10px">
+              <p id="character-title-display" style="margin: 0"></p>
+              <button id="change-title-btn" class="btn-xs" title="Change Title">🏆</button>
+            </div>
+          </div>
+        </div>
+        <h1 id="default-header-title">⚔️ Venture - Card Game RPG ⚔️</h1>
+        <p>Embark on an epic adventure with cards and dice!</p>
+      </div>
+
+      <div id="main-stats-display" class="compact-stats-container"></div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="home">🏠 Home</button>
+        <button class="tab" data-tab="party">🧑‍🤝‍🧑 Party</button>
+        <button class="tab" data-tab="character">👤 Character</button>
+        <button class="tab" data-tab="bank">🏦 Bank</button>
+        <button class="tab" data-tab="crafting">🛠️ Crafting</button>
+        <button class="tab" data-tab="trainer">🎓 Trainer</button>
+        <button class="tab" data-tab="merchant">🏪 Merchant</button>
+        <button class="tab" data-tab="quest-log">📜 Quests</button>
+        <button class="tab" data-tab="map">🗺️ Map</button>
+      </div>
+
+      <div class="content-area">
+        <div id="home-tab" class="tab-content">
+          <h2>Welcome to Venture!</h2>
+          <p>
+            Prepare yourself for an epic adventure. Visit the merchant to buy equipment, manage your inventory, and when
+            ready, venture into the unknown!
+          </p>
+          <div id="home-action-buttons" class="action-buttons">
+            <button class="btn btn-primary" data-tab-target="merchant">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+              Visit Merchant
+            </button>
+            <button class="btn btn-success" data-tab-target="map">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                <line x1="8" y1="2" x2="8" y2="18" />
+                <line x1="16" y1="6" x2="16" y2="22" />
+              </svg>
+              View Map
+            </button>
+          </div>
+          <hr />
+          <h3>⚙️ Game Options</h3>
+          <div id="game-options" class="game-options-panel">
+            <div class="volume-control">
+              <label for="master-volume">🔊 Master Volume</label>
+              <input type="range" id="master-volume" min="0" max="100" value="80" />
+              <span id="master-volume-display">80%</span>
+            </div>
+            <div class="volume-control">
+              <label for="music-volume">🎵 Music</label>
+              <input type="range" id="music-volume" min="0" max="100" value="50" />
+              <span id="music-volume-display">50%</span>
+            </div>
+            <div class="volume-control">
+              <label for="sfx-volume">🔔 Sound Effects</label>
+              <input type="range" id="sfx-volume" min="0" max="100" value="80" />
+              <span id="sfx-volume-display">80%</span>
+            </div>
+          </div>
+          <h3>Global Chat</h3>
+          <div id="global-chat-container">
+            <div id="global-chat-log" class="chat-log"></div>
+            <div class="chat-input-area">
+              <input type="text" id="global-chat-input" placeholder="Type a message..." maxlength="200" />
+              <button id="global-chat-send-btn" class="btn btn-primary">Send</button>
+            </div>
+          </div>
         </div>
 
-        <div id="main-stats-display" class="compact-stats-container">
+        <div id="party-tab" class="tab-content" style="display: none">
+          <h2>Party Lobby</h2>
+          <div id="party-management-area"></div>
+          <hr />
+          <h3>Online Players</h3>
+          <div id="online-players-list">
+            <p>No other players online.</p>
+          </div>
         </div>
 
-        <div class="tabs">
-            <button class="tab active" data-tab="home">🏠 Home</button>
-            <button class="tab" data-tab="party">🧑‍🤝‍🧑 Party</button>
-            <button class="tab" data-tab="character">👤 Character</button>
-            <button class="tab" data-tab="bank">🏦 Bank</button>
-            <button class="tab" data-tab="crafting">🛠️ Crafting</button>
-            <button class="tab" data-tab="trainer">🎓 Trainer</button>
-            <button class="tab" data-tab="merchant">🏪 Merchant</button>
-            <button class="tab" data-tab="quest-log">📜 Quests</button>
-            <button class="tab" data-tab="map">🗺️ Map</button>
+        <div id="character-tab" class="tab-content" style="display: none">
+          <div class="storage-grid">
+            <div class="character-left-col">
+              <h3>⚔️ Equipment</h3>
+              <div id="equipment-grid" class="equipment-grid"></div>
+
+              <h3 style="margin-top: 20px">✨ Equipped Spells</h3>
+              <div id="spells-grid" class="spell-grid"></div>
+            </div>
+            <div class="character-right-col">
+              <h3>🎒 Inventory</h3>
+              <div id="inventory-grid" class="inventory-grid"></div>
+
+              <h3 style="margin-top: 20px">📖 Spellbook</h3>
+              <!-- New Tabbed Spellbook Interface -->
+              <div id="spellbook-tabs" class="merchant-sell-tabs">
+                <!-- JS will populate these based on schools: Arcane, Fire, etc. -->
+              </div>
+              <div id="spellbook-grid" class="spell-grid"></div>
+            </div>
+          </div>
         </div>
 
-        <div class="content-area">
-            <div id="home-tab" class="tab-content">
-                <h2>Welcome to Venture!</h2>
-                <p>Prepare yourself for an epic adventure. Visit the merchant to buy equipment, manage your inventory,
-                    and when ready, venture into the unknown!</p>
-                <div id="home-action-buttons" class="action-buttons">
-                    <button class="btn btn-primary" data-tab-target="merchant">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                            <line x1="3" y1="6" x2="21" y2="6" />
-                            <path d="M16 10a4 4 0 0 1-8 0" />
-                        </svg>
-                        Visit Merchant
-                    </button>
-                    <button class="btn btn-success" data-tab-target="map">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-                            <line x1="8" y1="2" x2="8" y2="18" />
-                            <line x1="16" y1="6" x2="16" y2="22" />
-                        </svg>
-                        View Map
-                    </button>
-                </div>
-                <hr>
-                <h3>⚙️ Game Options</h3>
-                <div id="game-options" class="game-options-panel">
-                    <div class="volume-control">
-                        <label for="master-volume">🔊 Master Volume</label>
-                        <input type="range" id="master-volume" min="0" max="100" value="80">
-                        <span id="master-volume-display">80%</span>
-                    </div>
-                    <div class="volume-control">
-                        <label for="music-volume">🎵 Music</label>
-                        <input type="range" id="music-volume" min="0" max="100" value="50">
-                        <span id="music-volume-display">50%</span>
-                    </div>
-                    <div class="volume-control">
-                        <label for="sfx-volume">🔔 Sound Effects</label>
-                        <input type="range" id="sfx-volume" min="0" max="100" value="80">
-                        <span id="sfx-volume-display">80%</span>
-                    </div>
-                </div>
-                <h3>Global Chat</h3>
-                <div id="global-chat-container">
-                    <div id="global-chat-log" class="chat-log"></div>
-                    <div class="chat-input-area">
-                        <input type="text" id="global-chat-input" placeholder="Type a message..." maxlength="200">
-                        <button id="global-chat-send-btn" class="btn btn-primary">Send</button>
-                    </div>
-                </div>
+        <div id="bank-tab" class="tab-content" style="display: none">
+          <h2>Bank</h2>
+          <p>Store your items safely. Items in the bank are not lost on death and can be used for crafting.</p>
+          <hr />
+          <div class="storage-grid">
+            <div>
+              <h3>Your Inventory</h3>
+              <div id="bank-inventory-grid" class="inventory-grid"></div>
             </div>
-
-            <div id="party-tab" class="tab-content" style="display: none;">
-                <h2>Party Lobby</h2>
-                <div id="party-management-area">
-                </div>
-                <hr>
-                <h3>Online Players</h3>
-                <div id="online-players-list">
-                    <p>No other players online.</p>
-                </div>
+            <div>
+              <h3>Your Bank</h3>
+              <div id="bank-storage-grid" class="inventory-grid"></div>
             </div>
-
-            <div id="character-tab" class="tab-content" style="display: none;">
-                <div class="storage-grid">
-                    <div class="character-left-col">
-                        <h3>⚔️ Equipment</h3>
-                        <div id="equipment-grid" class="equipment-grid"></div>
-
-                        <h3 style="margin-top: 20px;">✨ Equipped Spells</h3>
-                        <div id="spells-grid" class="spell-grid"></div>
-                    </div>
-                    <div class="character-right-col">
-                        <h3>🎒 Inventory</h3>
-                        <div id="inventory-grid" class="inventory-grid"></div>
-
-                        <h3 style="margin-top: 20px;">📖 Spellbook</h3>
-                        <!-- New Tabbed Spellbook Interface -->
-                        <div id="spellbook-tabs" class="merchant-sell-tabs">
-                            <!-- JS will populate these based on schools: Arcane, Fire, etc. -->
-                        </div>
-                        <div id="spellbook-grid" class="spell-grid"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="bank-tab" class="tab-content" style="display: none;">
-                <h2>Bank</h2>
-                <p>Store your items safely. Items in the bank are not lost on death and can be used for crafting.</p>
-                <hr>
-                <div class="storage-grid">
-                    <div>
-                        <h3>Your Inventory</h3>
-                        <div id="bank-inventory-grid" class="inventory-grid"></div>
-                    </div>
-                    <div>
-                        <h3>Your Bank</h3>
-                        <div id="bank-storage-grid" class="inventory-grid"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="crafting-tab" class="tab-content" style="display: none;">
-                <div class="section-header">
-                    <h2>🛠️ Crafting Station</h2>
-                    <p class="section-desc">Use materials from your inventory and bank to craft new items.</p>
-                </div>
-                <div id="crafting-categories" class="tabs"></div>
-                <div id="crafting-grid" class="crafting-grid"></div>
-            </div>
-
-            <div id="trainer-tab" class="tab-content" style="display: none;">
-                <h2>Spell Trainer</h2>
-                <p>Learn new spells to aid you in your adventures. Your Gold: <span id="trainer-gold">200</span></p>
-                <div id="trainer-categories" class="tabs"></div>
-                <div id="trainer-grid" class="trainer-grid"></div>
-            </div>
-
-            <div id="merchant-tab" class="tab-content" style="display: none;">
-                <h2>Merchant's Shop</h2>
-                <p>Your Gold: <span id="gold-display">200</span> | Restock in: <span id="restock-timer">10:00</span></p>
-                <hr>
-                <div class="storage-grid">
-                    <div>
-                        <h3>Merchant's Wares</h3>
-                        <div id="merchant-wares-container">
-                            <h4>Permanent Stock</h4>
-                            <div id="merchant-permanent-stock"></div>
-                            <hr>
-                            <h4>Rotating Wares</h4>
-                            <div id="merchant-rotating-stock"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <h3>Your Items to Sell</h3>
-                        <div id="sell-grid" class="inventory-grid"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="map-tab" class="tab-content" style="display: none;">
-                <h2>Choose Your Adventure</h2>
-                <div id="zone-select" class="zone-select">
-                    <div class="zone-card town" data-zone="town">
-                        <h3>🏙️ Town</h3>
-                        <p>A bustling town square. Mostly safe, but watch your coin purse.</p>
-                    </div>
-                    <div class="zone-card" data-zone="farmlands">
-                        <h3>🌾 Farmlands</h3>
-                        <p>Peaceful fields with basic resources and gentle creatures</p>
-                    </div>
-                    <div class="zone-card goblin-caves" data-zone="goblinCaves">
-                        <h3>🦇 Goblin Caves</h3>
-                        <p>A dark and dangerous cave system teeming with goblins.</p>
-                    </div>
-                    <div class="zone-card dark-forest" data-zone="darkForest"
-                        style="background: linear-gradient(135deg, #1a2a1a, #2d4a2d);">
-                        <h3>🌲 Dark Forest</h3>
-                        <p>A cursed woodland filled with spiders, wolves, and a sinister mansion.</p>
-                    </div>
-                    <div class="zone-card" style="background: linear-gradient(135deg, #c0392b, #e74c3c);"
-                        data-zone="arena">
-                        <h3>⚔️ The Arena</h3>
-                        <p>Test your might against powerful foes. (Cost: 100G)</p>
-                    </div>
-                    <div class="zone-card pvp-zone" data-zone="blighted_wastes"
-                        style="background: linear-gradient(135deg, #4d0000, #b30000);">
-                        <h3>🌋 The Blighted Wastes</h3>
-                        <p>A desolate land where adventurers battle over rare resources. **PvP is enabled.**</p>
-                    </div>
-                    <div class="zone-card" data-zone="theDocks"
-                        style="background: linear-gradient(135deg, #2c3e50, #3498db);">
-                        <h3>⛵ The Docks</h3>
-                        <p>A bustling harbor. Ships depart for Blacktide Island.</p>
-                    </div>
-                    <div class="zone-card" data-zone="training"
-                        style="background: linear-gradient(135deg, #1a1a2e, #0f3460);">
-                        <h3>🏛️ Training Grounds</h3>
-                        <p>Spend QP to learn new spells. Solo only.</p>
-                    </div>
-                </div>
-            </div>
-
-            <div id="adventure-tab" class="tab-content" style="display: none;">
-                <div id="adventure-hud" style="display: none;">
-                    <div class="hud-health-bar-container">
-                        <div id="hud-health-bar" class="hud-health-bar">10 / 10</div>
-                    </div>
-                    <div id="pvp-turn-timer-container" class="pvp-turn-timer-container" style="display: none;">
-                        <span id="pvp-turn-timer-text"></span>
-                    </div>
-                    <div id="player-shield-display" style="display: none;"></div>
-                    <div id="hud-ap-display" class="hud-ap-display">
-                        ⚡ AP: <span id="hud-action-points">3</span>
-                    </div>
-                    <button id="surrender-btn" class="btn btn-danger" style="display: none;">🏳️ Surrender</button>
-                </div>
-                <div id="waiting-for-reaction-banner" class="waiting-banner" style="display: none;"></div>
-                <div id="adventure-content-wrapper">
-                    <button id="return-home-arrow" class="btn-nav-3d btn-home-3d">
-                        <span class="nav-icon">🏠</span>
-                        <span class="nav-text">RETURN<br>HOME</span>
-                    </button>
-                    <div id="adventure-board">
-                        <div id="zone-cards" class="card-grid"></div>
-                        <div id="ground-loot-container"></div>
-                        <div id="party-cards-container" class="card-grid"></div>
-                    </div>
-                    <div id="combat-effects-overlay"></div>
-                    <button id="venture-deeper-arrow" class="btn-nav-3d btn-venture-3d">
-                        <span class="nav-text">VENTURE<br>DEEPER</span>
-                        <span class="nav-icon">⚔️</span>
-                    </button>
-                </div>
-            </div>
-            <div id="quest-log-tab" class="tab-content" style="display: none;">
-            </div>
+          </div>
         </div>
+
+        <div id="crafting-tab" class="tab-content" style="display: none">
+          <div class="section-header">
+            <h2>🛠️ Crafting Station</h2>
+            <p class="section-desc">Use materials from your inventory and bank to craft new items.</p>
+          </div>
+          <div id="crafting-categories" class="tabs"></div>
+          <div id="crafting-grid" class="crafting-grid"></div>
+        </div>
+
+        <div id="trainer-tab" class="tab-content" style="display: none">
+          <h2>Spell Trainer</h2>
+          <p>Learn new spells to aid you in your adventures. Your Gold: <span id="trainer-gold">200</span></p>
+          <div id="trainer-categories" class="tabs"></div>
+          <div id="trainer-grid" class="trainer-grid"></div>
+        </div>
+
+        <div id="merchant-tab" class="tab-content" style="display: none">
+          <h2>Merchant's Shop</h2>
+          <p>Your Gold: <span id="gold-display">200</span> | Restock in: <span id="restock-timer">10:00</span></p>
+          <hr />
+          <div class="storage-grid">
+            <div>
+              <h3>Merchant's Wares</h3>
+              <div id="merchant-wares-container">
+                <h4>Permanent Stock</h4>
+                <div id="merchant-permanent-stock"></div>
+                <hr />
+                <h4>Rotating Wares</h4>
+                <div id="merchant-rotating-stock"></div>
+              </div>
+            </div>
+            <div>
+              <h3>Your Items to Sell</h3>
+              <div id="sell-grid" class="inventory-grid"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="map-tab" class="tab-content" style="display: none">
+          <h2>Choose Your Adventure</h2>
+          <div id="zone-select" class="zone-select">
+            <div class="zone-card town" data-zone="town">
+              <h3>🏙️ Town</h3>
+              <p>A bustling town square. Mostly safe, but watch your coin purse.</p>
+            </div>
+            <div class="zone-card" data-zone="farmlands">
+              <h3>🌾 Farmlands</h3>
+              <p>Peaceful fields with basic resources and gentle creatures</p>
+            </div>
+            <div class="zone-card goblin-caves" data-zone="goblinCaves">
+              <h3>🦇 Goblin Caves</h3>
+              <p>A dark and dangerous cave system teeming with goblins.</p>
+            </div>
+            <div
+              class="zone-card dark-forest"
+              data-zone="darkForest"
+              style="background: linear-gradient(135deg, #1a2a1a, #2d4a2d)"
+            >
+              <h3>🌲 Dark Forest</h3>
+              <p>A cursed woodland filled with spiders, wolves, and a sinister mansion.</p>
+            </div>
+            <div class="zone-card" style="background: linear-gradient(135deg, #c0392b, #e74c3c)" data-zone="arena">
+              <h3>⚔️ The Arena</h3>
+              <p>Test your might against powerful foes. (Cost: 100G)</p>
+            </div>
+            <div
+              class="zone-card pvp-zone"
+              data-zone="blighted_wastes"
+              style="background: linear-gradient(135deg, #4d0000, #b30000)"
+            >
+              <h3>🌋 The Blighted Wastes</h3>
+              <p>A desolate land where adventurers battle over rare resources. **PvP is enabled.**</p>
+            </div>
+            <div class="zone-card" data-zone="theDocks" style="background: linear-gradient(135deg, #2c3e50, #3498db)">
+              <h3>⛵ The Docks</h3>
+              <p>A bustling harbor. Ships depart for Blacktide Island.</p>
+            </div>
+            <div class="zone-card" data-zone="training" style="background: linear-gradient(135deg, #1a1a2e, #0f3460)">
+              <h3>🏛️ Training Grounds</h3>
+              <p>Spend QP to learn new spells. Solo only.</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="adventure-tab" class="tab-content" style="display: none">
+          <div id="adventure-hud" style="display: none">
+            <div class="hud-health-bar-container">
+              <div id="hud-health-bar" class="hud-health-bar">10 / 10</div>
+            </div>
+            <div id="pvp-turn-timer-container" class="pvp-turn-timer-container" style="display: none">
+              <span id="pvp-turn-timer-text"></span>
+            </div>
+            <div id="player-shield-display" style="display: none"></div>
+            <div id="hud-ap-display" class="hud-ap-display">⚡ AP: <span id="hud-action-points">3</span></div>
+            <button id="surrender-btn" class="btn btn-danger" style="display: none">🏳️ Surrender</button>
+          </div>
+          <div id="waiting-for-reaction-banner" class="waiting-banner" style="display: none"></div>
+          <div id="adventure-content-wrapper">
+            <button id="return-home-arrow" class="btn-nav-3d btn-home-3d">
+              <span class="nav-icon">🏠</span>
+              <span class="nav-text">RETURN<br />HOME</span>
+            </button>
+            <div id="adventure-board">
+              <div id="zone-cards" class="card-grid"></div>
+              <div id="ground-loot-container"></div>
+              <div id="party-cards-container" class="card-grid"></div>
+            </div>
+            <div id="combat-effects-overlay"></div>
+            <button id="venture-deeper-arrow" class="btn-nav-3d btn-venture-3d">
+              <span class="nav-text">VENTURE<br />DEEPER</span>
+              <span class="nav-icon">⚔️</span>
+            </button>
+          </div>
+        </div>
+        <div id="quest-log-tab" class="tab-content" style="display: none"></div>
+      </div>
     </div>
 
-    <div id="player-action-bar" style="display: none;">
-        <div class="player-hub-left">
-            <button id="character-sheet-btn" class="btn-icon" title="Character Sheet">
-                <span style="font-size: 1.5em;">👤</span>
-            </button>
-            <button id="backpack-btn" class="btn-icon" title="Backpack">
-                <span style="font-size: 1.5em;">🎒</span>
-            </button>
-            <button id="quest-log-btn" class="btn-icon" title="Quest Log">
-                <span style="font-size: 1.5em;">📜</span>
-            </button>
-        </div>
-        <div id="action-bars-container">
-            <div id="equipment-bar" class="action-bar-row"></div>
-            <div id="spell-bar" class="action-bar-row"></div>
-        </div>
-        <div class="player-hub-right">
-            <button id="end-turn-btn" class="btn btn-danger">End Turn</button>
-        </div>
+    <div id="player-action-bar" style="display: none">
+      <div class="player-hub-left">
+        <button id="character-sheet-btn" class="btn-icon" title="Character Sheet">
+          <span style="font-size: 1.5em">👤</span>
+        </button>
+        <button id="backpack-btn" class="btn-icon" title="Backpack">
+          <span style="font-size: 1.5em">🎒</span>
+        </button>
+        <button id="quest-log-btn" class="btn-icon" title="Quest Log">
+          <span style="font-size: 1.5em">📜</span>
+        </button>
+      </div>
+      <div id="action-bars-container">
+        <div id="equipment-bar" class="action-bar-row"></div>
+        <div id="spell-bar" class="action-bar-row"></div>
+      </div>
+      <div class="player-hub-right">
+        <button id="end-turn-btn" class="btn btn-danger">End Turn</button>
+      </div>
     </div>
 
-    <div id="adventure-log-container" style="display: none;">
-        <div class="log-tabs">
-            <button class="log-tab active" data-log-filter="all">All</button>
-            <button class="log-tab" data-log-filter="combat">Combat</button>
-            <button class="log-tab" data-log-filter="chat">Chat</button>
-        </div>
-        <div id="adventure-log" class="log"></div>
-        <div class="chat-input-area">
-            <input type="text" id="zone-chat-input" placeholder="Say something..." maxlength="200">
-            <button id="zone-chat-send-btn" class="btn btn-primary">Send</button>
-        </div>
+    <div id="adventure-log-container" style="display: none">
+      <div class="log-tabs">
+        <button class="log-tab active" data-log-filter="all">All</button>
+        <button class="log-tab" data-log-filter="combat">Combat</button>
+        <button class="log-tab" data-log-filter="chat">Chat</button>
+      </div>
+      <div id="adventure-log" class="log"></div>
+      <div class="chat-input-area">
+        <input type="text" id="zone-chat-input" placeholder="Say something..." maxlength="200" />
+        <button id="zone-chat-send-btn" class="btn btn-primary">Send</button>
+      </div>
     </div>
 
     <div id="modal" class="modal-overlay hidden">
-        <div id="modal-content" class="modal-content"></div>
+      <div id="modal-content" class="modal-content"></div>
     </div>
 
     <div id="loot-roll-container" class="loot-roll-container hidden">
-        <h3>Loot Roll</h3>
-        <div id="loot-item-display">
-        </div>
-        <p class="loot-timer">Time remaining: <span id="loot-timer-display">60</span>s</p>
-        <div id="loot-roll-list">
-        </div>
-        <div class="action-buttons">
-            <button id="loot-need-btn" class="btn btn-success" data-choice="need">Need</button>
-            <button id="loot-greed-btn" class="btn btn-primary" data-choice="greed">Greed</button>
-            <button id="loot-pass-btn" class="btn" data-choice="pass">Pass</button>
-        </div>
+      <h3>Loot Roll</h3>
+      <div id="loot-item-display"></div>
+      <p class="loot-timer">Time remaining: <span id="loot-timer-display">60</span>s</p>
+      <div id="loot-roll-list"></div>
+      <div class="action-buttons">
+        <button id="loot-need-btn" class="btn btn-success" data-choice="need">Need</button>
+        <button id="loot-greed-btn" class="btn btn-primary" data-choice="greed">Greed</button>
+        <button id="loot-pass-btn" class="btn" data-choice="pass">Pass</button>
+      </div>
     </div>
 
     <div id="transition-screen" class="transition-screen hidden">
-        <div class="transition-content">
-            <h1 id="transition-title" class="transition-title">VICTORY</h1>
-            <p id="transition-message" class="transition-message">You have triumphed!</p>
-            <div id="transition-logs" class="transition-logs"></div>
-            <button id="transition-continue-btn" class="btn btn-primary btn-large flex-center">
-                <span class="nav-icon" style="margin-right: 10px; font-size: 1.2em;">🏠</span>
-                Continue
-            </button>
-        </div>
+      <div class="transition-content">
+        <h1 id="transition-title" class="transition-title">VICTORY</h1>
+        <p id="transition-message" class="transition-message">You have triumphed!</p>
+        <div id="transition-logs" class="transition-logs"></div>
+        <button id="transition-continue-btn" class="btn btn-primary btn-large flex-center">
+          <span class="nav-icon" style="margin-right: 10px; font-size: 1.2em">🏠</span>
+          Continue
+        </button>
+      </div>
     </div>
 
     <script type="module" src="game.js"></script>
-</body>
-
+  </body>
 </html>

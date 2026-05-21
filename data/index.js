@@ -14,10 +14,10 @@ export { lootPools };
 
 // Re-assemble the original gameData object
 export const gameData = {
-    allItems,
-    allSpells,
-    cardPools,
-    specialCards,
-    craftingRecipes,
-    genericTreasureLoot
+  allItems,
+  allSpells,
+  cardPools,
+  specialCards,
+  craftingRecipes,
+  genericTreasureLoot,
 };

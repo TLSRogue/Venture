@@ -3,7 +3,7 @@
 /**
  * Manages all socket events related to party management, such as
  * creating, joining, leaving, and sending invites.
- * 
+ *
  * This handler delegates to the centralized party-manager module
  * for all party state operations.
  */
