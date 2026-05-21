@@ -66,6 +66,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  padding-bottom: 340px;
 }
 
 /* --- ZONE BACKGROUND IMAGES --- */
@@ -318,16 +319,18 @@ body {
 /* --- END TRAINING ZONE UI --- */
 
 #player-action-bar {
-  background: rgba(0, 0, 0, 0.8);
-  padding: 10px;
+  position: fixed;
+  bottom: 245px;
+  left: 0;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 10px 20px;
   border-top: 2px solid var(--primary-color);
   display: none;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 15px;
+  gap: 20px;
   z-index: 1000;
-  width: 100%;
-  border-radius: 8px;
 }
 
 #player-action-bar.disabled-during-reaction {
@@ -1838,8 +1841,19 @@ hr {
 }
 
 #adventure-log-container {
-  padding: 15px 20px 10px 20px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 0 20px 10px 20px;
   z-index: 999;
+  pointer-events: none;
+}
+
+#adventure-log-container .log-tabs,
+#adventure-log-container .log,
+#adventure-log-container .chat-input-area {
+  pointer-events: auto;
 }
 
 #adventure-log-container .log {
