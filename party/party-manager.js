@@ -10,6 +10,7 @@
 
 import { players, parties } from '../serverState.js';
 import { broadcastPartyUpdate, broadcastOnlinePlayers, broadcastAdventureUpdate } from '../utilsBroadcast.js';
+import { processPlayerEndTurn } from '../adventure/adventure-state.js';
 
 /**
  * Creates a new party with the given player as the leader.
@@ -116,7 +117,7 @@ export function joinParty(io, socket, partyId) {
  * @param {object} io - Socket.io server instance
  * @param {object} socket - The player's socket
  */
-export function removePlayerFromParty(io, socket) {
+export async function removePlayerFromParty(io, socket) {
   const name = socket.characterName;
   if (!name || !players[name] || !players[name].character) return;
 
@@ -135,7 +136,7 @@ export function removePlayerFromParty(io, socket) {
   }
 
   // Clean up adventure state if player was in an adventure
-  cleanupAdventureStateForPlayer(io, party, name);
+  await cleanupAdventureStateForPlayer(io, party, name);
 
   // Remove player from party members
   party.members = party.members.filter((memberName) => memberName !== name);
@@ -170,7 +171,7 @@ export function removePlayerFromParty(io, socket) {
  * @param {object} party - The party object
  * @param {string} playerName - The name of the player leaving
  */
-function cleanupAdventureStateForPlayer(io, party, playerName) {
+async function cleanupAdventureStateForPlayer(io, party, playerName) {
   if (!party.sharedState || !party.sharedState.partyMemberStates) return;
 
   // Check if there is an active defense quest, if so, remove it from this player's character
@@ -186,12 +187,29 @@ function cleanupAdventureStateForPlayer(io, party, playerName) {
   const memberIndex = party.sharedState.partyMemberStates.findIndex((p) => p.name === playerName);
   if (memberIndex === -1) return;
 
+  // If the leaving player is currently the active player during their turn, end it first cleanly
+  const activeIdx = party.sharedState.activePlayerIndex;
+  const activePhase = party.sharedState.activePhase;
+  if (activePhase === 'player' && activeIdx === memberIndex) {
+    await processPlayerEndTurn(io, party.id, playerName);
+  }
+
   // Remove from adventure state
   party.sharedState.partyMemberStates.splice(memberIndex, 1);
   party.sharedState.log.push({
     message: `${playerName} has left the party (and the adventure).`,
     type: 'info',
   });
+
+  // Adjust active player index due to index shift after splice
+  if (party.sharedState.activePlayerIndex > memberIndex) {
+    party.sharedState.activePlayerIndex--;
+  }
+
+  // Safety clamp to prevent out of bounds
+  if (party.sharedState.activePlayerIndex >= party.sharedState.partyMemberStates.length) {
+    party.sharedState.activePlayerIndex = Math.max(0, party.sharedState.partyMemberStates.length - 1);
+  }
 
   // If adventure is now empty, end it
   if (party.sharedState.partyMemberStates.length === 0) {

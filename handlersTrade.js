@@ -212,6 +212,11 @@ function processTradeTransfer(p1, offer1, p2, offer2) {
     return false;
   }
 
+  // Validate that both players have enough inventory space to receive the trade incoming items
+  if (!hasSpaceForIncoming(c1, offer1.items, offer2.items) || !hasSpaceForIncoming(c2, offer2.items, offer1.items)) {
+    return false;
+  }
+
   // Step 1: Remove Offer 1 from P1
   if (offer1.gold > 0) c1.gold -= offer1.gold;
   removeItems(c1, offer1.items);
@@ -222,12 +227,54 @@ function processTradeTransfer(p1, offer1, p2, offer2) {
 
   // Step 3: P1 receives Offer 2
   c1.gold += offer2.gold;
-  if (!addItems(c1, offer2.items)) return false;
+  addItems(c1, offer2.items);
 
   // Step 4: P2 receives Offer 1
   c2.gold += offer1.gold;
-  if (!addItems(c2, offer1.items)) return false;
+  addItems(c2, offer1.items);
 
+  return true;
+}
+
+/**
+ * Simulates a trade to verify if a player has enough inventory/bank slots
+ * to receive the incoming items after removing their offered items.
+ */
+function hasSpaceForIncoming(character, offeredItems, incomingItems) {
+  const tempInventory = [...character.inventory];
+  const tempBank = [...character.bank];
+
+  // Simulate removal of offered items
+  offeredItems.forEach((req) => {
+    if (req.type === 'inventory') {
+      tempInventory[req.index] = null;
+    } else if (req.type === 'bank') {
+      tempBank[req.index] = null;
+    }
+  });
+
+  // Simulate adding incoming items
+  for (const req of incomingItems) {
+    let added = false;
+    for (let i = 0; i < tempInventory.length; i++) {
+      if (!tempInventory[i]) {
+        tempInventory[i] = req.item;
+        added = true;
+        break;
+      }
+    }
+    if (added) continue;
+
+    for (let i = 0; i < tempBank.length; i++) {
+      if (!tempBank[i]) {
+        tempBank[i] = req.item;
+        added = true;
+        break;
+      }
+    }
+
+    if (!added) return false; // Inventory and bank full
+  }
   return true;
 }
 

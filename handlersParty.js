@@ -23,7 +23,7 @@ export const registerPartyHandlers = (io, socket) => {
     PartyManager.joinParty(io, socket, partyId);
   });
 
-  socket.on('leaveParty', () => {
-    PartyManager.removePlayerFromParty(io, socket);
+  socket.on('leaveParty', async () => {
+    await PartyManager.removePlayerFromParty(io, socket);
   });
 };

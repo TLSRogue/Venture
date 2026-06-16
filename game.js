@@ -727,6 +727,9 @@ function deleteCharacter(slotIndex) {
   UIMain.showConfirmationModal(
     `Are you sure you want to delete ${charToDelete.characterName}? This is permanent.`,
     () => {
+      // Notify the server to delete the character state from its database
+      Network.socket.emit('deleteCharacter', charToDelete.characterName);
+
       characterSlots[slotIndex] = null;
       localStorage.setItem('ventureCharacterSlots', JSON.stringify(characterSlots));
       UIParty.showCharacterSelectScreen();
@@ -975,7 +978,8 @@ function addEventListeners() {
         if (selectedIconEl && selectedIconEl.dataset.icon) {
           gameState.characterIcon = selectedIconEl.dataset.icon;
           UIPlayer.renderHeader();
-          Network.emitUpdateCharacter(gameState);
+          // Safely emit playerAction to set avatar on the server, avoiding full-state transmission
+          Network.emitPlayerAction('setAvatar', { icon: selectedIconEl.dataset.icon });
           UIMain.hideModal();
         }
         return;

@@ -19,6 +19,32 @@ import { runMigrations } from './migrations.js';
 import fs from 'fs';
 import { DUEL_DISCONNECT_MS, DEFAULT_ACTION_POINTS } from './constants.js';
 
+let isSaving = false;
+let savePending = false;
+
+function savePlayersDatabase() {
+  if (isSaving) {
+    savePending = true;
+    return;
+  }
+
+  isSaving = true;
+  savePending = false;
+
+  fs.writeFile('players.json', JSON.stringify(players, null, 2), (err) => {
+    isSaving = false;
+    if (err) {
+      console.error('Failed to save players database:', err);
+    } else {
+      console.log('Players database successfully saved to players.json.');
+    }
+
+    if (savePending) {
+      savePlayersDatabase();
+    }
+  });
+}
+
 export const registerConnectionHandlers = (io, socket) => {
   const handlePlayerLogin = (characterDataFromClient) => {
     const name = characterDataFromClient.characterName;
@@ -90,20 +116,41 @@ export const registerConnectionHandlers = (io, socket) => {
   };
 
   socket.on('registerPlayer', (characterData) => {
+    const name = characterData?.characterName;
+    if (!name) {
+      return socket.emit('loadError', 'Invalid character name.');
+    }
+    if (players[name]) {
+      return socket.emit('loadError', 'Character name is already taken.');
+    }
     // When registering, we create a fresh character to ensure no modified data is sent.
-    const newCharacter = createInitialCharacter(characterData.characterName, characterData.characterIcon);
+    const newCharacter = createInitialCharacter(name, characterData.characterIcon);
     handlePlayerLogin(newCharacter);
   });
 
   socket.on('loadCharacter', (characterData) => {
-    // When loading, we trust the data from localStorage.
-    handlePlayerLogin(characterData);
+    const name = characterData?.characterName;
+    if (!name) {
+      return socket.emit('loadError', 'Invalid character name.');
+    }
+    const player = players[name];
+    if (!player || !player.character) {
+      return socket.emit('loadError', 'Character not found on the server.');
+    }
+    // Log in using the server's authoritative character data
+    handlePlayerLogin(player.character);
   });
 
-  socket.on('updateCharacter', (characterData) => {
-    const name = socket.characterName;
-    if (name && players[name]) {
-      players[name].character = characterData;
+  socket.on('deleteCharacter', (characterName) => {
+    if (!characterName) return;
+    // Prevent deleting a player that is currently online
+    if (players[characterName] && players[characterName].id) {
+      return;
+    }
+    if (players[characterName]) {
+      delete players[characterName];
+      console.log(`Character ${characterName} has been deleted from the server.`);
+      savePlayersDatabase();
     }
   });
 
@@ -241,12 +288,7 @@ export const registerConnectionHandlers = (io, socket) => {
       }
 
       // --- SAVE PROGRESS TO FILE ---
-      try {
-        fs.writeFileSync('players.json', JSON.stringify(players, null, 2));
-        console.log(`Progress for ${name} saved to players.json.`);
-      } catch (err) {
-        console.error('Failed to save player data:', err);
-      }
+      savePlayersDatabase();
       // ---------------------------
 
       players[name].id = null;

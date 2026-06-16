@@ -395,6 +395,24 @@ function handleAbandonQuest(character, payload) {
   return character.quests.length !== initialCount;
 }
 
+function handleSetAvatar(character, payload) {
+  const { icon } = payload;
+  if (icon && typeof icon === 'string') {
+    character.characterIcon = icon;
+    return true;
+  }
+  return false;
+}
+
+function handleSetTitle(character, payload) {
+  const { title } = payload;
+  if (character.unlockedTitles && character.unlockedTitles.includes(title)) {
+    character.title = title;
+    return true;
+  }
+  return false;
+}
+
 // --- ACTION DISPATCH TABLE ---
 const actionHandlers = {
   viewMerchant: handleViewMerchant,
@@ -417,6 +435,8 @@ const actionHandlers = {
   useRecipe: handleUseRecipe,
   sellAllJunk: handleSellAllJunk,
   abandonQuest: handleAbandonQuest,
+  setAvatar: handleSetAvatar,
+  setTitle: handleSetTitle,
 };
 
 // --- MAIN HANDLER REGISTRATION ---
