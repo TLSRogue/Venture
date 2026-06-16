@@ -258,13 +258,12 @@ export function showCombatFeedback({ targetName, targetId, type, text, damageTyp
 }
 
 export function renderAdventureScreen() {
-  const adventureTab = document.getElementById('adventure-tab');
   const ventureArrow = document.getElementById('venture-deeper-arrow');
   const homeArrow = document.getElementById('return-home-arrow');
 
   // --- APPLY ZONE BACKGROUND ---
   // Remove existing zone background classes
-  adventureTab.classList.remove(
+  document.body.classList.remove(
     'zone-bg',
     'zone-farmlands',
     'zone-goblinCaves',
@@ -288,7 +287,7 @@ export function renderAdventureScreen() {
   }
 
   if (currentZone) {
-    adventureTab.classList.add('zone-bg', `zone-${currentZone}`);
+    document.body.classList.add('zone-bg', `zone-${currentZone}`);
   }
   // --- END ZONE BACKGROUND ---
 

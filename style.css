@@ -70,12 +70,12 @@ body {
 }
 
 /* --- ZONE BACKGROUND IMAGES --- */
-#adventure-tab.zone-bg {
+body.zone-bg {
   position: relative;
 }
 
 /* Background image layer - covers entire viewport */
-#adventure-tab.zone-bg::before {
+body.zone-bg::before {
   content: '';
   position: fixed;
   top: 0;
@@ -89,7 +89,7 @@ body {
 }
 
 /* Dark overlay for readability */
-#adventure-tab.zone-bg::after {
+body.zone-bg::after {
   content: '';
   position: fixed;
   top: 0;
@@ -101,41 +101,41 @@ body {
   z-index: -1;
 }
 
-#adventure-tab.zone-farmlands::before {
+body.zone-farmlands::before {
   background-image: url('/assets/backgrounds/farmlands.png');
 }
 
-#adventure-tab.zone-goblinCaves::before {
+body.zone-goblinCaves::before {
   background-image: url('/assets/backgrounds/goblinCaves.png');
 }
 
-#adventure-tab.zone-town::before {
+body.zone-town::before {
   background-image: url('/assets/backgrounds/town.png');
 }
 
-#adventure-tab.zone-sewers::before {
+body.zone-sewers::before {
   background-image: url('/assets/backgrounds/sewers.png');
 }
 
-#adventure-tab.zone-arena::before {
+body.zone-arena::before {
   background-image: url('/assets/backgrounds/arena.png');
 }
 
-#adventure-tab.zone-blighted_wastes::before {
+body.zone-blighted_wastes::before {
   background-image: url('/assets/backgrounds/blighted_wastes.png');
 }
 
-#adventure-tab.zone-duel::before {
+body.zone-duel::before {
   background-image: url('/assets/backgrounds/duel.png');
 }
 
-#adventure-tab.zone-theDocks::before {
+body.zone-theDocks::before {
   background-image: url('/assets/docks.jpg');
 }
 
 /* --- END ZONE BACKGROUNDS --- */
 
-#adventure-tab.zone-training::before {
+body.zone-training::before {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
 }
 
@@ -321,11 +321,15 @@ body {
 #player-action-bar {
   position: fixed;
   bottom: 245px;
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);
   width: 100%;
+  max-width: 1200px;
   background: rgba(0, 0, 0, 0.85);
   padding: 10px 20px;
+  border: 1px solid var(--glass-border);
   border-top: 2px solid var(--primary-color);
+  border-radius: 12px 12px 0 0;
   display: none;
   justify-content: space-between;
   align-items: center;
