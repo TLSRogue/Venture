@@ -6,7 +6,7 @@
  * Now includes logic to save player data to a file on disconnect.
  */
 
-import { players, parties, duels, pvpEncounters, createInitialCharacter } from './serverState.js';
+import { players, parties, duels, pvpEncounters, createInitialCharacter, savePlayersDatabase } from './serverState.js';
 import {
   broadcastOnlinePlayers,
   broadcastPartyUpdate,
@@ -16,34 +16,7 @@ import {
 import { endDuel } from './handlersDuel.js';
 import { handlePvpPlayerDeath } from './adventure/pvp-state.js';
 import { runMigrations } from './migrations.js';
-import fs from 'fs';
 import { DUEL_DISCONNECT_MS, DEFAULT_ACTION_POINTS } from './constants.js';
-
-let isSaving = false;
-let savePending = false;
-
-function savePlayersDatabase() {
-  if (isSaving) {
-    savePending = true;
-    return;
-  }
-
-  isSaving = true;
-  savePending = false;
-
-  fs.writeFile('players.json', JSON.stringify(players, null, 2), (err) => {
-    isSaving = false;
-    if (err) {
-      console.error('Failed to save players database:', err);
-    } else {
-      console.log('Players database successfully saved to players.json.');
-    }
-
-    if (savePending) {
-      savePlayersDatabase();
-    }
-  });
-}
 
 // Auto-save players database every 5 minutes if there are online players
 setInterval(
@@ -148,7 +121,10 @@ export const registerConnectionHandlers = (io, socket) => {
     }
     const player = players[name];
     if (!player || !player.character) {
-      return socket.emit('loadError', 'Character not found on the server.');
+      console.log(`Character '${name}' not found on server. Importing client-provided save data.`);
+      handlePlayerLogin(characterData);
+      savePlayersDatabase();
+      return;
     }
     // Log in using the server's authoritative character data
     handlePlayerLogin(player.character);

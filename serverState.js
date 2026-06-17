@@ -7,15 +7,20 @@
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { gameData } from './data/index.js';
 import { DEFAULT_CHARACTER_STATS } from './shared.js';
 import { INVENTORY_SIZE } from './constants.js';
 import { runMigrations } from './migrations.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const playersFilePath = path.join(__dirname, 'players.json');
+
 let players = {};
 
 try {
-  const data = fs.readFileSync('players.json', 'utf8');
+  const data = fs.readFileSync(playersFilePath, 'utf8');
   const savedPlayers = JSON.parse(data);
   let dataWasMigrated = false;
 
@@ -35,13 +40,24 @@ try {
   }
 
   if (dataWasMigrated) {
-    fs.writeFileSync('players.json', JSON.stringify(players, null, 2));
+    fs.writeFileSync(playersFilePath, JSON.stringify(players, null, 2));
     console.log('Successfully saved migrated player data to players.json.');
   }
 
   console.log('Player data loaded successfully from players.json');
 } catch (err) {
-  console.log('No existing players.json file found. Starting with a clean state.');
+  if (err.code === 'ENOENT') {
+    console.log('No existing players.json file found. Starting with a clean state.');
+  } else {
+    console.error('Error loading players.json database:', err);
+    try {
+      const backupPath = path.join(__dirname, `players.json.corrupted-${Date.now()}`);
+      fs.writeFileSync(backupPath, fs.readFileSync(playersFilePath));
+      console.log(`Saved backup of corrupted players database to: ${backupPath}`);
+    } catch (backupErr) {
+      console.error('Failed to save backup of corrupted players database:', backupErr);
+    }
+  }
   players = {};
 }
 
@@ -78,9 +94,35 @@ function createInitialCharacter(characterName, characterIcon) {
   };
 }
 
+let isSaving = false;
+let savePending = false;
+
+function savePlayersDatabase() {
+  if (isSaving) {
+    savePending = true;
+    return;
+  }
+
+  isSaving = true;
+  savePending = false;
+
+  fs.writeFile(playersFilePath, JSON.stringify(players, null, 2), (err) => {
+    isSaving = false;
+    if (err) {
+      console.error('Failed to save players database:', err);
+    } else {
+      console.log('Players database successfully saved to players.json.');
+    }
+
+    if (savePending) {
+      savePlayersDatabase();
+    }
+  });
+}
+
 function savePlayersDatabaseSync() {
   try {
-    fs.writeFileSync('players.json', JSON.stringify(players, null, 2));
+    fs.writeFileSync(playersFilePath, JSON.stringify(players, null, 2));
     console.log('Successfully saved players database synchronously.');
   } catch (err) {
     console.error('Failed to save players database synchronously:', err);
@@ -96,13 +138,17 @@ function handleShutdown() {
 
 process.once('SIGINT', handleShutdown);
 process.once('SIGTERM', handleShutdown);
-process.once('SIGUSR2', () => {
-  console.log('Nodemon restart signal received. Saving players database synchronously...');
-  savePlayersDatabaseSync();
-  process.kill(process.pid, 'SIGUSR2');
-});
 
-export { players, createInitialCharacter, savePlayersDatabaseSync };
+// Nodemon restart signal (only register on POSIX systems where SIGUSR2 is supported)
+if (process.platform !== 'win32') {
+  process.once('SIGUSR2', () => {
+    console.log('Nodemon restart signal received. Saving players database synchronously...');
+    savePlayersDatabaseSync();
+    process.kill(process.pid, 'SIGUSR2');
+  });
+}
+
+export { players, createInitialCharacter, savePlayersDatabase, savePlayersDatabaseSync };
 export let parties = {};
 export let duels = {};
 export let pvpZoneQueues = {};
