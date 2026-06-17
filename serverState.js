@@ -78,7 +78,31 @@ function createInitialCharacter(characterName, characterIcon) {
   };
 }
 
-export { players, createInitialCharacter };
+function savePlayersDatabaseSync() {
+  try {
+    fs.writeFileSync('players.json', JSON.stringify(players, null, 2));
+    console.log('Successfully saved players database synchronously.');
+  } catch (err) {
+    console.error('Failed to save players database synchronously:', err);
+  }
+}
+
+// Process shutdown signal handlers to prevent progress loss
+function handleShutdown() {
+  console.log('Process terminating. Saving players database synchronously...');
+  savePlayersDatabaseSync();
+  process.exit(0);
+}
+
+process.once('SIGINT', handleShutdown);
+process.once('SIGTERM', handleShutdown);
+process.once('SIGUSR2', () => {
+  console.log('Nodemon restart signal received. Saving players database synchronously...');
+  savePlayersDatabaseSync();
+  process.kill(process.pid, 'SIGUSR2');
+});
+
+export { players, createInitialCharacter, savePlayersDatabaseSync };
 export let parties = {};
 export let duels = {};
 export let pvpZoneQueues = {};

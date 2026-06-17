@@ -45,6 +45,18 @@ function savePlayersDatabase() {
   });
 }
 
+// Auto-save players database every 5 minutes if there are online players
+setInterval(
+  () => {
+    const activePlayersCount = Object.values(players).filter((p) => p.id !== null).length;
+    if (activePlayersCount > 0) {
+      console.log(`Auto-saving progress for ${activePlayersCount} online players...`);
+      savePlayersDatabase();
+    }
+  },
+  5 * 60 * 1000
+);
+
 export const registerConnectionHandlers = (io, socket) => {
   const handlePlayerLogin = (characterDataFromClient) => {
     const name = characterDataFromClient.characterName;
@@ -126,6 +138,7 @@ export const registerConnectionHandlers = (io, socket) => {
     // When registering, we create a fresh character to ensure no modified data is sent.
     const newCharacter = createInitialCharacter(name, characterData.characterIcon);
     handlePlayerLogin(newCharacter);
+    savePlayersDatabase();
   });
 
   socket.on('loadCharacter', (characterData) => {
