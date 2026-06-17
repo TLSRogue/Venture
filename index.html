@@ -18,7 +18,16 @@
     <div id="tooltip"></div>
     <div class="game-container" style="display: none">
       <div class="header">
-        <div id="character-info" style="display: none; align-items: center">
+        <div
+          id="character-info"
+          style="
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+          "
+        >
           <img
             id="character-avatar-display"
             src=""
@@ -29,23 +38,22 @@
               border-radius: 50%;
               object-fit: cover;
               border: 2px solid #fff;
-              margin-right: 15px;
+              margin-bottom: 10px;
               display: none;
             "
           />
-          <div>
-            <div style="display: flex; align-items: center; gap: 10px">
+          <div style="display: flex; flex-direction: column; align-items: center">
+            <div style="display: flex; align-items: center; gap: 10px; justify-content: center">
               <h1 id="character-name-display" style="margin: 0"></h1>
               <button id="change-avatar-btn" class="btn-xs" title="Change Avatar">✏️</button>
             </div>
-            <div style="display: flex; align-items: center; gap: 10px">
+            <div style="display: flex; align-items: center; gap: 10px; justify-content: center; margin-top: 5px">
               <p id="character-title-display" style="margin: 0"></p>
               <button id="change-title-btn" class="btn-xs" title="Change Title">🏆</button>
             </div>
           </div>
         </div>
         <h1 id="default-header-title">⚔️ Venture - Card Game RPG ⚔️</h1>
-        <p>Embark on an epic adventure with cards and dice!</p>
       </div>
 
       <div id="main-stats-display" class="compact-stats-container"></div>
@@ -64,50 +72,6 @@
 
       <div class="content-area">
         <div id="home-tab" class="tab-content">
-          <h2>Welcome to Venture!</h2>
-          <p>
-            Prepare yourself for an epic adventure. Visit the merchant to buy equipment, manage your inventory, and when
-            ready, venture into the unknown!
-          </p>
-          <div id="home-action-buttons" class="action-buttons">
-            <button class="btn btn-primary" data-tab-target="merchant">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <path d="M16 10a4 4 0 0 1-8 0" />
-              </svg>
-              Visit Merchant
-            </button>
-            <button class="btn btn-success" data-tab-target="map">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-                <line x1="8" y1="2" x2="8" y2="18" />
-                <line x1="16" y1="6" x2="16" y2="22" />
-              </svg>
-              View Map
-            </button>
-          </div>
-          <hr />
           <h3>⚙️ Game Options</h3>
           <div id="game-options" class="game-options-panel">
             <div class="volume-control">

@@ -66,7 +66,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  padding-bottom: 340px;
+  padding-bottom: 390px;
 }
 
 /* --- ZONE BACKGROUND IMAGES --- */
@@ -320,7 +320,7 @@ body.zone-training::before {
 
 #player-action-bar {
   position: fixed;
-  bottom: 245px;
+  bottom: 295px;
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
