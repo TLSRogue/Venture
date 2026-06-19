@@ -31,7 +31,7 @@ namespace VentureClient.Network
         public event Action OnAdventureEnded;
         public event Action<string> OnPartyError;
         public event Action<string, string> OnReceivePartyInvite; // sender, partyId
-        public event Action<string, string> OnShowDialogue;       // npcName, dialogueText
+        public event Action<string, JObject, JToken> OnShowDialogue;       // npcName, node, cardIndex
         public event Action OnHideDialogue;
 
         public bool IsConnected => _socket?.Connected ?? false;
@@ -226,13 +226,15 @@ namespace VentureClient.Network
                     var data = GetNewtonsoftArg(response.RawText, 0) as JObject;
                     if (data != null)
                     {
-                        var npc = data["npc"]?.ToString();
-                        var text = data["text"]?.ToString();
-                        OnShowDialogue?.Invoke(npc, text);
+                        var npcName = data["npcName"]?.ToString();
+                        var node = data["node"] as JObject;
+                        var cardIndex = data["cardIndex"];
+                        OnShowDialogue?.Invoke(npcName, node, cardIndex);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Console.WriteLine($"Error parsing party:showDialogue: {ex.Message}");
                 }
                 return Task.CompletedTask;
             });

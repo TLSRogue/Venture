@@ -64,6 +64,9 @@ namespace VentureClient.Models
         // gemSlot can be boolean or int in JSON, we can parse it as a JToken or string
         [JsonProperty("gemSlot")]
         public JToken GemSlot { get; set; }
+
+        [JsonProperty("quantity")]
+        public int? Quantity { get; set; }
     }
 
     public class SpellData
@@ -181,22 +184,34 @@ namespace VentureClient.Models
         public int Duration { get; set; }
     }
 
-    public class QuestState
+    public class QuestDetails
     {
         [JsonProperty("id")]
         public string Id { get; set; }
 
-        [JsonProperty("name")]
-        public string Name { get; set; }
+        [JsonProperty("title")]
+        public string Title { get; set; }
+
+        [JsonProperty("target")]
+        public string Target { get; set; }
+
+        [JsonProperty("required")]
+        public int Required { get; set; }
+
+        [JsonProperty("turnInItems")]
+        public Dictionary<string, int> TurnInItems { get; set; }
+    }
+
+    public class QuestState
+    {
+        [JsonProperty("details")]
+        public QuestDetails Details { get; set; }
 
         [JsonProperty("status")]
         public string Status { get; set; }
 
         [JsonProperty("progress")]
         public int Progress { get; set; }
-
-        [JsonProperty("maxProgress")]
-        public int MaxProgress { get; set; }
     }
 
     public class EquipmentState
@@ -328,7 +343,7 @@ namespace VentureClient.Models
         public int TrainingRefreshCount { get; set; }
 
         [JsonProperty("trainingOfferings")]
-        public List<SpellData> TrainingOfferings { get; set; } = new List<SpellData>();
+        public List<string> TrainingOfferings { get; set; } = new List<string>();
 
         [JsonProperty("actionPoints")]
         public int ActionPoints { get; set; }

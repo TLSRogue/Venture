@@ -46,6 +46,7 @@ namespace VentureClient.UI
         // Interaction States
         private int? _selectedSpellIndex = null;
         private bool _weaponAttackSelected = false;
+        private Dialog _activeDialogueDialog = null;
 
         public void Initialize()
         {
@@ -343,6 +344,8 @@ namespace VentureClient.UI
             VentureGame.Instance.Network.OnAdventureUpdate += HandleAdventureUpdate;
             VentureGame.Instance.Network.OnZoneChatMessage += HandleZoneChat;
             VentureGame.Instance.Network.OnAdventureEnded += HandleAdventureEnded;
+            VentureGame.Instance.Network.OnShowDialogue += HandleShowDialogue;
+            VentureGame.Instance.Network.OnHideDialogue += HandleHideDialogue;
 
             // Perform initial renders
             RefreshHUD();
@@ -417,7 +420,15 @@ namespace VentureClient.UI
         {
             _boardContainer.Widgets.Clear();
             var advState = VentureGame.Instance.AdventureState;
-            if (advState?.Cards == null) return;
+            if (advState == null) return;
+
+            if (advState.Zone == "training")
+            {
+                RefreshTrainingBoard();
+                return;
+            }
+
+            if (advState.Cards == null) return;
 
             for (int i = 0; i < advState.Cards.Count; i++)
             {
@@ -549,6 +560,170 @@ namespace VentureClient.UI
             }
         }
 
+        private void RefreshTrainingBoard()
+        {
+            var charState = VentureGame.Instance.CharacterState;
+            if (charState == null) return;
+
+            var trainingGrid = new Grid { RowSpacing = 10 };
+            trainingGrid.RowsProportions.Add(new Proportion(ProportionType.Auto));
+            trainingGrid.RowsProportions.Add(new Proportion(ProportionType.Auto));
+            trainingGrid.RowsProportions.Add(new Proportion(ProportionType.Auto));
+
+            int qp = charState.QuestPoints;
+            int totalQp = charState.TotalQuestPointsEarned;
+            int trainingCost = charState.SpellsLearnedFromTraining + 1;
+            bool canAfford = qp >= trainingCost;
+
+            var headerPanel = new VerticalStackPanel
+            {
+                Spacing = 4,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            headerPanel.Widgets.Add(new Label
+            {
+                Text = "🏛️ Training Grounds",
+                Font = VentureGame.Instance.MainFont,
+                TextColor = Color.Gold,
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+            headerPanel.Widgets.Add(new Label
+            {
+                Text = $"Current QP: {qp} / {totalQp}   |   Next Spell Cost: {trainingCost} QP",
+                Font = VentureGame.Instance.SmallFont,
+                TextColor = canAfford ? Color.LightGreen : Color.LightPink,
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+            Grid.SetRow(headerPanel, 0);
+            trainingGrid.Widgets.Add(headerPanel);
+
+            var cardsRow = new HorizontalStackPanel { Spacing = 15, HorizontalAlignment = HorizontalAlignment.Center };
+            var offerings = charState.TrainingOfferings;
+            if (offerings != null && offerings.Count > 0)
+            {
+                foreach (var spellName in offerings)
+                {
+                    var spell = VentureGame.Instance.AllSpells.Find(s => s.Name == spellName);
+                    if (spell == null) continue;
+
+                    var cardContent = new VerticalStackPanel { Spacing = 4, Padding = new Thickness(6), Width = 150 };
+
+                    cardContent.Widgets.Add(new Label
+                    {
+                        Text = spell.Name,
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.Gold,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    });
+
+                    cardContent.Widgets.Add(new Label
+                    {
+                        Text = spell.Icon ?? "✨",
+                        Font = VentureGame.Instance.MainFont,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    });
+
+                    cardContent.Widgets.Add(new Label
+                    {
+                        Text = $"School: {spell.School}",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.LightGray,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    });
+
+                    cardContent.Widgets.Add(new Label
+                    {
+                        Text = spell.Description ?? "",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.White,
+                        Wrap = true,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    });
+
+                    var btnLearn = CreateStyledButton($"Learn ({trainingCost} QP)",
+                        canAfford ? new Color(50, 150, 50) : new Color(60, 60, 60),
+                        canAfford ? Color.Green : Color.DarkGray,
+                        Color.White,
+                        VentureGame.Instance.SmallFont);
+                    btnLearn.Enabled = canAfford;
+
+                    btnLearn.Click += (s, e) =>
+                    {
+                        var confirmDialog = new Dialog
+                        {
+                            Title = "Confirm Spell Learning",
+                            Width = 320,
+                            Height = 150
+                        };
+                        var layout = new VerticalStackPanel { Spacing = 10, Padding = new Thickness(10) };
+                        layout.Widgets.Add(new Label { Text = $"Learn {spell.Icon} {spell.Name} for {trainingCost} QP?", Font = VentureGame.Instance.SmallFont, TextColor = Color.White, Wrap = true });
+                        var btnRow = new HorizontalStackPanel { Spacing = 10, HorizontalAlignment = HorizontalAlignment.Center };
+
+                        var btnYes = MyraExtensions.CreateButton("Yes", VentureGame.Instance.SmallFont);
+                        btnYes.Click += async (s2, e2) =>
+                        {
+                            await VentureGame.Instance.Network.EmitPartyAction(new { type = "learnTrainingSpell", payload = new { spellName = spell.Name } });
+                            confirmDialog.Close();
+                        };
+
+                        var btnNo = MyraExtensions.CreateButton("No", VentureGame.Instance.SmallFont);
+                        btnNo.Click += (s2, e2) => confirmDialog.Close();
+
+                        btnRow.Widgets.Add(btnYes);
+                        btnRow.Widgets.Add(btnNo);
+                        layout.Widgets.Add(btnRow);
+                        confirmDialog.Content = layout;
+                        confirmDialog.ShowModal(VentureGame.Instance.Desktop);
+                    };
+
+                    cardContent.Widgets.Add(btnLearn);
+
+                    var spellCardBorder = new Panel
+                    {
+                        BorderThickness = new Thickness(2),
+                        Border = new SolidBrush(Color.Gold),
+                        Background = new SolidBrush(new Color(25, 22, 22, 240)),
+                        Padding = new Thickness(2)
+                    };
+                    spellCardBorder.Widgets.Add(cardContent);
+                    cardsRow.Widgets.Add(spellCardBorder);
+                }
+            }
+            else
+            {
+                cardsRow.Widgets.Add(new Label { Text = "No spells available.", Font = VentureGame.Instance.SmallFont, TextColor = Color.Gray });
+            }
+            Grid.SetRow(cardsRow, 1);
+            trainingGrid.Widgets.Add(cardsRow);
+
+            int refreshCost = 100 * (int)Math.Pow(2, charState.TrainingRefreshCount);
+            bool canAffordRefresh = charState.Gold >= refreshCost;
+
+            var refreshPanel = new HorizontalStackPanel
+            {
+                Spacing = 10,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Padding = new Thickness(0, 10, 0, 0)
+            };
+
+            var btnRefresh = CreateStyledButton($"Refresh Spells ({refreshCost} Gold)",
+                canAffordRefresh ? new Color(50, 100, 150) : new Color(60, 60, 60),
+                canAffordRefresh ? Color.Blue : Color.DarkGray,
+                Color.White,
+                VentureGame.Instance.SmallFont);
+            btnRefresh.Enabled = canAffordRefresh;
+            btnRefresh.Click += async (s, e) =>
+            {
+                await VentureGame.Instance.Network.EmitPartyAction(new { type = "refreshTrainingSpells" });
+            };
+            refreshPanel.Widgets.Add(btnRefresh);
+
+            Grid.SetRow(refreshPanel, 2);
+            trainingGrid.Widgets.Add(refreshPanel);
+
+            _boardContainer.Widgets.Add(trainingGrid);
+        }
+
         private void RefreshActionBar()
         {
             _gearRow.Widgets.Clear();
@@ -560,21 +735,21 @@ namespace VentureClient.UI
             // 👤 Character (circular)
             var btnChar = CreateCircularButton("👤");
             btnChar.Click += (s, e) => {
-                AppendLogMessage("System", "Character sheet preview is not available in combat.", Color.Gray);
+                OpenCharacterSheetDialog();
             };
             _gearRow.Widgets.Add(btnChar);
 
             // 🎒 Inventory (circular)
             var btnBag = CreateCircularButton("🎒");
             btnBag.Click += (s, e) => {
-                AppendLogMessage("System", "Inventory management is not available in combat.", Color.Gray);
+                OpenBackpackDialog();
             };
             _gearRow.Widgets.Add(btnBag);
 
             // 📜 Quests (circular)
             var btnQuest = CreateCircularButton("📜");
             btnQuest.Click += (s, e) => {
-                AppendLogMessage("System", "Quest log is not available in combat.", Color.Gray);
+                OpenQuestLogDialog();
             };
             _gearRow.Widgets.Add(btnQuest);
 
@@ -992,6 +1167,474 @@ namespace VentureClient.UI
             return null;
         }
 
+        private void OpenCharacterSheetDialog()
+        {
+            var charState = VentureGame.Instance.CharacterState;
+            if (charState == null) return;
+
+            var dialog = new Dialog
+            {
+                Title = "Character Sheet",
+                Width = 420,
+                Height = 450
+            };
+
+            var mainLayout = new VerticalStackPanel { Spacing = 10, Padding = new Thickness(10) };
+
+            // 1. Stats and Attributes
+            var statsGrid = new Grid { ColumnSpacing = 15, RowSpacing = 4 };
+            statsGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+            statsGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+
+            var col1 = new VerticalStackPanel { Spacing = 4 };
+            col1.Widgets.Add(new Label { Text = "📊 Attributes", Font = VentureGame.Instance.MainFont, TextColor = Color.Gold });
+            col1.Widgets.Add(new Label { Text = $"❤️ Max HP: {charState.MaxHealth}", Font = VentureGame.Instance.SmallFont });
+            col1.Widgets.Add(new Label { Text = $"💪 Strength: {charState.Strength}", Font = VentureGame.Instance.SmallFont });
+            col1.Widgets.Add(new Label { Text = $"🏃 Agility: {charState.Agility}", Font = VentureGame.Instance.SmallFont });
+            col1.Widgets.Add(new Label { Text = $"🧠 Wisdom: {charState.Wisdom}", Font = VentureGame.Instance.SmallFont });
+            col1.Widgets.Add(new Label { Text = $"🛡️ Defense: {charState.Defense}", Font = VentureGame.Instance.SmallFont });
+            col1.Widgets.Add(new Label { Text = $"🍀 Luck: {charState.Luck}", Font = VentureGame.Instance.SmallFont });
+
+            var col2 = new VerticalStackPanel { Spacing = 4 };
+            col2.Widgets.Add(new Label { Text = "🛡️ Resistances", Font = VentureGame.Instance.MainFont, TextColor = Color.Gold });
+            col2.Widgets.Add(new Label { Text = $"Physical: {charState.PhysicalResistance}", Font = VentureGame.Instance.SmallFont });
+            col2.Widgets.Add(new Label { Text = $"Magical: {charState.MagicalResistance}", Font = VentureGame.Instance.SmallFont });
+            col2.Widgets.Add(new Label { Text = $"Fire: {charState.FireResistance}", Font = VentureGame.Instance.SmallFont });
+            col2.Widgets.Add(new Label { Text = $"Frost: {charState.FrostResistance}", Font = VentureGame.Instance.SmallFont });
+            col2.Widgets.Add(new Label { Text = $"Nature: {charState.NatureResistance}", Font = VentureGame.Instance.SmallFont });
+            col2.Widgets.Add(new Label { Text = $"Arcane: {charState.ArcaneResistance}", Font = VentureGame.Instance.SmallFont });
+            col2.Widgets.Add(new Label { Text = $"Holy: {charState.HolyResistance}", Font = VentureGame.Instance.SmallFont });
+
+            Grid.SetColumn(col1, 0);
+            Grid.SetColumn(col2, 1);
+            statsGrid.Widgets.Add(col1);
+            statsGrid.Widgets.Add(col2);
+            mainLayout.Widgets.Add(statsGrid);
+
+            var separator = new Panel
+            {
+                Height = 1,
+                Background = new SolidBrush(new Color(60, 60, 60)),
+                Margin = new Thickness(0, 5, 0, 5)
+            };
+            mainLayout.Widgets.Add(separator);
+
+            // 2. Equipment
+            mainLayout.Widgets.Add(new Label { Text = "🛡️ Equipment", Font = VentureGame.Instance.MainFont, TextColor = Color.Gold });
+
+            var eqPanel = new VerticalStackPanel { Spacing = 6 };
+            var slots = new Dictionary<string, string>
+            {
+                { "mainHand", "Main Hand" },
+                { "offHand", "Off Hand" },
+                { "helmet", "Helmet" },
+                { "armor", "Armor" },
+                { "boots", "Boots" },
+                { "accessory", "Accessory" }
+            };
+
+            foreach (var kvp in slots)
+            {
+                var slotKey = kvp.Key;
+                var slotName = kvp.Value;
+
+                ItemData item = null;
+                if (slotKey == "mainHand") item = charState.Equipment?.MainHand;
+                else if (slotKey == "offHand") item = charState.Equipment?.OffHand;
+                else if (slotKey == "helmet") item = charState.Equipment?.Helmet;
+                else if (slotKey == "armor") item = charState.Equipment?.Armor;
+                else if (slotKey == "boots") item = charState.Equipment?.Boots;
+                else if (slotKey == "accessory") item = charState.Equipment?.Accessory;
+
+                if (item != null)
+                {
+                    var row = new Grid { ColumnSpacing = 10 };
+                    row.ColumnsProportions.Add(new Proportion(ProportionType.Fill));
+                    row.ColumnsProportions.Add(new Proportion(ProportionType.Auto));
+
+                    var lblItem = new Label
+                    {
+                        Text = $"{item.Icon} {slotName}: {item.Name}",
+                        Font = VentureGame.Instance.SmallFont,
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
+                    Grid.SetColumn(lblItem, 0);
+                    row.Widgets.Add(lblItem);
+
+                    var btnUnequip = new Button
+                    {
+                        Padding = new Thickness(8, 4),
+                        Background = new SolidBrush(new Color(150, 40, 40))
+                    };
+                    btnUnequip.Content = new Label { Text = "Unequip", Font = VentureGame.Instance.SmallFont, TextColor = Color.White };
+                    btnUnequip.Click += async (s, e) =>
+                    {
+                        await VentureGame.Instance.Network.EmitPlayerAction("unequipItem", new { slot = slotKey });
+                        dialog.Close();
+                        await System.Threading.Tasks.Task.Delay(150);
+                        OpenCharacterSheetDialog();
+                    };
+                    Grid.SetColumn(btnUnequip, 1);
+                    row.Widgets.Add(btnUnequip);
+
+                    eqPanel.Widgets.Add(row);
+                }
+            }
+            mainLayout.Widgets.Add(eqPanel);
+
+            dialog.Content = mainLayout;
+            dialog.ShowModal(VentureGame.Instance.Desktop);
+        }
+
+        private void OpenBackpackDialog()
+        {
+            var charState = VentureGame.Instance.CharacterState;
+            if (charState == null) return;
+
+            var dialog = new Dialog
+            {
+                Title = "Backpack",
+                Width = 480,
+                Height = 450
+            };
+
+            var mainLayout = new VerticalStackPanel { Spacing = 10, Padding = new Thickness(10) };
+            mainLayout.Widgets.Add(new Label { Text = "🎒 Inventory Items", Font = VentureGame.Instance.MainFont, TextColor = Color.Gold });
+
+            var itemGrid = new Grid { RowSpacing = 6, ColumnSpacing = 6 };
+            for (int i = 0; i < 4; i++) itemGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+
+            int r = 0, c = 0;
+            for (int idx = 0; idx < 28; idx++)
+            {
+                ItemData item = null;
+                if (charState.Inventory != null && idx < charState.Inventory.Count)
+                {
+                    item = charState.Inventory[idx];
+                }
+
+                int itemIndex = idx;
+                var buttonText = item != null ? $"{item.Icon} {item.Name}" : "[Empty]";
+
+                var btn = new Button
+                {
+                    Width = 105,
+                    Height = 45,
+                    Padding = new Thickness(2),
+                    Background = item != null ? new SolidBrush(new Color(30, 35, 45)) : new SolidBrush(new Color(20, 20, 20, 100)),
+                    BorderThickness = new Thickness(1),
+                    Border = new SolidBrush(new Color(60, 60, 60))
+                };
+
+                var lbl = new Label
+                {
+                    Text = buttonText,
+                    Font = VentureGame.Instance.SmallFont,
+                    TextColor = item != null ? Color.White : Color.DimGray,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Wrap = true
+                };
+                btn.Content = lbl;
+
+                if (item != null)
+                {
+                    btn.Click += (s, e) =>
+                    {
+                        OpenItemActionDialog(item, itemIndex, dialog);
+                    };
+                }
+
+                Grid.SetRow(btn, r);
+                Grid.SetColumn(btn, c);
+                itemGrid.Widgets.Add(btn);
+
+                c++;
+                if (c >= 4)
+                {
+                    c = 0;
+                    r++;
+                }
+            }
+
+            mainLayout.Widgets.Add(itemGrid);
+            dialog.Content = mainLayout;
+            dialog.ShowModal(VentureGame.Instance.Desktop);
+        }
+
+        private void OpenItemActionDialog(ItemData item, int itemIndex, Dialog parentBackpackDialog)
+        {
+            var dialog = new Dialog
+            {
+                Title = $"{item.Icon} {item.Name}",
+                Width = 300,
+                Height = 220
+            };
+
+            var mainLayout = new VerticalStackPanel { Spacing = 10, Padding = new Thickness(10) };
+
+            var lblDesc = new Label
+            {
+                Text = item.Description ?? "No description available.",
+                Font = VentureGame.Instance.SmallFont,
+                TextColor = Color.LightGray,
+                Wrap = true
+            };
+            mainLayout.Widgets.Add(lblDesc);
+
+            if (item.Slot != null && item.Slot.Count > 0)
+            {
+                mainLayout.Widgets.Add(new Label { Text = "Equip to slot:", Font = VentureGame.Instance.SmallFont, TextColor = Color.Gold });
+
+                var slotsLayout = new HorizontalStackPanel { Spacing = 8 };
+                foreach (var slot in item.Slot)
+                {
+                    string targetSlot = slot;
+                    var btnEquip = new Button
+                    {
+                        Padding = new Thickness(10, 5),
+                        Background = new SolidBrush(new Color(50, 120, 50))
+                    };
+                    btnEquip.Content = new Label { Text = slot, Font = VentureGame.Instance.SmallFont, TextColor = Color.White };
+                    btnEquip.Click += async (s, e) =>
+                    {
+                        await VentureGame.Instance.Network.EmitPlayerAction("equipItem", new { itemIndex, chosenSlot = targetSlot });
+                        dialog.Close();
+                        parentBackpackDialog.Close();
+                        await System.Threading.Tasks.Task.Delay(150);
+                        OpenBackpackDialog();
+                    };
+                    slotsLayout.Widgets.Add(btnEquip);
+                }
+                mainLayout.Widgets.Add(slotsLayout);
+            }
+            else
+            {
+                mainLayout.Widgets.Add(new Label { Text = "This item cannot be equipped.", Font = VentureGame.Instance.SmallFont, TextColor = Color.Gray });
+            }
+
+            dialog.Content = mainLayout;
+            dialog.ShowModal(VentureGame.Instance.Desktop);
+        }
+
+        private void OpenQuestLogDialog()
+        {
+            var charState = VentureGame.Instance.CharacterState;
+            if (charState == null) return;
+
+            var dialog = new Dialog
+            {
+                Title = "Quest Log",
+                Width = 350,
+                Height = 300
+            };
+
+            var mainLayout = new VerticalStackPanel { Spacing = 10, Padding = new Thickness(10) };
+            mainLayout.Widgets.Add(new Label { Text = "📜 Active Quests", Font = VentureGame.Instance.MainFont, TextColor = Color.Gold });
+
+            var questList = new VerticalStackPanel { Spacing = 8 };
+            if (charState.Quests != null && charState.Quests.Count > 0)
+            {
+                foreach (var quest in charState.Quests)
+                {
+                    var questPanel = new VerticalStackPanel
+                    {
+                        Spacing = 4,
+                        Padding = new Thickness(6),
+                        Background = new SolidBrush(new Color(25, 28, 32)),
+                        BorderThickness = new Thickness(1),
+                        Border = new SolidBrush(new Color(60, 60, 60))
+                    };
+
+                    string title = quest.Details?.Title ?? "Unknown Quest";
+                    var lblQuestName = new Label
+                    {
+                        Text = title,
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.White
+                    };
+                    questPanel.Widgets.Add(lblQuestName);
+
+                    int required = quest.Details?.Required ?? 1;
+                    string target = quest.Details?.Target ?? "Objectives";
+                    string progressText = $"Progress: {quest.Progress} / {required} {target}s defeated";
+                    if (quest.Details?.TurnInItems != null && quest.Details.TurnInItems.Count > 0)
+                    {
+                        progressText = "Collect: ";
+                        foreach (var item in quest.Details.TurnInItems)
+                        {
+                            progressText += $"{item.Key} ({item.Value}) ";
+                        }
+                    }
+
+                    var lblQuestProgress = new Label
+                    {
+                        Text = $"{progressText} (Status: {quest.Status})",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.Yellow
+                    };
+                    questPanel.Widgets.Add(lblQuestProgress);
+
+                    var btnAbandon = new Button
+                    {
+                        Padding = new Thickness(6, 2),
+                        Background = new SolidBrush(new Color(150, 40, 40)),
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    };
+                    btnAbandon.Content = new Label { Text = "Abandon", Font = VentureGame.Instance.SmallFont, TextColor = Color.White };
+                    string questId = quest.Details?.Id;
+                    btnAbandon.Click += (s, e) =>
+                    {
+                        var confirm = new Dialog
+                        {
+                            Title = "Abandon Quest",
+                            Width = 250,
+                            Height = 120
+                        };
+                        var layout = new VerticalStackPanel { Spacing = 10, Padding = new Thickness(10) };
+                        layout.Widgets.Add(new Label { Text = "Abandon this quest?", Font = VentureGame.Instance.SmallFont });
+                        var btnRow = new HorizontalStackPanel { Spacing = 10, HorizontalAlignment = HorizontalAlignment.Center };
+                        var btnYes = MyraExtensions.CreateButton("Yes", VentureGame.Instance.SmallFont);
+                        btnYes.Click += async (s2, e2) =>
+                        {
+                            await VentureGame.Instance.Network.EmitPlayerAction("abandonQuest", new { questId = questId });
+                            confirm.Close();
+                            dialog.Close();
+                            await System.Threading.Tasks.Task.Delay(150);
+                            OpenQuestLogDialog();
+                        };
+                        var btnNo = MyraExtensions.CreateButton("No", VentureGame.Instance.SmallFont);
+                        btnNo.Click += (s2, e2) => confirm.Close();
+                        btnRow.Widgets.Add(btnYes);
+                        btnRow.Widgets.Add(btnNo);
+                        layout.Widgets.Add(btnRow);
+                        confirm.Content = layout;
+                        confirm.ShowModal(VentureGame.Instance.Desktop);
+                    };
+                    questPanel.Widgets.Add(btnAbandon);
+
+                    questList.Widgets.Add(questPanel);
+                }
+            }
+            else
+            {
+                questList.Widgets.Add(new Label { Text = "No active quests.", Font = VentureGame.Instance.SmallFont, TextColor = Color.Gray });
+            }
+
+            var scroll = new ScrollViewer { Content = questList, Height = 200 };
+            mainLayout.Widgets.Add(scroll);
+
+            dialog.Content = mainLayout;
+            dialog.ShowModal(VentureGame.Instance.Desktop);
+        }
+
+        private void HandleShowDialogue(string npcName, Newtonsoft.Json.Linq.JObject node, Newtonsoft.Json.Linq.JToken cardIndex)
+        {
+            HandleHideDialogue();
+
+            if (node == null) return;
+
+            var dialog = new Dialog
+            {
+                Title = npcName,
+                Width = 400,
+                Height = 350
+            };
+            _activeDialogueDialog = dialog;
+
+            var mainLayout = new VerticalStackPanel { Spacing = 12, Padding = new Thickness(12) };
+
+            mainLayout.Widgets.Add(new Label
+            {
+                Text = npcName,
+                Font = VentureGame.Instance.MainFont,
+                TextColor = Color.Gold,
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+
+            string text = node["text"]?.ToString() ?? "Hello, traveler.";
+            mainLayout.Widgets.Add(new Label
+            {
+                Text = text,
+                Font = VentureGame.Instance.SmallFont,
+                TextColor = Color.White,
+                Wrap = true
+            });
+
+            var optionsStack = new VerticalStackPanel { Spacing = 8 };
+            var options = node["options"] as Newtonsoft.Json.Linq.JArray;
+            if (options != null)
+            {
+                foreach (var opt in options)
+                {
+                    var option = opt;
+                    string optText = option["text"]?.ToString() ?? "";
+
+                    var btnOpt = new Button
+                    {
+                        Padding = new Thickness(10, 6),
+                        Background = new SolidBrush(new Color(40, 50, 65)),
+                        BorderThickness = new Thickness(1),
+                        Border = new SolidBrush(new Color(80, 95, 120))
+                    };
+                    btnOpt.Content = new Label
+                    {
+                        Text = optText,
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.White,
+                        Wrap = true
+                    };
+
+                    btnOpt.Click += async (s, e) =>
+                    {
+                        string nextNode = option["next"]?.ToString();
+                        string action = option["action"]?.ToString();
+
+                        if (nextNode == "farewell" && string.IsNullOrEmpty(action))
+                        {
+                            HandleHideDialogue();
+                        }
+                        else
+                        {
+                            var payload = new
+                            {
+                                cardIndex = cardIndex,
+                                choice = option
+                            };
+                            await VentureGame.Instance.Network.EmitPartyAction(new { type = "dialogueChoice", payload });
+                            dialog.Close();
+                        }
+                    };
+                    optionsStack.Widgets.Add(btnOpt);
+                }
+            }
+
+            var btnLeave = new Button
+            {
+                Padding = new Thickness(10, 6),
+                Background = new SolidBrush(new Color(50, 50, 50))
+            };
+            btnLeave.Content = new Label { Text = "Leave Conversation", Font = VentureGame.Instance.SmallFont, TextColor = Color.LightGray };
+            btnLeave.Click += (s, e) =>
+            {
+                HandleHideDialogue();
+            };
+            optionsStack.Widgets.Add(btnLeave);
+
+            mainLayout.Widgets.Add(optionsStack);
+            dialog.Content = mainLayout;
+            dialog.ShowModal(VentureGame.Instance.Desktop);
+        }
+
+        private void HandleHideDialogue()
+        {
+            if (_activeDialogueDialog != null)
+            {
+                _activeDialogueDialog.Close();
+                _activeDialogueDialog = null;
+            }
+        }
+
         public void Update(GameTime gameTime)
         {
         }
@@ -1018,6 +1661,8 @@ namespace VentureClient.UI
                 VentureGame.Instance.Network.OnAdventureUpdate -= HandleAdventureUpdate;
                 VentureGame.Instance.Network.OnZoneChatMessage -= HandleZoneChat;
                 VentureGame.Instance.Network.OnAdventureEnded -= HandleAdventureEnded;
+                VentureGame.Instance.Network.OnShowDialogue -= HandleShowDialogue;
+                VentureGame.Instance.Network.OnHideDialogue -= HandleHideDialogue;
             }
         }
     }
