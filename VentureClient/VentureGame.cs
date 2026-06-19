@@ -54,7 +54,6 @@ namespace VentureClient
             _graphics = new GraphicsDeviceManager(this);
             _graphics.PreferredBackBufferWidth = 1280;
             _graphics.PreferredBackBufferHeight = 720;
-            _graphics.ApplyChanges();
 
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
