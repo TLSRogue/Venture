@@ -85,6 +85,23 @@ namespace VentureClient.Network
             }
         }
 
+        private JToken GetNewtonsoftArg(string rawText, int index)
+        {
+            try
+            {
+                var arr = JArray.Parse(rawText);
+                if (index + 1 < arr.Count)
+                {
+                    return arr[index + 1];
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error parsing response rawText: {ex.Message}");
+            }
+            return null;
+        }
+
         private void SetupInternalListeners()
         {
             // Core Lifecycle Listeners
@@ -108,9 +125,12 @@ namespace VentureClient.Network
             {
                 try
                 {
-                    var dataToken = response.GetValue<JToken>(0);
-                    var character = dataToken.ToObject<CharacterState>();
-                    OnCharacterUpdate?.Invoke(character);
+                    var dataToken = GetNewtonsoftArg(response.RawText, 0);
+                    if (dataToken != null)
+                    {
+                        var character = dataToken.ToObject<CharacterState>();
+                        OnCharacterUpdate?.Invoke(character);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -123,9 +143,12 @@ namespace VentureClient.Network
             {
                 try
                 {
-                    var dataToken = response.GetValue<JToken>(0);
-                    var party = dataToken.ToObject<PartyState>();
-                    OnPartyUpdate?.Invoke(party);
+                    var dataToken = GetNewtonsoftArg(response.RawText, 0);
+                    if (dataToken != null)
+                    {
+                        var party = dataToken.ToObject<PartyState>();
+                        OnPartyUpdate?.Invoke(party);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -138,9 +161,12 @@ namespace VentureClient.Network
             {
                 try
                 {
-                    var dataToken = response.GetValue<JToken>(0);
-                    var adventure = dataToken.ToObject<AdventureState>();
-                    OnAdventureUpdate?.Invoke(adventure);
+                    var dataToken = GetNewtonsoftArg(response.RawText, 0);
+                    if (dataToken != null)
+                    {
+                        var adventure = dataToken.ToObject<AdventureState>();
+                        OnAdventureUpdate?.Invoke(adventure);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -151,7 +177,7 @@ namespace VentureClient.Network
 
             _socket.On("loadError", response =>
             {
-                var error = response.GetValue<string>(0);
+                var error = GetNewtonsoftArg(response.RawText, 0)?.ToString();
                 OnLoadError?.Invoke(error);
                 return Task.CompletedTask;
             });
@@ -170,7 +196,7 @@ namespace VentureClient.Network
 
             _socket.On("partyError", response =>
             {
-                var error = response.GetValue<string>(0);
+                var error = GetNewtonsoftArg(response.RawText, 0)?.ToString();
                 OnPartyError?.Invoke(error);
                 return Task.CompletedTask;
             });
@@ -179,10 +205,13 @@ namespace VentureClient.Network
             {
                 try
                 {
-                    var data = response.GetValue<JObject>(0);
-                    var sender = data["sender"]?.ToString();
-                    var partyId = data["partyId"]?.ToString();
-                    OnReceivePartyInvite?.Invoke(sender, partyId);
+                    var data = GetNewtonsoftArg(response.RawText, 0) as JObject;
+                    if (data != null)
+                    {
+                        var sender = data["sender"]?.ToString();
+                        var partyId = data["partyId"]?.ToString();
+                        OnReceivePartyInvite?.Invoke(sender, partyId);
+                    }
                 }
                 catch
                 {
@@ -194,10 +223,13 @@ namespace VentureClient.Network
             {
                 try
                 {
-                    var data = response.GetValue<JObject>(0);
-                    var npc = data["npc"]?.ToString();
-                    var text = data["text"]?.ToString();
-                    OnShowDialogue?.Invoke(npc, text);
+                    var data = GetNewtonsoftArg(response.RawText, 0) as JObject;
+                    if (data != null)
+                    {
+                        var npc = data["npc"]?.ToString();
+                        var text = data["text"]?.ToString();
+                        OnShowDialogue?.Invoke(npc, text);
+                    }
                 }
                 catch
                 {
@@ -216,10 +248,13 @@ namespace VentureClient.Network
             {
                 try
                 {
-                    var data = response.GetValue<JObject>(0);
-                    var sender = data["sender"]?.ToString();
-                    var message = data["message"]?.ToString();
-                    OnGlobalChatMessage?.Invoke(sender, message);
+                    var data = GetNewtonsoftArg(response.RawText, 0) as JObject;
+                    if (data != null)
+                    {
+                        var sender = data["sender"]?.ToString();
+                        var message = data["message"]?.ToString();
+                        OnGlobalChatMessage?.Invoke(sender, message);
+                    }
                 }
                 catch
                 {
@@ -231,10 +266,13 @@ namespace VentureClient.Network
             {
                 try
                 {
-                    var data = response.GetValue<JObject>(0);
-                    var sender = data["sender"]?.ToString();
-                    var message = data["message"]?.ToString();
-                    OnZoneChatMessage?.Invoke(sender, message);
+                    var data = GetNewtonsoftArg(response.RawText, 0) as JObject;
+                    if (data != null)
+                    {
+                        var sender = data["sender"]?.ToString();
+                        var message = data["message"]?.ToString();
+                        OnZoneChatMessage?.Invoke(sender, message);
+                    }
                 }
                 catch
                 {
