@@ -90,7 +90,8 @@ namespace VentureClient.Models
         public string Type { get; set; }
 
         [JsonProperty("stat")]
-        public string Stat { get; set; }
+        [JsonConverter(typeof(StringOrArrayConverter))]
+        public List<string> Stat { get; set; }
 
         [JsonProperty("damage")]
         public int? Damage { get; set; }
@@ -157,6 +158,15 @@ namespace VentureClient.Models
 
         [JsonProperty("imageUrl")]
         public string ImageUrl { get; set; }
+    }
+
+    public class CardPoolEntry
+    {
+        [JsonProperty("card")]
+        public CardData Card { get; set; }
+
+        [JsonProperty("count")]
+        public int Count { get; set; }
     }
 
     public class BuffDebuffState

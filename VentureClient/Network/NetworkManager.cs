@@ -41,16 +41,53 @@ namespace VentureClient.Network
             _serverUrl = serverUrl;
         }
 
-        public async Task InitializeAsync()
+        public async Task InitializeAsync(string[] candidateUrls = null)
         {
-            var options = new SocketIOOptions
+            if (candidateUrls == null || candidateUrls.Length == 0)
             {
-                ConnectionTimeout = TimeSpan.FromSeconds(20),
-                Reconnection = true
-            };
-            _socket = new SocketIO(new Uri(_serverUrl), options);
+                candidateUrls = new[] { _serverUrl };
+            }
 
-            // Set up core lifecycle listeners
+            for (int i = 0; i < candidateUrls.Length; i++)
+            {
+                var url = candidateUrls[i];
+                try
+                {
+                    Console.WriteLine($"Attempting connection to {url}...");
+                    var options = new SocketIOOptions
+                    {
+                        ConnectionTimeout = TimeSpan.FromSeconds(4),
+                        Reconnection = true
+                    };
+                    _socket = new SocketIO(new Uri(url), options);
+
+                    SetupInternalListeners();
+
+                    await _socket.ConnectAsync();
+                    _serverUrl = url;
+                    Console.WriteLine($"Connected successfully to {url}");
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to connect to {url}: {ex.Message}");
+                    if (_socket != null)
+                    {
+                        try { await _socket.DisconnectAsync(); } catch {}
+                        _socket.Dispose();
+                        _socket = null;
+                    }
+                    if (i == candidateUrls.Length - 1)
+                    {
+                        throw;
+                    }
+                }
+            }
+        }
+
+        private void SetupInternalListeners()
+        {
+            // Core Lifecycle Listeners
             _socket.OnConnected += (sender, e) =>
             {
                 OnConnected?.Invoke();
@@ -61,7 +98,12 @@ namespace VentureClient.Network
                 OnDisconnected?.Invoke();
             };
 
-            // Set up game event listeners
+            _socket.OnError += (sender, ex) =>
+            {
+                Console.WriteLine($"Socket.IO Error: {ex}");
+            };
+
+            // Game Event Listeners
             _socket.On("characterUpdate", response =>
             {
                 try
@@ -199,7 +241,6 @@ namespace VentureClient.Network
                 }
                 return Task.CompletedTask;
             });
-            await _socket.ConnectAsync();
         }
 
         // --- EMIT METHODS ---

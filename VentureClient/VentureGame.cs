@@ -35,8 +35,8 @@ namespace VentureClient
         // Local Database Loaded from JSON
         public List<ItemData> AllItems { get; private set; }
         public List<SpellData> AllSpells { get; private set; }
-        public Dictionary<string, List<CardData>> CardPools { get; private set; }
-        public List<CardData> SpecialCards { get; private set; }
+        public Dictionary<string, List<CardPoolEntry>> CardPools { get; private set; }
+        public Dictionary<string, CardData> SpecialCards { get; private set; }
         public List<RecipeData> CraftingRecipes { get; private set; }
 
         // UI & Fonts
@@ -89,10 +89,10 @@ namespace VentureClient
                 AllSpells = JsonConvert.DeserializeObject<List<SpellData>>(
                     File.ReadAllText(Path.Combine(dataPath, "allSpells.json")));
 
-                CardPools = JsonConvert.DeserializeObject<Dictionary<string, List<CardData>>>(
+                CardPools = JsonConvert.DeserializeObject<Dictionary<string, List<CardPoolEntry>>>(
                     File.ReadAllText(Path.Combine(dataPath, "cardPools.json")));
 
-                SpecialCards = JsonConvert.DeserializeObject<List<CardData>>(
+                SpecialCards = JsonConvert.DeserializeObject<Dictionary<string, CardData>>(
                     File.ReadAllText(Path.Combine(dataPath, "specialCards.json")));
 
                 CraftingRecipes = JsonConvert.DeserializeObject<List<RecipeData>>(
@@ -179,7 +179,7 @@ namespace VentureClient
             {
                 try
                 {
-                    await Network.InitializeAsync();
+                    await Network.InitializeAsync(new[] { "http://localhost:3000", "https://venturecrpg.onrender.com" });
                 }
                 catch (Exception ex)
                 {
