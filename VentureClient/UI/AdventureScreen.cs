@@ -70,7 +70,12 @@ namespace VentureClient.UI
             grid.RowsProportions.Add(new Proportion(ProportionType.Pixels, 160)); // Row 4: Logs & Chat
 
             // --- ROW 0: HUD ---
-            var hudGrid = new Grid { ColumnSpacing = 15 };
+            var hudGrid = new Grid
+            {
+                ColumnSpacing = 15,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Width = 900
+            };
             hudGrid.ColumnsProportions.Add(new Proportion(ProportionType.Fill));
             hudGrid.ColumnsProportions.Add(new Proportion(ProportionType.Auto));
 
@@ -109,13 +114,14 @@ namespace VentureClient.UI
 
             // --- ROW 2: PLAYER & NAV ---
             var row2Grid = new Grid { ColumnSpacing = 20 };
-            row2Grid.ColumnsProportions.Add(new Proportion(ProportionType.Fill)); // Return Home
-            row2Grid.ColumnsProportions.Add(new Proportion(ProportionType.Auto)); // Player Card
-            row2Grid.ColumnsProportions.Add(new Proportion(ProportionType.Fill)); // Venture Deeper
+            row2Grid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1.0f)); // Return Home (Column 0: 33.3%)
+            row2Grid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1.0f)); // Player Card (Column 1: 33.3%)
+            row2Grid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1.0f)); // Venture Deeper (Column 2: 33.3%)
 
             // Return Home button (rust-red styled)
             _btnReturnHome = CreateStyledButton("🏠 RETURN HOME", new Color(180, 50, 40), new Color(230, 90, 80), Color.White, VentureGame.Instance.SmallFont);
             _btnReturnHome.HorizontalAlignment = HorizontalAlignment.Right;
+            _btnReturnHome.Margin = new Thickness(0, 0, 25, 0);
             _btnReturnHome.Click += async (s, e) =>
             {
                 await VentureGame.Instance.Network.EmitPartyAction(new { type = "returnHome" });
@@ -174,6 +180,7 @@ namespace VentureClient.UI
             // Venture Deeper button (orange-gold styled)
             _btnVentureDeeper = CreateStyledButton("VENTURE DEEPER ⚔️", new Color(210, 150, 30), new Color(255, 190, 70), Color.Black, VentureGame.Instance.SmallFont);
             _btnVentureDeeper.HorizontalAlignment = HorizontalAlignment.Left;
+            _btnVentureDeeper.Margin = new Thickness(25, 0, 0, 0);
             _btnVentureDeeper.Click += async (s, e) =>
             {
                 await VentureGame.Instance.Network.EmitPartyAction(new { type = "ventureDeeper" });
@@ -231,7 +238,7 @@ namespace VentureClient.UI
             grid.Widgets.Add(actionTrayGrid);
 
             // --- ROW 4: LOGS & CHAT ---
-            var logsContainerGrid = new Grid { RowSpacing = 5 };
+            var logsContainerGrid = new Grid { RowSpacing = 5, Padding = new Thickness(10, 5, 10, 5) };
             logsContainerGrid.RowsProportions.Add(new Proportion(ProportionType.Auto)); // Tabs
             logsContainerGrid.RowsProportions.Add(new Proportion(ProportionType.Fill)); // Logs Content
             logsContainerGrid.RowsProportions.Add(new Proportion(ProportionType.Auto)); // Chat Input
@@ -550,22 +557,25 @@ namespace VentureClient.UI
             if (charState == null) return;
 
             // --- GEAR ROW ---
-            // 👤 Character
-            var btnChar = CreateSlotButton("👤 Info", null, null, false, () => {
+            // 👤 Character (circular)
+            var btnChar = CreateCircularButton("👤");
+            btnChar.Click += (s, e) => {
                 AppendLogMessage("System", "Character sheet preview is not available in combat.", Color.Gray);
-            });
+            };
             _gearRow.Widgets.Add(btnChar);
 
-            // 🎒 Inventory
-            var btnBag = CreateSlotButton("🎒 Bag", null, null, false, () => {
+            // 🎒 Inventory (circular)
+            var btnBag = CreateCircularButton("🎒");
+            btnBag.Click += (s, e) => {
                 AppendLogMessage("System", "Inventory management is not available in combat.", Color.Gray);
-            });
+            };
             _gearRow.Widgets.Add(btnBag);
 
-            // 📜 Quests
-            var btnQuest = CreateSlotButton("📜 Quest", null, null, false, () => {
+            // 📜 Quests (circular)
+            var btnQuest = CreateCircularButton("📜");
+            btnQuest.Click += (s, e) => {
                 AppendLogMessage("System", "Quest log is not available in combat.", Color.Gray);
-            });
+            };
             _gearRow.Widgets.Add(btnQuest);
 
             // Weapon Slot
@@ -610,6 +620,10 @@ namespace VentureClient.UI
             }
 
             // --- SPELLS ROW ---
+            // Add spacer of width 159 to align spells under weapon slot
+            var spellsSpacer = new Panel { Width = 159 };
+            _spellsRow.Widgets.Add(spellsSpacer);
+
             // Populate Spell slots from spellbook
             int spellSlotCount = 0;
             if (charState.Spellbook != null)
@@ -796,6 +810,30 @@ namespace VentureClient.UI
             return btn;
         }
 
+        private Button CreateCircularButton(string iconText)
+        {
+            var btn = new Button
+            {
+                Width = 45,
+                Height = 45,
+                Padding = new Thickness(0),
+                Background = new SolidBrush(new Color(40, 45, 52)),
+                BorderThickness = new Thickness(2),
+                Border = new SolidBrush(new Color(100, 110, 120)),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var lbl = new Label
+            {
+                Text = iconText,
+                Font = VentureGame.Instance.MainFont,
+                TextColor = Color.White,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            btn.Content = lbl;
+            return btn;
+        }
+
         private Button CreateSlotButton(string title, string subtitle, string costInfo, bool isSelected, Action onClick)
         {
             var btn = new Button
@@ -815,7 +853,8 @@ namespace VentureClient.UI
                 Text = title,
                 Font = VentureGame.Instance.SmallFont,
                 TextColor = isSelected ? Color.Gold : Color.LightGray,
-                HorizontalAlignment = HorizontalAlignment.Center
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Wrap = true
             };
             panel.Widgets.Add(lblTitle);
 

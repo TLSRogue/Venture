@@ -402,10 +402,10 @@ namespace VentureClient.Models
         [JsonProperty("zone")]
         public string Zone { get; set; }
 
-        [JsonProperty("cards")]
+        [JsonProperty("zoneCards")]
         public List<CardState> Cards { get; set; } = new List<CardState>();
 
-        [JsonProperty("logs")]
+        [JsonProperty("log")]
         public List<LogEntry> Logs { get; set; } = new List<LogEntry>();
 
         [JsonProperty("zoneDeck")]
