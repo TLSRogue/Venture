@@ -214,6 +214,58 @@ namespace VentureClient
             base.Draw(gameTime);
         }
 
+        private Dictionary<string, Texture2D> _textureCache = new Dictionary<string, Texture2D>();
+
+        public Texture2D LoadTexture(string assetPath)
+        {
+            if (string.IsNullOrEmpty(assetPath)) return null;
+
+            // Normalize path separator for OS
+            assetPath = assetPath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+            if (assetPath.StartsWith(Path.DirectorySeparatorChar.ToString()))
+            {
+                assetPath = assetPath.Substring(1);
+            }
+
+            if (_textureCache.TryGetValue(assetPath, out var cachedTexture))
+            {
+                return cachedTexture;
+            }
+
+            try
+            {
+                string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Content", assetPath);
+                if (File.Exists(fullPath))
+                {
+                    using (var stream = File.OpenRead(fullPath))
+                    {
+                        var texture = Texture2D.FromStream(GraphicsDevice, stream);
+                        _textureCache[assetPath] = texture;
+                        return texture;
+                    }
+                }
+                else
+                {
+                    string altPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, assetPath);
+                    if (File.Exists(altPath))
+                    {
+                        using (var stream = File.OpenRead(altPath))
+                        {
+                            var texture = Texture2D.FromStream(GraphicsDevice, stream);
+                            _textureCache[assetPath] = texture;
+                            return texture;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading texture {assetPath}: {ex.Message}");
+            }
+
+            return null;
+        }
+
         protected override void OnExiting(object sender, ExitingEventArgs args)
         {
             Network?.DisconnectAsync().Wait();

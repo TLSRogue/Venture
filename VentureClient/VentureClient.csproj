@@ -33,5 +33,6 @@
   <ItemGroup>
     <None Update="Content\fonts\**" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Content\data\**" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\assets\**\*.*" CopyToOutputDirectory="PreserveNewest" Link="Content\assets\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

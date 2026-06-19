@@ -407,6 +407,9 @@ namespace VentureClient.Models
 
         [JsonProperty("logs")]
         public List<LogEntry> Logs { get; set; } = new List<LogEntry>();
+
+        [JsonProperty("zoneDeck")]
+        public List<CardState> ZoneDeck { get; set; } = new List<CardState>();
     }
 
     public class CardState
@@ -431,6 +434,9 @@ namespace VentureClient.Models
 
         [JsonProperty("icon")]
         public string Icon { get; set; }
+
+        [JsonProperty("imageUrl")]
+        public string ImageUrl { get; set; }
     }
 
     public class LogEntry
