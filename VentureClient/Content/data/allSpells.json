@@ -1,0 +1,874 @@
+[
+  {
+    "name": "Punch",
+    "cost": 1,
+    "cooldown": 1,
+    "school": "Physical",
+    "range": "melee",
+    "description": "A simple strike with your fist.",
+    "type": "attack",
+    "stat": "strength",
+    "damage": 1,
+    "hit": 10,
+    "damageType": "Physical",
+    "icon": "👊",
+    "rarity": "common"
+  },
+  {
+    "name": "Kick",
+    "cost": 1,
+    "cooldown": 1,
+    "school": "Physical",
+    "range": "melee",
+    "description": "A swift kick aimed at your foe.",
+    "type": "attack",
+    "stat": "agility",
+    "damage": 1,
+    "hit": 10,
+    "damageType": "Physical",
+    "icon": "🦶",
+    "rarity": "common"
+  },
+  {
+    "name": "Dodge",
+    "cooldown": 2,
+    "school": "Physical",
+    "range": "self",
+    "description": "Leap out of harm's way to avoid an incoming attack.",
+    "type": "reaction",
+    "stat": "agility",
+    "hit": 10,
+    "icon": "🤸",
+    "rarity": "common"
+  },
+  {
+    "name": "Slash",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 1,
+    "school": "Physical",
+    "range": "melee",
+    "description": "A quick recurring attack with a bladed weapon.",
+    "type": "attack",
+    "stat": [
+      "strength",
+      "agility"
+    ],
+    "hit": 15,
+    "damageType": "Physical",
+    "requires": {
+      "weaponType": [
+        "Sword",
+        "One-Hand Sword",
+        "Two-Hand Sword",
+        "Dagger"
+      ],
+      "hand": "mainHand"
+    },
+    "icon": "🗡️",
+    "rarity": "common"
+  },
+  {
+    "name": "Fireball",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 2,
+    "school": "Fire",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Hurl a ball of explosive fire at your enemy.",
+    "type": "attack",
+    "stat": "wisdom",
+    "hit": 10,
+    "damageType": "Fire",
+    "debuff": {
+      "type": "burn",
+      "duration": 1,
+      "damage": 2,
+      "damageType": "Fire"
+    },
+    "icon": "🔥",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Flash Heal",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 2,
+    "school": "Holy",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Channel holy light to instantly mend wounds.",
+    "type": "heal",
+    "stat": "wisdom",
+    "heal": 3,
+    "hit": 10,
+    "icon": "✨",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Cleanse",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 2,
+    "school": "Holy",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Purge harmful ailments from an ally with holy magic.",
+    "type": "cleanse",
+    "stat": "wisdom",
+    "hit": 10,
+    "icon": "🌟",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Holy Shock",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 1,
+    "school": "Holy",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Channel holy energy to either harm a foe or heal an ally.",
+    "type": "versatile",
+    "stat": "wisdom",
+    "baseEffect": 1,
+    "damageType": "Holy",
+    "hit": 10,
+    "icon": "⚡",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Shield Bash",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 3,
+    "school": "Physical",
+    "range": "melee",
+    "description": "Slam your shield into the enemy, stunning them.",
+    "type": "attack",
+    "stat": "strength",
+    "damage": 2,
+    "hit": 10,
+    "damageType": "Physical",
+    "debuff": {
+      "type": "stun",
+      "duration": 1
+    },
+    "requires": {
+      "weaponType": [
+        "Shield"
+      ]
+    },
+    "icon": "🛡️",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Aim True",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 3,
+    "school": "Physical",
+    "range": "ranged",
+    "description": "A precise shot that can stun on a high roll.",
+    "type": "attack",
+    "stat": "agility",
+    "hit": 10,
+    "damageType": "Physical",
+    "onHit": {
+      "threshold": 15,
+      "debuff": {
+        "type": "stun",
+        "duration": 1
+      }
+    },
+    "requires": {
+      "weaponType": [
+        "Two-Hand Bow",
+        "One-Hand Crossbow"
+      ]
+    },
+    "icon": "🎯",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Flame Strike",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 4,
+    "school": "Fire",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Call down a column of divine fire on all enemies.",
+    "type": "aoe",
+    "aoeTargeting": "all",
+    "stat": "wisdom",
+    "hit": 10,
+    "damageType": "Fire",
+    "debuff": {
+      "type": "burn",
+      "duration": 1,
+      "damage": 2,
+      "damageType": "Fire"
+    },
+    "icon": "💥",
+    "rarity": "rare"
+  },
+  {
+    "name": "Stealth",
+    "cost": 1,
+    "trainable": true,
+    "cooldown": 3,
+    "school": "Shadow",
+    "range": "self",
+    "isMagic": true,
+    "description": "Melt into the shadows, making yourself harder to hit.",
+    "type": "buff",
+    "stat": "agility",
+    "hit": 10,
+    "buff": {
+      "type": "Stealth",
+      "duration": 2
+    },
+    "icon": "🤫",
+    "rarity": "rare"
+  },
+  {
+    "name": "Warrior's Might",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 3,
+    "school": "Physical",
+    "range": "self",
+    "description": "A fierce battle cry that bolsters your strength and resolve.",
+    "type": "buff",
+    "bonusThreat": 2,
+    "stat": [
+      "strength",
+      "defense"
+    ],
+    "hit": 10,
+    "buff": {
+      "type": "Warrior's Might",
+      "duration": 2,
+      "bonus": {
+        "strength": 2,
+        "defense": 2
+      }
+    },
+    "icon": "💪",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Ambush",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 3,
+    "school": "Physical",
+    "range": "melee",
+    "description": "A lethal surprise attack from the shadows with dual daggers.",
+    "type": "attack",
+    "stat": "agility",
+    "hit": 10,
+    "damageType": "Physical",
+    "requires": {
+      "weaponType": [
+        "Dagger"
+      ]
+    },
+    "debuff": {
+      "type": "bleed",
+      "duration": 3,
+      "damage": 1,
+      "damageType": "Physical"
+    },
+    "icon": "🗡️",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Dagger Throw",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 3,
+    "school": "Physical",
+    "range": "ranged",
+    "description": "Hurl a dagger at your target with deadly precision.",
+    "type": "attack",
+    "stat": "agility",
+    "hit": 10,
+    "damageType": "Physical",
+    "requires": {
+      "weaponType": [
+        "Dagger"
+      ]
+    },
+    "damageBonus": 2,
+    "icon": "🔪",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Magic Barrier",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 3,
+    "school": "Arcane",
+    "range": "self",
+    "isMagic": true,
+    "description": "Conjure a barrier of arcane energy to shield yourself.",
+    "type": "buff",
+    "stat": "wisdom",
+    "hit": 10,
+    "buff": {
+      "type": "Magic Barrier",
+      "duration": 4,
+      "baseValue": 2,
+      "scaling": "arcanePower"
+    },
+    "icon": "💠",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Silence",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 3,
+    "school": "Arcane",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Suppress an enemy's ability to cast spells.",
+    "type": "debuff",
+    "stat": "wisdom",
+    "hit": 10,
+    "debuff": {
+      "type": "silence",
+      "duration": 1
+    },
+    "icon": "🔇",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Time Stop",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 3,
+    "school": "Arcane",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Freeze an enemy in time, preventing their reactions.",
+    "type": "debuff",
+    "stat": "wisdom",
+    "hit": 10,
+    "debuff": {
+      "type": "Time Stop",
+      "duration": 1
+    },
+    "icon": "⏳",
+    "rarity": "rare"
+  },
+  {
+    "name": "Whirlwind",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 5,
+    "school": "Physical",
+    "range": "melee",
+    "description": "Spin your weapon in a devastating arc, striking all enemies.",
+    "type": "attack",
+    "stat": "strength",
+    "hit": 10,
+    "aoeTargeting": "all",
+    "damageType": "Physical",
+    "requires": {
+      "weaponType": [
+        "Two-Hand Mace",
+        "Two-Hand Sword",
+        "Two-Hand Axe"
+      ]
+    },
+    "icon": "🌪️",
+    "rarity": "epic"
+  },
+  {
+    "name": "Crushing Blow",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 3,
+    "school": "Physical",
+    "range": "melee",
+    "description": "A bone-shattering strike that dazes your foe.",
+    "type": "attack",
+    "stat": "strength",
+    "damageBonus": 2,
+    "hit": 10,
+    "damageType": "Physical",
+    "requires": {
+      "weaponType": [
+        "Mace",
+        "Two-Hand Mace"
+      ],
+      "hand": "mainHand"
+    },
+    "onHit": {
+      "debuff": {
+        "type": "daze",
+        "duration": 1
+      }
+    },
+    "icon": "🔨",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Monk's Training",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 4,
+    "school": "Physical",
+    "range": "self",
+    "description": "Channel your inner discipline to heal body and mind.",
+    "type": "utility",
+    "stat": "strength",
+    "hit": 10,
+    "icon": "🧘",
+    "rarity": "rare"
+  },
+  {
+    "name": "Split Shot",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 4,
+    "school": "Physical",
+    "range": "ranged",
+    "description": "Fire a spread of arrows that hit multiple targets.",
+    "type": "aoe",
+    "stat": "agility",
+    "hit": 10,
+    "damageType": "Physical",
+    "requires": {
+      "weaponType": [
+        "Two-Hand Bow",
+        "One-Hand Crossbow"
+      ]
+    },
+    "aoeTargeting": "adjacent",
+    "icon": "🏹",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Evasive Shot",
+    "trainable": true,
+    "cooldown": 2,
+    "school": "Physical",
+    "range": "ranged",
+    "description": "Dodge an incoming attack and fire a counter shot.",
+    "type": "reaction",
+    "stat": "agility",
+    "damageType": "Physical",
+    "requires": {
+      "weaponType": [
+        "Two-Hand Bow",
+        "One-Hand Crossbow"
+      ]
+    },
+    "reactionDetails": {
+      "avoidHit": 10,
+      "counterHit": 15
+    },
+    "icon": "↪️🏹",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Parry",
+    "trainable": true,
+    "cooldown": 3,
+    "school": "Physical",
+    "range": "melee",
+    "description": "Deflect an incoming melee attack and counter with your weapon.",
+    "type": "reaction",
+    "stat": "defense",
+    "damageType": "Physical",
+    "requires": {
+      "meleeWeapon": true
+    },
+    "meleeOnly": true,
+    "reactionDetails": {
+      "avoidHit": 10,
+      "counterHit": 15
+    },
+    "icon": "⚔️🛡️",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Revive",
+    "trainable": true,
+    "cost": 3,
+    "cooldown": 10,
+    "school": "Holy",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Restore a fallen ally to fight again.",
+    "type": "revive",
+    "icon": "💫",
+    "rarity": "rare"
+  },
+  {
+    "name": "Cone of Cold",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 3,
+    "school": "Frost",
+    "range": "melee",
+    "isMagic": true,
+    "description": "Unleash a blast of freezing air that chills all nearby foes.",
+    "type": "aoe",
+    "aoeTargeting": "all",
+    "stat": "wisdom",
+    "damage": 1,
+    "hit": 10,
+    "damageType": "Frost",
+    "onHit": {
+      "chill": 2
+    },
+    "icon": "❄️",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Blizzard",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 5,
+    "school": "Frost",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Summon a devastating blizzard that ravages the battlefield.",
+    "type": "zoneEffect",
+    "stat": "wisdom",
+    "hit": 10,
+    "damageType": "Frost",
+    "zoneEffect": {
+      "type": "blizzard",
+      "name": "Blizzard",
+      "icon": "🌨️",
+      "description": "A howling blizzard ravages the zone, dealing Frost damage and applying Chill to all enemies.",
+      "duration": 3,
+      "chillAmount": 2
+    },
+    "icon": "🌨️",
+    "rarity": "rare"
+  },
+  {
+    "name": "Frost Bolt",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 2,
+    "school": "Frost",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Launch a bolt of icy magic that chills your target to the bone.",
+    "type": "attack",
+    "stat": "wisdom",
+    "damage": 1,
+    "hit": 10,
+    "damageType": "Frost",
+    "onHit": {
+      "chill": 3
+    },
+    "icon": "🧊",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Shatter",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 3,
+    "school": "Frost",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Shatter a frozen enemy for devastating bonus damage.",
+    "type": "attack",
+    "stat": "wisdom",
+    "damage": 1,
+    "hit": 10,
+    "damageType": "Frost",
+    "shatterFrozen": true,
+    "icon": "💎",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Ice Barrier",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 3,
+    "school": "Frost",
+    "range": "self",
+    "isMagic": true,
+    "description": "Encase yourself in protective ice that chills melee attackers.",
+    "type": "buff",
+    "stat": "wisdom",
+    "hit": 10,
+    "buff": {
+      "type": "Ice Barrier",
+      "duration": 2,
+      "baseValue": 1,
+      "scaling": "frostPower",
+      "chillOnMelee": 2
+    },
+    "icon": "🛡️❄️",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Entangling Roots",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 3,
+    "school": "Nature",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Bind an enemy in magical roots that deal damage over time.",
+    "type": "attack",
+    "stat": "wisdom",
+    "hit": 10,
+    "damageType": "Nature",
+    "debuff": {
+      "type": "entangling roots",
+      "duration": 2,
+      "baseDamage": 1,
+      "damageType": "Nature"
+    },
+    "icon": "🌿",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Rejuvenate",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 3,
+    "school": "Nature",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Weave regenerative magic that heals over time.",
+    "type": "buff",
+    "stat": "wisdom",
+    "hit": 10,
+    "buff": {
+      "type": "Rejuvenate",
+      "duration": 2,
+      "stackDuration": true
+    },
+    "icon": "🌱",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Spirit Call",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 1,
+    "school": "Nature",
+    "range": "self",
+    "isMagic": true,
+    "description": "Call upon a spirit animal to bolster your abilities.",
+    "type": "buff",
+    "stat": "wisdom",
+    "hit": 10,
+    "icon": "🐾",
+    "rarity": "rare"
+  },
+  {
+    "name": "Moonbeam",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 0,
+    "school": "Nature",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Channel searing moonlight to burn your enemies.",
+    "type": "attack",
+    "stat": "wisdom",
+    "hit": 10,
+    "damageType": "Nature",
+    "icon": "🌙",
+    "rarity": "rare"
+  },
+  {
+    "name": "Nature's Wrath",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 2,
+    "school": "Nature",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Focus the raw fury of nature into a destructive blast.",
+    "type": "attack",
+    "stat": "wisdom",
+    "hit": 10,
+    "damageType": "Nature",
+    "damage": 1,
+    "icon": "🌪️",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Nature's Blessing",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 4,
+    "school": "Nature",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Call upon nature's blessing to heal and purify an ally.",
+    "type": "cleanse",
+    "stat": "wisdom",
+    "hit": 10,
+    "heal": 1,
+    "cleanseAmount": 1,
+    "icon": "🌺",
+    "rarity": "rare"
+  },
+  {
+    "name": "Backstab",
+    "trainable": true,
+    "cost": 2,
+    "cooldown": 2,
+    "school": "Physical",
+    "range": "melee",
+    "description": "A vicious strike from behind that exploits bleeding or stealthed targets.",
+    "type": "attack",
+    "stat": "agility",
+    "hit": 10,
+    "damageType": "Physical",
+    "requires": {
+      "weaponType": [
+        "Dagger"
+      ]
+    },
+    "icon": "🗡️",
+    "rarity": "rare"
+  },
+  {
+    "name": "Intervene",
+    "trainable": true,
+    "cooldown": 3,
+    "school": "Physical",
+    "range": "melee",
+    "description": "Intercept an attack meant for an ally, taking the hit yourself.",
+    "type": "reaction",
+    "stat": "defense",
+    "hit": 10,
+    "requires": {
+      "weaponType": [
+        "Shield"
+      ]
+    },
+    "isIntervene": true,
+    "icon": "🛡️⚔️",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Fire Blast",
+    "trainable": true,
+    "cost": 0,
+    "cooldown": 3,
+    "school": "Fire",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "A quick burst of flame that sears your enemy.",
+    "type": "attack",
+    "stat": "wisdom",
+    "hit": 10,
+    "damageType": "Fire",
+    "debuff": {
+      "type": "burn",
+      "duration": 1,
+      "damage": 2,
+      "damageType": "Fire"
+    },
+    "icon": "🔥",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Scorch",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 1,
+    "school": "Fire",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Searing flames that may reset on a powerful hit.",
+    "type": "attack",
+    "stat": "wisdom",
+    "hit": 10,
+    "damageType": "Fire",
+    "debuff": {
+      "type": "burn",
+      "duration": 1,
+      "damage": 2,
+      "damageType": "Fire"
+    },
+    "resetCooldownThreshold": 15,
+    "icon": "🔥",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Flame Shield",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 3,
+    "school": "Fire",
+    "range": "self",
+    "isMagic": true,
+    "description": "Surround yourself in a protective fire aura that burns melee attackers.",
+    "type": "buff",
+    "stat": "wisdom",
+    "hit": 10,
+    "buff": {
+      "type": "Flame Shield",
+      "duration": 3,
+      "baseValue": 1,
+      "scaling": "firePower",
+      "burnOnMelee": {
+        "type": "burn",
+        "duration": 1,
+        "damage": 2,
+        "damageType": "Fire"
+      }
+    },
+    "icon": "🛡️🔥",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Cauterize",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 2,
+    "school": "Fire",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Cauterize a wound with flame, healing an ally at a cost.",
+    "type": "cauterize",
+    "stat": "wisdom",
+    "hit": 10,
+    "heal": 1,
+    "debuff": {
+      "type": "burn",
+      "duration": 1,
+      "damage": 2,
+      "damageType": "Fire"
+    },
+    "icon": "🩹🔥",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "Expend Heat",
+    "trainable": true,
+    "cost": 1,
+    "cooldown": 1,
+    "school": "Fire",
+    "range": "ranged",
+    "isMagic": true,
+    "description": "Release the stored heat from a burning target into a devastating explosion.",
+    "type": "expendHeat",
+    "stat": "wisdom",
+    "hit": 10,
+    "damageType": "Fire",
+    "icon": "💨🔥",
+    "rarity": "rare"
+  }
+]

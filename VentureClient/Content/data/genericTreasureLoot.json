@@ -1,0 +1,13 @@
+[
+  {
+    "name": "Healing Potion"
+  },
+  {
+    "name": "Gold Pouch",
+    "type": "consumable",
+    "tier": 1,
+    "price": 0,
+    "gold": 25,
+    "description": "A pouch containing 25 gold. Open to receive your reward."
+  }
+]

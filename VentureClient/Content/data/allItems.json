@@ -1,0 +1,2179 @@
+[
+  {
+    "name": "Obsidian Chunk",
+    "price": 150,
+    "type": "material",
+    "tier": 2,
+    "description": "A shard of razor-sharp volcanic glass, pulsating with heat.",
+    "icon": "🖤",
+    "rarity": "rare",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Ashenwood Log",
+    "price": 120,
+    "type": "material",
+    "tier": 2,
+    "description": "A petrified, soot-blackened log from a tree that survived the wastes.",
+    "icon": "🪵",
+    "rarity": "rare",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Drake Scale",
+    "price": 200,
+    "type": "material",
+    "tier": 2,
+    "description": "An iridescent, incredibly durable scale from a drake.",
+    "icon": "鱗",
+    "rarity": "rare",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Spider Leg",
+    "price": 40,
+    "type": "material",
+    "tier": 2,
+    "description": "A hairy, segmented leg from a giant spider.",
+    "icon": "🦴",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Spider Silk",
+    "price": 80,
+    "type": "material",
+    "tier": 3,
+    "description": "Incredibly strong silk harvested from a Black Widow's web.",
+    "icon": "🕸️",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Rough Fur",
+    "price": 45,
+    "type": "material",
+    "tier": 2,
+    "description": "Thick, coarse fur from a forest wolf.",
+    "icon": "🧶",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Wolf Bones",
+    "price": 85,
+    "type": "material",
+    "tier": 3,
+    "description": "Strong bones from a Gray Wolf, useful for crafting.",
+    "icon": "🦴",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Dark Wood",
+    "price": 90,
+    "type": "material",
+    "tier": 3,
+    "description": "Twisted, blackened wood from the Dark Forest's withered trees.",
+    "icon": "🪵",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Dark Crystal",
+    "price": 95,
+    "type": "material",
+    "tier": 3,
+    "description": "A crystal infused with shadow energy from deep in the forest.",
+    "icon": "💎",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Bread",
+    "price": 10,
+    "type": "consumable",
+    "tier": 1,
+    "cost": 1,
+    "heal": 2,
+    "description": "A simple loaf of fresh-baked bread.",
+    "icon": "🍞",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Healing Potion",
+    "price": 25,
+    "type": "consumable",
+    "tier": 1,
+    "cost": 1,
+    "heal": 3,
+    "description": "A crimson elixir that mends wounds in moments.",
+    "icon": "🧪",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Tinderbox",
+    "price": 50,
+    "type": "consumable",
+    "tier": 1,
+    "cost": 1,
+    "charges": 10,
+    "requiresMaterial": "Wood",
+    "createsZoneEffect": "campfire",
+    "description": "A trusty flint and steel kit for starting fires in the wild.",
+    "icon": "🔥",
+    "rarity": "common",
+    "permanentMerchantStock": true
+  },
+  {
+    "name": "Cooked Fish",
+    "price": 30,
+    "type": "consumable",
+    "tier": 1,
+    "cost": 1,
+    "heal": 3,
+    "buff": {
+      "type": "Well Fed (Agi)",
+      "duration": 2,
+      "bonus": {
+        "agility": 1
+      }
+    },
+    "description": "A perfectly grilled fish that warms the soul.",
+    "icon": "🐟",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Cooked Pork",
+    "price": 30,
+    "type": "consumable",
+    "tier": 1,
+    "cost": 1,
+    "heal": 3,
+    "buff": {
+      "type": "Well Fed (Str)",
+      "duration": 2,
+      "bonus": {
+        "strength": 1
+      }
+    },
+    "description": "Savory roasted pork that fuels battle fury.",
+    "icon": "🍖",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Cooked Chicken",
+    "price": 30,
+    "type": "consumable",
+    "tier": 1,
+    "cost": 1,
+    "heal": 3,
+    "description": "A simple but hearty meal, roasted to perfection.",
+    "icon": "🍗",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Champions Breakfast",
+    "price": 80,
+    "type": "consumable",
+    "tier": 1,
+    "cost": 1,
+    "heal": 4,
+    "buff": {
+      "type": "Champions Breakfast",
+      "duration": 3,
+      "bonus": {
+        "strength": 1,
+        "agility": 1,
+        "wisdom": 1,
+        "defense": 1
+      }
+    },
+    "description": "A hearty spread of beef, milk, and eggs. +1 to all stats for 3 turns.",
+    "icon": "🍳",
+    "rarity": "rare",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Recipe: Cooked Pork",
+    "price": 50,
+    "type": "recipe",
+    "tier": 1,
+    "learnsRecipe": "Cooked Pork",
+    "description": "Teaches you how to cook pork.",
+    "icon": "📜",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Recipe: Champions Breakfast",
+    "price": 150,
+    "type": "recipe",
+    "tier": 1,
+    "learnsRecipe": "Champions Breakfast",
+    "description": "Teaches you how to make a champion's breakfast.",
+    "icon": "📜",
+    "rarity": "rare",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Cooked Rat Meat",
+    "price": 30,
+    "type": "consumable",
+    "tier": 1,
+    "cost": 1,
+    "heal": 4,
+    "description": "Surprisingly tasty when seasoned well.",
+    "icon": "🍖",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Spiced Carrots",
+    "price": 30,
+    "type": "consumable",
+    "tier": 1,
+    "cost": 1,
+    "heal": 3,
+    "buff": {
+      "type": "Well Fed (Wis)",
+      "duration": 2,
+      "bonus": {
+        "wisdom": 1
+      }
+    },
+    "description": "A fragrant dish that clears the mind.",
+    "icon": "🥣",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Birthday Cake",
+    "price": 100,
+    "type": "consumable",
+    "tier": 1,
+    "cost": 1,
+    "heal": 2,
+    "charges": 3,
+    "description": "A delicious layered cake for celebrations.",
+    "icon": "🎂",
+    "rarity": "rare",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Wooden Torch",
+    "price": 30,
+    "type": "consumable",
+    "tier": 1,
+    "cost": 0,
+    "buff": {
+      "type": "Light Source",
+      "duration": 3
+    },
+    "description": "A flickering flame atop a wooden stick that illuminates dark areas.",
+    "icon": "🔥",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Powder Keg",
+    "price": 100,
+    "type": "consumable",
+    "tier": 1,
+    "cost": 1,
+    "description": "An explosive barrel packed with black powder.",
+    "icon": "💣",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Rotten Egg",
+    "price": 50,
+    "type": "consumable",
+    "tier": 1,
+    "cost": 1,
+    "targetEnemy": true,
+    "hit": 11,
+    "damage": 1,
+    "damageType": "Physical",
+    "onHit": {
+      "debuff": {
+        "type": "daze",
+        "duration": 2
+      }
+    },
+    "description": "A foul-smelling egg from a chicken past its prime.",
+    "icon": "🥚",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Iron Arrows",
+    "type": "arrows",
+    "price": 1,
+    "stackable": 200,
+    "slot": "ammo",
+    "bonus": {
+      "rollBonus": 1
+    },
+    "description": "A bundle of simple iron-tipped arrows.",
+    "tier": 1,
+    "icon": "🏹",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Mining Pickaxe (T1)",
+    "price": 50,
+    "type": "tool",
+    "toolType": "mining",
+    "slot": "mainHand",
+    "skillBonus": {
+      "mining": 1
+    },
+    "description": "A sturdy pickaxe for extracting ore from rock.",
+    "tier": 1,
+    "icon": "⛏️",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Woodcutting Axe (T1)",
+    "price": 50,
+    "type": "tool",
+    "toolType": "woodcutting",
+    "slot": "mainHand",
+    "skillBonus": {
+      "woodcutting": 1
+    },
+    "description": "A sharp axe for felling trees.",
+    "tier": 1,
+    "icon": "🪓",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Fishing Rod (T1)",
+    "price": 50,
+    "type": "tool",
+    "toolType": "fishing",
+    "slot": "mainHand",
+    "skillBonus": {
+      "fishing": 1
+    },
+    "description": "A simple rod with line and hook.",
+    "tier": 1,
+    "icon": "🎣",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Harvesting Sickle (T1)",
+    "price": 50,
+    "type": "tool",
+    "toolType": "harvesting",
+    "slot": "mainHand",
+    "skillBonus": {
+      "harvesting": 1
+    },
+    "description": "A curved blade for gathering crops.",
+    "tier": 1,
+    "icon": "🌾",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Steel Pickaxe (T2)",
+    "price": 150,
+    "type": "tool",
+    "toolType": "mining",
+    "slot": "mainHand",
+    "skillBonus": {
+      "mining": 2
+    },
+    "description": "A reinforced steel pickaxe for mining higher tier nodes.",
+    "tier": 2,
+    "icon": "⛏️",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Steel Axe (T2)",
+    "price": 150,
+    "type": "tool",
+    "toolType": "woodcutting",
+    "slot": "mainHand",
+    "skillBonus": {
+      "woodcutting": 2
+    },
+    "description": "A sharp steel axe for felling tougher trees.",
+    "tier": 2,
+    "icon": "🪓",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Steel Sickle (T2)",
+    "price": 150,
+    "type": "tool",
+    "toolType": "harvesting",
+    "slot": "mainHand",
+    "skillBonus": {
+      "harvesting": 2
+    },
+    "description": "A durable steel sickle for harvesting rare crops.",
+    "tier": 2,
+    "icon": "🌾",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Wooden Training Sword",
+    "type": "weapon",
+    "slot": "mainHand",
+    "cost": 1,
+    "cooldown": 1,
+    "stat": "strength",
+    "hit": 10,
+    "range": "melee",
+    "weaponType": "One-Hand Sword",
+    "weaponDamage": 1,
+    "damageType": "Physical",
+    "description": "A blunt practice sword for novice fighters.",
+    "tier": 1,
+    "icon": "⚔️",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Iron Dagger",
+    "price": 70,
+    "type": "weapon",
+    "slot": [
+      "mainHand",
+      "offHand"
+    ],
+    "cost": 1,
+    "cooldown": 1,
+    "stat": "agility",
+    "hit": 10,
+    "range": "melee",
+    "weaponType": "Dagger",
+    "weaponDamage": 2,
+    "damageType": "Physical",
+    "description": "Perfect for peeling fruit or poking unsuspecting goblins.",
+    "tier": 1,
+    "icon": "🗡️",
+    "traits": [
+      "Dagger",
+      "Melee",
+      "Tier 1"
+    ],
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Mugger's Knife",
+    "price": 100,
+    "type": "weapon",
+    "slot": [
+      "mainHand",
+      "offHand"
+    ],
+    "cost": 1,
+    "cooldown": 1,
+    "hit": 10,
+    "stat": "agility",
+    "range": "melee",
+    "weaponType": "Dagger",
+    "weaponDamage": 2,
+    "damageType": "Physical",
+    "description": "A wicked blade favored by thieves and cutthroats.",
+    "onHit": {
+      "debuff": {
+        "type": "bleed",
+        "duration": 2,
+        "damage": 1,
+        "damageType": "Physical"
+      }
+    },
+    "tier": 1,
+    "icon": "🔪",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false,
+    "bossExclusive": true
+  },
+  {
+    "name": "Spur Dagger",
+    "price": 75,
+    "type": "weapon",
+    "slot": [
+      "mainHand",
+      "offHand"
+    ],
+    "cost": 1,
+    "cooldown": 1,
+    "hit": 10,
+    "stat": "agility",
+    "range": "melee",
+    "weaponType": "Dagger",
+    "weaponDamage": 3,
+    "damageType": "Physical",
+    "bonus": {
+      "agility": 1
+    },
+    "description": "A wicked dagger crafted from a rooster's spur.",
+    "onCritThreshold": {
+      "threshold": 15,
+      "debuff": {
+        "type": "bleed",
+        "duration": 2,
+        "damage": 1,
+        "damageType": "Physical"
+      }
+    },
+    "tier": 2,
+    "icon": "🗡️",
+    "traits": [
+      "Dagger",
+      "Melee",
+      "Tier 2"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Iron Sword",
+    "price": 70,
+    "type": "weapon",
+    "slot": "mainHand",
+    "cost": 1,
+    "cooldown": 1,
+    "stat": "strength",
+    "hit": 10,
+    "range": "melee",
+    "weaponType": "Sword",
+    "weaponDamage": 2,
+    "damageType": "Physical",
+    "description": "Basic, balanced, and barely exciting—but it'll stab just fine.",
+    "tier": 1,
+    "icon": "⚔️",
+    "traits": [
+      "Sword",
+      "Melee",
+      "Tier 1"
+    ],
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Steel Longsword",
+    "price": 150,
+    "type": "weapon",
+    "slot": "mainHand",
+    "cost": 1,
+    "cooldown": 1,
+    "stat": "strength",
+    "hit": 10,
+    "range": "melee",
+    "weaponType": "One-Hand Sword",
+    "weaponDamage": 3,
+    "damageType": "Physical",
+    "description": "A finely crafted blade of polished steel.",
+    "tier": 2,
+    "icon": "⚔️",
+    "traits": [
+      "Sword",
+      "Melee",
+      "Tier 2"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Steel Greatsword",
+    "price": 200,
+    "type": "weapon",
+    "slot": "mainHand",
+    "hands": 2,
+    "cost": 1,
+    "cooldown": 2,
+    "stat": "strength",
+    "hit": 10,
+    "range": "melee",
+    "weaponType": "Two-Hand Sword",
+    "weaponDamage": 4,
+    "damageType": "Physical",
+    "onHit": {
+      "damageBonus": 1,
+      "threshold": 15
+    },
+    "description": "A massive steel blade that cleaves through armor.",
+    "tier": 2,
+    "icon": "🗡️",
+    "traits": [
+      "Two-Handed",
+      "Melee",
+      "Tier 2"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Large Steel Mace",
+    "price": 200,
+    "type": "weapon",
+    "slot": "mainHand",
+    "hands": 2,
+    "cost": 1,
+    "cooldown": 2,
+    "stat": "strength",
+    "hit": 10,
+    "range": "melee",
+    "weaponType": "Two-Hand Mace",
+    "weaponDamage": 4,
+    "damageType": "Physical",
+    "onHit": {
+      "debuff": {
+        "type": "daze",
+        "duration": 1
+      },
+      "threshold": 15
+    },
+    "description": "A heavy steel crusher that rattles bones on impact.",
+    "tier": 2,
+    "icon": "🔨",
+    "traits": [
+      "Two-Handed",
+      "Melee",
+      "Tier 2"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Steel Great Axe",
+    "price": 200,
+    "type": "weapon",
+    "slot": "mainHand",
+    "hands": 2,
+    "cost": 1,
+    "cooldown": 2,
+    "stat": "strength",
+    "hit": 10,
+    "range": "melee",
+    "weaponType": "Two-Hand Axe",
+    "weaponDamage": 4,
+    "damageType": "Physical",
+    "onHit": {
+      "debuff": {
+        "type": "bleed",
+        "duration": 2,
+        "damage": 1,
+        "damageType": "Physical"
+      },
+      "threshold": 15
+    },
+    "description": "A massive cleaver that leaves grievous wounds.",
+    "tier": 2,
+    "icon": "🪓",
+    "traits": [
+      "Two-Handed",
+      "Melee",
+      "Tier 2"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Flaming Sword",
+    "price": 150,
+    "type": "weapon",
+    "slot": "mainHand",
+    "cost": 1,
+    "cooldown": 1,
+    "stat": "strength",
+    "hit": 10,
+    "range": "melee",
+    "weaponType": "Sword",
+    "weaponDamage": 2,
+    "damageType": "Fire",
+    "description": "A simple iron sword enchanted with ever-burning flames.",
+    "tier": 1,
+    "icon": "🔥⚔️",
+    "traits": [
+      "Sword",
+      "Melee",
+      "Fire",
+      "Tier 1"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Pitchfork",
+    "price": 50,
+    "type": "weapon",
+    "slot": "mainHand",
+    "hands": 2,
+    "cost": 1,
+    "cooldown": 2,
+    "stat": "agility",
+    "hit": 10,
+    "range": "melee",
+    "weaponType": "Two-Hand Polearm",
+    "weaponDamage": 3,
+    "damageType": "Physical",
+    "description": "A farmer's tool pressed into combat.",
+    "onCrit": {
+      "debuff": {
+        "type": "bleed",
+        "duration": 3,
+        "damage": 1,
+        "damageType": "Physical"
+      }
+    },
+    "tier": 1,
+    "icon": "🔱",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Longbow",
+    "price": 100,
+    "type": "weapon",
+    "slot": "mainHand",
+    "hands": 2,
+    "cost": 1,
+    "cooldown": 2,
+    "stat": "agility",
+    "hit": 10,
+    "range": "ranged",
+    "weaponType": "Two-Hand Bow",
+    "weaponDamage": 3,
+    "damageType": "Physical",
+    "description": "A simple wooden bow with frayed string.",
+    "tier": 1,
+    "icon": "🏹",
+    "traits": [
+      "Bow",
+      "Ranged",
+      "Tier 1"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Iron Crossbow",
+    "price": 80,
+    "type": "weapon",
+    "slot": [
+      "mainHand",
+      "offHand"
+    ],
+    "cost": 1,
+    "cooldown": 2,
+    "stat": "agility",
+    "hit": 10,
+    "range": "ranged",
+    "weaponType": "One-Hand Crossbow",
+    "weaponDamage": 2,
+    "damageType": "Physical",
+    "description": "A compact crossbow for one-handed use.",
+    "tier": 1,
+    "icon": "🎯",
+    "traits": [
+      "Crossbow",
+      "Ranged",
+      "Tier 1"
+    ],
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Staff",
+    "price": 100,
+    "type": "weapon",
+    "slot": "mainHand",
+    "hands": 2,
+    "cost": 1,
+    "cooldown": 2,
+    "stat": "wisdom",
+    "hit": 10,
+    "range": "ranged",
+    "weaponType": "Two-Hand Staff",
+    "weaponDamage": 3,
+    "damageType": "Arcane",
+    "description": "A simple wooden staff with a faint magical pulse.",
+    "tier": 1,
+    "icon": "🪄",
+    "traits": [
+      "Staff",
+      "Ranged",
+      "Tier 1"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true,
+    "gemSlot": 1
+  },
+  {
+    "name": "Wizard's Staff (T1)",
+    "price": 120,
+    "type": "weapon",
+    "slot": "mainHand",
+    "hands": 2,
+    "cost": 1,
+    "cooldown": 2,
+    "stat": "wisdom",
+    "hit": 10,
+    "range": "ranged",
+    "weaponType": "Two-Hand Staff",
+    "weaponDamage": 3,
+    "damageType": "Arcane",
+    "bonus": {
+      "wisdom": 1
+    },
+    "description": "A finely crafted staff that channels arcane energy.",
+    "tier": 1,
+    "icon": "✨",
+    "traits": [
+      "Staff",
+      "Ranged",
+      "Tier 1"
+    ],
+    "rarity": "rare",
+    "canBeInMerchantWares": false,
+    "gemSlot": 1
+  },
+  {
+    "name": "Wizard's Staff Recipe (T1)",
+    "price": 50,
+    "type": "recipe",
+    "tier": 1,
+    "description": "Teaches you how to craft Wizard's Staff (T1).",
+    "icon": "📜",
+    "rarity": "uncommon",
+    "learnsRecipe": "Wizard's Staff (T1)",
+    "traits": [
+      "T1 Recipe"
+    ],
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Sludge Staff",
+    "price": 250,
+    "type": "weapon",
+    "slot": "mainHand",
+    "hands": 2,
+    "cost": 1,
+    "cooldown": 2,
+    "stat": "wisdom",
+    "hit": 10,
+    "range": "ranged",
+    "weaponType": "Two-Hand Staff",
+    "weaponDamage": 3,
+    "damageType": "Nature",
+    "bonus": {
+      "wisdom": 1,
+      "naturePower": 2
+    },
+    "onCritThreshold": {
+      "threshold": 15,
+      "debuff": {
+        "type": "poison",
+        "duration": 2,
+        "damage": 1,
+        "damageType": "Nature"
+      }
+    },
+    "description": "A gnarled staff oozing with sewer sludge.",
+    "tier": 1,
+    "icon": "/assets/items/sludge_staff.jpg",
+    "traits": [
+      "Staff",
+      "Ranged",
+      "Nature",
+      "Tier 1"
+    ],
+    "rarity": "rare",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Magna Clavis",
+    "price": 500,
+    "type": "weapon",
+    "slot": "mainHand",
+    "hands": 2,
+    "cost": 1,
+    "cooldown": 2,
+    "stat": "strength",
+    "hit": 10,
+    "range": "melee",
+    "weaponDamage": 5,
+    "damageType": "Physical",
+    "bonus": {
+      "strength": 1,
+      "wisdom": 1
+    },
+    "description": "The legendary key-shaped mace of a forgotten order.",
+    "weaponType": "Two-Hand Mace",
+    "tier": 1,
+    "icon": "🔨",
+    "rarity": "rare",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Iron Spear",
+    "price": 100,
+    "type": "weapon",
+    "slot": "mainHand",
+    "hands": 2,
+    "cost": 1,
+    "cooldown": 2,
+    "stat": "agility",
+    "hit": 10,
+    "range": "melee",
+    "weaponType": "Two-Hand Spear",
+    "weaponDamage": 3,
+    "damageType": "Physical",
+    "description": "Pointy, pokey, and perfect for keeping danger at arm's length.",
+    "tier": 1,
+    "onCrit": {
+      "debuff": {
+        "type": "bleed",
+        "duration": 3,
+        "damage": 1,
+        "damageType": "Physical"
+      }
+    },
+    "icon": "🔱",
+    "traits": [
+      "Spear",
+      "Melee",
+      "Tier 1"
+    ],
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Large Iron Mace",
+    "price": 100,
+    "type": "weapon",
+    "slot": "mainHand",
+    "hands": 2,
+    "cost": 1,
+    "cooldown": 2,
+    "stat": "strength",
+    "hit": 10,
+    "range": "melee",
+    "weaponType": "Two-Hand Mace",
+    "weaponDamage": 3,
+    "damageType": "Physical",
+    "description": "A hefty chunk of iron on a stick—great for cracking skulls.",
+    "tier": 1,
+    "onCrit": {
+      "debuff": {
+        "type": "daze",
+        "duration": 1
+      }
+    },
+    "icon": "🔨",
+    "traits": [
+      "Mace",
+      "Melee",
+      "Tier 1"
+    ],
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Bull Horn",
+    "price": 50,
+    "type": "accessory",
+    "slot": "accessory",
+    "description": "A prized horn from a mighty bull.",
+    "activatedAbility": {
+      "name": "Bull Horn",
+      "cost": 1,
+      "cooldown": 3,
+      "buff": {
+        "type": "War Cry",
+        "duration": 3,
+        "bonus": {
+          "strength": 1,
+          "agility": 1,
+          "wisdom": 1,
+          "defense": 1
+        }
+      },
+      "description": "Gain +1 to all stats for 2 turns."
+    },
+    "tier": 1,
+    "icon": "🐂",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Rat Tail Cloak",
+    "price": 250,
+    "type": "accessory",
+    "slot": "accessory",
+    "bonus": {
+      "agility": 1,
+      "maxHealth": 1
+    },
+    "activatedAbility": {
+      "name": "Cleanse",
+      "cost": 1,
+      "cooldown": 3,
+      "effect": "cleanse",
+      "description": "Remove a Poison or Bleed effect."
+    },
+    "tier": 1,
+    "icon": "🧥",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Quiver",
+    "price": 50,
+    "type": "accessory",
+    "slot": "accessory",
+    "grantsSlot": "ammo",
+    "bonus": {
+      "agility": 1
+    },
+    "description": "A leather holster for arrows that unlocks an ammo slot.",
+    "tier": 1,
+    "icon": "🎒",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Cloak of Shadows",
+    "price": 500,
+    "type": "accessory",
+    "slot": "accessory",
+    "bonus": {
+      "agility": 2,
+      "maxHealth": 2
+    },
+    "activatedAbility": {
+      "name": "Cloak of Shadows",
+      "cost": 1,
+      "cooldown": 3,
+      "buff": {
+        "type": "Stealth",
+        "duration": 2
+      },
+      "bonusThreat": -4,
+      "description": "Gain Stealth for 2 turns and lose 4 Threat."
+    },
+    "description": "A tattered cloak that bends the shadows around its wearer.",
+    "tier": 3,
+    "icon": "🧥",
+    "rarity": "rare",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Vampire's Robe",
+    "price": 500,
+    "type": "armor",
+    "slot": "armor",
+    "bonus": {
+      "wisdom": 3,
+      "maxHealth": 3,
+      "holyPower": -1,
+      "shadowPower": 1
+    },
+    "hasSocket": true,
+    "description": "Dark robes infused with vampiric essence.",
+    "tier": 3,
+    "icon": "👘",
+    "traits": [
+      "Light",
+      "Shadow",
+      "Tier 3"
+    ],
+    "rarity": "rare",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Iron Shield",
+    "price": 70,
+    "type": "shield",
+    "slot": "offHand",
+    "weaponType": "Shield",
+    "cost": 1,
+    "cooldown": 3,
+    "stat": "defense",
+    "hit": 10,
+    "range": "melee",
+    "reaction": {
+      "type": "block",
+      "value": 2,
+      "hit": 10,
+      "stat": "defense"
+    },
+    "description": "Solid enough to stop a charging pig.",
+    "tier": 1,
+    "icon": "🛡️",
+    "weaponDamage": 2,
+    "damageType": "Physical",
+    "traits": [
+      "Shield",
+      "Melee",
+      "Weapon",
+      "Tier 1"
+    ],
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Iron Helm",
+    "price": 70,
+    "type": "armor",
+    "slot": "helmet",
+    "bonus": {
+      "strength": 1,
+      "maxHealth": 1,
+      "defense": 1
+    },
+    "description": "A clunky metal helmet that protects your skull.",
+    "tier": 1,
+    "icon": "🪖",
+    "traits": [
+      "Heavy",
+      "Physical",
+      "Tier 1"
+    ],
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Iron Armor",
+    "price": 100,
+    "type": "armor",
+    "slot": "armor",
+    "bonus": {
+      "strength": 1,
+      "defense": 1,
+      "maxHealth": 1
+    },
+    "description": "A rugged full-metal suit offering solid protection.",
+    "tier": 1,
+    "icon": "👕",
+    "traits": [
+      "Heavy",
+      "Physical",
+      "Tier 1"
+    ],
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Steel Armor",
+    "price": 200,
+    "type": "armor",
+    "slot": "armor",
+    "bonus": {
+      "strength": 1,
+      "defense": 1,
+      "maxHealth": 1,
+      "physicalResistance": 1
+    },
+    "description": "Tougher than iron and twice as shiny.",
+    "tier": 2,
+    "icon": "👕",
+    "traits": [
+      "Heavy",
+      "Physical",
+      "Tier 2"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false,
+    "gemSlot": true
+  },
+  {
+    "name": "Steel Helm (T2)",
+    "price": 300,
+    "type": "armor",
+    "slot": "helmet",
+    "bonus": {
+      "strength": 1,
+      "defense": 1,
+      "maxHealth": 1,
+      "physicalResistance": 1
+    },
+    "description": "A polished steel helm forged for battle.",
+    "tier": 2,
+    "icon": "🪖",
+    "traits": [
+      "Heavy",
+      "Physical",
+      "Tier 2"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Steel Boots (T2)",
+    "price": 300,
+    "type": "armor",
+    "slot": "boots",
+    "bonus": {
+      "strength": 1,
+      "defense": 1,
+      "maxHealth": 1,
+      "physicalResistance": 1
+    },
+    "description": "Polished steel boots built for heavy combat.",
+    "tier": 2,
+    "icon": "👢",
+    "traits": [
+      "Heavy",
+      "Physical",
+      "Tier 2"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Leather Armor",
+    "price": 100,
+    "type": "armor",
+    "slot": "armor",
+    "bonus": {
+      "agility": 1,
+      "maxHealth": 1
+    },
+    "description": "Lightweight and flexible, offering modest protection.",
+    "tier": 1,
+    "icon": "👕",
+    "traits": [
+      "Medium",
+      "Physical",
+      "Tier 1"
+    ],
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Ranger Armor (T2)",
+    "price": 300,
+    "type": "armor",
+    "slot": "armor",
+    "bonus": {
+      "agility": 2,
+      "maxHealth": 1
+    },
+    "description": "High-quality leather armor for a master archer.",
+    "tier": 2,
+    "icon": "👕",
+    "traits": [
+      "Medium",
+      "Physical",
+      "Tier 2"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true,
+    "gemSlot": true
+  },
+  {
+    "name": "Leather Cowl",
+    "price": 70,
+    "type": "armor",
+    "slot": "helmet",
+    "bonus": {
+      "agility": 1,
+      "maxHealth": 1
+    },
+    "description": "A simple leather cap that cushions light blows.",
+    "tier": 1,
+    "icon": "🪖",
+    "traits": [
+      "Medium",
+      "Physical",
+      "Tier 1"
+    ],
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Ranger Cowl (T2)",
+    "price": 300,
+    "type": "armor",
+    "slot": "helmet",
+    "bonus": {
+      "agility": 2,
+      "maxHealth": 1
+    },
+    "description": "A hood that blends into the forest.",
+    "tier": 2,
+    "icon": "🪖",
+    "traits": [
+      "Medium",
+      "Physical",
+      "Tier 2"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Wizard Robe",
+    "price": 100,
+    "type": "armor",
+    "slot": "armor",
+    "bonus": {
+      "wisdom": 1,
+      "maxHealth": 1
+    },
+    "description": "A flowing garment woven with arcane threads.",
+    "tier": 1,
+    "icon": "👘",
+    "traits": [
+      "Light",
+      "Magical",
+      "Tier 1"
+    ],
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Silk Wizard Robes (T2)",
+    "price": 300,
+    "type": "armor",
+    "slot": "armor",
+    "bonus": {
+      "wisdom": 2,
+      "maxHealth": 1
+    },
+    "description": "Luxurious robes woven from enchanted spider silk.",
+    "tier": 2,
+    "icon": "👘",
+    "traits": [
+      "Light",
+      "Magical",
+      "Tier 2"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true,
+    "gemSlot": true
+  },
+  {
+    "name": "Wizard Hat",
+    "price": 70,
+    "type": "armor",
+    "slot": "helmet",
+    "bonus": {
+      "wisdom": 1
+    },
+    "description": "A pointed cap favored by mages.",
+    "tier": 1,
+    "icon": "🧙",
+    "traits": [
+      "Light",
+      "Magical",
+      "Tier 1"
+    ],
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Silk Wizard Hat (T2)",
+    "price": 300,
+    "type": "armor",
+    "slot": "helmet",
+    "bonus": {
+      "wisdom": 2,
+      "maxHealth": 1
+    },
+    "description": "A silky hat that crackles with static magic.",
+    "tier": 2,
+    "icon": "🧙",
+    "traits": [
+      "Light",
+      "Magical",
+      "Tier 2"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Amulet of Strength",
+    "price": 80,
+    "type": "accessory",
+    "slot": "accessory",
+    "bonus": {
+      "strength": 1
+    },
+    "description": "A simple amulet that pulses with inner power.",
+    "tier": 1,
+    "icon": "💎",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Iron Boots",
+    "price": 70,
+    "type": "armor",
+    "slot": "boots",
+    "bonus": {
+      "strength": 1,
+      "maxHealth": 1,
+      "defense": 1
+    },
+    "description": "Heavy, loud, and not made for dancing.",
+    "tier": 1,
+    "icon": "👢",
+    "traits": [
+      "Heavy",
+      "Physical",
+      "Tier 1"
+    ],
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Leather Boots",
+    "price": 70,
+    "type": "armor",
+    "slot": "boots",
+    "bonus": {
+      "agility": 1
+    },
+    "description": "Durable boots for rough terrain.",
+    "tier": 1,
+    "icon": "👢",
+    "traits": [
+      "Medium",
+      "Physical",
+      "Tier 1"
+    ],
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Ranger Boots (T2)",
+    "price": 300,
+    "type": "armor",
+    "slot": "boots",
+    "bonus": {
+      "agility": 2,
+      "maxHealth": 1
+    },
+    "description": "Silent boots for stalking prey.",
+    "tier": 2,
+    "icon": "👢",
+    "traits": [
+      "Medium",
+      "Physical",
+      "Tier 2"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Cloth Boots",
+    "price": 70,
+    "type": "armor",
+    "slot": "boots",
+    "bonus": {
+      "wisdom": 1
+    },
+    "description": "Lightweight boots for quiet steps.",
+    "tier": 1,
+    "icon": "👢",
+    "traits": [
+      "Light",
+      "Magical",
+      "Tier 1"
+    ],
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Silk Wizard Boots (T2)",
+    "price": 300,
+    "type": "armor",
+    "slot": "boots",
+    "bonus": {
+      "wisdom": 2,
+      "maxHealth": 1
+    },
+    "description": "Soft boots woven from enchanted silk.",
+    "tier": 2,
+    "icon": "👢",
+    "traits": [
+      "Light",
+      "Magical",
+      "Tier 2"
+    ],
+    "rarity": "uncommon",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Iron",
+    "type": "material",
+    "tier": 1,
+    "price": 10,
+    "description": "A chunk of raw iron.",
+    "icon": "🪨",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Salt",
+    "type": "material",
+    "price": 10,
+    "description": "Enhances the flavor of food.",
+    "icon": "🧂",
+    "rarity": "common"
+  },
+  {
+    "name": "Slop",
+    "type": "material",
+    "price": 1,
+    "description": "Disgusting slop from the composting bin. Might be useful later.",
+    "icon": "🪣",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Wood",
+    "type": "material",
+    "tier": 1,
+    "price": 5,
+    "description": "A sturdy log of wood.",
+    "icon": "🪵",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Fish",
+    "type": "material",
+    "tier": 1,
+    "price": 8,
+    "description": "A fresh fish.",
+    "icon": "🐟",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Pork",
+    "type": "material",
+    "tier": 1,
+    "price": 10,
+    "description": "A slab of raw pork.",
+    "icon": "🍖",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Cow Hide",
+    "type": "material",
+    "tier": 1,
+    "price": 15,
+    "description": "A tough piece of leather.",
+    "icon": "🐮",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Vines",
+    "type": "material",
+    "tier": 1,
+    "price": 15,
+    "description": "A length of sturdy vine.",
+    "icon": "🌿",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Coal",
+    "type": "material",
+    "tier": 1,
+    "price": 15,
+    "description": "A lump of coal.",
+    "icon": "⚫",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Goblin Head",
+    "type": "material",
+    "tier": 1,
+    "price": 30,
+    "description": "A gruesome trophy.",
+    "icon": "💀",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Animal Fat",
+    "type": "material",
+    "tier": 1,
+    "price": 5,
+    "description": "A greasy lump of fat.",
+    "icon": "🧈",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Steel Bar",
+    "type": "material",
+    "tier": 2,
+    "price": 50,
+    "description": "A strong metal bar.",
+    "icon": "🔗",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Spices",
+    "type": "material",
+    "tier": 1,
+    "price": 10,
+    "description": "A blend of savory spices.",
+    "icon": "🌶️",
+    "stackable": 200,
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Cloth",
+    "type": "material",
+    "tier": 1,
+    "price": 8,
+    "description": "A piece of rough cloth.",
+    "icon": "📜",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Gold Nugget",
+    "type": "material",
+    "tier": 1,
+    "price": 50,
+    "description": "A small but valuable nugget of pure gold.",
+    "icon": "🪙",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Gorbon's Crown",
+    "type": "armor",
+    "slot": "helmet",
+    "tier": 1,
+    "price": 200,
+    "bonus": {
+      "strength": 1,
+      "wisdom": 1,
+      "maxHealth": 2
+    },
+    "description": "The crude but imposing crown of the Goblin King.",
+    "icon": "👑",
+    "rarity": "rare",
+    "canBeInMerchantWares": false,
+    "bossExclusive": true
+  },
+  {
+    "name": "Gorbon's Royal Mace",
+    "type": "weapon",
+    "slot": "mainHand",
+    "tier": 1,
+    "cost": 1,
+    "cooldown": 2,
+    "stat": "strength",
+    "hit": 10,
+    "range": "melee",
+    "weaponType": "Mace",
+    "weaponDamage": 4,
+    "damageType": "Physical",
+    "price": 250,
+    "onHit": {
+      "debuff": {
+        "type": "daze",
+        "duration": 1
+      }
+    },
+    "description": "A heavy mace adorned with stolen trinkets.",
+    "icon": "🔨",
+    "rarity": "rare",
+    "canBeInMerchantWares": false,
+    "bossExclusive": true
+  },
+  {
+    "name": "Shaman's Fetish",
+    "type": "accessory",
+    "slot": "accessory",
+    "tier": 1,
+    "price": 100,
+    "bonus": {
+      "wisdom": 2
+    },
+    "description": "A strange totem that enhances magical power.",
+    "icon": "🪬",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Arrow Bundle",
+    "type": "material",
+    "tier": 1,
+    "price": 15,
+    "description": "A bundle of crude goblin arrows.",
+    "icon": "➡️",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Archer's Shortbow",
+    "type": "weapon",
+    "slot": "mainHand",
+    "tier": 1,
+    "hands": 2,
+    "cost": 1,
+    "cooldown": 1,
+    "stat": "agility",
+    "hit": 10,
+    "range": "ranged",
+    "weaponType": "Two-Hand Bow",
+    "weaponDamage": 2,
+    "damageType": "Physical",
+    "price": 80,
+    "description": "A compact bow favored by goblin archers.",
+    "icon": "🏹",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Warrior's Cleaver",
+    "type": "weapon",
+    "slot": "mainHand",
+    "tier": 1,
+    "cost": 1,
+    "cooldown": 2,
+    "stat": "strength",
+    "hit": 10,
+    "range": "melee",
+    "weaponType": "One-Hand Axe",
+    "weaponDamage": 3,
+    "damageType": "Physical",
+    "price": 90,
+    "onCrit": {
+      "debuff": {
+        "type": "bleed",
+        "duration": 2,
+        "damage": 1,
+        "damageType": "Physical"
+      }
+    },
+    "description": "A brutal cleaver used by goblin warriors.",
+    "icon": "🪓",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Goblin Head",
+    "type": "material",
+    "tier": 1,
+    "price": 30,
+    "description": "A gruesome trophy.",
+    "icon": "💀",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Egg",
+    "type": "material",
+    "tier": 1,
+    "price": 5,
+    "description": "A fresh egg.",
+    "icon": "🥚",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Raw Chicken",
+    "type": "material",
+    "tier": 1,
+    "price": 8,
+    "description": "Uncooked chicken meat.",
+    "icon": "🍗",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Raw Beef",
+    "type": "material",
+    "tier": 1,
+    "price": 10,
+    "description": "Uncooked beef.",
+    "icon": "🥩",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Milk",
+    "type": "material",
+    "tier": 1,
+    "price": 6,
+    "description": "A bottle of fresh milk.",
+    "icon": "🥛",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Wheat",
+    "type": "material",
+    "tier": 1,
+    "price": 4,
+    "description": "A bundle of wheat.",
+    "icon": "🌾",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Hemp",
+    "type": "material",
+    "tier": 1,
+    "price": 5,
+    "description": "A fibrous plant stalk, useful for making cloth.",
+    "icon": "🌿",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Carrot",
+    "type": "material",
+    "tier": 1,
+    "price": 5,
+    "description": "A crunchy, orange root vegetable.",
+    "icon": "🥕",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Feather",
+    "type": "material",
+    "tier": 1,
+    "price": 2,
+    "description": "A small, light feather.",
+    "icon": "🪶",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Rooster Spur",
+    "type": "material",
+    "tier": 1,
+    "price": 15,
+    "description": "A sharp rooster spur! Someone might be able to make something with this.",
+    "icon": "🦴",
+    "rarity": "rare",
+    "canBeInMerchantWares": false,
+    "bossExclusive": true
+  },
+  {
+    "name": "Goblin Lucky Charm",
+    "type": "questItem",
+    "tier": 1,
+    "price": 0,
+    "description": "A strange, surprisingly shiny goblin trinket.",
+    "icon": "🍀",
+    "rarity": "quest",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Rat Meat",
+    "type": "material",
+    "tier": 1,
+    "price": 5,
+    "description": "Chewy but edible.",
+    "icon": "🥩",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Rat Eye",
+    "type": "material",
+    "tier": 1,
+    "price": 10,
+    "description": "A beady red eye.",
+    "icon": "👁️",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Rat Tail",
+    "type": "material",
+    "tier": 1,
+    "price": 8,
+    "description": "A long, pink tail.",
+    "icon": "🐀",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Plague Essence",
+    "type": "material",
+    "tier": 1,
+    "price": 50,
+    "description": "A vial of green, glowing ooze.",
+    "icon": "🧪",
+    "rarity": "rare",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Rat King's Crown",
+    "type": "armor",
+    "slot": "helmet",
+    "price": 300,
+    "bonus": {
+      "strength": 1,
+      "agility": 2,
+      "maxHealth": 2
+    },
+    "description": "A jagged crown worn by the Rat King.",
+    "tier": 1,
+    "icon": "👑",
+    "rarity": "rare",
+    "canBeInMerchantWares": false,
+    "bossExclusive": true
+  },
+  {
+    "name": "Old Family Recipe",
+    "type": "questItem",
+    "tier": 1,
+    "price": 0,
+    "description": "A faded parchment with an arcane formula. The Fortune Teller might be interested in this.",
+    "icon": "📜",
+    "rarity": "quest",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Tier 1 Gemstone",
+    "type": "material",
+    "tier": 1,
+    "price": 25,
+    "description": "A rough, uncut gemstone with latent magical potential.",
+    "icon": "💎",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Magic Essence",
+    "type": "material",
+    "tier": 1,
+    "price": 30,
+    "description": "A shimmering vial of pure magical energy.",
+    "icon": "✨",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Gem of Strength",
+    "type": "gem",
+    "tier": 1,
+    "price": 100,
+    "gemBonus": {
+      "strength": 1
+    },
+    "description": "A crimson gem that pulses with raw power.",
+    "icon": "🔴",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Gem of Agility",
+    "type": "gem",
+    "tier": 1,
+    "price": 100,
+    "gemBonus": {
+      "agility": 1
+    },
+    "description": "A verdant gem that shimmers with swift energy.",
+    "icon": "🟢",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Gem of Wisdom",
+    "type": "gem",
+    "tier": 1,
+    "price": 100,
+    "gemBonus": {
+      "wisdom": 1
+    },
+    "description": "A sapphire gem that glows with arcane knowledge.",
+    "icon": "🔵",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Gem of Fortitude",
+    "type": "gem",
+    "tier": 1,
+    "price": 100,
+    "gemBonus": {
+      "defense": 1,
+      "maxHealth": 1
+    },
+    "description": "A golden gem that radiates endurance.",
+    "icon": "🟡",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Gem of Fire",
+    "type": "gem",
+    "tier": 1,
+    "price": 100,
+    "gemBonus": {
+      "firePower": 1
+    },
+    "description": "A flame-orange gem that burns with inner heat.",
+    "icon": "🟠",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Gem of Arcane",
+    "type": "gem",
+    "tier": 1,
+    "price": 100,
+    "gemBonus": {
+      "arcanePower": 1
+    },
+    "description": "A violet gem crackling with magical energy.",
+    "icon": "🟣",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Gem of Nature",
+    "type": "gem",
+    "tier": 1,
+    "price": 100,
+    "gemBonus": {
+      "naturePower": 1
+    },
+    "description": "A deep green gem thrumming with primal life.",
+    "icon": "💚",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Gem of Might",
+    "type": "gem",
+    "tier": 1,
+    "price": 100,
+    "gemBonus": {
+      "physicalPower": 1
+    },
+    "description": "A steel-grey gem dense with martial fury.",
+    "icon": "⚪",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Gem of Frost",
+    "type": "gem",
+    "tier": 1,
+    "price": 100,
+    "gemBonus": {
+      "frostPower": 1
+    },
+    "description": "An icy blue gem radiating cold.",
+    "icon": "🧊",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Gem of Holy",
+    "type": "gem",
+    "tier": 1,
+    "price": 100,
+    "gemBonus": {
+      "holyPower": 1
+    },
+    "description": "A radiant white gem glowing with divine light.",
+    "icon": "⭐",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Gem of Shadow",
+    "type": "gem",
+    "tier": 1,
+    "price": 100,
+    "gemBonus": {
+      "shadowPower": 1
+    },
+    "description": "A dark gem wreathed in shadows.",
+    "icon": "🌑",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Tanin",
+    "type": "material",
+    "tier": 1,
+    "price": 10,
+    "description": "A tanning agent used in leather working.",
+    "icon": "🧴",
+    "rarity": "common",
+    "canBeInMerchantWares": true,
+    "permanentMerchantStock": true
+  },
+  {
+    "name": "Hide",
+    "type": "material",
+    "tier": 2,
+    "price": 15,
+    "description": "A raw animal hide, ready to be processed into leather.",
+    "icon": "🦮",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Leather",
+    "type": "material",
+    "tier": 2,
+    "price": 25,
+    "description": "Processed leather, suitable for crafting armor and equipment.",
+    "icon": "🧥",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Silk",
+    "type": "material",
+    "tier": 2,
+    "price": 40,
+    "description": "Fine silk woven from spider threads.",
+    "icon": "🧵",
+    "rarity": "uncommon",
+    "canBeInMerchantWares": false
+  },
+  {
+    "name": "Thread",
+    "type": "material",
+    "tier": 1,
+    "price": 5,
+    "description": "A spool of simple thread.",
+    "icon": "🧶",
+    "rarity": "common",
+    "canBeInMerchantWares": true
+  },
+  {
+    "name": "Rocks",
+    "type": "material",
+    "tier": 1,
+    "price": 5,
+    "description": "A pile of rough stones from the goblin caves.",
+    "icon": "🪨",
+    "rarity": "common",
+    "canBeInMerchantWares": false
+  }
+]

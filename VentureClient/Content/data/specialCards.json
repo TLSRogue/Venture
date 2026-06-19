@@ -1,0 +1,971 @@
+{
+  "sewerRat": {
+    "name": "Sewer Rat",
+    "type": "enemy",
+    "health": 6,
+    "maxHealth": 6,
+    "icon": "🐀",
+    "imageUrl": "/assets/sewer-rat.jpg",
+    "attackTable": [
+      {
+        "range": [
+          1,
+          3
+        ],
+        "action": "miss",
+        "message": "Miss!"
+      },
+      {
+        "range": [
+          4,
+          20
+        ],
+        "action": "attack",
+        "attackRange": "melee",
+        "damage": 2,
+        "damageType": "Physical",
+        "message": "Bite! Deals 2 Physical Damage!"
+      }
+    ],
+    "guaranteedLoot": {
+      "items": [
+        "Rat Meat"
+      ]
+    },
+    "lootTable": [
+      {
+        "range": [
+          1,
+          10
+        ],
+        "items": [
+          "Rat Tail"
+        ]
+      },
+      {
+        "range": [
+          11,
+          15
+        ],
+        "items": [
+          "Rat Tail",
+          "Rat Eye"
+        ]
+      },
+      {
+        "range": [
+          16,
+          19
+        ],
+        "items": [
+          "Rat Tail",
+          "Rat Eye",
+          "Rat Eye"
+        ]
+      },
+      {
+        "range": [
+          20,
+          20
+        ],
+        "items": [
+          "Rat Tail",
+          "Rat Eye",
+          "Rat Eye",
+          "Rat Meat"
+        ]
+      }
+    ]
+  },
+  "plagueRat": {
+    "name": "Plague Rat",
+    "type": "enemy",
+    "health": 10,
+    "maxHealth": 10,
+    "icon": "🐀",
+    "imageUrl": "/assets/plague-rat.jpg",
+    "attackTable": [
+      {
+        "range": [
+          1,
+          3
+        ],
+        "action": "miss",
+        "message": "Miss!"
+      },
+      {
+        "range": [
+          4,
+          14
+        ],
+        "action": "attack",
+        "attackRange": "melee",
+        "damage": 3,
+        "damageType": "Physical",
+        "message": "Maul! Deals 3 Physical Damage!"
+      },
+      {
+        "range": [
+          15,
+          20
+        ],
+        "action": "attack",
+        "attackRange": "melee",
+        "damage": 2,
+        "damageType": "Nature",
+        "debuff": {
+          "type": "poison",
+          "duration": 2,
+          "damage": 1,
+          "damageType": "Nature"
+        },
+        "message": "Infectious Bite! Deals 2 Nature Damage and Poisons!"
+      }
+    ],
+    "guaranteedLoot": {
+      "items": [
+        "Rat Meat",
+        "Rat Tail"
+      ]
+    },
+    "lootTable": [
+      {
+        "range": [
+          1,
+          10
+        ],
+        "items": [
+          "Rat Eye"
+        ]
+      },
+      {
+        "range": [
+          11,
+          15
+        ],
+        "items": [
+          "Rat Eye",
+          "Rat Tail"
+        ]
+      },
+      {
+        "range": [
+          16,
+          19
+        ],
+        "items": [
+          "Rat Tail",
+          "Plague Essence"
+        ]
+      },
+      {
+        "range": [
+          20,
+          20
+        ],
+        "items": [
+          "Plague Essence",
+          "Plague Essence"
+        ]
+      }
+    ]
+  },
+  "goblinWarrior": {
+    "name": "Goblin Warrior",
+    "type": "enemy",
+    "health": 7,
+    "maxHealth": 7,
+    "description": "A brutish goblin warrior.",
+    "icon": "👺",
+    "imageUrl": "/assets/goblincaves-warrior.jpg",
+    "attackTable": [
+      {
+        "range": [
+          1,
+          3
+        ],
+        "action": "miss",
+        "message": "The warrior swings wildly. Miss!"
+      },
+      {
+        "range": [
+          4,
+          12
+        ],
+        "action": "attack",
+        "attackRange": "melee",
+        "damage": 4,
+        "damageType": "Physical",
+        "message": "Brutal Swing! Deals 4 Physical Damage!"
+      },
+      {
+        "range": [
+          13,
+          17
+        ],
+        "action": "attack",
+        "attackRange": "melee",
+        "damage": 3,
+        "damageType": "Physical",
+        "debuff": {
+          "type": "daze",
+          "duration": 2
+        },
+        "message": "Headbutt! Deals 3 Physical Damage and Dazes!"
+      },
+      {
+        "range": [
+          18,
+          20
+        ],
+        "action": "attack",
+        "attackRange": "melee",
+        "damage": 5,
+        "damageType": "Physical",
+        "message": "Overhead Smash! Deals 5 Physical Damage!"
+      }
+    ],
+    "reactions": [
+      {
+        "name": "Parry",
+        "cooldown": 2,
+        "triggerOn": "melee",
+        "roll": 11,
+        "damage": 3,
+        "damageType": "Physical",
+        "message": "The Goblin Warrior parries and counter-attacks!"
+      }
+    ],
+    "guaranteedLoot": {
+      "gold": {
+        "min": 1,
+        "max": 20
+      }
+    },
+    "lootTable": [
+      {
+        "range": [
+          1,
+          10
+        ],
+        "fromCategory": "T1 Material"
+      },
+      {
+        "range": [
+          11,
+          15
+        ],
+        "fromCategories": [
+          "T1 Weapon",
+          "T1 Equipment"
+        ]
+      },
+      {
+        "range": [
+          16,
+          19
+        ],
+        "items": [
+          "Thread",
+          "Whetstone"
+        ]
+      },
+      {
+        "range": [
+          20,
+          20
+        ],
+        "items": [
+          "Warrior's Cleaver",
+          "Whetstone"
+        ]
+      }
+    ]
+  },
+  "goblinArcher": {
+    "name": "Goblin Archer",
+    "type": "enemy",
+    "health": 6,
+    "maxHealth": 6,
+    "description": "A sneaky goblin archer.",
+    "icon": "👺",
+    "imageUrl": "/assets/goblincaves-archer.jpg",
+    "attackTable": [
+      {
+        "range": [
+          1,
+          3
+        ],
+        "action": "miss",
+        "message": "The arrow whizzes past. Miss!"
+      },
+      {
+        "range": [
+          4,
+          12
+        ],
+        "action": "attack",
+        "attackRange": "ranged",
+        "damage": 3,
+        "damageType": "Physical",
+        "message": "Barbed Arrow! Deals 3 Physical Damage!"
+      },
+      {
+        "range": [
+          13,
+          17
+        ],
+        "action": "attack",
+        "attackRange": "ranged",
+        "damage": 2,
+        "damageType": "Physical",
+        "debuff": {
+          "type": "bleed",
+          "duration": 2,
+          "damage": 1,
+          "damageType": "Physical"
+        },
+        "message": "Serrated Arrow! Deals 2 Physical Damage and causes Bleed!"
+      },
+      {
+        "range": [
+          18,
+          20
+        ],
+        "action": "attack",
+        "attackRange": "ranged",
+        "damage": 4,
+        "damageType": "Physical",
+        "debuff": {
+          "type": "trap",
+          "duration": 1
+        },
+        "message": "Net Trap! Deals 4 Physical Damage and Traps you!"
+      }
+    ],
+    "reactions": [
+      {
+        "name": "Evasive Shot",
+        "cooldown": 2,
+        "triggerOn": [
+          "melee",
+          "ranged"
+        ],
+        "roll": 11,
+        "damage": 3,
+        "damageType": "Physical",
+        "message": "The Archer dodges and fires a quick shot!"
+      }
+    ],
+    "guaranteedLoot": {
+      "gold": {
+        "min": 1,
+        "max": 20
+      }
+    },
+    "lootTable": [
+      {
+        "range": [
+          1,
+          10
+        ],
+        "fromCategory": "T1 Material"
+      },
+      {
+        "range": [
+          11,
+          15
+        ],
+        "fromCategories": [
+          "T1 Weapon",
+          "T1 Equipment"
+        ]
+      },
+      {
+        "range": [
+          16,
+          19
+        ],
+        "items": [
+          "Thread",
+          "Feather"
+        ]
+      },
+      {
+        "range": [
+          20,
+          20
+        ],
+        "items": [
+          "Archer's Shortbow",
+          "Feather"
+        ]
+      }
+    ]
+  },
+  "goblinShaman": {
+    "name": "Goblin Shaman",
+    "type": "enemy",
+    "health": 6,
+    "maxHealth": 6,
+    "description": "A mystical goblin shaman.",
+    "icon": "👺",
+    "imageUrl": "/assets/goblincaves-shaman.jpg",
+    "attackTable": [
+      {
+        "range": [
+          1,
+          3
+        ],
+        "action": "miss",
+        "message": "The Shaman's hex fizzles. Miss!"
+      },
+      {
+        "range": [
+          4,
+          12
+        ],
+        "action": "attack",
+        "attackRange": "ranged",
+        "isMagic": true,
+        "damage": 3,
+        "damageType": "Nature",
+        "message": "Hex! Deals 3 Nature Damage!"
+      },
+      {
+        "range": [
+          13,
+          17
+        ],
+        "action": "attack",
+        "attackRange": "ranged",
+        "isMagic": true,
+        "damage": 2,
+        "damageType": "Nature",
+        "debuff": {
+          "type": "poison",
+          "duration": 2,
+          "damage": 1,
+          "damageType": "Nature"
+        },
+        "message": "Toxic Curse! Deals 2 Nature Damage and Poisons!"
+      },
+      {
+        "range": [
+          18,
+          20
+        ],
+        "action": "special",
+        "isMagic": true,
+        "message": "The Shaman chants and heals an ally!"
+      }
+    ],
+    "reactions": [
+      {
+        "name": "Hex Ward",
+        "cooldown": 2,
+        "triggerOn": "magic",
+        "roll": 11,
+        "blockAmount": 3,
+        "message": "The Shaman's ward absorbs the magic!"
+      }
+    ],
+    "guaranteedLoot": {
+      "gold": {
+        "min": 1,
+        "max": 20
+      }
+    },
+    "lootTable": [
+      {
+        "range": [
+          1,
+          10
+        ],
+        "fromCategory": "T1 Material"
+      },
+      {
+        "range": [
+          11,
+          15
+        ],
+        "fromCategories": [
+          "T1 Weapon",
+          "T1 Equipment"
+        ]
+      },
+      {
+        "range": [
+          16,
+          19
+        ],
+        "items": [
+          "Thread",
+          "Magic Essence"
+        ]
+      },
+      {
+        "range": [
+          20,
+          20
+        ],
+        "items": [
+          "Shaman's Fetish",
+          "Magic Essence"
+        ]
+      }
+    ]
+  },
+  "powderKeg": {
+    "name": "Powder Keg",
+    "type": "enemy",
+    "health": 6,
+    "maxHealth": 6,
+    "description": "It's fizzing ominously.",
+    "charges": 0,
+    "icon": "💣",
+    "imageUrl": "/assets/powder-keg.jpg",
+    "attackTable": [
+      {
+        "range": [
+          1,
+          20
+        ],
+        "action": "special",
+        "message": "The Powder Keg fizzes..."
+      }
+    ]
+  },
+  "lootGoblin": {
+    "name": "Loot Goblin",
+    "type": "enemy",
+    "health": 6,
+    "maxHealth": 6,
+    "tier": 1,
+    "description": "A greedy goblin carrying a massive sack of loot!",
+    "icon": "💰",
+    "imageUrl": "/assets/loot-goblin.jpg",
+    "stolenGold": 0,
+    "attackTable": [
+      {
+        "range": [
+          1,
+          10
+        ],
+        "action": "special",
+        "message": "The Loot Goblin dances around, taunting you!"
+      },
+      {
+        "range": [
+          11,
+          15
+        ],
+        "action": "special",
+        "message": "Pickpocket! The goblin quickly snatches some of your gold!"
+      },
+      {
+        "range": [
+          16,
+          20
+        ],
+        "action": "special",
+        "message": "The Loot Goblin opens a portal and escapes!"
+      }
+    ]
+  },
+  "stoneColumn": {
+    "name": "Stone Column",
+    "type": "enemy",
+    "health": 8,
+    "maxHealth": 8,
+    "description": "A sturdy stone column. Vexor uses these for cover.",
+    "icon": "🏛️",
+    "imageUrl": "/assets/arena-column.jpg",
+    "isTargetable": true,
+    "attackTable": [
+      {
+        "range": [
+          1,
+          20
+        ],
+        "action": "miss",
+        "message": "The column stands firm."
+      }
+    ]
+  },
+  "vampireAssistant": {
+    "name": "Vampire's Assistant",
+    "type": "enemy",
+    "health": 20,
+    "maxHealth": 20,
+    "description": "A ghoulish servant of the Vampire.",
+    "icon": "🧟",
+    "imageUrl": "/assets/darkforest-vampireassistant.jpg",
+    "attackTable": [
+      {
+        "range": [
+          1,
+          3
+        ],
+        "action": "miss",
+        "message": "Miss!"
+      },
+      {
+        "range": [
+          4,
+          10
+        ],
+        "action": "attack",
+        "attackRange": "melee",
+        "damage": 3,
+        "damageType": "Physical",
+        "debuff": {
+          "type": "bleed",
+          "duration": 2,
+          "damage": 1,
+          "damageType": "Physical"
+        },
+        "message": "Stab! Deals 3 Physical Damage and causes Bleeding!"
+      },
+      {
+        "range": [
+          11,
+          20
+        ],
+        "action": "special",
+        "message": "The Assistant drags in a human victim for its master!"
+      }
+    ],
+    "guaranteedLoot": {
+      "items": [
+        "Cloth"
+      ]
+    },
+    "lootTable": [
+      {
+        "range": [
+          1,
+          10
+        ],
+        "items": [
+          "Thread"
+        ]
+      },
+      {
+        "range": [
+          11,
+          15
+        ],
+        "items": [
+          "Thread",
+          "Dark Crystal"
+        ]
+      },
+      {
+        "range": [
+          16,
+          19
+        ],
+        "items": [
+          "Dark Crystal",
+          "Silk"
+        ]
+      },
+      {
+        "range": [
+          20,
+          20
+        ],
+        "items": [
+          "Dark Crystal",
+          "Silk",
+          "Magic Essence"
+        ]
+      }
+    ]
+  },
+  "humanVictim": {
+    "name": "Human Victim",
+    "type": "enemy",
+    "health": 6,
+    "maxHealth": 6,
+    "description": "A helpless victim. The Vampire will consume them if not saved!",
+    "icon": "😱",
+    "imageUrl": "/assets/darkforest-humanvictim.jpg",
+    "turnsUntilConsumed": 2,
+    "attackTable": [
+      {
+        "range": [
+          1,
+          20
+        ],
+        "action": "special",
+        "message": "The victim lies there, dying..."
+      }
+    ]
+  },
+  "grayWolf": {
+    "name": "Gray Wolf",
+    "type": "enemy",
+    "health": 16,
+    "maxHealth": 16,
+    "description": "A fierce predator called by the pack.",
+    "icon": "🐺",
+    "imageUrl": "/assets/darkforest-graywolf.jpg",
+    "questTarget": "Dark Forest Enemy",
+    "attackTable": [
+      {
+        "range": [
+          1,
+          3
+        ],
+        "action": "miss",
+        "message": "Miss!"
+      },
+      {
+        "range": [
+          4,
+          10
+        ],
+        "action": "attack",
+        "attackRange": "melee",
+        "damage": 5,
+        "damageType": "Physical",
+        "message": "Bite! Deals 5 Physical Damage!"
+      },
+      {
+        "range": [
+          11,
+          17
+        ],
+        "action": "attack",
+        "attackRange": "melee",
+        "damage": 5,
+        "damageType": "Physical",
+        "debuff": {
+          "type": "daze",
+          "duration": 1
+        },
+        "message": "Pounce! Deals 5 Physical Damage and Dazes!"
+      },
+      {
+        "range": [
+          18,
+          20
+        ],
+        "action": "special",
+        "message": "Howl! The wolf calls for reinforcements!"
+      }
+    ],
+    "guaranteedLoot": {
+      "items": [
+        "Hide"
+      ]
+    },
+    "lootTable": [
+      {
+        "range": [
+          1,
+          10
+        ],
+        "items": [
+          "Rough Fur"
+        ]
+      },
+      {
+        "range": [
+          11,
+          15
+        ],
+        "items": [
+          "Rough Fur",
+          "Wolf Bones"
+        ]
+      },
+      {
+        "range": [
+          16,
+          19
+        ],
+        "items": [
+          "Wolf Bones",
+          "Hide"
+        ]
+      },
+      {
+        "range": [
+          20,
+          20
+        ],
+        "items": [
+          "Rough Fur",
+          "Wolf Bones",
+          "Hide"
+        ]
+      }
+    ]
+  },
+  "angryRooster": {
+    "name": "Angry Rooster",
+    "type": "enemy",
+    "isBoss": true,
+    "health": 8,
+    "maxHealth": 8,
+    "description": "An enraged rooster protecting its territory!",
+    "icon": "🐓",
+    "imageUrl": "/assets/farmlands-angryrooster.jpg",
+    "attackTable": [
+      {
+        "range": [
+          1,
+          3
+        ],
+        "action": "miss",
+        "message": "Miss!"
+      },
+      {
+        "range": [
+          4,
+          8
+        ],
+        "action": "attack",
+        "attackRange": "melee",
+        "damage": 3,
+        "damageType": "Physical",
+        "message": "Claw! Deals 3 Physical Damage!"
+      },
+      {
+        "range": [
+          9,
+          15
+        ],
+        "action": "attack",
+        "attackRange": "melee",
+        "damage": 3,
+        "damageType": "Physical",
+        "debuff": {
+          "type": "bleed",
+          "duration": 2,
+          "damage": 1,
+          "damageType": "Physical"
+        },
+        "message": "Gouge! Deals 3 Physical Damage and Bleed!"
+      },
+      {
+        "range": [
+          16,
+          20
+        ],
+        "action": "special",
+        "message": "Enrage! The Angry Rooster becomes Enraged for 3 turns!"
+      }
+    ],
+    "guaranteedLoot": {
+      "items": [
+        "Raw Chicken",
+        "Feather"
+      ]
+    },
+    "lootTable": [
+      {
+        "range": [
+          1,
+          10
+        ],
+        "items": [
+          "Feather"
+        ]
+      },
+      {
+        "range": [
+          11,
+          15
+        ],
+        "items": [
+          "Feather",
+          "Egg"
+        ]
+      },
+      {
+        "range": [
+          16,
+          19
+        ],
+        "items": [
+          "Feather",
+          "Egg",
+          "Raw Chicken"
+        ]
+      },
+      {
+        "range": [
+          20,
+          20
+        ],
+        "items": [
+          "Feather",
+          "Egg",
+          "Raw Chicken",
+          "Rooster Spur"
+        ]
+      }
+    ]
+  },
+  "emptyCanal": {
+    "name": "Empty Canal",
+    "type": "area",
+    "description": "A dark, empty sewer canal.",
+    "icon": "🕳️",
+    "imageUrl": "/assets/sewers-emptycanal.jpg",
+    "allowSpawnOver": true
+  },
+  "farmlandsArea": {
+    "name": "Farmlands",
+    "type": "area",
+    "description": "Open farmland stretching to the horizon.",
+    "icon": "🌾",
+    "imageUrl": "/assets/farmlands-area.jpg",
+    "allowSpawnOver": true
+  },
+  "goblinCavesTunnel": {
+    "name": "Cave Tunnel",
+    "type": "area",
+    "description": "A dark tunnel stretching deeper into the caves.",
+    "icon": "🕳️",
+    "imageUrl": "/assets/goblincaves-tunnel.jpg",
+    "allowSpawnOver": true
+  },
+  "darkForestTrail": {
+    "name": "Dark Forest Trail",
+    "type": "area",
+    "description": "A winding trail through the fog-shrouded woods.",
+    "icon": "🌲",
+    "imageUrl": "/assets/darkforest-trail.jpg",
+    "allowSpawnOver": true
+  },
+  "mansionHall": {
+    "name": "Mansion Hall",
+    "type": "area",
+    "description": "A dusty, abandoned hall in the vampire's mansion.",
+    "icon": "🏚️",
+    "imageUrl": "/assets/darkforest-mansionhall.jpg",
+    "allowSpawnOver": true
+  },
+  "arenaChest": {
+    "name": "Arena Treasure Chest",
+    "type": "treasure",
+    "description": "A chest forged in the fires of the arena. Its contents grow richer with each victory.",
+    "icon": "🏆",
+    "imageUrl": "/assets/arena-chest.jpg",
+    "isArenaChest": true,
+    "arenaRound": 1
+  },
+  "arenaFloor": {
+    "name": "Arena Floor",
+    "type": "area",
+    "description": "The bloodstained floor of the arena.",
+    "icon": "⚔️",
+    "imageUrl": "/assets/arena-empty.jpg",
+    "allowSpawnOver": true
+  }
+}
