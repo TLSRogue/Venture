@@ -30,4 +30,8 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="SocketIOClient" Version="4.0.4" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="Content\fonts\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Content\data\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
