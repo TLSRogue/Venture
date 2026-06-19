@@ -1,0 +1,14 @@
+# MonoGame/C# Build Output
+VentureClient/bin/
+VentureClient/obj/
+*.user
+*.suo
+
+# Node.js
+node_modules/
+npm-debug.log*
+
+# OS/Temp Files
+.DS_Store
+Thumbs.db
+crashlog.txt
