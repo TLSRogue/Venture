@@ -276,8 +276,13 @@ namespace VentureClient.Models
         [JsonProperty("title")]
         public string Title { get; set; }
 
+        private List<string> _unlockedTitles = new List<string>();
         [JsonProperty("unlockedTitles")]
-        public List<string> UnlockedTitles { get; set; } = new List<string>();
+        public List<string> UnlockedTitles
+        {
+            get => _unlockedTitles ??= new List<string>();
+            set => _unlockedTitles = value;
+        }
 
         [JsonProperty("health")]
         public int Health { get; set; }
@@ -369,8 +374,13 @@ namespace VentureClient.Models
         [JsonProperty("trainingRefreshCount")]
         public int TrainingRefreshCount { get; set; }
 
+        private List<string> _trainingOfferings = new List<string>();
         [JsonProperty("trainingOfferings")]
-        public List<string> TrainingOfferings { get; set; } = new List<string>();
+        public List<string> TrainingOfferings
+        {
+            get => _trainingOfferings ??= new List<string>();
+            set => _trainingOfferings = value;
+        }
 
         [JsonProperty("actionPoints")]
         public int ActionPoints { get; set; }
@@ -378,50 +388,120 @@ namespace VentureClient.Models
         [JsonProperty("focus")]
         public int Focus { get; set; }
 
+        private List<ItemData> _inventory = new List<ItemData>();
         [JsonProperty("inventory")]
-        public List<ItemData> Inventory { get; set; } = new List<ItemData>();
+        public List<ItemData> Inventory
+        {
+            get => _inventory ??= new List<ItemData>();
+            set => _inventory = value;
+        }
 
+        private List<ItemData> _bank = new List<ItemData>();
         [JsonProperty("bank")]
-        public List<ItemData> Bank { get; set; } = new List<ItemData>();
+        public List<ItemData> Bank
+        {
+            get => _bank ??= new List<ItemData>();
+            set => _bank = value;
+        }
 
+        private List<BuffDebuffState> _buffs = new List<BuffDebuffState>();
         [JsonProperty("buffs")]
-        public List<BuffDebuffState> Buffs { get; set; } = new List<BuffDebuffState>();
+        public List<BuffDebuffState> Buffs
+        {
+            get => _buffs ??= new List<BuffDebuffState>();
+            set => _buffs = value;
+        }
 
+        private List<BuffDebuffState> _debuffs = new List<BuffDebuffState>();
         [JsonProperty("debuffs")]
-        public List<BuffDebuffState> Debuffs { get; set; } = new List<BuffDebuffState>();
+        public List<BuffDebuffState> Debuffs
+        {
+            get => _debuffs ??= new List<BuffDebuffState>();
+            set => _debuffs = value;
+        }
 
+        private List<SpellData> _spellbook = new List<SpellData>();
         [JsonProperty("spellbook")]
-        public List<SpellData> Spellbook { get; set; } = new List<SpellData>();
+        public List<SpellData> Spellbook
+        {
+            get => _spellbook ??= new List<SpellData>();
+            set => _spellbook = value;
+        }
 
+        private List<SpellData> _equippedSpells = new List<SpellData>();
         [JsonProperty("equippedSpells")]
-        public List<SpellData> EquippedSpells { get; set; } = new List<SpellData>();
+        public List<SpellData> EquippedSpells
+        {
+            get => _equippedSpells ??= new List<SpellData>();
+            set => _equippedSpells = value;
+        }
 
+        private List<string> _knownRecipes = new List<string>();
         [JsonProperty("knownRecipes")]
-        public List<string> KnownRecipes { get; set; } = new List<string>();
+        public List<string> KnownRecipes
+        {
+            get => _knownRecipes ??= new List<string>();
+            set => _knownRecipes = value;
+        }
 
+        private EquipmentState _equipment = new EquipmentState();
         [JsonProperty("equipment")]
-        public EquipmentState Equipment { get; set; } = new EquipmentState();
+        public EquipmentState Equipment
+        {
+            get => _equipment ??= new EquipmentState();
+            set => _equipment = value;
+        }
 
+        private List<QuestState> _quests = new List<QuestState>();
         [JsonProperty("quests")]
-        public List<QuestState> Quests { get; set; } = new List<QuestState>();
+        public List<QuestState> Quests
+        {
+            get => _quests ??= new List<QuestState>();
+            set => _quests = value;
+        }
 
+        private Dictionary<string, int> _spellCooldowns = new Dictionary<string, int>();
         [JsonProperty("spellCooldowns")]
-        public Dictionary<string, int> SpellCooldowns { get; set; } = new Dictionary<string, int>();
+        public Dictionary<string, int> SpellCooldowns
+        {
+            get => _spellCooldowns ??= new Dictionary<string, int>();
+            set => _spellCooldowns = value;
+        }
 
+        private Dictionary<string, int> _weaponCooldowns = new Dictionary<string, int>();
         [JsonProperty("weaponCooldowns")]
-        public Dictionary<string, int> WeaponCooldowns { get; set; } = new Dictionary<string, int>();
+        public Dictionary<string, int> WeaponCooldowns
+        {
+            get => _weaponCooldowns ??= new Dictionary<string, int>();
+            set => _weaponCooldowns = value;
+        }
 
+        private Dictionary<string, int> _itemCooldowns = new Dictionary<string, int>();
         [JsonProperty("itemCooldowns")]
-        public Dictionary<string, int> ItemCooldowns { get; set; } = new Dictionary<string, int>();
+        public Dictionary<string, int> ItemCooldowns
+        {
+            get => _itemCooldowns ??= new Dictionary<string, int>();
+            set => _itemCooldowns = value;
+        }
 
+        private List<ItemData> _merchantStock = new List<ItemData>();
         [JsonProperty("merchantStock")]
-        public List<ItemData> MerchantStock { get; set; } = new List<ItemData>();
+        public List<ItemData> MerchantStock
+        {
+            get => _merchantStock ??= new List<ItemData>();
+            set => _merchantStock = value;
+        }
 
         [JsonProperty("merchantLastStocked")]
         public string MerchantLastStocked { get; set; }
 
+        private Dictionary<string, double> _cardDefeatTimes = new Dictionary<string, double>();
         [JsonProperty("cardDefeatTimes")]
-        public Dictionary<string, double> CardDefeatTimes { get; set; } = new Dictionary<string, double>();
+        public Dictionary<string, double> CardDefeatTimes
+        {
+            get => _cardDefeatTimes ??= new Dictionary<string, double>();
+            set => _cardDefeatTimes = value;
+        }
 
         [JsonProperty("partyId")]
         public string PartyId { get; set; }
