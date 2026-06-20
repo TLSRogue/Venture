@@ -67,6 +67,33 @@ namespace VentureClient.Models
 
         [JsonProperty("quantity")]
         public int? Quantity { get; set; }
+
+        [JsonProperty("hands")]
+        public int? Hands { get; set; }
+
+        [JsonProperty("socketedGem")]
+        public ItemData SocketedGem { get; set; }
+
+        [JsonProperty("charges")]
+        public int? Charges { get; set; }
+
+        [JsonProperty("learnsRecipe")]
+        public string LearnsRecipe { get; set; }
+
+        [JsonProperty("permanentMerchantStock")]
+        public bool? PermanentMerchantStock { get; set; }
+
+        [JsonProperty("cost")]
+        public int? Cost { get; set; }
+
+        [JsonProperty("heal")]
+        public int? Heal { get; set; }
+
+        [JsonProperty("grantsSlot")]
+        public string GrantsSlot { get; set; }
+
+        [JsonProperty("gemBonus")]
+        public Dictionary<string, int> GemBonus { get; set; }
     }
 
     public class SpellData
@@ -365,6 +392,9 @@ namespace VentureClient.Models
 
         [JsonProperty("spellbook")]
         public List<SpellData> Spellbook { get; set; } = new List<SpellData>();
+
+        [JsonProperty("equippedSpells")]
+        public List<SpellData> EquippedSpells { get; set; } = new List<SpellData>();
 
         [JsonProperty("knownRecipes")]
         public List<string> KnownRecipes { get; set; } = new List<string>();

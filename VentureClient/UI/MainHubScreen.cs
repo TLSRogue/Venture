@@ -38,6 +38,11 @@ namespace VentureClient.UI
         private string _activeCraftingCategory = "Blacksmithing";
         private string _activeCraftingSubtab = "Weapons";
         private string _activeTrainerCategory = "Physical";
+        private string _activeSpellbookCategory = "Physical";
+        private string _merchantSellTab = "inventory";
+        private string _currentTab = "home";
+        private Label _restockTimerLabel;
+        private double _timerElapsedMs = 0;
 
         public void Initialize()
         {
@@ -82,20 +87,23 @@ namespace VentureClient.UI
             btnEditTitle.Padding = new Thickness(0);
             btnEditTitle.Click += (s, e) => OpenTitleDialog();
 
-            _goldLabel = new Label
-            {
-                Text = GetGoldText(),
-                Font = VentureGame.Instance.MainFont,
-                TextColor = Color.Yellow,
-                VerticalAlignment = VerticalAlignment.Center
-            };
 
             headerPanel.Widgets.Add(_charInfoLabel);
             headerPanel.Widgets.Add(btnEditAvatar);
             headerPanel.Widgets.Add(btnEditTitle);
-            headerPanel.Widgets.Add(new Label { Text = "  |  ", Font = VentureGame.Instance.MainFont, TextColor = Color.Gray, VerticalAlignment = VerticalAlignment.Center });
-            headerPanel.Widgets.Add(_goldLabel);
             grid.Widgets.Add(headerPanel);
+
+            // Stats Bar (Row 0.5 — inserted as a separate row)
+            // We'll add it to the header panel directly
+            _goldLabel = new Label
+            {
+                Text = GetStatsBarText(),
+                Font = VentureGame.Instance.SmallFont,
+                TextColor = Color.LightGray,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            headerPanel.Widgets.Add(new Label { Text = "  |  ", Font = VentureGame.Instance.SmallFont, TextColor = Color.Gray, VerticalAlignment = VerticalAlignment.Center });
+            headerPanel.Widgets.Add(_goldLabel);
 
             // 2. Tab Navigation Buttons
             _tabHeader = new HorizontalStackPanel
@@ -128,6 +136,14 @@ namespace VentureClient.UI
             btnTrainer.Height = 35;
             btnTrainer.Click += (s, e) => ShowTab("trainer");
 
+            var btnMerchant = MyraExtensions.CreateButton("🏪 Merchant", VentureGame.Instance.SmallFont);
+            btnMerchant.Height = 35;
+            btnMerchant.Click += (s, e) =>
+            {
+                TriggerViewMerchant();
+                ShowTab("merchant");
+            };
+
             var btnQuests = MyraExtensions.CreateButton("📜 Quests", VentureGame.Instance.SmallFont);
             btnQuests.Height = 35;
             btnQuests.Click += (s, e) => ShowTab("quests");
@@ -142,6 +158,7 @@ namespace VentureClient.UI
             _tabHeader.Widgets.Add(btnBank);
             _tabHeader.Widgets.Add(btnCrafting);
             _tabHeader.Widgets.Add(btnTrainer);
+            _tabHeader.Widgets.Add(btnMerchant);
             _tabHeader.Widgets.Add(btnQuests);
             _tabHeader.Widgets.Add(btnMap);
             grid.Widgets.Add(_tabHeader);
@@ -173,18 +190,19 @@ namespace VentureClient.UI
         {
             var charState = VentureGame.Instance.CharacterState;
             if (charState == null) return "Loading...";
-            return $"{charState.CharacterIcon} {charState.CharacterName} - {charState.Title} (HP: {charState.Health}/{charState.MaxHealth})";
+            return $"{charState.CharacterIcon} {charState.CharacterName} - {charState.Title}";
         }
 
-        private string GetGoldText()
+        private string GetStatsBarText()
         {
             var charState = VentureGame.Instance.CharacterState;
-            if (charState == null) return "🪙 0g";
-            return $"🪙 {charState.Gold}g  |  ⚡ AP: {charState.ActionPoints}";
+            if (charState == null) return "";
+            return $"❤️ {charState.Health}/{charState.MaxHealth}  💪 Str:{charState.Strength}  🏃 Agi:{charState.Agility}  🧠 Wis:{charState.Wisdom}  🛡️ Def:{charState.Defense}  💰 {charState.Gold}g  ⭐ QP:{charState.QuestPoints}";
         }
 
         private void ShowTab(string tabName)
         {
+            _currentTab = tabName;
             _tabBody.Widgets.Clear();
 
             switch (tabName)
@@ -209,6 +227,9 @@ namespace VentureClient.UI
                     break;
                 case "quests":
                     _tabBody.Widgets.Add(BuildQuestsTab());
+                    break;
+                case "merchant":
+                    _tabBody.Widgets.Add(BuildMerchantTab());
                     break;
                 case "map":
                     _tabBody.Widgets.Add(BuildMapTab());
@@ -408,59 +429,460 @@ namespace VentureClient.UI
         {
             var charState = VentureGame.Instance.CharacterState;
             var layout = new Grid { ColumnSpacing = 15 };
-            layout.ColumnsProportions.Add(new Proportion(ProportionType.Auto)); // Stats Column
-            layout.ColumnsProportions.Add(new Proportion(ProportionType.Fill)); // Inventory Column
+            layout.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f)); // Left Column
+            layout.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f)); // Right Column
 
-            // Left Side: Stats
-            var statsPanel = new VerticalStackPanel { Spacing = 5, Padding = new Myra.Graphics2D.Thickness(10) };
-            statsPanel.Widgets.Add(new Label { Text = "📊 Stats", Font = VentureGame.Instance.MainFont, TextColor = Color.Gold });
-            if (charState != null)
+            // ============ LEFT COLUMN ============
+            var leftCol = new VerticalStackPanel { Spacing = 10 };
+            var leftScroll = new ScrollViewer { Content = leftCol };
+            Grid.SetColumn(leftScroll, 0);
+            layout.Widgets.Add(leftScroll);
+
+            // --- Equipment Section ---
+            leftCol.Widgets.Add(new Label { Text = "⚔️ Equipment", Font = VentureGame.Instance.MainFont, TextColor = Color.Gold });
+
+            var equipGrid = new Grid { RowSpacing = 8, ColumnSpacing = 8 };
+            equipGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+            equipGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+
+            var slotDefs = new (string key, string label)[]
             {
-                statsPanel.Widgets.Add(new Label { Text = $"Strength: {charState.Strength}", Font = VentureGame.Instance.SmallFont });
-                statsPanel.Widgets.Add(new Label { Text = $"Agility: {charState.Agility}", Font = VentureGame.Instance.SmallFont });
-                statsPanel.Widgets.Add(new Label { Text = $"Wisdom: {charState.Wisdom}", Font = VentureGame.Instance.SmallFont });
-                statsPanel.Widgets.Add(new Label { Text = $"Defense: {charState.Defense}", Font = VentureGame.Instance.SmallFont });
-                statsPanel.Widgets.Add(new Label { Text = $"Luck: {charState.Luck}", Font = VentureGame.Instance.SmallFont });
-                statsPanel.Widgets.Add(new Label { Text = $"Max Health: {charState.MaxHealth}", Font = VentureGame.Instance.SmallFont });
-                statsPanel.Widgets.Add(new Label { Text = $"Physical Resistance: {charState.PhysicalResistance}", Font = VentureGame.Instance.SmallFont });
-                statsPanel.Widgets.Add(new Label { Text = $"Magical Resistance: {charState.MagicalResistance}", Font = VentureGame.Instance.SmallFont });
-            }
-            layout.Widgets.Add(statsPanel);
+                ("mainHand", "Main Hand"), ("offHand", "Off Hand"),
+                ("helmet", "Helmet"), ("armor", "Armor"),
+                ("boots", "Boots"), ("accessory", "Accessory")
+            };
 
-            // Right Side: Inventory Grid
-            var invLayout = new VerticalStackPanel { Spacing = 10 };
-            invLayout.Widgets.Add(new Label { Text = "🎒 Backpack Items", Font = VentureGame.Instance.MainFont, TextColor = Color.Gold });
-
-            var itemGrid = new Grid { RowSpacing = 8, ColumnSpacing = 8 };
-            for (int i = 0; i < 4; i++) itemGrid.ColumnsProportions.Add(new Proportion(ProportionType.Auto));
-
-            if (charState?.Inventory != null)
+            int eqRow = 0, eqCol = 0;
+            foreach (var (slotKey, slotLabel) in slotDefs)
             {
-                int r = 0, c = 0;
-                for (int idx = 0; idx < charState.Inventory.Count; idx++)
+                ItemData equippedItem = null;
+                if (charState?.Equipment != null)
                 {
-                    var item = charState.Inventory[idx];
-                    var buttonText = item != null ? $"{item.Icon} {item.Name}" : "[Empty]";
-                    var btn = MyraExtensions.CreateButton(buttonText, VentureGame.Instance.SmallFont);
-                    btn.Width = 180;
-                    btn.Height = 50;
-                    Grid.SetRow(btn, r);
-                    Grid.SetColumn(btn, c);
-                    
-                    itemGrid.Widgets.Add(btn);
-                    c++;
-                    if (c >= 4)
+                    equippedItem = slotKey switch
                     {
-                        c = 0;
-                        r++;
-                    }
+                        "mainHand" => charState.Equipment.MainHand,
+                        "offHand" => charState.Equipment.OffHand,
+                        "helmet" => charState.Equipment.Helmet,
+                        "armor" => charState.Equipment.Armor,
+                        "boots" => charState.Equipment.Boots,
+                        "accessory" => charState.Equipment.Accessory,
+                        _ => null
+                    };
                 }
+
+                bool is2HBlocked = slotKey == "offHand" && charState?.Equipment?.MainHand != null && (charState.Equipment.MainHand.Hands ?? 0) == 2;
+
+                var slotPanel = new VerticalStackPanel
+                {
+                    Spacing = 4,
+                    Padding = new Thickness(8),
+                    Background = new SolidBrush(equippedItem != null ? new Color(28, 35, 48) : new Color(20, 22, 28)),
+                    BorderThickness = new Thickness(1),
+                    Border = new SolidBrush(equippedItem != null ? new Color(80, 120, 160) : new Color(50, 50, 60)),
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    MinHeight = 80
+                };
+
+                slotPanel.Widgets.Add(new Label
+                {
+                    Text = slotLabel,
+                    Font = VentureGame.Instance.SmallFont,
+                    TextColor = Color.LightGray,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                });
+
+                if (is2HBlocked)
+                {
+                    slotPanel.Widgets.Add(new Label
+                    {
+                        Text = "(Blocked by 2H)",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.DimGray,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    });
+                }
+                else if (equippedItem != null)
+                {
+                    slotPanel.Widgets.Add(new Label
+                    {
+                        Text = $"{equippedItem.Icon ?? "❓"}\n{equippedItem.Name}",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.White,
+                        Wrap = true,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    });
+
+                    string capturedSlot = slotKey;
+                    var btnUnequip = MyraExtensions.CreateButton("UNEQUIP", VentureGame.Instance.SmallFont);
+                    btnUnequip.Background = new SolidBrush(new Color(180, 50, 50));
+                    btnUnequip.Height = 26;
+                    btnUnequip.HorizontalAlignment = HorizontalAlignment.Center;
+                    btnUnequip.Click += async (s, e) =>
+                    {
+                        await VentureGame.Instance.Network.EmitPlayerAction("unequipItem", new { slot = capturedSlot });
+                    };
+                    slotPanel.Widgets.Add(btnUnequip);
+                }
+                else
+                {
+                    slotPanel.Widgets.Add(new Label
+                    {
+                        Text = "Empty",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.DimGray,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    });
+                }
+
+                Grid.SetRow(slotPanel, eqRow);
+                Grid.SetColumn(slotPanel, eqCol);
+                equipGrid.Widgets.Add(slotPanel);
+
+                eqCol++;
+                if (eqCol >= 2) { eqCol = 0; eqRow++; }
             }
-            invLayout.Widgets.Add(itemGrid);
-            layout.Widgets.Add(invLayout);
-            Grid.SetColumn(invLayout, 1);
+            leftCol.Widgets.Add(equipGrid);
+
+            // --- Equipped Spells Section ---
+            leftCol.Widgets.Add(new Label { Text = "✨ Equipped Spells", Font = VentureGame.Instance.MainFont, TextColor = Color.Gold, Padding = new Thickness(0, 10, 0, 0) });
+
+            var spellEquipGrid = new Grid { RowSpacing = 8, ColumnSpacing = 8 };
+            spellEquipGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+            spellEquipGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+
+            for (int i = 0; i < 5; i++)
+            {
+                SpellData spell = null;
+                if (charState?.EquippedSpells != null && i < charState.EquippedSpells.Count)
+                    spell = charState.EquippedSpells[i];
+
+                int spellRow = i / 2;
+                int spellCol = i % 2;
+
+                var spellPanel = new VerticalStackPanel
+                {
+                    Spacing = 4,
+                    Padding = new Thickness(8),
+                    Background = new SolidBrush(spell != null ? new Color(28, 35, 48) : new Color(20, 22, 28, 120)),
+                    BorderThickness = new Thickness(1),
+                    Border = new SolidBrush(spell != null ? new Color(80, 120, 160) : new Color(50, 50, 60)),
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    MinHeight = 60
+                };
+
+                if (spell != null)
+                {
+                    spellPanel.Widgets.Add(new Label
+                    {
+                        Text = $"{spell.Icon ?? "✨"} {spell.Name}",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.White,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    });
+                    spellPanel.Widgets.Add(new Label
+                    {
+                        Text = $"({spell.School ?? "Physical"})",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = new Color(180, 160, 100),
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    });
+
+                    int capturedIdx = i;
+                    var btnUnequipSpell = MyraExtensions.CreateButton("UNEQUIP", VentureGame.Instance.SmallFont);
+                    btnUnequipSpell.Background = new SolidBrush(new Color(180, 50, 50));
+                    btnUnequipSpell.Height = 26;
+                    btnUnequipSpell.HorizontalAlignment = HorizontalAlignment.Center;
+                    btnUnequipSpell.Click += async (s, e) =>
+                    {
+                        await VentureGame.Instance.Network.EmitPlayerAction("unequipSpell", new { index = capturedIdx });
+                    };
+                    spellPanel.Widgets.Add(btnUnequipSpell);
+                }
+                else
+                {
+                    spellPanel.Widgets.Add(new Label
+                    {
+                        Text = "Empty Spell Slot",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.DimGray,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    });
+                }
+
+                Grid.SetRow(spellPanel, spellRow);
+                Grid.SetColumn(spellPanel, spellCol);
+                spellEquipGrid.Widgets.Add(spellPanel);
+            }
+            leftCol.Widgets.Add(spellEquipGrid);
+
+            // ============ RIGHT COLUMN ============
+            var rightCol = new VerticalStackPanel { Spacing = 10 };
+            var rightScroll = new ScrollViewer { Content = rightCol };
+            Grid.SetColumn(rightScroll, 1);
+            layout.Widgets.Add(rightScroll);
+
+            // --- Inventory Section ---
+            rightCol.Widgets.Add(new Label { Text = "🎒 Inventory", Font = VentureGame.Instance.MainFont, TextColor = Color.Gold });
+
+            var invGrid = new Grid { RowSpacing = 6, ColumnSpacing = 6 };
+            for (int i = 0; i < 5; i++) invGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+
+            int invSlots = 28;
+            for (int idx = 0; idx < invSlots; idx++)
+            {
+                ItemData item = null;
+                if (charState?.Inventory != null && idx < charState.Inventory.Count)
+                    item = charState.Inventory[idx];
+
+                int ir = idx / 5;
+                int ic = idx % 5;
+
+                var slotBtn = new Button
+                {
+                    Width = 80,
+                    Height = 70,
+                    Padding = new Thickness(2),
+                    Background = item != null ? new SolidBrush(new Color(30, 35, 45)) : new SolidBrush(new Color(20, 22, 28, 100)),
+                    BorderThickness = new Thickness(1),
+                    Border = new SolidBrush(item != null ? new Color(70, 80, 100) : new Color(50, 50, 60))
+                };
+
+                if (item != null)
+                {
+                    string qtyText = (item.Quantity ?? 1) > 1 ? $" x{item.Quantity}" : "";
+                    slotBtn.Content = new Label
+                    {
+                        Text = $"{item.Icon ?? "❓"}\n{item.Name}{qtyText}",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.White,
+                        Wrap = true,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
+
+                    int capturedIdx = idx;
+                    slotBtn.Click += (s, e) => ShowItemActionDialog(capturedIdx, item);
+                }
+                else
+                {
+                    slotBtn.Content = new Label
+                    {
+                        Text = "",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.DimGray,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
+                }
+
+                Grid.SetRow(slotBtn, ir);
+                Grid.SetColumn(slotBtn, ic);
+                invGrid.Widgets.Add(slotBtn);
+            }
+            rightCol.Widgets.Add(invGrid);
+
+            // --- Spellbook Section ---
+            rightCol.Widgets.Add(new Label { Text = "📖 Spellbook", Font = VentureGame.Instance.MainFont, TextColor = Color.Gold, Padding = new Thickness(0, 10, 0, 0) });
+
+            if (charState?.Spellbook == null || charState.Spellbook.Count == 0)
+            {
+                rightCol.Widgets.Add(new Label
+                {
+                    Text = "You have not learned any spells yet.",
+                    Font = VentureGame.Instance.SmallFont,
+                    TextColor = Color.DimGray
+                });
+            }
+            else
+            {
+                // Category tabs
+                var categories = new List<string>();
+                foreach (var sp in charState.Spellbook)
+                {
+                    string school = sp.School ?? "Physical";
+                    if (!categories.Contains(school)) categories.Add(school);
+                }
+
+                var spellTabRow = new HorizontalStackPanel { Spacing = 6 };
+                foreach (var cat in categories)
+                {
+                    bool isActive = cat == _activeSpellbookCategory;
+                    var tabBtn = MyraExtensions.CreateButton(cat, VentureGame.Instance.SmallFont);
+                    tabBtn.Background = isActive ? new SolidBrush(new Color(50, 100, 150)) : new SolidBrush(new Color(40, 45, 52));
+                    string capturedCat = cat;
+                    tabBtn.Click += (s, e) =>
+                    {
+                        _activeSpellbookCategory = capturedCat;
+                        ShowTab("character");
+                    };
+                    spellTabRow.Widgets.Add(tabBtn);
+                }
+                rightCol.Widgets.Add(spellTabRow);
+
+                var filteredSpells = charState.Spellbook.FindAll(s => (s.School ?? "Physical") == _activeSpellbookCategory);
+                var spellGrid = new Grid { RowSpacing = 6, ColumnSpacing = 6 };
+                spellGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+                spellGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+
+                int sr = 0, sc = 0;
+                foreach (var spell in filteredSpells)
+                {
+                    int originalIdx = charState.Spellbook.IndexOf(spell);
+                    var spCard = new VerticalStackPanel
+                    {
+                        Spacing = 4,
+                        Padding = new Thickness(8),
+                        Background = new SolidBrush(new Color(25, 28, 32)),
+                        BorderThickness = new Thickness(1),
+                        Border = new SolidBrush(new Color(60, 70, 80))
+                    };
+
+                    spCard.Widgets.Add(new Label
+                    {
+                        Text = $"{spell.Icon ?? "✨"} {spell.Name}",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.White,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    });
+                    spCard.Widgets.Add(new Label
+                    {
+                        Text = $"{spell.Cost} AP | CD: {spell.Cooldown}",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.LightGray,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    });
+
+                    bool canEquip = (charState.EquippedSpells?.Count ?? 0) < 5;
+                    if (canEquip)
+                    {
+                        int capturedOrigIdx = originalIdx;
+                        var btnEquip = MyraExtensions.CreateButton("Equip", VentureGame.Instance.SmallFont);
+                        btnEquip.Background = new SolidBrush(new Color(50, 140, 60));
+                        btnEquip.Height = 26;
+                        btnEquip.HorizontalAlignment = HorizontalAlignment.Center;
+                        btnEquip.Click += async (s, e) =>
+                        {
+                            await VentureGame.Instance.Network.EmitPlayerAction("equipSpell", new { index = capturedOrigIdx });
+                        };
+                        spCard.Widgets.Add(btnEquip);
+                    }
+
+                    Grid.SetRow(spCard, sr);
+                    Grid.SetColumn(spCard, sc);
+                    spellGrid.Widgets.Add(spCard);
+
+                    sc++;
+                    if (sc >= 2) { sc = 0; sr++; }
+                }
+                rightCol.Widgets.Add(spellGrid);
+            }
 
             return layout;
+        }
+
+        private void ShowItemActionDialog(int itemIndex, ItemData item)
+        {
+            var dialog = new Dialog
+            {
+                Title = item.Name,
+                Width = 350,
+                Height = 300
+            };
+
+            var content = new VerticalStackPanel { Spacing = 8, Padding = new Thickness(10) };
+
+            // Item info
+            content.Widgets.Add(new Label
+            {
+                Text = $"{item.Icon ?? "❓"} {item.Name}",
+                Font = VentureGame.Instance.MainFont,
+                TextColor = Color.White,
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+            if (!string.IsNullOrEmpty(item.Description))
+            {
+                content.Widgets.Add(new Label
+                {
+                    Text = item.Description,
+                    Font = VentureGame.Instance.SmallFont,
+                    TextColor = Color.LightGray,
+                    Wrap = true
+                });
+            }
+
+            // Equip buttons (if item has slots)
+            if (item.Slot != null && item.Slot.Count > 0)
+            {
+                foreach (var slot in item.Slot)
+                {
+                    string capturedSlot = slot;
+                    int capturedIdx = itemIndex;
+                    var btnEquip = MyraExtensions.CreateButton($"Equip to {slot}", VentureGame.Instance.SmallFont);
+                    btnEquip.Background = new SolidBrush(new Color(40, 100, 180));
+                    btnEquip.Height = 32;
+                    btnEquip.Click += async (s, e) =>
+                    {
+                        await VentureGame.Instance.Network.EmitPlayerAction("equipItem", new { itemIndex = capturedIdx, chosenSlot = capturedSlot });
+                        dialog.Close();
+                    };
+                    content.Widgets.Add(btnEquip);
+                }
+            }
+
+            // Use consumable
+            if (item.Type == "consumable")
+            {
+                int capturedIdx = itemIndex;
+                var btnUse = MyraExtensions.CreateButton("Use", VentureGame.Instance.SmallFont);
+                btnUse.Background = new SolidBrush(new Color(50, 140, 60));
+                btnUse.Height = 32;
+                btnUse.Click += async (s, e) =>
+                {
+                    await VentureGame.Instance.Network.EmitPlayerAction("useConsumable", new { index = capturedIdx });
+                    dialog.Close();
+                };
+                content.Widgets.Add(btnUse);
+            }
+
+            // Learn recipe
+            if (item.Type == "recipe" && !string.IsNullOrEmpty(item.LearnsRecipe))
+            {
+                bool alreadyKnown = VentureGame.Instance.CharacterState?.KnownRecipes?.Contains(item.LearnsRecipe) ?? false;
+                int capturedIdx = itemIndex;
+                var btnLearn = MyraExtensions.CreateButton(alreadyKnown ? "Already Known" : "Learn Recipe", VentureGame.Instance.SmallFont);
+                btnLearn.Background = new SolidBrush(alreadyKnown ? new Color(60, 60, 60) : new Color(50, 140, 60));
+                btnLearn.Enabled = !alreadyKnown;
+                btnLearn.Height = 32;
+                btnLearn.Click += async (s, e) =>
+                {
+                    await VentureGame.Instance.Network.EmitPlayerAction("useRecipe", new { index = capturedIdx });
+                    dialog.Close();
+                };
+                content.Widgets.Add(btnLearn);
+            }
+
+            // Drop button
+            {
+                int capturedIdx = itemIndex;
+                var btnDrop = MyraExtensions.CreateButton("Drop", VentureGame.Instance.SmallFont);
+                btnDrop.Background = new SolidBrush(new Color(180, 50, 50));
+                btnDrop.Height = 32;
+                btnDrop.Click += async (s, e) =>
+                {
+                    await VentureGame.Instance.Network.EmitPlayerAction("drop", new { index = capturedIdx });
+                    dialog.Close();
+                };
+                content.Widgets.Add(btnDrop);
+            }
+
+            // Cancel
+            var btnCancel = MyraExtensions.CreateButton("Cancel", VentureGame.Instance.SmallFont);
+            btnCancel.Height = 32;
+            btnCancel.Click += (s, e) => dialog.Close();
+            content.Widgets.Add(btnCancel);
+
+            dialog.Content = content;
+            dialog.ShowModal(VentureGame.Instance.Desktop);
         }
 
         // --- MAP TAB ---
@@ -497,7 +919,11 @@ namespace VentureClient.UI
         private void HandleCharacterUpdate(CharacterState character)
         {
             _charInfoLabel.Text = GetCharacterHeaderText();
-            _goldLabel.Text = GetGoldText();
+            _goldLabel.Text = GetStatsBarText();
+            if (_currentTab == "character" || _currentTab == "merchant" || _currentTab == "bank" || _currentTab == "trainer" || _currentTab == "crafting" || _currentTab == "quests")
+            {
+                ShowTab(_currentTab);
+            }
         }
 
         private void HandlePartyUpdate(PartyState party)
@@ -1271,8 +1697,603 @@ namespace VentureClient.UI
             return layout;
         }
 
+        private async void TriggerViewMerchant()
+        {
+            try
+            {
+                await VentureGame.Instance.Network.EmitPlayerAction("viewMerchant", new { });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error emitting viewMerchant: " + ex.Message);
+            }
+        }
+
+        private Widget BuildMerchantTab()
+        {
+            var charState = VentureGame.Instance.CharacterState;
+            var layout = new Grid { ColumnSpacing = 15 };
+            layout.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f)); // Left Column: Wares
+            layout.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f)); // Right Column: Selling
+
+            // ============ LEFT COLUMN: WARES ============
+            var leftCol = new VerticalStackPanel { Spacing = 10 };
+            var leftScroll = new ScrollViewer { Content = leftCol };
+            Grid.SetColumn(leftScroll, 0);
+            layout.Widgets.Add(leftScroll);
+
+            // Title
+            leftCol.Widgets.Add(new Label { Text = "🏪 Merchant's Shop", Font = VentureGame.Instance.MainFont, TextColor = Color.Gold });
+
+            // Restock Timer
+            _restockTimerLabel = new Label
+            {
+                Text = "Restock in: --:--",
+                Font = VentureGame.Instance.SmallFont,
+                TextColor = Color.LightGray
+            };
+            UpdateRestockTimerText();
+            leftCol.Widgets.Add(_restockTimerLabel);
+
+            // --- Permanent Stock Section ---
+            leftCol.Widgets.Add(new Label { Text = "🛒 Permanent Stock", Font = VentureGame.Instance.MainFont, TextColor = Color.LightSkyBlue, Padding = new Thickness(0, 10, 0, 0) });
+
+            var permanentGrid = new Grid { RowSpacing = 8, ColumnSpacing = 8 };
+            permanentGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+            permanentGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+
+            var permanentStock = VentureGame.Instance.AllItems.FindAll(item =>
+                item.Type == "tool" || item.Name == "Spices" || (item.PermanentMerchantStock ?? false));
+
+            int permRow = 0, permCol = 0;
+            foreach (var item in permanentStock)
+            {
+                var card = new VerticalStackPanel
+                {
+                    Spacing = 4,
+                    Padding = new Thickness(8),
+                    Background = new SolidBrush(new Color(28, 35, 48)),
+                    BorderThickness = new Thickness(1),
+                    Border = new SolidBrush(new Color(60, 70, 80)),
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    MinHeight = 80
+                };
+
+                card.Widgets.Add(new Label
+                {
+                    Text = $"{item.Icon ?? "❓"} {item.Name}",
+                    Font = VentureGame.Instance.SmallFont,
+                    TextColor = Color.White,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                });
+
+                card.Widgets.Add(new Label
+                {
+                    Text = $"Price: 💰 {item.Price}g",
+                    Font = VentureGame.Instance.SmallFont,
+                    TextColor = Color.Yellow,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                });
+
+                bool canAfford = charState != null && charState.Gold >= item.Price;
+                var btnBuy = MyraExtensions.CreateButton("Buy", VentureGame.Instance.SmallFont);
+                btnBuy.Background = canAfford ? new SolidBrush(new Color(50, 140, 60)) : new SolidBrush(new Color(60, 60, 60));
+                btnBuy.Enabled = canAfford;
+                btnBuy.Height = 26;
+                btnBuy.HorizontalAlignment = HorizontalAlignment.Center;
+                btnBuy.Click += async (s, e) =>
+                {
+                    await VentureGame.Instance.Network.EmitPlayerAction("buyItem", new { identifier = item.Name, isPermanent = true });
+                };
+                card.Widgets.Add(btnBuy);
+
+                Grid.SetRow(card, permRow);
+                Grid.SetColumn(card, permCol);
+                permanentGrid.Widgets.Add(card);
+
+                permCol++;
+                if (permCol >= 2) { permCol = 0; permRow++; }
+            }
+            leftCol.Widgets.Add(permanentGrid);
+
+            // --- Rotating Wares Section ---
+            leftCol.Widgets.Add(new Label { Text = "♻️ Rotating Wares", Font = VentureGame.Instance.MainFont, TextColor = Color.LightSkyBlue, Padding = new Thickness(0, 15, 0, 0) });
+
+            var rotatingStock = charState?.MerchantStock ?? new List<ItemData>();
+            if (rotatingStock.Count == 0)
+            {
+                leftCol.Widgets.Add(new Label
+                {
+                    Text = "No rotating wares available.",
+                    Font = VentureGame.Instance.SmallFont,
+                    TextColor = Color.DimGray
+                });
+            }
+            else
+            {
+                var rotatingGrid = new Grid { RowSpacing = 8, ColumnSpacing = 8 };
+                rotatingGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+                rotatingGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+
+                int rotRow = 0, rotCol = 0;
+                for (int i = 0; i < rotatingStock.Count; i++)
+                {
+                    var item = rotatingStock[i];
+                    var card = new VerticalStackPanel
+                    {
+                        Spacing = 4,
+                        Padding = new Thickness(8),
+                        Background = new SolidBrush(new Color(28, 35, 48)),
+                        BorderThickness = new Thickness(1),
+                        Border = new SolidBrush(new Color(60, 70, 80)),
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        MinHeight = 90
+                    };
+
+                    card.Widgets.Add(new Label
+                    {
+                        Text = $"{item.Icon ?? "❓"} {item.Name} (Qty: {item.Quantity ?? 0})",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.White,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    });
+
+                    card.Widgets.Add(new Label
+                    {
+                        Text = $"Price: 💰 {item.Price}g",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.Yellow,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    });
+
+                    bool canBuy = charState != null && charState.Gold >= item.Price && (item.Quantity ?? 0) > 0;
+                    var btnBuy = MyraExtensions.CreateButton("Buy", VentureGame.Instance.SmallFont);
+                    btnBuy.Background = canBuy ? new SolidBrush(new Color(50, 140, 60)) : new SolidBrush(new Color(60, 60, 60));
+                    btnBuy.Enabled = canBuy;
+                    btnBuy.Height = 26;
+                    btnBuy.HorizontalAlignment = HorizontalAlignment.Center;
+
+                    string capturedIndex = i.ToString();
+                    btnBuy.Click += async (s, e) =>
+                    {
+                        await VentureGame.Instance.Network.EmitPlayerAction("buyItem", new { identifier = capturedIndex, isPermanent = false });
+                    };
+                    card.Widgets.Add(btnBuy);
+
+                    Grid.SetRow(card, rotRow);
+                    Grid.SetColumn(card, rotCol);
+                    rotatingGrid.Widgets.Add(card);
+
+                    rotCol++;
+                    if (rotCol >= 2) { rotCol = 0; rotRow++; }
+                }
+                leftCol.Widgets.Add(rotatingGrid);
+            }
+
+            // ============ RIGHT COLUMN: SELLING ============
+            var rightCol = new VerticalStackPanel { Spacing = 10 };
+            var rightScroll = new ScrollViewer { Content = rightCol };
+            Grid.SetColumn(rightScroll, 1);
+            layout.Widgets.Add(rightScroll);
+
+            // Title
+            rightCol.Widgets.Add(new Label { Text = "🎒 Sell Items", Font = VentureGame.Instance.MainFont, TextColor = Color.Gold });
+
+            // Tab Navigation for selling
+            var sellTabs = new HorizontalStackPanel { Spacing = 8 };
+
+            var btnInvTab = MyraExtensions.CreateButton("🎒 Inventory", VentureGame.Instance.SmallFont);
+            btnInvTab.Background = _merchantSellTab == "inventory" ? new SolidBrush(new Color(50, 100, 150)) : new SolidBrush(new Color(40, 45, 52));
+            btnInvTab.Click += (s, e) =>
+            {
+                _merchantSellTab = "inventory";
+                ShowTab("merchant");
+            };
+            sellTabs.Widgets.Add(btnInvTab);
+
+            var btnBankTab = MyraExtensions.CreateButton("🏦 Bank", VentureGame.Instance.SmallFont);
+            btnBankTab.Background = _merchantSellTab == "bank" ? new SolidBrush(new Color(50, 100, 150)) : new SolidBrush(new Color(40, 45, 52));
+            btnBankTab.Click += (s, e) =>
+            {
+                _merchantSellTab = "bank";
+                ShowTab("merchant");
+            };
+            sellTabs.Widgets.Add(btnBankTab);
+
+            rightCol.Widgets.Add(sellTabs);
+
+            // --- Sell All Junk Quick Action ---
+            var junkItems = new List<Tuple<ItemData, int>>();
+            if (charState?.Inventory != null)
+            {
+                for (int idx = 0; idx < charState.Inventory.Count; idx++)
+                {
+                    var item = charState.Inventory[idx];
+                    if (item != null && item.Type == "material" && item.Tier == 1 && item.Rarity == "common" && item.Price > 0)
+                    {
+                        junkItems.Add(new Tuple<ItemData, int>(item, idx));
+                    }
+                }
+            }
+
+            int totalJunkValue = 0;
+            foreach (var tuple in junkItems)
+            {
+                int itemSellPrice = Math.Max(1, (int)Math.Floor(tuple.Item1.Price / 2.0));
+                totalJunkValue += itemSellPrice * (tuple.Item1.Quantity ?? 1);
+            }
+
+            var junkPanel = new VerticalStackPanel
+            {
+                Spacing = 4,
+                Padding = new Thickness(10),
+                Background = new SolidBrush(new Color(25, 25, 25)),
+                BorderThickness = new Thickness(1),
+                Border = new SolidBrush(new Color(50, 50, 50))
+            };
+
+            var btnSellJunk = MyraExtensions.CreateButton($"💰 Sell All Junk ({junkItems.Count} items, {totalJunkValue}g)", VentureGame.Instance.SmallFont);
+            btnSellJunk.Background = junkItems.Count > 0 ? new SolidBrush(new Color(180, 120, 30)) : new SolidBrush(new Color(60, 60, 60));
+            btnSellJunk.Enabled = junkItems.Count > 0;
+            btnSellJunk.Click += (s, e) =>
+            {
+                ShowSellAllJunkDialog(junkItems, totalJunkValue);
+            };
+            junkPanel.Widgets.Add(btnSellJunk);
+
+            var junkHelpText = new Label
+            {
+                Text = "Sells common T1 materials from inventory",
+                Font = VentureGame.Instance.SmallFont,
+                TextColor = Color.DimGray,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            junkPanel.Widgets.Add(junkHelpText);
+            rightCol.Widgets.Add(junkPanel);
+
+            // --- Sell Inventory Grid ---
+            if (_merchantSellTab == "inventory")
+            {
+                var sellInvGrid = new Grid { RowSpacing = 6, ColumnSpacing = 6 };
+                for (int i = 0; i < 5; i++) sellInvGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+
+                int invSlots = 28;
+                for (int idx = 0; idx < invSlots; idx++)
+                {
+                    ItemData item = null;
+                    if (charState?.Inventory != null && idx < charState.Inventory.Count)
+                        item = charState.Inventory[idx];
+
+                    int ir = idx / 5;
+                    int ic = idx % 5;
+
+                    bool isItemLocked = false;
+                    if (item != null)
+                    {
+                        var jobj = Newtonsoft.Json.Linq.JObject.FromObject(item);
+                        if (jobj["locked"] != null && (bool)jobj["locked"])
+                        {
+                            isItemLocked = true;
+                        }
+                    }
+
+                    var slotBtn = new Button
+                    {
+                        Width = 80,
+                        Height = 70,
+                        Padding = new Thickness(2),
+                        Background = item != null ? new SolidBrush(new Color(30, 35, 45)) : new SolidBrush(new Color(20, 22, 28, 100)),
+                        BorderThickness = new Thickness(1),
+                        Border = new SolidBrush(isItemLocked ? Color.LightPink : (item != null ? new Color(70, 80, 100) : new Color(50, 50, 60)))
+                    };
+
+                    if (item != null)
+                    {
+                        string qtyText = (item.Quantity ?? 1) > 1 ? $" x{item.Quantity}" : "";
+                        int sellPrice = Math.Max(1, (int)Math.Floor(item.Price / 2.0));
+                        slotBtn.Content = new Label
+                        {
+                            Text = $"{(isItemLocked ? "🔒 " : "")}{item.Icon ?? "❓"}\n{item.Name}{qtyText}\n💰 {sellPrice}g",
+                            Font = VentureGame.Instance.SmallFont,
+                            TextColor = isItemLocked ? Color.LightPink : Color.White,
+                            Wrap = true,
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center
+                        };
+
+                        if (!isItemLocked)
+                        {
+                            int capturedIdx = idx;
+                            var capturedItem = item;
+                            slotBtn.Click += (s, e) => ShowSellItemConfirmationDialog(capturedIdx, capturedItem, fromBank: false);
+                        }
+                    }
+                    else
+                    {
+                        slotBtn.Content = new Label
+                        {
+                            Text = "",
+                            Font = VentureGame.Instance.SmallFont,
+                            TextColor = Color.DimGray,
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center
+                        };
+                    }
+
+                    Grid.SetRow(slotBtn, ir);
+                    Grid.SetColumn(slotBtn, ic);
+                    sellInvGrid.Widgets.Add(slotBtn);
+                }
+                rightCol.Widgets.Add(sellInvGrid);
+            }
+            else // Bank
+            {
+                var bankItems = new List<Tuple<ItemData, int>>();
+                if (charState?.Bank != null)
+                {
+                    for (int i = 0; i < charState.Bank.Count; i++)
+                    {
+                        var item = charState.Bank[i];
+                        if (item != null)
+                        {
+                            bankItems.Add(new Tuple<ItemData, int>(item, i));
+                        }
+                    }
+                }
+
+                // Sort bank items alphabetically
+                bankItems.Sort((a, b) => a.Item1.Name.CompareTo(b.Item1.Name));
+
+                if (bankItems.Count == 0)
+                {
+                    rightCol.Widgets.Add(new Label
+                    {
+                        Text = "Your bank is empty.",
+                        Font = VentureGame.Instance.SmallFont,
+                        TextColor = Color.DimGray
+                    });
+                }
+                else
+                {
+                    var sellBankGrid = new Grid { RowSpacing = 6, ColumnSpacing = 6 };
+                    for (int i = 0; i < 4; i++) sellBankGrid.ColumnsProportions.Add(new Proportion(ProportionType.Part, 1f));
+
+                    int br = 0, bc = 0;
+                    foreach (var tuple in bankItems)
+                    {
+                        var item = tuple.Item1;
+                        int originalIndex = tuple.Item2;
+
+                        int sellPrice = Math.Max(1, (int)Math.Floor(item.Price / 2.0));
+                        string qtyText = (item.Quantity ?? 1) > 1 ? $" x{item.Quantity}" : "";
+
+                        var slotBtn = new Button
+                        {
+                            Height = 55,
+                            Padding = new Thickness(2),
+                            Background = new SolidBrush(new Color(30, 35, 45)),
+                            BorderThickness = new Thickness(1),
+                            Border = new SolidBrush(new Color(70, 80, 100))
+                        };
+
+                        slotBtn.Content = new Label
+                        {
+                            Text = $"{item.Icon ?? "❓"} {item.Name}{qtyText}\n💰 {sellPrice}g",
+                            Font = VentureGame.Instance.SmallFont,
+                            TextColor = Color.White,
+                            Wrap = true,
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center
+                        };
+
+                        var capturedItem = item;
+                        slotBtn.Click += (s, e) => ShowSellItemConfirmationDialog(originalIndex, capturedItem, fromBank: true);
+
+                        Grid.SetRow(slotBtn, br);
+                        Grid.SetColumn(slotBtn, bc);
+                        sellBankGrid.Widgets.Add(slotBtn);
+
+                        bc++;
+                        if (bc >= 4)
+                        {
+                            bc = 0;
+                            br++;
+                        }
+                    }
+                    rightCol.Widgets.Add(sellBankGrid);
+                }
+            }
+
+            return layout;
+        }
+
+        private void ShowSellAllJunkDialog(List<Tuple<ItemData, int>> junkItems, int totalValue)
+        {
+            var dialog = new Dialog
+            {
+                Title = "Sell All Junk",
+                Width = 300,
+                Height = 180
+            };
+
+            var content = new VerticalStackPanel { Spacing = 10, Padding = new Thickness(10) };
+
+            content.Widgets.Add(new Label
+            {
+                Text = $"Sell {junkItems.Count} common T1 materials for 💰 {totalValue}g?",
+                Font = VentureGame.Instance.SmallFont,
+                TextColor = Color.White,
+                Wrap = true
+            });
+
+            var uniqueNames = new List<string>();
+            foreach (var tuple in junkItems)
+            {
+                if (!uniqueNames.Contains(tuple.Item1.Name)) uniqueNames.Add(tuple.Item1.Name);
+            }
+            string listText = "Items: " + string.Join(", ", uniqueNames);
+            if (listText.Length > 100) listText = listText.Substring(0, 97) + "...";
+
+            content.Widgets.Add(new Label
+            {
+                Text = listText,
+                Font = VentureGame.Instance.SmallFont,
+                TextColor = Color.DimGray,
+                Wrap = true
+            });
+
+            var btnRow = new HorizontalStackPanel { Spacing = 10, HorizontalAlignment = HorizontalAlignment.Center };
+
+            var btnConfirm = MyraExtensions.CreateButton("Sell All", VentureGame.Instance.SmallFont);
+            btnConfirm.Background = new SolidBrush(new Color(50, 140, 60));
+            btnConfirm.Click += async (s, e) =>
+            {
+                await VentureGame.Instance.Network.EmitPlayerAction("sellAllJunk");
+                dialog.Close();
+            };
+            btnRow.Widgets.Add(btnConfirm);
+
+            var btnCancel = MyraExtensions.CreateButton("Cancel", VentureGame.Instance.SmallFont);
+            btnCancel.Background = new SolidBrush(new Color(180, 50, 50));
+            btnCancel.Click += (s, e) => dialog.Close();
+            btnRow.Widgets.Add(btnCancel);
+
+            content.Widgets.Add(btnRow);
+            dialog.Content = content;
+            dialog.ShowModal(VentureGame.Instance.Desktop);
+        }
+
+        private void ShowSellItemConfirmationDialog(int itemIndex, ItemData item, bool fromBank)
+        {
+            int sellPrice = Math.Max(1, (int)Math.Floor(item.Price / 2.0));
+            int maxQuantity = item.Quantity ?? 1;
+
+            var dialog = new Dialog
+            {
+                Title = "Confirm Sell",
+                Width = 320,
+                Height = maxQuantity > 1 ? 220 : 160
+            };
+
+            var content = new VerticalStackPanel { Spacing = 10, Padding = new Thickness(10) };
+
+            content.Widgets.Add(new Label
+            {
+                Text = $"{item.Icon ?? "❓"} {item.Name}",
+                Font = VentureGame.Instance.MainFont,
+                TextColor = Color.White,
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+
+            var confirmLabel = new Label
+            {
+                Font = VentureGame.Instance.SmallFont,
+                TextColor = Color.LightGray,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Wrap = true
+            };
+            content.Widgets.Add(confirmLabel);
+
+            HorizontalSlider slider = null;
+            if (maxQuantity > 1)
+            {
+                slider = new HorizontalSlider
+                {
+                    Minimum = 1,
+                    Maximum = maxQuantity,
+                    Value = 1,
+                    HorizontalAlignment = HorizontalAlignment.Stretch
+                };
+
+                slider.ValueChanged += (s2, e2) =>
+                {
+                    int qty = (int)slider.Value;
+                    int totalGold = sellPrice * qty;
+                    confirmLabel.Text = $"Sell {qty}x {item.Name} for 💰 {totalGold}g?";
+                };
+                content.Widgets.Add(slider);
+                confirmLabel.Text = $"Sell 1x {item.Name} for 💰 {sellPrice}g?";
+            }
+            else
+            {
+                confirmLabel.Text = $"Sell 1x {item.Name} for 💰 {sellPrice}g?";
+            }
+
+            var locationLabel = new Label
+            {
+                Text = $"(From {(fromBank ? "Bank" : "Inventory")})",
+                Font = VentureGame.Instance.SmallFont,
+                TextColor = Color.DimGray,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            content.Widgets.Add(locationLabel);
+
+            var btnRow = new HorizontalStackPanel { Spacing = 10, HorizontalAlignment = HorizontalAlignment.Center };
+
+            var btnConfirm = MyraExtensions.CreateButton("Sell", VentureGame.Instance.SmallFont);
+            btnConfirm.Background = new SolidBrush(new Color(50, 140, 60));
+            btnConfirm.Click += async (s, e) =>
+            {
+                int quantityToSell = slider != null ? (int)slider.Value : 1;
+                await VentureGame.Instance.Network.EmitPlayerAction("sellItem", new { itemIndex = itemIndex, fromBank = fromBank, quantity = quantityToSell });
+                dialog.Close();
+            };
+            btnRow.Widgets.Add(btnConfirm);
+
+            var btnCancel = MyraExtensions.CreateButton("Cancel", VentureGame.Instance.SmallFont);
+            btnCancel.Background = new SolidBrush(new Color(180, 50, 50));
+            btnCancel.Click += (s, e) => dialog.Close();
+            btnRow.Widgets.Add(btnCancel);
+
+            content.Widgets.Add(btnRow);
+            dialog.Content = content;
+            dialog.ShowModal(VentureGame.Instance.Desktop);
+        }
+
+        private void UpdateRestockTimerText()
+        {
+            if (_restockTimerLabel == null) return;
+            var charState = VentureGame.Instance.CharacterState;
+            if (charState == null || string.IsNullOrEmpty(charState.MerchantLastStocked))
+            {
+                _restockTimerLabel.Text = "Restock in: --:--";
+                return;
+            }
+
+            if (long.TryParse(charState.MerchantLastStocked, out long lastStocked))
+            {
+                long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                long timePassed = now - lastStocked;
+                long timeRemaining = 600000 - timePassed; // 10 minutes
+
+                if (timeRemaining <= 0)
+                {
+                    _restockTimerLabel.Text = "Restock in: 00:00 (Ready to restock)";
+                }
+                else
+                {
+                    long minutes = timeRemaining / 60000;
+                    long seconds = (timeRemaining % 60000) / 1000;
+                    _restockTimerLabel.Text = $"Restock in: {minutes:D2}:{seconds:D2}";
+                }
+            }
+            else
+            {
+                _restockTimerLabel.Text = "Restock in: --:--";
+            }
+        }
+
         public void Update(GameTime gameTime)
         {
+            if (_currentTab == "merchant" && _restockTimerLabel != null)
+            {
+                _timerElapsedMs += gameTime.ElapsedGameTime.TotalMilliseconds;
+                if (_timerElapsedMs >= 1000)
+                {
+                    _timerElapsedMs = 0;
+                    UpdateRestockTimerText();
+                }
+            }
         }
 
         public void Draw(SpriteBatch spriteBatch, GameTime gameTime)
