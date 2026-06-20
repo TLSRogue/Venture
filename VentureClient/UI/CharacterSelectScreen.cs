@@ -190,24 +190,36 @@ namespace VentureClient.UI
 
         private void HandleConnected()
         {
-            ShowStatus("Connected! Enter your name to start.", Color.Green);
+            VentureGame.Instance.RunOnMainThread(() =>
+            {
+                ShowStatus("Connected! Enter your name to start.", Color.Green);
+            });
         }
 
         private void HandleDisconnected()
         {
-            ShowStatus("Disconnected from server. Reconnecting...", Color.Red);
+            VentureGame.Instance.RunOnMainThread(() =>
+            {
+                ShowStatus("Disconnected from server. Reconnecting...", Color.Red);
+            });
         }
 
         private void HandleLoadError(string errorMsg)
         {
-            ShowStatus($"Error: {errorMsg}", Color.Red);
+            VentureGame.Instance.RunOnMainThread(() =>
+            {
+                ShowStatus($"Error: {errorMsg}", Color.Red);
+            });
         }
 
         private void HandleCharacterUpdate(CharacterState character)
         {
-            ShowStatus($"Character {character.CharacterName} loaded!", Color.Green);
-            // Transition to Main Hub Screen
-            VentureGame.Instance.ScreenManager.ChangeScreen(new MainHubScreen());
+            VentureGame.Instance.RunOnMainThread(() =>
+            {
+                ShowStatus($"Character {character.CharacterName} loaded!", Color.Green);
+                // Transition to Main Hub Screen
+                VentureGame.Instance.ScreenManager.ChangeScreen(new MainHubScreen());
+            });
         }
 
         public void Update(GameTime gameTime)

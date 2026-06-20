@@ -193,6 +193,32 @@ namespace VentureClient
 
         protected override void Update(GameTime gameTime)
         {
+            // Process main thread queue actions
+            List<Action> actionsToRun = null;
+            lock (_mainThreadQueue)
+            {
+                if (_mainThreadQueue.Count > 0)
+                {
+                    actionsToRun = new List<Action>(_mainThreadQueue);
+                    _mainThreadQueue.Clear();
+                }
+            }
+
+            if (actionsToRun != null)
+            {
+                foreach (var action in actionsToRun)
+                {
+                    try
+                    {
+                        action();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Error running main thread action: " + ex.Message);
+                    }
+                }
+            }
+
             // Update current Screen
             ScreenManager.Update(gameTime);
 
@@ -201,7 +227,7 @@ namespace VentureClient
 
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(new Color(24, 20, 20)); // Sleek dark charcoal background
+            GraphicsDevice.Clear(new Color(15, 23, 42)); // Deep luxurious slate background
 
             // 1. Draw C# rendering elements if any
             _spriteBatch.Begin();
@@ -215,6 +241,15 @@ namespace VentureClient
         }
 
         private Dictionary<string, Texture2D> _textureCache = new Dictionary<string, Texture2D>();
+        private readonly List<Action> _mainThreadQueue = new List<Action>();
+
+        public void RunOnMainThread(Action action)
+        {
+            lock (_mainThreadQueue)
+            {
+                _mainThreadQueue.Add(action);
+            }
+        }
 
         public Texture2D LoadTexture(string assetPath)
         {

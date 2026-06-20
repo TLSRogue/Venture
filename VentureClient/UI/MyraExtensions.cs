@@ -1,5 +1,7 @@
 using Microsoft.Xna.Framework;
 using FontStashSharp;
+using Myra.Graphics2D;
+using Myra.Graphics2D.Brushes;
 using Myra.Graphics2D.UI;
 
 namespace VentureClient.UI
@@ -46,7 +48,13 @@ namespace VentureClient.UI
 
         public static Button CreateButton(string text, SpriteFontBase font = null, Color? textColor = null)
         {
-            var btn = new Button();
+            var btn = new Button
+            {
+                Padding = new Thickness(14, 6),
+                BorderThickness = new Thickness(1),
+                Border = new SolidBrush(new Color(51, 65, 85)),
+                Background = new SolidBrush(new Color(30, 41, 59))
+            };
             btn.SetText(text, font, textColor);
             return btn;
         }

@@ -799,13 +799,13 @@ namespace VentureClient.UI
             var spellsSpacer = new Panel { Width = 159 };
             _spellsRow.Widgets.Add(spellsSpacer);
 
-            // Populate Spell slots from spellbook
+            // Populate Spell slots from equipped spells
             int spellSlotCount = 0;
-            if (charState.Spellbook != null)
+            if (charState.EquippedSpells != null)
             {
-                for (int i = 0; i < charState.Spellbook.Count; i++)
+                for (int i = 0; i < charState.EquippedSpells.Count; i++)
                 {
-                    var spell = charState.Spellbook[i];
+                    var spell = charState.EquippedSpells[i];
                     int spellIndex = i;
                     bool isSpellSelected = _selectedSpellIndex == spellIndex;
 
@@ -890,34 +890,46 @@ namespace VentureClient.UI
         // --- NETWORK EVENT HANDLERS ---
         private void HandleCharacterUpdate(CharacterState character)
         {
-            RefreshHUD();
-            RefreshActionBar();
+            VentureGame.Instance.RunOnMainThread(() =>
+            {
+                RefreshHUD();
+                RefreshActionBar();
+            });
         }
 
         private void HandleAdventureUpdate(AdventureState adventure)
         {
-            RefreshHUD();
-            RefreshBoard();
-            
-            if (adventure.Logs != null && adventure.Logs.Count > 0)
+            VentureGame.Instance.RunOnMainThread(() =>
             {
-                _logPanel.Widgets.Clear();
-                foreach (var log in adventure.Logs)
+                RefreshHUD();
+                RefreshBoard();
+                
+                if (adventure.Logs != null && adventure.Logs.Count > 0)
                 {
-                    Color c = log.Type == "combat" ? Color.LightCoral : Color.LightGray;
-                    AppendLogMessage("CombatLog", log.Message, c);
+                    _logPanel.Widgets.Clear();
+                    foreach (var log in adventure.Logs)
+                    {
+                        Color c = log.Type == "combat" ? Color.LightCoral : Color.LightGray;
+                        AppendLogMessage("CombatLog", log.Message, c);
+                    }
                 }
-            }
+            });
         }
 
         private void HandleZoneChat(string sender, string message)
         {
-            AppendLogMessage(sender, message, Color.LightSkyBlue);
+            VentureGame.Instance.RunOnMainThread(() =>
+            {
+                AppendLogMessage(sender, message, Color.LightSkyBlue);
+            });
         }
 
         private void HandleAdventureEnded()
         {
-            VentureGame.Instance.ScreenManager.ChangeScreen(new MainHubScreen());
+            VentureGame.Instance.RunOnMainThread(() =>
+            {
+                VentureGame.Instance.ScreenManager.ChangeScreen(new MainHubScreen());
+            });
         }
 
         // --- UI HELPERS ---
@@ -1530,109 +1542,115 @@ namespace VentureClient.UI
 
         private void HandleShowDialogue(string npcName, Newtonsoft.Json.Linq.JObject node, Newtonsoft.Json.Linq.JToken cardIndex)
         {
-            HandleHideDialogue();
-
-            if (node == null) return;
-
-            var dialog = new Dialog
-            {
-                Title = npcName,
-                Width = 400,
-                Height = 350
-            };
-            _activeDialogueDialog = dialog;
-
-            var mainLayout = new VerticalStackPanel { Spacing = 12, Padding = new Thickness(12) };
-
-            mainLayout.Widgets.Add(new Label
-            {
-                Text = npcName,
-                Font = VentureGame.Instance.MainFont,
-                TextColor = Color.Gold,
-                HorizontalAlignment = HorizontalAlignment.Center
-            });
-
-            string text = node["text"]?.ToString() ?? "Hello, traveler.";
-            mainLayout.Widgets.Add(new Label
-            {
-                Text = text,
-                Font = VentureGame.Instance.SmallFont,
-                TextColor = Color.White,
-                Wrap = true
-            });
-
-            var optionsStack = new VerticalStackPanel { Spacing = 8 };
-            var options = node["options"] as Newtonsoft.Json.Linq.JArray;
-            if (options != null)
-            {
-                foreach (var opt in options)
-                {
-                    var option = opt;
-                    string optText = option["text"]?.ToString() ?? "";
-
-                    var btnOpt = new Button
-                    {
-                        Padding = new Thickness(10, 6),
-                        Background = new SolidBrush(new Color(40, 50, 65)),
-                        BorderThickness = new Thickness(1),
-                        Border = new SolidBrush(new Color(80, 95, 120))
-                    };
-                    btnOpt.Content = new Label
-                    {
-                        Text = optText,
-                        Font = VentureGame.Instance.SmallFont,
-                        TextColor = Color.White,
-                        Wrap = true
-                    };
-
-                    btnOpt.Click += async (s, e) =>
-                    {
-                        string nextNode = option["next"]?.ToString();
-                        string action = option["action"]?.ToString();
-
-                        if (nextNode == "farewell" && string.IsNullOrEmpty(action))
-                        {
-                            HandleHideDialogue();
-                        }
-                        else
-                        {
-                            var payload = new
-                            {
-                                cardIndex = cardIndex,
-                                choice = option
-                            };
-                            await VentureGame.Instance.Network.EmitPartyAction(new { type = "dialogueChoice", payload });
-                            dialog.Close();
-                        }
-                    };
-                    optionsStack.Widgets.Add(btnOpt);
-                }
-            }
-
-            var btnLeave = new Button
-            {
-                Padding = new Thickness(10, 6),
-                Background = new SolidBrush(new Color(50, 50, 50))
-            };
-            btnLeave.Content = new Label { Text = "Leave Conversation", Font = VentureGame.Instance.SmallFont, TextColor = Color.LightGray };
-            btnLeave.Click += (s, e) =>
+            VentureGame.Instance.RunOnMainThread(() =>
             {
                 HandleHideDialogue();
-            };
-            optionsStack.Widgets.Add(btnLeave);
 
-            mainLayout.Widgets.Add(optionsStack);
-            dialog.Content = mainLayout;
-            dialog.ShowModal(VentureGame.Instance.Desktop);
+                if (node == null) return;
+
+                var dialog = new Dialog
+                {
+                    Title = npcName,
+                    Width = 400,
+                    Height = 350
+                };
+                _activeDialogueDialog = dialog;
+
+                var mainLayout = new VerticalStackPanel { Spacing = 12, Padding = new Thickness(12) };
+
+                mainLayout.Widgets.Add(new Label
+                {
+                    Text = npcName,
+                    Font = VentureGame.Instance.MainFont,
+                    TextColor = Color.Gold,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                });
+
+                string text = node["text"]?.ToString() ?? "Hello, traveler.";
+                mainLayout.Widgets.Add(new Label
+                {
+                    Text = text,
+                    Font = VentureGame.Instance.SmallFont,
+                    TextColor = Color.White,
+                    Wrap = true
+                });
+
+                var optionsStack = new VerticalStackPanel { Spacing = 8 };
+                var options = node["options"] as Newtonsoft.Json.Linq.JArray;
+                if (options != null)
+                {
+                    foreach (var opt in options)
+                    {
+                        var option = opt;
+                        string optText = option["text"]?.ToString() ?? "";
+
+                        var btnOpt = new Button
+                        {
+                            Padding = new Thickness(10, 6),
+                            Background = new SolidBrush(new Color(40, 50, 65)),
+                            BorderThickness = new Thickness(1),
+                            Border = new SolidBrush(new Color(80, 95, 120))
+                        };
+                        btnOpt.Content = new Label
+                        {
+                            Text = optText,
+                            Font = VentureGame.Instance.SmallFont,
+                            TextColor = Color.White,
+                            Wrap = true
+                        };
+
+                        btnOpt.Click += async (s, e) =>
+                        {
+                            string nextNode = option["next"]?.ToString();
+                            string action = option["action"]?.ToString();
+
+                            if (nextNode == "farewell" && string.IsNullOrEmpty(action))
+                            {
+                                HandleHideDialogue();
+                            }
+                            else
+                            {
+                                var payload = new
+                                {
+                                    cardIndex = cardIndex,
+                                    choice = option
+                                };
+                                await VentureGame.Instance.Network.EmitPartyAction(new { type = "dialogueChoice", payload });
+                                dialog.Close();
+                            }
+                        };
+                        optionsStack.Widgets.Add(btnOpt);
+                    }
+                }
+
+                var btnLeave = new Button
+                {
+                    Padding = new Thickness(10, 6),
+                    Background = new SolidBrush(new Color(50, 50, 50))
+                };
+                btnLeave.Content = new Label { Text = "Leave Conversation", Font = VentureGame.Instance.SmallFont, TextColor = Color.LightGray };
+                btnLeave.Click += (s, e) =>
+                {
+                    HandleHideDialogue();
+                };
+                optionsStack.Widgets.Add(btnLeave);
+
+                mainLayout.Widgets.Add(optionsStack);
+                dialog.Content = mainLayout;
+                dialog.ShowModal(VentureGame.Instance.Desktop);
+            });
         }
 
         private void HandleHideDialogue()
         {
-            if (_activeDialogueDialog != null)
+            VentureGame.Instance.RunOnMainThread(() =>
             {
-                _activeDialogueDialog.Close();
-                _activeDialogueDialog = null;
-            }
+                if (_activeDialogueDialog != null)
+                {
+                    _activeDialogueDialog.Close();
+                    _activeDialogueDialog = null;
+                }
+            });
         }
 
         public void Update(GameTime gameTime)
