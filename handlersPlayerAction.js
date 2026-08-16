@@ -31,7 +31,7 @@ function handleBuyItem(character, payload) {
   const itemData = isPermanent ? itemsByName.get(identifier) : stockItem;
 
   if (itemData && character.gold >= itemData.price) {
-    const itemToGive = isPermanent ? { ...itemData } : (({ quantity, ...rest }) => rest)(itemData);
+    const itemToGive = isPermanent ? { ...itemData } : (({ quantity: _quantity, ...rest }) => rest)(itemData);
     if (addItemToInventoryServer(character, itemToGive)) {
       character.gold -= itemData.price;
       if (!isPermanent && stockItem && stockItem.quantity > 0) {

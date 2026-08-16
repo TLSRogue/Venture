@@ -19,19 +19,24 @@ export function createStateForClient(sharedState, encounterState = null) {
   if (!sharedState) return null;
 
   // Create a base client state from the party's shared state, removing server-only timer IDs.
-  const { turnTimerId, reactionTimeout, ...safeSharedState } = sharedState;
+  const safeSharedState = { ...sharedState };
+  delete safeSharedState.turnTimerId;
+  delete safeSharedState.reactionTimeout;
 
   const finalState = { ...safeSharedState };
 
   // If there is a PvP encounter, sanitize it and attach it to the payload.
   if (encounterState) {
-    const { turnTimerId, reactionTimeout, ...safeEncounterState } = encounterState;
+    const safeEncounterState = { ...encounterState };
+    delete safeEncounterState.turnTimerId;
+    delete safeEncounterState.reactionTimeout;
     finalState.pvpEncounterState = safeEncounterState;
   } else if (finalState.zoneCards) {
     // For PvE, we still need to remove the (now unused in PvP) _playerStateRef just in case.
     finalState.zoneCards = finalState.zoneCards.map((card) => {
       if (card && card._playerStateRef) {
-        const { _playerStateRef, ...safeCard } = card;
+        const safeCard = { ...card };
+        delete safeCard._playerStateRef;
         return safeCard;
       }
       return card;

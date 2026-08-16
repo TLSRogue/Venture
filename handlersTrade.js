@@ -84,7 +84,6 @@ export const registerTradeHandlers = (io, socket) => {
     };
 
     // Notify both players to open trade window
-    const tradeState = trades[tradeId];
     io.to(offerer.id).emit('trade:start', { tradeId, otherPlayer: accepteeName, isPlayer1: true });
     io.to(acceptee.id).emit('trade:start', { tradeId, otherPlayer: offererName, isPlayer1: false });
   });

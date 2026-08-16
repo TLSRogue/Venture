@@ -2,11 +2,10 @@
 // Extracted helper functions for processCastSpell decomposition.
 // These are internal helpers - only imported by adventure-actions.js.
 
-import { players, pvpEncounters } from '../serverState.js';
+import { pvpEncounters } from '../serverState.js';
 import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer } from '../utilsHelpers.js';
 import { checkAndEndTurnForPlayer, defeatEnemyInParty } from './adventure-state.js';
-import { handleResolveReaction } from './reaction-handlers.js';
 import {
   applyDamage,
   normalizeTarget,
@@ -17,11 +16,9 @@ import {
   applyChillStack,
   getCombatContext,
   getHostileTargets,
-  getAvailablePlayerReactions,
   getEffectiveResistance,
   modifyThreat,
 } from './combat-core.js';
-import { INVENTORY_SIZE } from '../constants.js';
 import { SpellHandlers, getSpecialSpellDamage } from './spell-handlers.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 

@@ -378,13 +378,7 @@ function buildPlayerInspectTooltip(playerData) {
 }
 
 function createEntityCard(state, options = {}) {
-  const {
-    isAlly = true,
-    isLocalPlayer = false,
-    isActiveTurn = false,
-    isDuelOpponent = false,
-    showLootButton = false,
-  } = options;
+  const { isAlly = true, isLocalPlayer = false, isActiveTurn = false, showLootButton = false } = options;
 
   const cardEl = document.createElement('div');
   // Base classes
@@ -1413,10 +1407,10 @@ export function showInterveneModal({ attacker, target, damage, attackMessage, ti
   });
 }
 
-export function showDebuffSelectionModal({ targetName, debuffs, maxSelectable, casterName }) {
+export function showDebuffSelectionModal({ targetName, debuffs, maxSelectable, casterName: _casterName }) {
   import('../network.js').then((Network) => {
     const debuffCheckboxes = debuffs
-      .map((debuff, i) => {
+      .map((debuff) => {
         const def = effectDefinitions[debuff.type.toLowerCase()] || { icon: '❓', description: 'Debuff' };
         return `
                 <label class="debuff-option" style="display: flex; align-items: center; gap: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; margin-bottom: 5px; cursor: pointer;">

@@ -130,7 +130,7 @@ export function runMigrations(character, characterName) {
 /**
  * Updates all spells in equipped/spellbook to match current definitions.
  */
-function refreshSpells(character, characterName) {
+function refreshSpells(character, _characterName) {
   let changed = false;
 
   SPELLS_TO_REFRESH.forEach((spellName) => {

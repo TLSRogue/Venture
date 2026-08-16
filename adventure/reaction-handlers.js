@@ -9,21 +9,9 @@ import { rollD20 } from '../shared.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 import { getBonusStatsForPlayer } from '../utilsHelpers.js';
 import { applyDamage } from './combat-core.js';
-import { handlePvpPlayerDeath, checkPvpWinCondition, endPvpEncounter, startNextPvpTurn } from './pvp-state.js';
+import { handlePvpPlayerDeath, endPvpEncounter, startNextPvpTurn } from './pvp-state.js';
 import { INVENTORY_SIZE } from '../constants.js';
-
-// Forward declaration - will be set by adventure-state.js to avoid circular dependency
-let defeatEnemyInPartyFn = null;
-let runEnemyPhaseForPartyFn = null;
-
-/**
- * Set the functions that handle enemy defeat and phase processing.
- * Called by adventure-state.js to avoid circular imports.
- */
-export function setReactionDependencies(defeatFn, runPhaseFn) {
-  defeatEnemyInPartyFn = defeatFn;
-  runEnemyPhaseForPartyFn = runPhaseFn;
-}
+import { defeatEnemyInParty, runEnemyPhaseForParty, handlePartyWipe } from './adventure-state.js';
 
 /**
  * Handle reaction resolution when a player responds to an attack.
@@ -158,7 +146,7 @@ export async function handleResolveReaction(io, socket, payload) {
               stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
 
               if (attackerPlayerState.health <= 0) {
-                defeatEnemyInPartyFn(io, party, { playerId: attackerPlayerState.playerId }, null);
+                defeatEnemyInParty(io, party, { playerId: attackerPlayerState.playerId }, null);
               }
               logMessage = ''; // Clear message to prevent double logging
             }
@@ -176,7 +164,7 @@ export async function handleResolveReaction(io, socket, payload) {
               stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
 
               if (attackerEnemy.health <= 0) {
-                defeatEnemyInPartyFn(io, party, attackerEnemy, reaction.attackerIndex);
+                defeatEnemyInParty(io, party, attackerEnemy, reaction.attackerIndex);
               }
               logMessage = ''; // Clear message to prevent double logging
             }
@@ -244,7 +232,7 @@ export async function handleResolveReaction(io, socket, payload) {
               stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
 
               if (attackerPlayerState.health <= 0) {
-                defeatEnemyInPartyFn(io, party, { playerId: attackerPlayerState.playerId }, null);
+                defeatEnemyInParty(io, party, { playerId: attackerPlayerState.playerId }, null);
               }
               logMessage = ''; // Clear message to prevent double logging
             }
@@ -262,7 +250,7 @@ export async function handleResolveReaction(io, socket, payload) {
               stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
 
               if (attackerEnemy.health <= 0) {
-                defeatEnemyInPartyFn(io, party, attackerEnemy, reaction.attackerIndex);
+                defeatEnemyInParty(io, party, attackerEnemy, reaction.attackerIndex);
               }
               logMessage = ''; // Clear message to prevent double logging
             }
@@ -329,6 +317,15 @@ export async function handleResolveReaction(io, socket, payload) {
       }
     }
     stateObject.log.push({ message: `${name} has been defeated!`, type: 'damage' });
+
+    if (!isPvp) {
+      const allDead = party.sharedState.partyMemberStates.every((p) => p.isDead || p.health <= 0);
+      if (allDead) {
+        stateObject.pendingReaction = null;
+        handlePartyWipe(io, party);
+        return;
+      }
+    }
   }
   const wasFleeing = reaction.isFleeing || false;
   stateObject.pendingReaction = null;
@@ -367,5 +364,5 @@ export async function handleResolveReaction(io, socket, payload) {
     .map((c, i) => ({ card: c, index: i }))
     .filter((e) => e.card && e.card.type === 'enemy');
   const lastEnemyListIndex = enemies.findIndex((e) => e.index === lastAttackerIndex);
-  await runEnemyPhaseForPartyFn(io, party.id, wasFleeing, lastEnemyListIndex + 1);
+  await runEnemyPhaseForParty(io, party.id, wasFleeing, lastEnemyListIndex + 1);
 }

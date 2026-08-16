@@ -24,7 +24,7 @@ export const SpellHandlers = {
     }
   },
 
-  'Spirit Call': (spell, character, actingPlayerState, log) => {
+  'Spirit Call': (spell, character, actingPlayerState, _log) => {
     // Return dialogue structure for the UI to render
     return {
       success: true,
@@ -176,11 +176,11 @@ export const SpellHandlers = {
     actingPlayerState,
     log,
     targetState,
-    bonuses,
-    sharedState,
-    io,
-    party,
-    encounter
+    _bonuses,
+    _sharedState,
+    _io,
+    _party,
+    _encounter
   ) => {
     if (!targetState) {
       log.push({

@@ -515,7 +515,7 @@ export function getWeaponDebuff(weapon, isCriticalHit) {
 /**
  * Check if player gains focus from Monk abilities.
  */
-export function checkMonkFocusGain(character, actingPlayerState, log) {
+export function checkMonkFocusGain(character, actingPlayerState, _log) {
   const hasMonkTraining = character.equippedSpells.some((s) => s.name === "Monk's Training");
   const isUnarmed = !character.equipment.mainHand && !character.equipment.offHand;
 
@@ -572,7 +572,7 @@ export function pushLog(sharedState, encounter, message, type = 'info') {
  * Apply damage to a target state, handling barriers/shields.
  * Returns object with applied damage and whether Flame Shield was triggered.
  */
-export function applyDamage(targetState, amount, options = {}) {
+export function applyDamage(targetState, amount, _options = {}) {
   if (!targetState) return { applied: amount, flameShieldTriggered: false };
   if (!targetState.buffs) targetState.buffs = [];
 

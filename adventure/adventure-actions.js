@@ -1,6 +1,6 @@
 // adventure/adventure-actions.js
 
-import { players, parties, pvpEncounters } from '../serverState.js';
+import { players, pvpEncounters } from '../serverState.js';
 import { gameData } from '../data/index.js';
 import { getBonusStatsForPlayer, addItemToInventoryServer } from '../utilsHelpers.js';
 import { checkAndEndTurnForPlayer, defeatEnemyInParty } from './adventure-state.js';
@@ -16,13 +16,10 @@ import {
   checkEnemyReaction,
   applyChillStack,
   getCombatContext,
-  getHostileTargets,
   getAvailablePlayerReactions,
-  getEffectiveResistance,
   modifyThreat,
 } from './combat-core.js';
 import { INVENTORY_SIZE } from '../constants.js';
-import { SpellHandlers, getSpecialSpellDamage } from './spell-handlers.js';
 import { rollD20 } from '../shared.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
 import {
@@ -678,7 +675,6 @@ export async function processUseConsumable(io, party, player, payload) {
     const roll = rollD20();
     const hitThreshold = item.hit || 10;
     const isHit = roll >= hitThreshold;
-    const isCrit = roll === 20;
 
     if (isHit) {
       const rollColor = '#2ecc71';

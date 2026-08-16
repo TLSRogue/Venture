@@ -17,6 +17,9 @@ fs.writeFileSync(path.join(outputDir, 'allSpells.json'), JSON.stringify(gameData
 fs.writeFileSync(path.join(outputDir, 'cardPools.json'), JSON.stringify(gameData.cardPools, null, 2));
 fs.writeFileSync(path.join(outputDir, 'specialCards.json'), JSON.stringify(gameData.specialCards, null, 2));
 fs.writeFileSync(path.join(outputDir, 'craftingRecipes.json'), JSON.stringify(gameData.craftingRecipes, null, 2));
-fs.writeFileSync(path.join(outputDir, 'genericTreasureLoot.json'), JSON.stringify(gameData.genericTreasureLoot, null, 2));
+fs.writeFileSync(
+  path.join(outputDir, 'genericTreasureLoot.json'),
+  JSON.stringify(gameData.genericTreasureLoot, null, 2)
+);
 
 console.log('Game data exported successfully to:', outputDir);

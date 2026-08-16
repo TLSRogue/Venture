@@ -4,7 +4,7 @@ import { gameData, itemsByName } from '../data/index.js'; // Corrected Path
 import { gameState } from '../state.js';
 import * as Network from '../network.js';
 import { getBonusStats } from '../player.js';
-import { showModal, hideModal, showTooltip, hideTooltip, buildItemTooltip, buildSpellTooltip } from './ui-main.js';
+import { showModal, showTooltip, hideTooltip, buildItemTooltip, buildSpellTooltip } from './ui-main.js';
 import * as TownUI from './ui-town.js';
 import * as AdventureUI from './ui-adventure.js';
 import * as UIParty from './ui-party.js';

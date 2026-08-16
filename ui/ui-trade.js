@@ -1,7 +1,7 @@
 'use strict';
 
 import { gameState } from '../state.js';
-import { showModal, hideModal, showInfoModal } from './ui-main.js';
+import { showModal } from './ui-main.js';
 import * as Network from '../network.js';
 
 let currentTradeId = null;
@@ -375,8 +375,6 @@ export function renderTradeModal(tradeState, isPlayer1) {
       if (itemEl && !itemEl.classList.contains('disabled')) {
         const index = parseInt(itemEl.dataset.index);
         const item = gameState.inventory[index];
-        const newItems = [...localState.offer.items, { Type: 'inventory', index, item }]; // Note: Capital 'Type' might be safer if used elsewhere, but stick to lowercase 'type' for consistency
-        // Oops, previous code used 'type', stick to that.
         const newItemsClean = [...localState.offer.items, { type: 'inventory', index, item }];
 
         updateOffer(currentTradeId, newItemsClean, parseInt(document.getElementById('trade-gold-input').value) || 0);

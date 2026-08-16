@@ -37,7 +37,7 @@ function getGoblinTypes() {
  */
 
 // --- RAT KING HANDLERS ---
-function handleRatKingSummon(enemy, sharedState, target, attack, ctx) {
+function handleRatKingSummon(enemy, sharedState, _target, _attack, _ctx) {
   const ratTypes = getRatTypes();
   const randomRat = ratTypes[Math.floor(Math.random() * ratTypes.length)];
 
@@ -76,7 +76,7 @@ function handleRatKingSummon(enemy, sharedState, target, attack, ctx) {
 }
 
 // --- GORBON HANDLERS ---
-function handleGorbonRally(enemy, sharedState, target, attack, ctx) {
+function handleGorbonRally(enemy, sharedState, _target, _attack, _ctx) {
   const goblins = sharedState.zoneCards.filter(
     (c) => c && c.type === 'enemy' && c.name.includes('Goblin') && c !== enemy
   );
@@ -132,7 +132,7 @@ function handleGorbonRally(enemy, sharedState, target, attack, ctx) {
 }
 
 // --- GOBLIN SHAMAN HANDLERS ---
-function handleGoblinShamanHeal(enemy, sharedState, target, attack, ctx) {
+function handleGoblinShamanHeal(enemy, sharedState, _target, _attack, _ctx) {
   const woundedAllies = sharedState.zoneCards
     .filter((c) => c && c.type === 'enemy' && c !== enemy && c.health < c.maxHealth)
     .sort((a, b) => a.health / a.maxHealth - b.health / b.maxHealth);
@@ -159,7 +159,7 @@ function handleGoblinShamanHeal(enemy, sharedState, target, attack, ctx) {
 }
 
 // --- PULVIS CADUS HANDLERS ---
-function handlePulvisQuickFix(enemy, sharedState, target, attack, ctx) {
+function handlePulvisQuickFix(enemy, sharedState, _target, _attack, _ctx) {
   if (enemy.health < enemy.maxHealth) {
     const healAmount = 8 + (enemy.arenaDamageBonus || 0);
     const oldHealth = enemy.health;
@@ -178,7 +178,7 @@ function handlePulvisQuickFix(enemy, sharedState, target, attack, ctx) {
   return { handled: true };
 }
 
-function handlePulvisUnstableKegs(enemy, sharedState, target, attack, ctx) {
+function handlePulvisUnstableKegs(enemy, sharedState, _target, _attack, _ctx) {
   const kegCount = 2;
   let spawned = 0;
   for (let k = 0; k < kegCount; k++) {
@@ -209,7 +209,7 @@ function handlePulvisUnstableKegs(enemy, sharedState, target, attack, ctx) {
 }
 
 // --- POWDER KEG HANDLERS ---
-function handlePowderKegDetonate(enemy, sharedState, target, attack, ctx) {
+function handlePowderKegDetonate(enemy, sharedState, _target, _attack, _ctx) {
   if (typeof enemy.kegTimer === 'undefined') enemy.kegTimer = 2;
   enemy.kegTimer--;
 
@@ -252,7 +252,7 @@ function handlePowderKegDetonate(enemy, sharedState, target, attack, ctx) {
 
 // --- ANGRY FARMHAND HANDLERS ---
 // Now only handles the flee check - Pitchfork attack is in the attack table as a regular attack
-function handleFarmhandTactics(enemy, sharedState, target, attack, ctx) {
+function handleFarmhandTactics(enemy, sharedState, _target, _attack, _ctx) {
   const allEffects = (enemy.buffs || []).concat(enemy.debuffs || []);
   const isTrapped = allEffects.some((b) =>
     ['trapped', 'root', 'stun', 'daze', 'entangling roots'].includes(b.type.toLowerCase())
@@ -269,7 +269,7 @@ function handleFarmhandTactics(enemy, sharedState, target, attack, ctx) {
 }
 
 // --- VEXOR HANDLERS ---
-function handleVexorSlash(enemy, sharedState, target, attack, ctx) {
+function handleVexorSlash(enemy, sharedState, _target, _attack, _ctx) {
   const sortedPlayers = [...sharedState.partyMemberStates]
     .filter((p) => !p.isDead)
     .sort((a, b) => (b.threat || 0) - (a.threat || 0));
@@ -294,7 +294,7 @@ function handleVexorSlash(enemy, sharedState, target, attack, ctx) {
   return { handled: true };
 }
 
-function handleVexorShieldBash(enemy, sharedState, target, attack, ctx) {
+function handleVexorShieldBash(enemy, sharedState, _target, _attack, _ctx) {
   const sortedPlayers = [...sharedState.partyMemberStates]
     .filter((p) => !p.isDead)
     .sort((a, b) => (a.threat || 0) - (b.threat || 0));
@@ -323,7 +323,7 @@ function handleVexorShieldBash(enemy, sharedState, target, attack, ctx) {
   return { handled: true };
 }
 
-function handleVexorTaunt(enemy, sharedState, target, attack, ctx) {
+function handleVexorTaunt(enemy, sharedState, _target, _attack, _ctx) {
   enemy.health = Math.min(enemy.maxHealth, enemy.health + (5 + (enemy.arenaDamageBonus || 0)));
   sharedState.log.push({ message: `Vexor heals for 5 HP!`, type: 'heal' });
 
@@ -338,7 +338,7 @@ function handleVexorTaunt(enemy, sharedState, target, attack, ctx) {
   return { handled: true };
 }
 
-function handleVexorWhirlwind(enemy, sharedState, target, attack, ctx) {
+function handleVexorWhirlwind(enemy, sharedState, _target, _attack, _ctx) {
   sharedState.partyMemberStates.forEach((p) => {
     if (!p.isDead) {
       const playerObj = players[p.name];
@@ -366,7 +366,7 @@ function handleVexorWhirlwind(enemy, sharedState, target, attack, ctx) {
 }
 
 // --- BLACK WIDOW HANDLERS ---
-function handleBlackWidowConsume(enemy, sharedState, target, attack, ctx) {
+function handleBlackWidowConsume(enemy, sharedState, _target, _attack, _ctx) {
   const trappedPlayers = sharedState.partyMemberStates.filter(
     (p) => !p.isDead && (p.debuffs || []).some((d) => d.type.toLowerCase() === 'trap')
   );
@@ -419,7 +419,7 @@ function handleBlackWidowConsume(enemy, sharedState, target, attack, ctx) {
 }
 
 // --- GRAY WOLF HANDLERS ---
-function handleGrayWolfHowl(enemy, sharedState, target, attack, ctx) {
+function handleGrayWolfHowl(enemy, sharedState, _target, _attack, _ctx) {
   // First try empty slots, then overlay non-enemy cards (but NOT other enemies)
   let spawnIndex = sharedState.zoneCards.findIndex((c) => c === null);
   let overlayedCard = null;
@@ -459,7 +459,7 @@ function handleGrayWolfHowl(enemy, sharedState, target, attack, ctx) {
 }
 
 // --- VAMPIRE HANDLERS ---
-function handleVampireTakeFlight(enemy, sharedState, target, attack, ctx) {
+function handleVampireTakeFlight(enemy, sharedState, _target, _attack, _ctx) {
   if (!enemy.buffs) enemy.buffs = [];
   enemy.buffs = enemy.buffs.filter((b) => b.type !== 'Flying' && b.type !== 'Aerial Strike');
   enemy.buffs.push({ type: 'Flying', duration: 2 });
@@ -471,7 +471,7 @@ function handleVampireTakeFlight(enemy, sharedState, target, attack, ctx) {
   return { handled: true };
 }
 
-function handleVampireBloodFountain(enemy, sharedState, target, attack, ctx) {
+function handleVampireBloodFountain(enemy, sharedState, _target, _attack, _ctx) {
   const bleedingPlayers = sharedState.partyMemberStates.filter(
     (p) => !p.isDead && (p.debuffs || []).some((d) => d.type.toLowerCase() === 'bleed')
   );
@@ -510,37 +510,8 @@ function handleVampireBloodFountain(enemy, sharedState, target, attack, ctx) {
   return { handled: true };
 }
 
-function handleVampireFromTheShadows(enemy, sharedState, target, attack, ctx) {
-  const sortedPlayers = [...sharedState.partyMemberStates]
-    .filter((p) => !p.isDead)
-    .sort((a, b) => (a.threat || 0) - (b.threat || 0));
-  if (sortedPlayers.length > 0) {
-    const targetPlayer = sortedPlayers[0];
-    const playerObj = players[targetPlayer.name];
-    if (playerObj) {
-      const bonuses = getBonusStatsForPlayer(playerObj.character, targetPlayer);
-      const resistance = bonuses.physicalResistance || 0;
-      const damage = Math.max(1, 8 - resistance);
-      applyDamage(targetPlayer, damage);
-
-      if (!targetPlayer.debuffs) targetPlayer.debuffs = [];
-      targetPlayer.debuffs.push({ type: 'bleed', duration: 3, damage: 2, damageType: 'Physical' });
-
-      sharedState.log.push({
-        message: `The Vampire strikes ${targetPlayer.name} from the shadows for ${damage} damage and causes heavy Bleeding!`,
-        type: 'damage',
-      });
-      if (targetPlayer.health <= 0) {
-        targetPlayer.isDead = true;
-        targetPlayer.health = 0;
-      }
-    }
-  }
-  return { handled: true };
-}
-
 // --- VAMPIRE'S ASSISTANT HANDLERS ---
-function handleAssistantSpawnVictim(enemy, sharedState, target, attack, ctx) {
+function handleAssistantSpawnVictim(enemy, sharedState, _target, _attack, _ctx) {
   // First try empty slots, then overlay non-enemy cards (but NOT other enemies)
   let spawnIndex = sharedState.zoneCards.findIndex((c) => c === null);
   let overlayedCard = null;
@@ -581,7 +552,7 @@ function handleAssistantSpawnVictim(enemy, sharedState, target, attack, ctx) {
 }
 
 // --- HUMAN VICTIM HANDLERS ---
-function handleHumanVictimCountdown(enemy, sharedState, target, attack, ctx) {
+function handleHumanVictimCountdown(enemy, sharedState, _target, _attack, _ctx) {
   if (typeof enemy.turnsUntilConsumed === 'undefined') enemy.turnsUntilConsumed = 2;
   enemy.turnsUntilConsumed--;
 
@@ -608,7 +579,7 @@ function handleHumanVictimCountdown(enemy, sharedState, target, attack, ctx) {
 }
 
 // --- LOOT GOBLIN HANDLERS ---
-function handleLootGoblinPickpocket(enemy, sharedState, target, attack, ctx) {
+function handleLootGoblinPickpocket(enemy, sharedState, _target, _attack, ctx) {
   const { io } = ctx;
   const alivePlayers = sharedState.partyMemberStates.filter((p) => !p.isDead);
   if (alivePlayers.length > 0) {
@@ -635,15 +606,14 @@ function handleLootGoblinPickpocket(enemy, sharedState, target, attack, ctx) {
   return { handled: true };
 }
 
-function handleLootGoblinEscape(enemy, sharedState, target, attack, ctx) {
-  const { enemyIndex } = ctx;
+function handleLootGoblinEscape(enemy, sharedState, _target, _attack, _ctx) {
   const stolenMsg = enemy.stolenGold > 0 ? ` with ${enemy.stolenGold}g of stolen treasure!` : '!';
   sharedState.log.push({ message: `The Loot Goblin escaped${stolenMsg}`, type: 'damage' });
   return { handled: true, removeEnemy: true };
 }
 
 // --- RAGING BULL HANDLERS ---
-function handleRagingBullThickHide(enemy, sharedState, target, attack, ctx) {
+function handleRagingBullThickHide(enemy, sharedState, target, _attack, ctx) {
   const { targetPlayerObject } = ctx;
   const targetPlayerState = target;
 
@@ -678,7 +648,7 @@ function handleRagingBullThickHide(enemy, sharedState, target, attack, ctx) {
 }
 
 // --- ANGRY ROOSTER HANDLERS ---
-function handleAngryRoosterEnrage(enemy, sharedState, target, attack, ctx) {
+function handleAngryRoosterEnrage(enemy, sharedState, _target, _attack, _ctx) {
   if (!enemy.buffs) enemy.buffs = [];
   // Remove existing Enraged buff if present to reset duration
   enemy.buffs = enemy.buffs.filter((b) => b.type !== 'Enraged');
@@ -691,7 +661,7 @@ function handleAngryRoosterEnrage(enemy, sharedState, target, attack, ctx) {
 }
 
 // --- FILL KEGS SPECIAL (Pulvis Cadus) ---
-function handlePulvisFillKegs(enemy, sharedState, target, attack, ctx) {
+function handlePulvisFillKegs(enemy, sharedState, _target, _attack, _ctx) {
   const emptyIndices = sharedState.zoneCards
     .map((card, idx) => (card === null || (card && (card.allowSpawnOver || card.type === 'area')) ? idx : -1))
     .filter((idx) => idx !== -1);
@@ -780,7 +750,7 @@ export const EnemySpecialHandlers = {
   },
 };
 // --- BB RHINO HANDLERS ---
-function handleRhinoDazeStun(enemy, sharedState, target, attack, ctx) {
+function handleRhinoDazeStun(enemy, sharedState, _target, attack, ctx) {
   const alivePlayers = sharedState.partyMemberStates.filter((p) => !p.isDead);
   if (alivePlayers.length > 0) {
     const sortedPlayers = [...alivePlayers].sort((a, b) => (b.threat || 0) - (a.threat || 0));
@@ -817,7 +787,7 @@ function handleRhinoDazeStun(enemy, sharedState, target, attack, ctx) {
   return { handled: true };
 }
 
-function handleRhinoClearThreat(enemy, sharedState, target, attack, ctx) {
+function handleRhinoClearThreat(enemy, sharedState, _target, _attack, ctx) {
   const alivePlayers = sharedState.partyMemberStates.filter((p) => !p.isDead);
   if (alivePlayers.length > 0) {
     const sortedPlayers = [...alivePlayers].sort((a, b) => (b.threat || 0) - (a.threat || 0));
@@ -844,7 +814,7 @@ function handleRhinoClearThreat(enemy, sharedState, target, attack, ctx) {
   return { handled: true };
 }
 
-function handleRhinoAoEStun(enemy, sharedState, target, attack, ctx) {
+function handleRhinoAoEStun(enemy, sharedState, _target, _attack, ctx) {
   sharedState.partyMemberStates.forEach((p) => {
     if (!p.isDead) {
       const playerObj = ctx.players[p.name];
@@ -872,7 +842,7 @@ function handleRhinoAoEStun(enemy, sharedState, target, attack, ctx) {
 }
 
 // --- BB TIGER HANDLERS ---
-function handleTigerBleed(enemy, sharedState, target, attack, ctx) {
+function handleTigerBleed(enemy, sharedState, _target, _attack, ctx) {
   const alivePlayers = sharedState.partyMemberStates.filter((p) => !p.isDead);
   if (alivePlayers.length > 0) {
     const sortedPlayers = [...alivePlayers].sort((a, b) => (b.threat || 0) - (a.threat || 0));
@@ -903,7 +873,7 @@ function handleTigerBleed(enemy, sharedState, target, attack, ctx) {
   return { handled: true };
 }
 
-function handleTigerHeal(enemy, sharedState, target, attack, ctx) {
+function handleTigerHeal(enemy, sharedState, _target, _attack, _ctx) {
   const rhino = sharedState.zoneCards.find((c) => c && c.name === 'BB Rhino');
   const roundCount = sharedState.arenaState?.round || 1;
   const healAmount = 5 + roundCount;
@@ -931,7 +901,7 @@ function handleTigerHeal(enemy, sharedState, target, attack, ctx) {
   return { handled: true };
 }
 
-function handleTigerStun(enemy, sharedState, target, attack, ctx) {
+function handleTigerStun(enemy, sharedState, _target, _attack, ctx) {
   const alivePlayers = sharedState.partyMemberStates.filter((p) => !p.isDead);
   if (alivePlayers.length > 0) {
     const sortedPlayers = [...alivePlayers].sort((a, b) => (b.threat || 0) - (a.threat || 0));
@@ -997,7 +967,7 @@ export function processEnemyEndOfTurn(enemy, sharedState) {
   if (!enemy || enemy.health <= 0) return true;
 
   // Process DOT effects using shared function
-  const tookDamage = applyDoTEffects(enemy, sharedState.log);
+  applyDoTEffects(enemy, sharedState.log);
 
   // Check if enemy died from DOT
   if (enemy.health <= 0) {

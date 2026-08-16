@@ -1,15 +1,20 @@
 'use strict';
 
 import { gameState } from './state.js';
-import * as Interactions from './interactions.js';
 import * as Network from './network.js';
 import * as UIMain from './ui/ui-main.js';
+import * as UIAdventure from './ui/ui-adventure.js';
 
 /**
  * @file combat.js
  * This module is now responsible for sending player combat intents to the server.
  * All game logic and state manipulation has been removed from the client.
  */
+
+export function clearSelection() {
+  gameState.turnState.selectedAction = null;
+  UIAdventure.updateActionUI();
+}
 
 export function endTurn() {
   if (gameState.inDuel) {
@@ -20,7 +25,7 @@ export function endTurn() {
     document.getElementById('end-turn-btn').disabled = true; // Disable locally until server update
     UIMain.addToLog('You have ended your turn.', 'info');
   }
-  Interactions.clearSelection();
+  clearSelection();
 }
 
 export function castSpell(spellIndex, targetIndex) {
@@ -35,7 +40,7 @@ export function castSpell(spellIndex, targetIndex) {
       payload: { spellIndex, targetIndex },
     });
   }
-  Interactions.clearSelection();
+  clearSelection();
 }
 
 export function weaponAttack(targetIndex) {
@@ -55,7 +60,7 @@ export function weaponAttack(targetIndex) {
       payload: { weaponSlot: selectedAction.slot, targetIndex },
     });
   }
-  Interactions.clearSelection();
+  clearSelection();
 }
 
 export function useItemAbility(slot) {
@@ -73,5 +78,5 @@ export function useItemAbility(slot) {
       payload: { slot },
     });
   }
-  Interactions.clearSelection();
+  clearSelection();
 }

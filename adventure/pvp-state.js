@@ -6,8 +6,8 @@
 
 import { players, parties, pvpEncounters } from '../serverState.js';
 import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
-import { createStateForClient, getBonusStatsForPlayer } from '../utilsHelpers.js';
-import { applyDamage, applyDoTEffects, processEndOfTurnEffects, processRejuvenateHealing } from './combat-core.js';
+import { createStateForClient } from '../utilsHelpers.js';
+import { processEndOfTurnEffects, processRejuvenateHealing } from './combat-core.js';
 import { PVP_TURN_DURATION_MS, INVENTORY_SIZE, DEFAULT_ACTION_POINTS } from '../constants.js';
 import * as PartyManager from '../party/party-manager.js';
 import { processZoneEffects } from './adventure-state.js';

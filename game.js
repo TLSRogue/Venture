@@ -1,12 +1,10 @@
 'use strict';
 
-import { gameData } from './data/index.js';
 import { gameState, setGameState, getInitialGameState } from './state.js';
 import * as Network from './network.js';
 import * as Combat from './combat.js';
 import * as Interactions from './interactions.js';
 import * as Player from './player.js';
-import * as Merchant from './merchant.js';
 import * as UIMain from './ui/ui-main.js';
 import * as UIAdventure from './ui/ui-adventure.js';
 import * as UIParty from './ui/ui-party.js';
@@ -669,7 +667,7 @@ function handleLootRollEnded() {
   document.getElementById('loot-roll-container').classList.add('hidden');
 }
 
-function handlePvpFleeRequest({ fleeingPartyName }) {
+function handlePvpFleeRequest({ fleeingPartyName: _fleeingPartyName }) {
   const message = `The opposing party has requested to flee the battle. Do you let them go?`;
 
   const onYes = () => {
@@ -872,7 +870,7 @@ function addEventListeners() {
     if (buyItem && !buyItem.classList.contains('disabled')) {
       const isPermanent = buyItem.dataset.permanent === 'true';
       const identifier = isPermanent ? buyItem.dataset.buyItem : parseInt(buyItem.dataset.buyItem, 10);
-      return Merchant.buyItem(identifier, isPermanent);
+      return Network.emitPlayerAction('buyItem', { identifier, isPermanent });
     }
 
     if (target.closest('.zone-card')) {

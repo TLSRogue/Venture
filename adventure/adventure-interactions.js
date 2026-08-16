@@ -1,6 +1,6 @@
 // adventure/adventure-interactions.js
 
-import { players, parties, pvpEncounters } from '../serverState.js';
+import { players, pvpEncounters } from '../serverState.js';
 import { gameData, lootPools } from '../data/index.js';
 import {
   buildZoneDeckForServer,

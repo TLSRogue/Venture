@@ -3,19 +3,12 @@
 import { players, parties, pvpZoneQueues, pvpEncounters } from '../serverState.js';
 import { gameData, lootPools } from '../data/index.js';
 import { rollD20 } from '../shared.js';
-import { broadcastAdventureUpdate, broadcastPartyUpdate } from '../utilsBroadcast.js';
-import {
-  getBonusStatsForPlayer,
-  addItemToInventoryServer,
-  drawCardsForServer,
-  createStateForClient,
-  getZoneAreaCard,
-} from '../utilsHelpers.js';
+import { broadcastAdventureUpdate } from '../utilsBroadcast.js';
+import { handleResolveReaction } from './reaction-handlers.js';
+import { getBonusStatsForPlayer, drawCardsForServer, getZoneAreaCard } from '../utilsHelpers.js';
 import {
   applyDamage,
-  applyDoTEffects,
   applyChillStack,
-  processChillReduction,
   getAvailablePlayerReactions,
   processEndOfTurnEffects,
   processRejuvenateHealing,
@@ -24,7 +17,6 @@ import {
   setThreat,
 } from './combat-core.js';
 import {
-  PVP_TURN_DURATION_MS,
   PVE_TURN_DURATION_MS,
   LOOT_ROLL_DURATION_MS,
   REACTION_TIMER_MS,
@@ -33,10 +25,6 @@ import {
   INVENTORY_SIZE,
   DEFAULT_ACTION_POINTS,
   STARTING_HEALTH,
-  ARENA_HP_SCALE_PER_ROUND,
-  ARENA_DAMAGE_BONUS_PER_ROUND,
-  ARENA_CHEST_BASE_GOLD,
-  ARENA_CHEST_GOLD_PER_ROUND,
 } from '../constants.js';
 import { spawnArenaBoss } from '../handlersAdventure.js';
 import * as PartyManager from '../party/party-manager.js';
@@ -44,13 +32,12 @@ import { processEnemyEndOfTurn, handleEnemySpecialAction } from './enemy-handler
 import {
   handlePvpPlayerDeath,
   checkPvpWinCondition,
-  endPvpEncounter,
   endDuelEncounter,
   startPvpEncounter,
   startNextPvpTurn,
   processPvpPlayerEndTurn,
 } from './pvp-state.js';
-import { determineLootWinnerAndDistribute, processNextLootRoll } from './loot-manager.js';
+import { determineLootWinnerAndDistribute } from './loot-manager.js';
 
 const PVP_ZONES = ['blighted_wastes'];
 
@@ -181,6 +168,13 @@ export async function resolveIntervene(io, socket, payload) {
         player.character.inventory = Array(INVENTORY_SIZE).fill(null);
         io.to(player.id).emit('characterUpdate', player.character);
         sharedState.log.push({ message: `${name} has been defeated!`, type: 'damage' });
+
+        const allDead = sharedState.partyMemberStates.every((p) => p.isDead || p.health <= 0);
+        if (allDead) {
+          sharedState.pendingIntervene = null;
+          handlePartyWipe(io, party);
+          return;
+        }
       }
 
       sharedState.pendingIntervene = null;
@@ -260,6 +254,13 @@ export async function resolveIntervene(io, socket, payload) {
         player.character.inventory = Array(INVENTORY_SIZE).fill(null);
         io.to(player.id).emit('characterUpdate', player.character);
         sharedState.log.push({ message: `${name} has been defeated!`, type: 'damage' });
+
+        const allDead = sharedState.partyMemberStates.every((p) => p.isDead || p.health <= 0);
+        if (allDead) {
+          sharedState.pendingIntervene = null;
+          handlePartyWipe(io, party);
+          return;
+        }
       }
 
       sharedState.pendingIntervene = null;
@@ -711,6 +712,61 @@ export function defeatEnemyInParty(io, party, enemy, enemyIndex) {
       });
     }
   }
+}
+
+export function handlePartyWipe(io, party) {
+  const { sharedState } = party;
+  if (!sharedState) return;
+
+  // Clear timers
+  if (sharedState.turnTimerId) {
+    clearTimeout(sharedState.turnTimerId);
+    sharedState.turnTimerId = null;
+  }
+  if (sharedState.reactionTimeout) {
+    clearTimeout(sharedState.reactionTimeout);
+    sharedState.reactionTimeout = null;
+  }
+  if (sharedState.interveneTimeout) {
+    clearTimeout(sharedState.interveneTimeout);
+    sharedState.interveneTimeout = null;
+  }
+
+  sharedState.isPlayerTurn = false;
+  sharedState.log.push({ message: 'Your party was wiped out!', type: 'damage' });
+  broadcastAdventureUpdate(io, party);
+
+  setTimeout(() => {
+    party.members.forEach((memberName) => {
+      const memberPlayer = players[memberName];
+      const memberCharacter = memberPlayer?.character;
+      if (memberCharacter) {
+        if (sharedState.defenseQuest && sharedState.defenseQuest.active) {
+          memberCharacter.quests = memberCharacter.quests.filter(
+            (q) => q.details.id !== sharedState.defenseQuest.questId || q.status === 'completed'
+          );
+        }
+        const bonuses = getBonusStatsForPlayer(memberCharacter, null);
+        memberCharacter.health = STARTING_HEALTH + (bonuses.maxHealth || 0);
+
+        if (memberPlayer.id) {
+          io.to(memberPlayer.id).emit('characterUpdate', memberCharacter);
+          io.to(memberPlayer.id).emit('party:adventureEnded', {
+            outcome: 'loss',
+            message: 'Your party was wiped out!',
+            finalLog: sharedState.log,
+          });
+        }
+      }
+    });
+
+    if (party.isSoloParty) {
+      const leaderPlayer = players[party.leaderId];
+      PartyManager.cleanupSoloParty(io, party, leaderPlayer);
+    } else {
+      PartyManager.endPartyAdventure(io, party.id);
+    }
+  }, 1500);
 }
 
 export async function processEndAdventure(io, player, party) {
@@ -1212,8 +1268,11 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
         }
         continue;
       }
-      const alivePlayers = sharedState.partyMemberStates.filter((p) => !p.isDead);
-      if (alivePlayers.length === 0) continue;
+      const alivePlayers = sharedState.partyMemberStates.filter((p) => !p.isDead && p.health > 0);
+      if (alivePlayers.length === 0) {
+        handlePartyWipe(io, party);
+        return;
+      }
       let targetPlayerState;
       if (alivePlayers.length > 0) {
         const maxThreat = Math.max(...alivePlayers.map((p) => p.threat));
@@ -1693,6 +1752,12 @@ export async function runEnemyPhaseForParty(io, partyId, isFleeing = false, star
       }
     }
 
+    const alivePlayers = sharedState.partyMemberStates.filter((p) => !p.isDead && p.health > 0);
+    if (alivePlayers.length === 0) {
+      handlePartyWipe(io, party);
+      return;
+    }
+
     // Process zone effects at the end of the entire round
     processZoneEffects(io, party);
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -1704,26 +1769,29 @@ export function startNextPlayerTurn(io, partyId) {
   const party = parties[partyId];
   if (!party || !party.sharedState) return;
   const { sharedState } = party;
-  sharedState.turnNumber++;
-  sharedState.isPlayerTurn = true;
-  sharedState.activePhase = 'player';
 
   // Find first living player
   let firstLivingIndex = -1;
   for (let i = 0; i < sharedState.partyMemberStates.length; i++) {
-    if (!sharedState.partyMemberStates[i].isDead) {
+    if (!sharedState.partyMemberStates[i].isDead && sharedState.partyMemberStates[i].health > 0) {
       firstLivingIndex = i;
       break;
     }
   }
 
-  if (firstLivingIndex === -1) return; // All dead, should not happen here but safety
+  if (firstLivingIndex === -1) {
+    handlePartyWipe(io, party);
+    return;
+  }
 
+  sharedState.turnNumber++;
+  sharedState.isPlayerTurn = true;
+  sharedState.activePhase = 'player';
   sharedState.activePlayerIndex = firstLivingIndex;
 
   sharedState.log.push({ message: "--- Players' Turn ---", type: 'info' });
 
-  sharedState.partyMemberStates.forEach((p, idx) => {
+  sharedState.partyMemberStates.forEach((p) => {
     if (p.isDead) {
       p.turnEnded = true;
       p.actionPoints = 0;
@@ -1875,6 +1943,11 @@ export async function processPlayerEndTurn(io, partyId, playerName) {
     // All players have gone
     broadcastAdventureUpdate(io, party);
     // Call enemy phase
+    const allDead = sharedState.partyMemberStates.every((p) => p.isDead || p.health <= 0);
+    if (allDead) {
+      handlePartyWipe(io, party);
+      return;
+    }
     const allTurnsEnded = sharedState.partyMemberStates.every((p) => p.turnEnded || p.isDead);
     if (allTurnsEnded) {
       await runEnemyPhaseForParty(io, partyId);
@@ -1913,341 +1986,4 @@ function processPartyEndOfTurn(sharedState) {
 
 // Re-export functions to maintain API compatibility
 export { handlePvpPlayerDeath, endDuelEncounter, startPvpEncounter, startNextPvpTurn, processPvpPlayerEndTurn };
-
-export async function handleResolveReaction(io, socket, payload) {
-  const name = socket.characterName;
-  const player = players[name];
-  if (!player) return;
-  let party = parties[player.character.partyId];
-  if (!party || !party.sharedState) return;
-  const isPvp = !!party.sharedState.pvpEncounterId;
-  const encounter = isPvp ? pvpEncounters[party.sharedState.pvpEncounterId] : null;
-  const stateObject = isPvp ? encounter : party.sharedState;
-  if (!stateObject || !stateObject.pendingReaction) return;
-  const reaction = stateObject.pendingReaction;
-  if (reaction.targetName !== name) return;
-  if (stateObject.reactionTimeout) {
-    clearTimeout(stateObject.reactionTimeout);
-    stateObject.reactionTimeout = null;
-  }
-  const { reactionType } = payload;
-  const reactingPlayerState = isPvp
-    ? encounter.playerStates.find((p) => p.name === name)
-    : party.sharedState.partyMemberStates.find((p) => p.name === name);
-  const reactingPlayer = players[name];
-  let finalDamage = reaction.damage;
-  let dodged = false;
-  let blocked = false;
-  let logMessage = '';
-
-  if (reactionType === 'Dodge') {
-    const dodgeSpell = reactingPlayer.character.equippedSpells.find((s) => s.name === 'Dodge');
-    if (dodgeSpell && (reactingPlayerState.spellCooldowns[dodgeSpell.name] || 0) <= 0) {
-      reactingPlayerState.spellCooldowns[dodgeSpell.name] = dodgeSpell.cooldown;
-      const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
-      const statValue = reactingPlayer.character.agility + bonuses.agility;
-      const roll = rollD20();
-      const total = roll + statValue;
-      const isSuccess = roll !== 1 && total >= dodgeSpell.hit;
-      const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
-      const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
-      if (roll === 1) {
-        logMessage = `${name}'s Dodge: ${rollDisplay} Critical Failure!`;
-      } else if (isSuccess) {
-        finalDamage = 0;
-        dodged = true;
-        logMessage = `${name}'s Dodge: ${rollDisplay} Avoided!`;
-      } else {
-        logMessage = `${name}'s Dodge: ${rollDisplay} Failed!`;
-      }
-    } else {
-      logMessage = `${name} tries to Dodge, but fails!`;
-    }
-  } else if (reactionType === 'Block') {
-    const shield = reactingPlayer.character.equipment.offHand;
-    if (shield && shield.reaction && (reactingPlayerState.itemCooldowns[shield.name] || 0) <= 0) {
-      reactingPlayerState.itemCooldowns[shield.name] = shield.cooldown;
-      const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
-      const statValue = reactingPlayer.character.defense + bonuses.defense;
-      const roll = rollD20();
-      const total = roll + statValue;
-      const isSuccess = roll !== 1 && total >= shield.reaction.hit;
-      const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
-      const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
-      if (roll === 1) {
-        logMessage = `${name}'s Block: ${rollDisplay} Critical Failure!`;
-      } else if (isSuccess) {
-        const damageReduction = shield.reaction.value;
-        finalDamage = Math.max(1, finalDamage - damageReduction);
-        blocked = true;
-        logMessage = `${name}'s Block: ${rollDisplay} Blocked ${damageReduction} damage!`;
-      } else {
-        logMessage = `${name}'s Block: ${rollDisplay} Failed!`;
-      }
-    } else {
-      logMessage = `${name} tries to Block, but fails!`;
-    }
-  }
-  // --- NEW LOGIC FOR EVASIVE SHOT REACTION ---
-  else if (reactionType === 'Evasive Shot') {
-    const evasiveShotSpell = reactingPlayer.character.equippedSpells.find((s) => s.name === 'Evasive Shot');
-    const mainHand = reactingPlayer.character.equipment.mainHand;
-    const offHand = reactingPlayer.character.equipment.offHand;
-    const requiredTypes = evasiveShotSpell?.requires?.weaponType || [];
-    // Find the ranged weapon (check mainHand first, then offHand for crossbows)
-    const rangedWeapon =
-      mainHand && requiredTypes.includes(mainHand.weaponType)
-        ? mainHand
-        : offHand && requiredTypes.includes(offHand.weaponType)
-          ? offHand
-          : null;
-
-    if (evasiveShotSpell && rangedWeapon && (reactingPlayerState.spellCooldowns[evasiveShotSpell.name] || 0) <= 0) {
-      reactingPlayerState.spellCooldowns[evasiveShotSpell.name] = evasiveShotSpell.cooldown;
-      const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
-      const statValue = reactingPlayer.character.agility + bonuses.agility;
-      const roll = rollD20();
-      const total = roll + statValue;
-      const { avoidHit, counterHit } = evasiveShotSpell.reactionDetails;
-
-      const isSuccess = roll !== 1 && total >= avoidHit;
-      const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
-      const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
-
-      if (roll === 1) {
-        logMessage = `${name}'s Evasive Shot: ${rollDisplay} Critical Failure!`;
-      } else if (isSuccess) {
-        finalDamage = 0;
-        dodged = true;
-        logMessage = `${name}'s Evasive Shot: ${rollDisplay} Avoided!`;
-
-        if (total >= counterHit) {
-          let counterDamage = rangedWeapon.weaponDamage;
-
-          if (isPvp) {
-            // PVP counter-attack - target is another player
-            const attackerPlayerState = encounter.playerStates.find((p) => p.playerId === reaction.attackerPlayerId);
-            if (attackerPlayerState && !attackerPlayerState.isDead) {
-              const attackerCharacter = players[attackerPlayerState.name]?.character;
-              let damageToDeal = counterDamage;
-
-              if (attackerCharacter) {
-                const attackerBonuses = getBonusStatsForPlayer(attackerCharacter, attackerPlayerState);
-                const resistance = attackerBonuses.physicalResistance || 0;
-                damageToDeal = Math.max(1, counterDamage - resistance);
-              }
-
-              applyDamage(attackerPlayerState, damageToDeal);
-
-              let counterLog = ` They counter-attack, dealing ${damageToDeal} damage to ${attackerPlayerState.name}!`;
-              if (damageToDeal < counterDamage) counterLog += ` (${counterDamage - damageToDeal} resisted)`;
-              stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
-
-              if (attackerPlayerState.health <= 0) {
-                defeatEnemyInParty(io, party, { playerId: attackerPlayerState.playerId }, null);
-              }
-              logMessage = ''; // Clear message to prevent double logging
-            }
-          } else {
-            // PVE counter-attack - target is an enemy card
-            const attackerEnemy = stateObject.zoneCards[reaction.attackerIndex];
-            if (attackerEnemy && attackerEnemy.health > 0) {
-              const resistance =
-                attackerEnemy.buffs?.find((b) => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
-              let damageToDeal = Math.max(1, counterDamage - resistance);
-
-              applyDamage(attackerEnemy, damageToDeal);
-
-              let counterLog = ` They counter-attack, dealing ${damageToDeal} damage to ${attackerEnemy.name}!`;
-              stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
-
-              if (attackerEnemy.health <= 0) {
-                defeatEnemyInParty(io, party, attackerEnemy, reaction.attackerIndex);
-              }
-              logMessage = ''; // Clear message to prevent double logging
-            }
-          }
-        }
-      } else {
-        logMessage = `${name}'s Evasive Shot: ${rollDisplay} Failed!`;
-      }
-    } else {
-      logMessage = `${name} tries to use Evasive Shot, but fails!`;
-    }
-  }
-  // --- END OF NEW LOGIC ---
-  // --- PARRY REACTION LOGIC ---
-  else if (reactionType === 'Parry') {
-    const parrySpell = reactingPlayer.character.equippedSpells.find((s) => s.name === 'Parry');
-    const mainHand = reactingPlayer.character.equipment.mainHand;
-    const rangedWeaponTypes = ['Two-Hand Bow', 'Two-Hand Staff'];
-    const hasMeleeWeapon =
-      mainHand &&
-      mainHand.type === 'weapon' &&
-      (mainHand.range === 'melee' || (!mainHand.range && !rangedWeaponTypes.includes(mainHand.weaponType)));
-
-    if (parrySpell && hasMeleeWeapon && (reactingPlayerState.spellCooldowns[parrySpell.name] || 0) <= 0) {
-      reactingPlayerState.spellCooldowns[parrySpell.name] = parrySpell.cooldown;
-      const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
-
-      // Use defense stat
-      const statValue = reactingPlayer.character.defense + (bonuses.defense || 0);
-
-      const roll = rollD20();
-      const total = roll + statValue;
-      const { avoidHit, counterHit } = parrySpell.reactionDetails;
-
-      const isSuccess = roll !== 1 && total >= avoidHit;
-      const rollColor = isSuccess ? '#2ecc71' : '#e74c3c';
-      const rollDisplay = `<span style="color:${rollColor}">🎲${roll}</span>`;
-
-      if (roll === 1) {
-        logMessage = `${name}'s Parry: ${rollDisplay} Critical Failure!`;
-      } else if (isSuccess) {
-        finalDamage = 0;
-        dodged = true;
-        logMessage = `${name}'s Parry: ${rollDisplay} Deflected!`;
-
-        if (total >= counterHit) {
-          let counterDamage = mainHand.weaponDamage;
-
-          if (isPvp) {
-            // PVP counter-attack - target is another player
-            const attackerPlayerState = encounter.playerStates.find((p) => p.playerId === reaction.attackerPlayerId);
-            if (attackerPlayerState && !attackerPlayerState.isDead) {
-              const attackerCharacter = players[attackerPlayerState.name]?.character;
-              let damageToDeal = counterDamage;
-
-              if (attackerCharacter) {
-                const attackerBonuses = getBonusStatsForPlayer(attackerCharacter, attackerPlayerState);
-                const resistance = attackerBonuses.physicalResistance || 0;
-                damageToDeal = Math.max(1, counterDamage - resistance);
-              }
-
-              applyDamage(attackerPlayerState, damageToDeal);
-
-              let counterLog = ` They riposte, dealing ${damageToDeal} damage to ${attackerPlayerState.name}!`;
-              if (damageToDeal < counterDamage) counterLog += ` (${counterDamage - damageToDeal} resisted)`;
-              stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
-
-              if (attackerPlayerState.health <= 0) {
-                defeatEnemyInParty(io, party, { playerId: attackerPlayerState.playerId }, null);
-              }
-              logMessage = ''; // Clear message to prevent double logging
-            }
-          } else {
-            // PVE counter-attack - target is an enemy card
-            const attackerEnemy = stateObject.zoneCards[reaction.attackerIndex];
-            if (attackerEnemy && attackerEnemy.health > 0) {
-              const resistance =
-                attackerEnemy.buffs?.find((b) => b.bonus && b.bonus.physicalResistance)?.bonus.physicalResistance || 0;
-              let damageToDeal = Math.max(1, counterDamage - resistance);
-
-              applyDamage(attackerEnemy, damageToDeal);
-
-              let counterLog = ` They riposte, dealing ${damageToDeal} damage to ${attackerEnemy.name}!`;
-              stateObject.log.push({ message: logMessage + counterLog, type: 'success' });
-
-              if (attackerEnemy.health <= 0) {
-                defeatEnemyInParty(io, party, attackerEnemy, reaction.attackerIndex);
-              }
-              logMessage = ''; // Clear message to prevent double logging
-            }
-          }
-        }
-      } else {
-        logMessage = `${name}'s Parry: ${rollDisplay} Failed!`;
-      }
-    } else {
-      logMessage = `${name} tries to Parry, but fails!`;
-    }
-  }
-  // --- END PARRY LOGIC ---
-  else {
-    logMessage = `${name} braces for the attack!`;
-  }
-
-  if (logMessage) stateObject.log.push({ message: logMessage, type: dodged || blocked ? 'success' : 'reaction' });
-
-  if (finalDamage > 0 || (reaction.debuff && !dodged)) {
-    let damageToDeal = 0;
-    let damageMessage = `${reaction.attackerName} ${reaction.message}`;
-
-    if (finalDamage > 0) {
-      damageToDeal = finalDamage;
-      if (reaction.damageType === 'Physical') {
-        const bonuses = getBonusStatsForPlayer(reactingPlayer.character, reactingPlayerState);
-        const resistance = bonuses.physicalResistance || 0;
-        damageToDeal = Math.max(1, finalDamage - resistance);
-      }
-      applyDamage(reactingPlayerState, damageToDeal);
-      damageMessage += ` It hits ${name} for ${damageToDeal} damage! [id:${reactingPlayerState.playerId}]`;
-      if (damageToDeal < finalDamage) {
-        damageMessage += ` (${finalDamage - damageToDeal} resisted)`;
-      }
-    }
-
-    if (reaction.debuff && !dodged) {
-      const debuff = reaction.debuff;
-      const existingIndex = reactingPlayerState.debuffs.findIndex(
-        (d) => d.type.toLowerCase() === debuff.type.toLowerCase()
-      );
-      if (existingIndex !== -1) reactingPlayerState.debuffs.splice(existingIndex, 1);
-      reactingPlayerState.debuffs.push({ ...debuff });
-      damageMessage += ` ${name} is now ${debuff.type}!`;
-    }
-    stateObject.log.push({ message: damageMessage, type: 'damage' });
-  }
-  if (reactingPlayerState.health <= 0) {
-    reactingPlayerState.health = 0;
-    reactingPlayerState.isDead = true;
-    if (isPvp) {
-      handlePvpPlayerDeath(io, reactingPlayer, encounter);
-    } else {
-      if (reactingPlayer.character) {
-        reactingPlayerState.lootableInventory = [...reactingPlayer.character.inventory.filter(Boolean)];
-        reactingPlayer.character.inventory = Array(INVENTORY_SIZE).fill(null);
-        if (reactingPlayer.id) io.to(reactingPlayer.id).emit('characterUpdate', reactingPlayer.character);
-      }
-    }
-    stateObject.log.push({ message: `${name} has been defeated!`, type: 'damage' });
-  }
-  const wasFleeing = reaction.isFleeing || false;
-  stateObject.pendingReaction = null;
-  if (isPvp) {
-    const duration = encounter.turnTimeRemaining;
-    if (duration > 0) {
-      const timerEndsAt = Date.now() + duration;
-      encounter.turnTimerId = setTimeout(() => {
-        const currentEncounter = pvpEncounters[encounter.id];
-        if (currentEncounter) {
-          const activePlayerId = currentEncounter.turnOrder[currentEncounter.activeTurnIndex];
-          const activePlayer = currentEncounter.playerStates.find((p) => p.playerId === activePlayerId);
-          if (activePlayer) {
-            currentEncounter.log.push({ message: `${activePlayer.name}'s time expired! Turn ends.`, type: 'damage' });
-            activePlayer.turnEnded = true;
-          }
-          startNextPvpTurn(io, currentEncounter.id);
-        }
-      }, duration);
-      encounter.turnTimerEndsAt = timerEndsAt;
-    }
-    const defendingTeam = reactingPlayerState.team;
-    const allDefendersDead = encounter.playerStates.filter((p) => p.team === defendingTeam).every((p) => p.isDead);
-    if (allDefendersDead) {
-      const winningTeam = defendingTeam === 'A' ? 'B' : 'A';
-      const winningParty = winningTeam === 'A' ? parties[encounter.partyAId] : parties[encounter.partyBId];
-      const losingParty = winningTeam === 'A' ? parties[encounter.partyBId] : parties[encounter.partyAId];
-      endPvpEncounter(io, winningParty, losingParty);
-    } else {
-      broadcastAdventureUpdate(io, party);
-    }
-    return;
-  }
-  const lastAttackerIndex = reaction.attackerIndex;
-  const enemies = party.sharedState.zoneCards
-    .map((c, i) => ({ card: c, index: i }))
-    .filter((e) => e.card && e.card.type === 'enemy');
-  const lastEnemyListIndex = enemies.findIndex((e) => e.index === lastAttackerIndex);
-  await runEnemyPhaseForParty(io, party.id, wasFleeing, lastEnemyListIndex + 1);
-}
+export { handleResolveReaction } from './reaction-handlers.js';

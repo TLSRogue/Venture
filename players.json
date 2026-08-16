@@ -5,9 +5,7 @@
       "characterName": "bob",
       "characterIcon": "🧑",
       "title": "The Novice",
-      "unlockedTitles": [
-        "The Novice"
-      ],
+      "unlockedTitles": ["The Novice"],
       "health": 10,
       "maxHealth": 10,
       "shield": 0,
@@ -171,11 +169,7 @@
           "description": "A clunky metal helmet that protects your skull. +1 Str, +1 Def, +1 Max HP.",
           "tier": 1,
           "icon": "🪖",
-          "traits": [
-            "Heavy",
-            "Physical",
-            "Tier 1"
-          ],
+          "traits": ["Heavy", "Physical", "Tier 1"],
           "rarity": "common",
           "canBeInMerchantWares": true,
           "quantity": 7
@@ -210,11 +204,7 @@
           "description": "Basic, balanced, and barely exciting—but it'll stab just fine. 1 AP, 1 CD | D20+Str (10+) | Deals 2 Physical Damage.",
           "tier": 1,
           "icon": "⚔️",
-          "traits": [
-            "Sword",
-            "Melee",
-            "Tier 1"
-          ],
+          "traits": ["Sword", "Melee", "Tier 1"],
           "rarity": "common",
           "canBeInMerchantWares": true,
           "quantity": 3
@@ -254,9 +244,7 @@
       "characterName": "tester",
       "characterIcon": "🧑",
       "title": "The Novice",
-      "unlockedTitles": [
-        "The Novice"
-      ],
+      "unlockedTitles": ["The Novice"],
       "health": 10,
       "maxHealth": 10,
       "shield": 0,
@@ -396,12 +384,7 @@
           "description": "A simple iron sword enchanted with ever-burning flames. 1 AP, 1 CD | D20+Str (10+) | Deals 2 Fire Damage.",
           "tier": 1,
           "icon": "🔥⚔️",
-          "traits": [
-            "Sword",
-            "Melee",
-            "Fire",
-            "Tier 1"
-          ],
+          "traits": ["Sword", "Melee", "Fire", "Tier 1"],
           "rarity": "uncommon",
           "canBeInMerchantWares": true,
           "quantity": 2
@@ -428,11 +411,7 @@
           "description": "A simple leather cap that cushions light blows. +1 Agi, +1 Max HP.",
           "tier": 1,
           "icon": "🪖",
-          "traits": [
-            "Medium",
-            "Physical",
-            "Tier 1"
-          ],
+          "traits": ["Medium", "Physical", "Tier 1"],
           "rarity": "common",
           "canBeInMerchantWares": true,
           "quantity": 2
@@ -449,11 +428,7 @@
           "description": "A flowing garment woven with arcane threads. +1 Wis, +1 Max HP.",
           "tier": 1,
           "icon": "👘",
-          "traits": [
-            "Light",
-            "Magical",
-            "Tier 1"
-          ],
+          "traits": ["Light", "Magical", "Tier 1"],
           "rarity": "common",
           "canBeInMerchantWares": true,
           "quantity": 6
@@ -500,9 +475,7 @@
     "id": null,
     "character": {
       "title": "The Novice",
-      "unlockedTitles": [
-        "The Novice"
-      ],
+      "unlockedTitles": ["The Novice"],
       "health": 10,
       "maxHealth": 10,
       "shield": 0,
@@ -658,9 +631,7 @@
     "id": null,
     "character": {
       "title": "The Novice",
-      "unlockedTitles": [
-        "The Novice"
-      ],
+      "unlockedTitles": ["The Novice"],
       "health": 10,
       "maxHealth": 10,
       "shield": 0,
@@ -816,9 +787,7 @@
     "id": null,
     "character": {
       "title": "The Novice",
-      "unlockedTitles": [
-        "The Novice"
-      ],
+      "unlockedTitles": ["The Novice"],
       "health": 10,
       "maxHealth": 10,
       "shield": 0,
@@ -974,9 +943,7 @@
     "id": null,
     "character": {
       "title": "The Novice",
-      "unlockedTitles": [
-        "The Novice"
-      ],
+      "unlockedTitles": ["The Novice"],
       "health": 10,
       "maxHealth": 10,
       "shield": 0,
@@ -1132,9 +1099,7 @@
     "id": null,
     "character": {
       "title": "The Novice",
-      "unlockedTitles": [
-        "The Novice"
-      ],
+      "unlockedTitles": ["The Novice"],
       "health": 10,
       "maxHealth": 10,
       "shield": 0,
@@ -1290,9 +1255,7 @@
     "id": null,
     "character": {
       "title": "The Novice",
-      "unlockedTitles": [
-        "The Novice"
-      ],
+      "unlockedTitles": ["The Novice"],
       "health": 10,
       "maxHealth": 10,
       "shield": 0,
@@ -1445,12 +1408,10 @@
     }
   },
   "Bobert": {
-    "id": "WPD5XeVuWBH7l9wgAAAB",
+    "id": null,
     "character": {
       "title": "The Novice",
-      "unlockedTitles": [
-        "The Novice"
-      ],
+      "unlockedTitles": ["The Novice"],
       "health": 10,
       "maxHealth": 10,
       "shield": 0,
@@ -1556,6 +1517,440 @@
       "duelId": null,
       "characterName": "Bobert",
       "characterIcon": "🧑",
+      "equippedSpells": [
+        {
+          "name": "Punch",
+          "cost": 1,
+          "cooldown": 1,
+          "school": "Physical",
+          "range": "melee",
+          "description": "A simple strike with your fist.",
+          "type": "attack",
+          "stat": "strength",
+          "damage": 1,
+          "hit": 10,
+          "damageType": "Physical",
+          "icon": "👊",
+          "rarity": "common"
+        },
+        {
+          "name": "Kick",
+          "cost": 1,
+          "cooldown": 1,
+          "school": "Physical",
+          "range": "melee",
+          "description": "A swift kick aimed at your foe.",
+          "type": "attack",
+          "stat": "agility",
+          "damage": 1,
+          "hit": 10,
+          "damageType": "Physical",
+          "icon": "🦶",
+          "rarity": "common"
+        },
+        {
+          "name": "Dodge",
+          "cooldown": 2,
+          "school": "Physical",
+          "range": "self",
+          "description": "Leap out of harm's way to avoid an incoming attack.",
+          "type": "reaction",
+          "stat": "agility",
+          "hit": 10,
+          "icon": "🤸",
+          "rarity": "common"
+        }
+      ]
+    }
+  },
+  "Bob": {
+    "id": "j2ylvTNXcKWhVMn-AAAD",
+    "character": {
+      "title": "The Novice",
+      "unlockedTitles": ["The Novice"],
+      "health": 10,
+      "maxHealth": 10,
+      "shield": 0,
+      "wisdom": 0,
+      "strength": 0,
+      "agility": 0,
+      "defense": 0,
+      "luck": 0,
+      "physicalResistance": 0,
+      "magicalResistance": 0,
+      "fireResistance": 0,
+      "frostResistance": 0,
+      "natureResistance": 0,
+      "arcaneResistance": 0,
+      "holyResistance": 0,
+      "firePower": 0,
+      "frostPower": 0,
+      "naturePower": 0,
+      "arcanePower": 0,
+      "holyPower": 0,
+      "physicalPower": 0,
+      "mining": 0,
+      "fishing": 0,
+      "woodcutting": 0,
+      "harvesting": 0,
+      "gold": 46,
+      "questPoints": 0,
+      "totalQuestPointsEarned": 0,
+      "spellsLearnedFromTraining": 0,
+      "trainingRefreshCount": 0,
+      "trainingOfferings": [],
+      "actionPoints": 3,
+      "focus": 0,
+      "inventory": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "bank": [],
+      "buffs": [],
+      "debuffs": [],
+      "spellbook": [],
+      "knownRecipes": [],
+      "equipment": {
+        "mainHand": {
+          "name": "Longbow",
+          "price": 100,
+          "type": "weapon",
+          "slot": "mainHand",
+          "hands": 2,
+          "cost": 1,
+          "cooldown": 2,
+          "stat": "agility",
+          "hit": 10,
+          "range": "ranged",
+          "weaponType": "Two-Hand Bow",
+          "weaponDamage": 3,
+          "damageType": "Physical",
+          "description": "A simple wooden bow with frayed string.",
+          "tier": 1,
+          "icon": "🏹",
+          "traits": ["Bow", "Ranged", "Tier 1"],
+          "rarity": "uncommon",
+          "canBeInMerchantWares": true,
+          "quantity": 1
+        },
+        "offHand": {
+          "name": "Longbow",
+          "price": 100,
+          "type": "weapon",
+          "slot": "mainHand",
+          "hands": 2,
+          "cost": 1,
+          "cooldown": 2,
+          "stat": "agility",
+          "hit": 10,
+          "range": "ranged",
+          "weaponType": "Two-Hand Bow",
+          "weaponDamage": 3,
+          "damageType": "Physical",
+          "description": "A simple wooden bow with frayed string.",
+          "tier": 1,
+          "icon": "🏹",
+          "traits": ["Bow", "Ranged", "Tier 1"],
+          "rarity": "uncommon",
+          "canBeInMerchantWares": true,
+          "quantity": 1
+        },
+        "helmet": {
+          "name": "Wizard Hat",
+          "price": 70,
+          "type": "armor",
+          "slot": "helmet",
+          "bonus": {
+            "wisdom": 1
+          },
+          "description": "A pointed cap favored by mages.",
+          "tier": 1,
+          "icon": "🧙",
+          "traits": ["Light", "Magical", "Tier 1"],
+          "canBeInMerchantWares": true,
+          "quantity": 1
+        },
+        "armor": null,
+        "boots": {
+          "name": "Cloth Boots",
+          "price": 70,
+          "type": "armor",
+          "slot": "boots",
+          "bonus": {
+            "wisdom": 1
+          },
+          "description": "Lightweight boots for quiet steps.",
+          "tier": 1,
+          "icon": "👢",
+          "traits": ["Light", "Magical", "Tier 1"],
+          "canBeInMerchantWares": true,
+          "quantity": 1
+        },
+        "accessory": null,
+        "ammo": null
+      },
+      "quests": [
+        {
+          "details": {
+            "id": "FARMHAND_TROUBLE",
+            "title": "Farmhand Trouble",
+            "target": "Angry Farmhand",
+            "required": 4,
+            "reward": {
+              "gold": 50,
+              "qp": 1
+            },
+            "prerequisite": null
+          },
+          "status": "active",
+          "progress": 1
+        },
+        {
+          "details": {
+            "id": "BAKERS_REQUEST",
+            "title": "A Birthday Surprise",
+            "turnInItems": {
+              "Egg": 1,
+              "Milk": 1,
+              "Wheat": 1
+            },
+            "reward": {
+              "gold": 25,
+              "qp": 1,
+              "recipeReward": "Birthday Cake"
+            },
+            "prerequisite": null
+          },
+          "status": "active",
+          "progress": 4
+        }
+      ],
+      "spellCooldowns": {},
+      "weaponCooldowns": {},
+      "itemCooldowns": {},
+      "merchantStock": [
+        {
+          "name": "Silk Wizard Hat (T2)",
+          "price": 300,
+          "type": "armor",
+          "slot": "helmet",
+          "bonus": {
+            "wisdom": 2,
+            "maxHealth": 1
+          },
+          "description": "A silky hat that crackles with static magic.",
+          "tier": 2,
+          "icon": "🧙",
+          "traits": ["Light", "Magical", "Tier 2"],
+          "rarity": "uncommon",
+          "canBeInMerchantWares": true,
+          "quantity": 2
+        },
+        {
+          "name": "Harvesting Sickle (T1)",
+          "price": 50,
+          "type": "tool",
+          "toolType": "harvesting",
+          "slot": "mainHand",
+          "skillBonus": {
+            "harvesting": 1
+          },
+          "description": "A curved blade for gathering crops.",
+          "tier": 1,
+          "icon": "🌾",
+          "rarity": "common",
+          "canBeInMerchantWares": true,
+          "quantity": 5
+        },
+        {
+          "name": "Iron Boots",
+          "price": 70,
+          "type": "armor",
+          "slot": "boots",
+          "bonus": {
+            "strength": 1,
+            "maxHealth": 1,
+            "defense": 1
+          },
+          "description": "Heavy, loud, and not made for dancing.",
+          "tier": 1,
+          "icon": "👢",
+          "traits": ["Heavy", "Physical", "Tier 1"],
+          "rarity": "common",
+          "canBeInMerchantWares": true,
+          "quantity": 10
+        },
+        {
+          "name": "Staff",
+          "price": 100,
+          "type": "weapon",
+          "slot": "mainHand",
+          "hands": 2,
+          "cost": 1,
+          "cooldown": 2,
+          "stat": "wisdom",
+          "hit": 10,
+          "range": "ranged",
+          "weaponType": "Two-Hand Staff",
+          "weaponDamage": 3,
+          "damageType": "Arcane",
+          "description": "A simple wooden staff with a faint magical pulse.",
+          "tier": 1,
+          "icon": "🪄",
+          "traits": ["Staff", "Ranged", "Tier 1"],
+          "rarity": "uncommon",
+          "canBeInMerchantWares": true,
+          "gemSlot": 1,
+          "quantity": 7
+        },
+        {
+          "name": "Steel Boots (T2)",
+          "price": 300,
+          "type": "armor",
+          "slot": "boots",
+          "bonus": {
+            "strength": 1,
+            "defense": 1,
+            "maxHealth": 1,
+            "physicalResistance": 1
+          },
+          "description": "Polished steel boots built for heavy combat.",
+          "tier": 2,
+          "icon": "👢",
+          "traits": ["Heavy", "Physical", "Tier 2"],
+          "rarity": "uncommon",
+          "canBeInMerchantWares": true,
+          "quantity": 2
+        },
+        {
+          "name": "Mining Pickaxe (T1)",
+          "price": 50,
+          "type": "tool",
+          "toolType": "mining",
+          "slot": "mainHand",
+          "skillBonus": {
+            "mining": 1
+          },
+          "description": "A sturdy pickaxe for extracting ore from rock.",
+          "tier": 1,
+          "icon": "⛏️",
+          "rarity": "common",
+          "canBeInMerchantWares": true,
+          "quantity": 8
+        },
+        {
+          "name": "Iron",
+          "type": "material",
+          "tier": 1,
+          "price": 10,
+          "description": "A chunk of raw iron.",
+          "icon": "🪨",
+          "rarity": "common",
+          "canBeInMerchantWares": true,
+          "quantity": 6
+        },
+        {
+          "name": "Iron Sword",
+          "price": 70,
+          "type": "weapon",
+          "slot": "mainHand",
+          "cost": 1,
+          "cooldown": 1,
+          "stat": "strength",
+          "hit": 10,
+          "range": "melee",
+          "weaponType": "Sword",
+          "weaponDamage": 2,
+          "damageType": "Physical",
+          "description": "Basic, balanced, and barely exciting—but it'll stab just fine.",
+          "tier": 1,
+          "icon": "⚔️",
+          "traits": ["Sword", "Melee", "Tier 1"],
+          "rarity": "common",
+          "canBeInMerchantWares": true,
+          "quantity": 6
+        },
+        {
+          "name": "Steel Helm (T2)",
+          "price": 300,
+          "type": "armor",
+          "slot": "helmet",
+          "bonus": {
+            "strength": 1,
+            "defense": 1,
+            "maxHealth": 1,
+            "physicalResistance": 1
+          },
+          "description": "A polished steel helm forged for battle.",
+          "tier": 2,
+          "icon": "🪖",
+          "traits": ["Heavy", "Physical", "Tier 2"],
+          "rarity": "uncommon",
+          "canBeInMerchantWares": true,
+          "quantity": 7
+        },
+        {
+          "name": "Large Steel Mace",
+          "price": 200,
+          "type": "weapon",
+          "slot": "mainHand",
+          "hands": 2,
+          "cost": 1,
+          "cooldown": 2,
+          "stat": "strength",
+          "hit": 10,
+          "range": "melee",
+          "weaponType": "Two-Hand Mace",
+          "weaponDamage": 4,
+          "damageType": "Physical",
+          "onHit": {
+            "debuff": {
+              "type": "daze",
+              "duration": 1
+            },
+            "threshold": 15
+          },
+          "description": "A heavy steel crusher that rattles bones on impact.",
+          "tier": 2,
+          "icon": "🔨",
+          "traits": ["Two-Handed", "Melee", "Tier 2"],
+          "rarity": "uncommon",
+          "canBeInMerchantWares": true,
+          "quantity": 9
+        }
+      ],
+      "merchantLastStocked": 1786916098319,
+      "cardDefeatTimes": {},
+      "partyId": null,
+      "duelId": null,
+      "characterName": "Bob",
+      "characterIcon": "/assets/avatars/avatar-male-1.jpg",
       "equippedSpells": [
         {
           "name": "Punch",

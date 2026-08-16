@@ -5,7 +5,7 @@
  */
 
 import { players, parties, duels } from './serverState.js';
-import { broadcastPartyUpdate, broadcastDuelUpdate } from './utilsBroadcast.js';
+import { broadcastPartyUpdate } from './utilsBroadcast.js';
 import { getBonusStatsForPlayer } from './utilsHelpers.js';
 import { startPvpEncounter } from './adventure/pvp-state.js';
 import { DEFAULT_ACTION_POINTS, STARTING_HEALTH } from './constants.js';

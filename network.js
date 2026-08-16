@@ -7,7 +7,11 @@
  * and provides methods for sending data to the server.
  */
 
-export const socket = io('https://venturecrpg.onrender.com');
+const isLocal =
+  typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+export const socket = io(isLocal ? window.location.origin : 'https://venturecrpg.onrender.com');
 
 /**
  * Initializes all the listeners for events coming from the server.
